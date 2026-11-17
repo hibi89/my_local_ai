@@ -19,9 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-016",
-    "MLA-017",
-    "MLA-018"
+    "MLA-014",
+    "MLA-015",
+    "MLA-022"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -503,12 +503,13 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "Git inventory and .git linkage integrity code tested synthetically; actual protected OS Git worktree creation, hooks/filter discovery and Windows FS attacks remain NOT_RUN."
-      ],
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
       "p1_hardening_round": 2,
-      "p1_hardening_evidence_sha": "0195984c8d3d5cb2f200b73c462973a563227a18"
+      "p1_hardening_evidence_sha": "0195984c8d3d5cb2f200b73c462973a563227a18",
+      "p1_runtime_deferred_reasons": [
+        "Git inventory and .git linkage integrity code tested synthetically; actual protected OS Git worktree creation, hooks/filter discovery and Windows FS attacks remain NOT_RUN."
+      ]
     },
     {
       "task_id": "MLA-015",
@@ -543,12 +544,13 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "Fixed review policy and source/plan/candidate SHA + positive lease re-attestation; actual separately protected Windows issuer/reviewer and independent F18 PASS remain NOT_RUN."
-      ],
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
       "p1_hardening_round": 2,
-      "p1_hardening_evidence_sha": "5ee8426442d5bffb40c9c46826298540ad40fcb3"
+      "p1_hardening_evidence_sha": "5ee8426442d5bffb40c9c46826298540ad40fcb3",
+      "p1_runtime_deferred_reasons": [
+        "Fixed review policy and source/plan/candidate SHA + positive lease re-attestation; actual separately protected Windows issuer/reviewer and independent F18 PASS remain NOT_RUN."
+      ]
     },
     {
       "task_id": "MLA-016",
@@ -568,7 +570,7 @@
       "safety_checks": "ONE_FIX_ONLY;NO_FALSE_VERIFIED",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "f737e8973c0d01cbf4309b9c1053d7a3b812fdab",
+      "evidence_sha": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af",
       "blockers": [
         "Improved retry strategy must differ from prior, source/lease pinned; actual protected runtime retry NOT_RUN."
       ],
@@ -581,9 +583,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 2,
+      "p1_hardening_round": 3,
       "p1_hardening_evidence_sha": "f737e8973c0d01cbf4309b9c1053d7a3b812fdab"
     },
     {
@@ -606,7 +608,7 @@
       "safety_checks": "IDEMPOTENCY;FENCING;NO_DATA_LOSS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "fcdd0371eab25691a9c1e97f1575875f31c5b079",
+      "evidence_sha": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af",
       "blockers": [
         "Orphan run, duplicate/stale epoch and contradictory DB/Git review/integration records fail closed in synthetic tests; real OS protected recovery/physical Git CAS and crash tests NOT_RUN."
       ],
@@ -620,9 +622,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 3,
+      "p1_hardening_round": 4,
       "p1_hardening_evidence_sha": "f7074c60e9ab516980be0e02b22cf46bd0d9d080"
     },
     {
@@ -643,7 +645,7 @@
       "safety_checks": "TRUSTED_RECEIPT_REQUIRED;NO_REMOTE",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "9073a0c2b845c5d566453e36763abbc67e66aa60",
+      "evidence_sha": "9933c4f591a70b64dbc397735f521bd0900cd3a8",
       "blockers": [
         "Synthetic atomic CAS state machine + immutable original/main; real protected Git CAS and F18 signer NOT_RUN."
       ],
@@ -657,9 +659,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 2,
+      "p1_hardening_round": 3,
       "p1_hardening_evidence_sha": "9073a0c2b845c5d566453e36763abbc67e66aa60"
     },
     {
@@ -820,12 +822,13 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "Synthetic time-window resource anomalies and thermal spike HOLD; actual Windows telemetry/24h NOT_RUN."
-      ],
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
       "p1_hardening_round": 2,
-      "p1_hardening_evidence_sha": "1c4bddb9fdcd6a0a999f90cec48e24b6b025363b"
+      "p1_hardening_evidence_sha": "1c4bddb9fdcd6a0a999f90cec48e24b6b025363b",
+      "p1_runtime_deferred_reasons": [
+        "Synthetic time-window resource anomalies and thermal spike HOLD; actual Windows telemetry/24h NOT_RUN."
+      ]
     },
     {
       "task_id": "MLA-023",
@@ -1063,12 +1066,12 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "e4bab2da8720c23a2018fd73dd48269ea8f9db5e",
-    "run_id": 44028708311,
+    "head_sha": "9933c4f591a70b64dbc397735f521bd0900cd3a8",
+    "run_id": 44033513775,
     "python_compile": "PASS",
-    "unit_tests_pass": 145,
-    "synthetic_integration_tests_pass": 82,
-    "security_contract_tests_pass": 135,
+    "unit_tests_pass": 149,
+    "synthetic_integration_tests_pass": 101,
+    "security_contract_tests_pass": 139,
     "scope": "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
@@ -1093,9 +1096,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-016",
-      "MLA-017",
-      "MLA-018"
+      "MLA-014",
+      "MLA-015",
+      "MLA-022"
     ],
     "completed_code_waves": [
       [
@@ -1168,6 +1171,11 @@
         "MLA-019",
         "MLA-021",
         "MLA-025"
+      ],
+      [
+        "MLA-016",
+        "MLA-017",
+        "MLA-018"
       ]
     ]
   },

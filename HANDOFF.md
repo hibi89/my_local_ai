@@ -277,3 +277,19 @@
 8. **Data/backup/rights:** No secrets, customer originals, protected DB, Production, remote PR, payment, OS settings or original EAI/AX changed. Exact blueprint untouched.
 9. **Next READY:** MLA-016/017/018 protected recovery and Git isolated CAS **P1 CODE_ONLY** candidate. Their runtime status, original dependency edges and owner gates still HOLD. Prefer bundled source edits and immediate synthetic high-risk checks. P2 cannot start before High exact SHA signoff and protected F18.
 10. **KST/evidence:** 2026-11-17 KST; latest tested source `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`, Actions `44028708311`, official verified rate UNASSESSED.
+
+
+---
+
+## My Local AI P1 quick handoff — 2026-11-17 KST, MLA-016/017/018
+
+1. **Goal:** independent offline My Local AI Controller, no EAI original mutation. Implement source code to frozen Final Blueprint, P2 verification after High exact-SHA acceptance.
+2. **Changes:** 016 one corrected strategy restricted by failure class and no REPAIR_ONCE reentry; 017 SQLite orphan review/stale lease/foreign isolated-ref collision with plan-ID-bound synthetic lease key; 018 in-memory Git isolated ref task-ID binding and ABA replay denial. No working OS/model/DB/remote runner authorized.
+3. **Exact tests:** `1bf6a17ec5623815c11b125fbfde0c4f6cf162af` @ Actions `44033355352` 388/388. `9933c4f591a70b64dbc397735f521bd0900cd3a8` @ Actions `44033513775` PASS Python compile, 149 unit, 101 synthetic integration, 139 synthetic security = **389/389 PASS**. Actual Windows, local Git CAS, physical DB crash, Qwen and independent F18 remain NOT_RUN.
+4. **Progress:** P1 fully implemented REQ **5/30=16.67%**, not changed by tests/path counts; formal verified rate UNASSESSED, P2 LOCKED; no release or real use.
+5. **Blockers:** MLA-001 source rights, MLA-003 independent protected OS reviewer/F18 and MLA-009 owner signer still HOLD. Runtime task blockers and full dependency graph retained. Unit test fixtures cannot mint APPROVED or VERIFIED.
+6. **Repository/branch/HEAD:** `hibi89/my_local_ai@dev/instant-implementation-v1`. Latest exact tested code SHA `9933c4f591a70b64dbc397735f521bd0900cd3a8`. This handoff/queue commit advances HEAD; fetch fresh HEAD and AGENTS on next `ㄱ`.
+7. **Production:** none. No real OS service, customer data, Production deployment or remote PR; GitHub-owned dev branch only, CI Python3.11 on GitHub Ubuntu.
+8. **Preservation:** `docs/FINAL_BLUEPRINT.md`, EAI, AX Dev Factory, main, customer originals, backups and history unchanged; no secrets, external paid/network, OS permissions or real DB/remote work.
+9. **Next READY:** source-only `MLA-014` Git worktree, `MLA-015` independent reviewer contracts, `MLA-022` long-run supervisor. Their former P1 blockers were P2 actual OS/24h validation notes and have been retained under `p1_runtime_deferred_reasons` and untouched original `blockers`. Protected owner signer and independent F18 still not implemented for real use.
+10. **Evidence time:** 2026-11-17 KST; last exact code SHA and Actions `44033513775` synthetic PASS; documentation commit HEAD needs independent CI readback.

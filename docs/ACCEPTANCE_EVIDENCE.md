@@ -98,3 +98,10 @@ At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory A
 - `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`: optional exact source Git SHA + plan SHA pinned envelope travels from Controller via `preview_plan` and `preview_local_code_request` to the read-only app/worker card. Frontend receives fixed safe status enums only, not raw EAI payload, user prompts, permissions or model commands. When the optional envelope is missing/invalid, default native Controller flow continues.
 - EAI source import/relicense not performed, actual remote AI/OS/Git/F18 and browser test NOT_RUN. P2 owner checklist includes an EAI pinned-fallback scenario, but no scenario has PASS evidence.
 - Mandatory synthetic CI `44028708311` at source SHA `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`: compile PASS, unit 145, synthetic integration 82, synthetic security 135 = **362/362 PASS**. P1 code REQs 5/30 unchanged, verified rate UNASSESSED, P2 LOCKED, real-use HOLD.
+
+
+## 2026-11-17 — MLA-016/017/018 P1 code-only evidence
+
+- Exact source `1bf6a17e...` repaired recovery-loop, orphan SQLite review, F18-less isolated ref CAS replay issues; Actions `44033355352` 388/388 PASS.
+- `9933c4f591a70b64dbc397735f521bd0900cd3a8` added malformed synthetic CAS task-ID denial; Actions `44033513775` PASS Python compile + **149 unit, 101 integration, 139 security = 389/389**. All tests are synthetic, on GitHub Ubuntu Python3.11. Real protected owner Windows, physical DB+Git crash, independent F18 signer/receipt, 24h local operation and browser are NOT_RUN.
+- Source REQ progress **5/30=16.67% unchanged**; P2 verified rate UNASSESSED, P2 LOCKED, real-use HOLD. Original source rights, protected signer and F18 isolation remain blocking.
