@@ -456,3 +456,15 @@ Owner clarified: normal P1 feature work remains 2+2; **do not escalate merely fo
 - P1 CodeShield **13/16 = 81.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED**; old MLA **35/39 89.74%** source candidates and formal P1 **5/30 16.67%** unchanged. Unimplemented/higher-risk 007 Semgrep protected OS broker, 012 optional owner-scoped Defender scan, 014 Controller/F18 security dispatch; next safe **CS-SWU-007 code-only**. F18/OS execution/owner GO HIGH-risk gates remain HOLD.
 - Checks: GitHub file readback / expected markers PASS; **Python syntax, targeted smoke, actual OSV CLI/options/Windows offline run NOT_RUN** (source accessible only via connector, no verified local Python checkout). Existing full CI NOT_RUN/DEFERRED_TO_P2; actual trusted reviewer NOT_RUN. This source implementation candidate is not native OSV runtime validation.
 - 2+2 failures added **0**, Sol Max escalation conditional/deferred; no demonstrated indispensable blocker. No main/dev merge, paid tool, Windows setting/Defender changes, external customer data or remote runtime execution. P2 LOCKED/UNASSESSED.
+
+
+---
+
+## Semgrep broker source stage 2026-11-18 KST — P1 13/16 unchanged
+
+- Branch `feature/code-shield-lightweight-v1`; previous final HEAD `789a8a95b983c2a3a8dedcae9ac870801154d794`; actual source commit `7a59087ced72d747f8c8741ad4dbf3129f0f4c32`; source queue status `1a2aa6bb960cc04e4d6fece8c5610d3ca087048e`.
+- CS-SWU-007 source progress: pinned Windows local Semgrep broker request (binary + YAML + allowlisted source SHA), bounded parser for untrusted JSON, nosemgrep/ignore bypass guards, fixed local-only argv and denied direct subprocess invocation. Callable port `run_local_semgrep` returns NOT_RUN/UNKNOWN_HOLD when no independently protected Windows egress broker exists. Self-asserted boolean can never authorize.
+- **This is source progress, not completed CS-SWU-007.** CodeShield **13/16 = 81.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED** unchanged; existing MLA 35/39 = 89.74%, formal REQ 5/30 = 16.67% unchanged. Missing: 007 protected Windows egress broker, 012 owner-scoped Defender scan, 014 native Controller/F18 execution gate.
+- Tool/validation: GitHub blob source readback + feature head PASS. Python syntax and local smoke **NOT_RUN** (no checkout-backed Python runner); actual Windows Semgrep CLI, OS no-egress, independent F18, CI, P2 **NOT_RUN/LOCKED**. Read-only request or clean untrusted JSON is *never* a scanner PASS / authority.
+- 2+2: one meaningful coding improvement with evidence, **0 new nonprogress failures**, no isolation/escalation. Next independent source-only READY `CS-SWU-012/014` (trusted owner-scope/Controller denial contracts). They **cannot** perform protected actions or enable F18/host execution in P1; real owner-action grant remains unissued. Codex GPT-6.1 Sol Max conditional only if 4 evidenced failures or actual indispensable deadlock.
+- No main/dev merge; no Windows policy/firewall/AV changes; no install, network, secrets, customer data, remote execution or Production. New final branch SHA must be read back.

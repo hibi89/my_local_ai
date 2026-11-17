@@ -537,3 +537,17 @@
 8. Preservation: main, dev, High design, original data, required CI, protected signer/F18 trust restrictions unchanged.
 9. Next code READY: CS-SWU-007 code-only protected Semgrep scanner broker, no arbitrary boolean-based egress privilege. Ask High for true OS broker design if implementation requires changing trust boundary; Sol Max condition remains deferred.
 10. Basis: 2026-11-17 KST, GitHub source file/queue verification only. P2 verification still unassessed.
+
+
+---
+
+## HANDOFF: Semgrep broker source stage 2026-11-18 KST — P1 13/16 unchanged
+
+- Branch `feature/code-shield-lightweight-v1`; previous final HEAD `789a8a95b983c2a3a8dedcae9ac870801154d794`; actual source commit `7a59087ced72d747f8c8741ad4dbf3129f0f4c32`; source queue status `1a2aa6bb960cc04e4d6fece8c5610d3ca087048e`.
+- CS-SWU-007 source progress: pinned Windows local Semgrep broker request (binary + YAML + allowlisted source SHA), bounded parser for untrusted JSON, nosemgrep/ignore bypass guards, fixed local-only argv and denied direct subprocess invocation. Callable port `run_local_semgrep` returns NOT_RUN/UNKNOWN_HOLD when no independently protected Windows egress broker exists. Self-asserted boolean can never authorize.
+- **This is source progress, not completed CS-SWU-007.** CodeShield **13/16 = 81.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED** unchanged; existing MLA 35/39 = 89.74%, formal REQ 5/30 = 16.67% unchanged. Missing: 007 protected Windows egress broker, 012 owner-scoped Defender scan, 014 native Controller/F18 execution gate.
+- Tool/validation: GitHub blob source readback + feature head PASS. Python syntax and local smoke **NOT_RUN** (no checkout-backed Python runner); actual Windows Semgrep CLI, OS no-egress, independent F18, CI, P2 **NOT_RUN/LOCKED**. Read-only request or clean untrusted JSON is *never* a scanner PASS / authority.
+- 2+2: one meaningful coding improvement with evidence, **0 new nonprogress failures**, no isolation/escalation. Next independent source-only READY `CS-SWU-012/014` (trusted owner-scope/Controller denial contracts). They **cannot** perform protected actions or enable F18/host execution in P1; real owner-action grant remains unissued. Codex GPT-6.1 Sol Max conditional only if 4 evidenced failures or actual indispensable deadlock.
+- No main/dev merge; no Windows policy/firewall/AV changes; no install, network, secrets, customer data, remote execution or Production. New final branch SHA must be read back.
+
+**Next action:** Implement safe CS-SWU-012 owner-scope fail-closed gate and CS-SWU-014 Controller hard-stop stage without launching untrusted code or falsely treating a scanner result as independent F18/owner GO. Record exact SHA, syntax/smoke status, conditional Sol Max trigger.
