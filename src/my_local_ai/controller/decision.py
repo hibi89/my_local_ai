@@ -37,6 +37,23 @@ class ControllerResult:
     execution_allowed: bool = False
 
 
+
+
+@dataclass(frozen=True)
+class CodeBatchPreview:
+    plan_sha256: str
+    source_sha: str
+    task_ids: tuple[str, ...]
+    deferred: tuple[tuple[str, str], ...]
+    reserved_calls: int
+    reserved_seconds: int
+    advisory_status: str
+    state: str = "CODE_CANDIDATE_ONLY"
+    model_calls_executed: int = 0
+    owner_go_verified: bool = False
+    independent_f18_verified: bool = False
+    runnable: bool = False
+
 class Controller:
     """Deterministic READY ranking; no EAI process, shell or network access."""
 
@@ -50,6 +67,59 @@ class Controller:
         self._plan = plan
         self._tasks = {task.task_id: task for task in plan.tasks}
         self._queue = QueuePolicy(plan.tasks, plan.digest)
+
+    def propose_code_batch(
+        self, states: dict[str, str], *,
+        max_tasks: int, max_total_calls: int, max_total_seconds: int,
+        independently_verified: Iterable[str] = (),
+        active_leases: Iterable[str] = (),
+        advisory_json: str | None = None,
+    ) -> "CodeBatchPreview":
+        """Select disjoint *candidate code tasks*, never parallel executors.
+
+        The physical one-model lock, owner GO, source rights, F18 and OS
+        sandbox remain separate. This resolves queue bottlenecks without
+        treating advisory priority or guest VERIFIED claims as privileges.
+        """
+        if (type(max_tasks) is not int or not 1 <= max_tasks <= 32
+            or type(max_total_calls) is not int or not 1 <= max_total_calls <= 100
+            or type(max_total_seconds) is not int
+            or not 1 <= max_total_seconds <= 86400):
+            raise ValueError("invalid code authoring batch budget")
+        result = self.propose(
+            states,independently_verified=independently_verified,
+            active_leases=active_leases,advisory_json=advisory_json,
+        )
+        if result.execution_allowed or result.verified or result.owner_go:
+            raise ValueError("untrusted Controller privilege")
+        selected=[]
+        deferred=[]
+        used_files=set()
+        calls=0
+        seconds=0
+        for entry in result.decisions:
+            if entry.runnable:
+                raise ValueError("unexpected executable candidate")
+            task=self._tasks[entry.task_id]
+            paths={v.casefold() for v in task.allowed_paths}
+            if len(selected)>=max_tasks:
+                deferred.append((entry.task_id,"SLOT_BUDGET"))
+                continue
+            if paths & used_files:
+                deferred.append((entry.task_id,"PATH_CONFLICT"))
+                continue
+            if (calls+task.resource_budget.max_calls>max_total_calls
+                or seconds+task.resource_budget.max_seconds>max_total_seconds):
+                deferred.append((entry.task_id,"RESOURCE_BUDGET"))
+                continue
+            used_files.update(paths)
+            calls+=task.resource_budget.max_calls
+            seconds+=task.resource_budget.max_seconds
+            selected.append(entry.task_id)
+        return CodeBatchPreview(
+            self._plan.digest,self._plan.blueprint_sha,tuple(selected),
+            tuple(deferred),calls,seconds,result.advisory_status,
+        )
 
     def propose(
         self, states: dict[str, str], *,
