@@ -213,3 +213,19 @@
 - **Latest P1 synthetic CI:** Actions `44022642272` at `1c4bddb9fdcd6a0a999f90cec48e24b6b025363b` SUCCESS; Python 3.11 syntax PASS; unit **110/110**, synthetic integration **66/66**, security **130/130** = **306/306 PASS**. No real Windows/Qwen/OpenCode/F18 OS attestation, 24h owner hardware, or browser P2 run.
 - **Overall current user `ㄱ` round:** source commits for MLA-018/019/023 + MLA-006/021/008 + MLA-016/022/024 = nine distinct P1 code-only tasks, 306 synthetic tests (prior 266). This is actual code/test work, but **REQ full-acceptance completed count stays 5/30=16.67%**; 28/28 task code SHA presence is NOT 28 completed. P2 `LOCKED`, verified rate `UNASSESSED`, real-use `HOLD`, all 28 runtime authorization flags still HOLD.
 - **Next P1 code-only READY:** `MLA-005` benchmark evidence, `MLA-020` real-model benchmark source/harness (real model runs P2 only), `MLA-007` protected SQLite/schema/backup source hardening. Do not activate model or touch user/customer DB without separate GO. High architect must eventually finalize actual Windows owner signer/F18/worktree protected driver and rights gate before REQ completion.
+
+
+---
+
+## 2026-11-17 KST — latest My Local AI P1 handoff (above historical text superseded)
+
+1. **Goal:** Independent My Local AI Controller with optional EAI advisor, local Qwen/OpenCode only; 30 implementation REQs/28 P1 code tasks, P2 LOCKED, separate protected F18 signer/reviewer required.
+2. **Implemented:** MLA-005 synthetic aggregation \`6c74b691...\`, MLA-020 model observation/failed-output redacted evidence \`55f52eb9...\`, MLA-007 SQLite schema/foreign key/WAL symlink, backup SHA256 and OS handle release \`55f52eb9...\`/\`bc01f347...\`/\`fcdd0371...\`; MLA-017 attached/TEMP DB recovery spoofing denial \`bc01f347...\` then \`fcdd0371...\`. No final blueprint changes.
+3. **Tests:** latest exact source SHA \`fcdd0371eab25691a9c1e97f1575875f31c5b079\` Actions \`44025805677\` compile PASS, 120 unit/75 synthetic integration/130 security = **325/325 PASS**. Intermediate run \`44025674667\` had 2 errors on empty TEMP registration, fixed. Real Windows/Ollama/OpenCode/F18/24h/browser P2 NOT_RUN.
+4. **Current progress:** implemented code REQ 5/30=16.67% unchanged; 28/28 task evidence SHA is not full REQ acceptance. P2 LOCKED, official verification UNASSESSED, owner REAL_USE HOLD.
+5. **Blockers:** original EAI/AX license provenance \`MLA-001 BLOCKED_PROVENANCE\`; trusted F18 OS boundary \`MLA-003 SECURITY_HOLD\`; owner-protected signer \`MLA-009 TRUST_ROOT_HOLD\`. No fake verification/pass or runtime permissions from source work.
+6. **Repo/branch/SHA:** \`hibi89/my_local_ai@dev/instant-implementation-v1\`, latest tested CODE SHA \`fcdd0371eab25691a9c1e97f1575875f31c5b079\`; this handoff/doc queue commit advances HEAD, so recheck HEAD on next session.
+7. **Production:** not applicable. GitHub Ubuntu Python3.11 synthetic-only CI; owner Windows 11/Qwen/GTX1050Ti unavailable in this turn.
+8. **Rights/backup/security:** only own GitHub dev branch and disposable DB fixtures touched; Git history preserved. No actual owner DB/secret upload/remote PR/main/Production/paid APIs/signer policy changes.
+9. **Next READY:** \`MLA-010\` scheduler code, \`MLA-011\` model budget/lock code, \`MLA-012\` local Qwen provider code; P1 CODE_ONLY source/tests only. Do not run real model/OS/Git operations or lift blocked dependencies. Reconsider gaps with High if architectural/trust boundary changes needed.
+10. **Time/basis:** 2026-11-17 KST, source evidence exact SHA above and Actions \`44025805677\` results. Unexecuted checks NOT_RUN; final design unchanged.
