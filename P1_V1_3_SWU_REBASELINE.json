@@ -1,0 +1,273 @@
+{
+  "schema": "mla-v1.3-swu-scope/v1",
+  "project": "hibi89/my_local_ai",
+  "as_of_kst": "2026-11-18",
+  "baseline": "FINAL_BLUEPRINT_J_K_REQUIRED_CODE_SHIELD",
+  "phase": "P1_IMPLEMENTATION",
+  "p2_status": "LOCKED",
+  "p2_verified_rate": "UNASSESSED",
+  "owner_go": false,
+  "independent_f18": "NOT_VERIFIED",
+  "implementation_scope": "ACTIVE_DEV_SOURCE_ONLY",
+  "active_dev_branch": "dev/instant-implementation-v1",
+  "active_dev_head_at_rebaseline": "3efec6d326c716681b31290902440a01ed956c82",
+  "active_dev_queue_blob_sha": "8099f1e7339b6f36e5ae6cd45988a19618394495",
+  "legacy_swu_total": 39,
+  "code_shield_feature_branch": "feature/code-shield-lightweight-v1",
+  "code_shield_feature_head_at_rebaseline": "736bfd28010f1089a2228c76e74568d56005cd89",
+  "code_shield_queue_blob_sha": "b96072c5fba47d6fa3d86bf98195959f61f46b8e",
+  "code_shield_swu_total": 16,
+  "required_v13_swu_total": 55,
+  "active_dev_source_candidate_swu_at_rebaseline": 35,
+  "code_shield_source_candidate_unmerged_at_rebaseline": 13,
+  "unreconciled_swu_count_at_rebaseline": 20,
+  "metric_rule": "Only actual SOURCE_COMPLETE_P2_PENDING on active dev counts until CodeShield feature source is verified and integrated into active dev; 13 feature source candidates are not product implementation numerator. Existing 39-SWU legacy queue and REQ acceptance remain untouched.",
+  "optional_scope_excluded": [
+    "V1.1 Hydrogen optional remote worker",
+    "V1.2 Experience Learning optional extension"
+  ],
+  "integration_gate": "NOT_RUN_OWNER_APPROVAL_REQUIRED_BEFORE_FUNCTIONAL_SOURCE_MERGE",
+  "integration_is_new_swu": false,
+  "integration_note": "No integration SWU is invented: assess actual caller-to-callee code gap on merge and split only if real new feature implementation is required.",
+  "trust_blockers": [
+    "MLA-SWU-008",
+    "MLA-SWU-015",
+    "MLA-SWU-021",
+    "MLA-SWU-031",
+    "CS-SWU-007",
+    "CS-SWU-012",
+    "CS-SWU-014"
+  ],
+  "code_shield_swu_inventory": [
+    {
+      "id": "CS-SWU-001",
+      "req_ids": [
+        "REQ-CS-01",
+        "REQ-CS-02"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
+      "allowed_paths": [
+        "src/my_local_ai/security/codeshield_contracts.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-002",
+      "req_ids": [
+        "REQ-CS-03",
+        "REQ-CS-04"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
+      "allowed_paths": [
+        "src/my_local_ai/security/ast_preflight.py",
+        "src/my_local_ai/gitops/path_guard.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-003",
+      "req_ids": [
+        "REQ-CS-03",
+        "REQ-CS-04"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "1ab94ec7d2335e7ec03fbaf6f75483148e16f685",
+      "allowed_paths": [
+        "src/my_local_ai/security/ast_preflight.py",
+        "src/my_local_ai/gitops/path_guard.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-004",
+      "req_ids": [
+        "REQ-CS-05"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
+      "allowed_paths": [
+        "src/my_local_ai/security/ruff_adapter.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-005",
+      "req_ids": [
+        "REQ-CS-05"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
+      "allowed_paths": [
+        "src/my_local_ai/security/ruff_adapter.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-006",
+      "req_ids": [
+        "REQ-CS-06"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "82612311ec397927c83b146e2ae18a981dda7071",
+      "allowed_paths": [
+        "src/my_local_ai/security/semgrep_adapter.py",
+        "src/my_local_ai/security/rules/codeshield.yaml"
+      ]
+    },
+    {
+      "id": "CS-SWU-007",
+      "req_ids": [
+        "REQ-CS-06"
+      ],
+      "code_status": "SOURCE_BROKER_FALLBACK_CONFIG_IMPLEMENTED_UNVERIFIED_OS_HOLD",
+      "source_candidate_on_feature": false,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
+      "allowed_paths": [
+        "src/my_local_ai/security/semgrep_adapter.py",
+        "src/my_local_ai/security/rules/codeshield.yaml"
+      ]
+    },
+    {
+      "id": "CS-SWU-008",
+      "req_ids": [
+        "REQ-CS-07"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
+      "allowed_paths": [
+        "src/my_local_ai/security/supply_chain.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-009",
+      "req_ids": [
+        "REQ-CS-07"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "0854228c32ac75e2cc50fa8435743e32a7343036",
+      "allowed_paths": [
+        "src/my_local_ai/security/supply_chain.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-010",
+      "req_ids": [
+        "REQ-CS-07"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "bdccd9724f1c315a81eba61fb034bd707cfb6382",
+      "allowed_paths": [
+        "src/my_local_ai/security/supply_chain.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-011",
+      "req_ids": [
+        "REQ-CS-08"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "4cee05227bfab686c59ccd5ad8d1c9daaba78133",
+      "allowed_paths": [
+        "src/my_local_ai/security/defender_status.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-012",
+      "req_ids": [
+        "REQ-CS-08"
+      ],
+      "code_status": "SOURCE_OWNER_SCOPE_PREVIEW_IMPLEMENTED_UNVERIFIED_SCAN_HOLD",
+      "source_candidate_on_feature": false,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "4e40fa741cc3c471208f675d8c3fda761fea8a2e",
+      "allowed_paths": [
+        "src/my_local_ai/security/defender_status.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-013",
+      "req_ids": [
+        "REQ-CS-09",
+        "REQ-CS-10"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
+      "allowed_paths": [
+        "src/my_local_ai/controller/codeshield.py",
+        "src/my_local_ai/orchestrator.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-014",
+      "req_ids": [
+        "REQ-CS-09",
+        "REQ-CS-10"
+      ],
+      "code_status": "SOURCE_CONTROLLER_HARD_STOP_IMPLEMENTED_UNVERIFIED_F18_HOLD",
+      "source_candidate_on_feature": false,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+      "allowed_paths": [
+        "src/my_local_ai/controller/codeshield.py",
+        "src/my_local_ai/orchestrator.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-015",
+      "req_ids": [
+        "REQ-CS-11",
+        "REQ-CS-12"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "08e83eaec19786f6a8b2e0db5d613656d7aa166d",
+      "allowed_paths": [
+        "src/my_local_ai/cli.py",
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/app.py"
+      ]
+    },
+    {
+      "id": "CS-SWU-016",
+      "req_ids": [
+        "REQ-CS-11",
+        "REQ-CS-12"
+      ],
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "source_candidate_on_feature": true,
+      "integrated_into_dev": false,
+      "implementation_evidence_sha": "0d5368a9a8c9c3ce4a58999f71a5d2d56e4aa678",
+      "allowed_paths": [
+        "src/my_local_ai/cli.py",
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/app.py"
+      ]
+    }
+  ],
+  "original_queue_statuses_preserved": true,
+  "original_req_count": 30,
+  "original_req_completed_legacy": 5,
+  "implementation_source_swu_percent_at_rebaseline": 63.64,
+  "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission."
+}

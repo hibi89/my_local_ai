@@ -91,6 +91,94 @@ def _parser() -> argparse.ArgumentParser:
     resume.add_argument("--state-db", type=Path)
     return parser
 
+def _v13_swu_progress() -> dict:
+    """P1 code inventory by FINAL_BLUEPRINT J/K, never an approval gate.
+
+    The 16 CodeShield SWUs are required in the design but are currently on
+    another branch. Their 13 source candidates MUST NOT increase the active
+    product branch's implementation numerator before a separately approved,
+    source-verified integration. This function performs no Git/network calls.
+    """
+    record = _read_json(_ROOT / "P1_V1_3_SWU_REBASELINE.json")
+    queue = _read_json(_ROOT / "P1_SWU_TASK_QUEUE.json")
+    if (not isinstance(record, dict)
+        or record.get("schema") != "mla-v1.3-swu-scope/v1"
+        or record.get("project") != "hibi89/my_local_ai"
+        or record.get("active_dev_branch") != "dev/instant-implementation-v1"
+        or record.get("code_shield_feature_branch") != "feature/code-shield-lightweight-v1"
+        or record.get("phase") != "P1_IMPLEMENTATION"
+        or record.get("p2_status") != "LOCKED"
+        or record.get("p2_verified_rate") != "UNASSESSED"
+        or record.get("owner_go") is not False
+        or record.get("integration_gate") !=
+            "NOT_RUN_OWNER_APPROVAL_REQUIRED_BEFORE_FUNCTIONAL_SOURCE_MERGE"
+        or record.get("required_v13_swu_total") != 55
+        or record.get("legacy_swu_total") != 39
+        or record.get("code_shield_swu_total") != 16
+        or not isinstance(queue, dict)
+        or queue.get("swu_count") != 39
+        or queue.get("req_count") != 30
+        or queue.get("p2") != "LOCKED"
+        or queue.get("owner_go") is not False
+        or queue.get("first_ready") != []
+        or not isinstance(queue.get("tasks"), list)
+        or len(queue["tasks"]) != 39):
+        raise ValueError("untrusted P1 V1.3 SWU rebaseline")
+    ids = set()
+    active_count = 0
+    for item in queue["tasks"]:
+        if (not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or item["id"] in ids
+            or item.get("code_status") not in (
+                "SOURCE_COMPLETE_P2_PENDING", "BLOCKED_TRUST"
+            )):
+            raise ValueError("inconsistent MLA SWU status")
+        ids.add(item["id"])
+        active_count += (item["code_status"] == "SOURCE_COMPLETE_P2_PENDING")
+    if (active_count != queue.get("source_complete_swu_count")
+        or active_count > 39 or len(ids) != 39):
+        raise ValueError("stale MLA SWU progress")
+    extension = record.get("code_shield_swu_inventory")
+    if not isinstance(extension, list) or len(extension) != 16:
+        raise ValueError("incomplete CodeShield inventory")
+    staged = 0
+    ext_ids = set()
+    for item in extension:
+        if (not isinstance(item, dict)
+            or not isinstance(item.get("id"), str)
+            or item["id"] in ext_ids or item["id"] in ids
+            or item.get("integrated_into_dev") is not False
+            or item.get("source_candidate_on_feature") is not
+                 (item.get("code_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED")):
+            raise ValueError("untrusted CodeShield integration evidence")
+        ext_ids.add(item["id"])
+        staged += item["source_candidate_on_feature"]
+    if (ext_ids != {"CS-SWU-" + str(i).zfill(3) for i in range(1, 17)}
+        or staged != record.get("code_shield_source_candidate_unmerged_at_rebaseline")):
+        raise ValueError("invalid CodeShield SWU crosswalk")
+    # Source files on an independent feature branch are NOT product-complete.
+    return {
+        "v13_implementation_source_swu_completed": active_count,
+        "v13_implementation_source_swu_total": 55,
+        "v13_implementation_source_swu_percent": round(active_count * 100 / 55, 2),
+        "legacy_mla_source_swu_completed": active_count,
+        "legacy_mla_source_swu_total": 39,
+        "codeshield_feature_source_candidates_unmerged": staged,
+        "codeshield_feature_swu_total": 16,
+        "codeshield_feature_integrated_into_dev": 0,
+        "codeshield_feature_source_head_snapshot": record["code_shield_feature_head_at_rebaseline"],
+        "integration": "NOT_RUN",
+        "source_sha_independently_attested": False,
+        "high_p2_accepted": False,
+        "p2": "LOCKED",
+        "verification": "UNASSESSED",
+        "execution_allowed": False,
+        "owner_go_verified": False,
+        "independent_f18_verified": False,
+    }
+
+
 def _status() -> dict:
     gates = _read_json(_ROOT / "WORK_PHASE_GATES.json")
     if not isinstance(gates, dict) or gates.get("program") != "my_local_ai":
@@ -150,7 +238,7 @@ def _queue_status() -> dict:
             raise ValueError("malformed queue")
         key = task["status"]
         counts[key] = counts.get(key, 0) + 1
-    return {**state, "task_counts": counts, "tasks_total": len(queue["tasks"])}
+    return {**state, **_v13_swu_progress(), "task_counts": counts, "tasks_total": len(queue["tasks"])}
 
 def _safe_code_queue() -> tuple[dict, list[str]]:
     queue=_read_json(_ROOT / "INSTANT_TASK_QUEUE.json")
@@ -513,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
                 "actual_windows_isolation": "NOT_RUN",
             }
         elif args.command == "status":
-            payload = _status()
+            payload = {**_status(), **_v13_swu_progress()}
         elif args.command == "plan" and args.plan_action == "validate":
             payload = _validate_plan(args.file)
         elif args.command == "plan" and args.plan_action == "approve":
