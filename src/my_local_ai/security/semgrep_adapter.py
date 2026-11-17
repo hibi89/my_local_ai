@@ -265,9 +265,10 @@ def read_untrusted_semgrep_report(
         or not isinstance(raw, bytes) or len(raw) > _MAX_REPORT
         or type(exit_code) is not int or exit_code not in (0, 1)):
         raise CodeShieldHold("UNTRUSTED_DECISION")
+    from my_local_ai.state.consent import _broker_decode, ProtectedBrokerHold
     try:
-        data = json.loads(raw.decode("utf-8"))
-    except (UnicodeError, json.JSONDecodeError):
+        data = _broker_decode(raw)
+    except ProtectedBrokerHold:
         raise CodeShieldHold("UNTRUSTED_DECISION") from None
     if (not isinstance(data, dict) or not isinstance(data.get("results"), list)
         or not isinstance(data.get("errors", []), list) or data.get("errors")):
@@ -332,9 +333,81 @@ def run_local_semgrep(
         return _result(context, ScanStatus.ERROR, "SEMGREP_INPUT_OR_PIN_HOLD")
     if request.can_spawn or request.network_isolation_attested:
         raise CodeShieldHold("UNTRUSTED_DECISION")
-    return _result(
-        context, ScanStatus.NOT_RUN, "PROTECTED_EGRESS_BROKER_NOT_IMPLEMENTED",
+    return _run_protected_semgrep(
+        context, request, disposable_worktree=Path(disposable_worktree),
     )
+
+
+def _run_protected_semgrep(context: CodeShieldContext, request: SemgrepBrokerRequest,
+                           *, disposable_worktree: Path) -> SemgrepResult:
+    """Pinned scanner data -> authenticated no-egress service -> static result.
+
+    The independent native service must stage these exact bytes into its own
+    readonly package, rehash its scanner/rules, use fixed offline argv, and
+    return complete scanned/skipped/error coverage. No host subprocess fallback.
+    Even an authenticated clean scan grants only non-executing static review.
+    """
+    import base64
+    from .codeshield_contracts import DataClass
+    from my_local_ai.state.consent import (
+        ProtectedBrokerHold, dispatch_protected_action, _broker_decode,
+    )
+    if context.data_class != DataClass.PUBLIC_SYNTHETIC:
+        return _result(context, ScanStatus.NOT_RUN, "PROTECTED_DATA_SCOPE_HOLD")
+    try:
+        sources = []
+        for name, expected in request.source_sha256:
+            path = disposable_worktree / name
+            if _bounded_source_sha256(path) != expected:
+                raise CodeShieldHold("STALE_EVIDENCE")
+            with path.open("rb") as stream:
+                data = stream.read(_MAX_SOURCE_BYTES + 1)
+            if len(data) > _MAX_SOURCE_BYTES or sha256(data).hexdigest() != expected:
+                raise CodeShieldHold("STALE_EVIDENCE")
+            sources.append({"path": name, "sha256": expected,
+                            "content_b64": base64.b64encode(data).decode("ascii")})
+        # Never send host executable/worktree/original paths to the worker.
+        reply = dispatch_protected_action("scanner", "semgrep", binding={
+            "task_id": context.task_id, "run_id": context.run_id,
+            "plan_sha256": context.plan_sha256, "source_sha": context.source_git_sha,
+            "candidate_sha": context.candidate_git_sha, "lease_epoch": context.lease_epoch,
+            "nonce_sha256": context.nonce_sha256, "owner_consent_ref": context.owner_consent_ref,
+        }, payload={"context_sha256": context.fingerprint_sha256,
+            "binary_sha256": request.binary_sha256, "rules_sha256": request.rules_sha256,
+            "version": request.pinned_version, "sources": sources,
+            "timeout_seconds": request.timeout_seconds,
+            "policy": "SEMGREP_CE_OFFLINE_NOSEMGREPIGNORE_NO_NOSEM_V1"},
+            timeout_seconds=request.timeout_seconds + 5)
+        result = reply["result"]
+        if (set(result) != {"exit_code", "report_b64", "scanned_paths", "skipped_paths",
+                            "binary_sha256", "rules_sha256", "version", "timed_out"}
+            or result["timed_out"] is not False
+            or result["binary_sha256"] != request.binary_sha256
+            or result["rules_sha256"] != request.rules_sha256
+            or result["version"] != request.pinned_version
+            or result["scanned_paths"] != list(request.allowed_paths)
+            or result["skipped_paths"] != []
+            or type(result["report_b64"]) is not str
+            or len(result["report_b64"]) > (_MAX_REPORT * 4 // 3 + 4)):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+        raw = base64.b64decode(result["report_b64"], validate=True)
+        report = _broker_decode(raw)  # Duplicate keys/nonfinite JSON rejected.
+        coverage = report.get("paths")
+        if (type(coverage) is not dict or coverage.get("scanned") != list(request.allowed_paths)
+            or coverage.get("skipped", []) != []):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+        parsed = read_untrusted_semgrep_report(request, raw, exit_code=result["exit_code"])
+        # Revoke a clean result if caller-owned inputs changed during scanning.
+        if any(_bounded_source_sha256(disposable_worktree / name) != digest
+               for name, digest in request.source_sha256):
+            raise CodeShieldHold("STALE_EVIDENCE")
+        return _result(context, ScanStatus.FINDINGS if parsed.finding_count else ScanStatus.PASS,
+                       "PROTECTED_STATIC_FINDINGS" if parsed.finding_count else "PROTECTED_STATIC_ONLY",
+                       parsed.finding_count)
+    except ProtectedBrokerHold as exc:
+        return _result(context, ScanStatus.NOT_RUN, exc.code)
+    except (CodeShieldHold, OSError, ValueError, TypeError, KeyError):
+        return _result(context, ScanStatus.ERROR, "PROTECTED_SEMGREP_RESULT_HOLD")
 
 
 @dataclass(frozen=True)

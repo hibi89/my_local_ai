@@ -70,15 +70,8 @@ class UnsignedReviewerTranscript:
     may_promote: bool = False
 
 
-def canonicalize_fixed_review_observations(
-    intent: IsolatedReviewerIntent,
-    observations: tuple[HostCheckObservation, ...],
-) -> UnsignedReviewerTranscript:
-    """Validate all checks against immutable fixed argv/timeouts.
-
-    This function is pure; execution evidence and a protected signing key
-    must arrive independently and outside guest-writable storage.
-    """
+def _validate_protected_review_intent(intent: IsolatedReviewerIntent):
+    """Validate fixed policy bindings without manufacturing check observations."""
     policy=build_reviewer_policy()
     if (not isinstance(intent, IsolatedReviewerIntent)
         or intent.state != "HOLD_UNTIL_INDEPENDENT_OS_REVIEWER"
@@ -97,6 +90,15 @@ def canonicalize_fixed_review_observations(
         or type(intent.lease_epoch) is not int or intent.lease_epoch <= 0
         or intent.check_ids != tuple(check.check_id for check in policy.checks)):
         raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
+    return policy
+
+
+def canonicalize_fixed_review_observations(
+    intent: IsolatedReviewerIntent,
+    observations: tuple[HostCheckObservation, ...],
+) -> UnsignedReviewerTranscript:
+    """Validate untrusted observations; no signature or execution authority."""
+    policy = _validate_protected_review_intent(intent)
     if not isinstance(observations,tuple) or len(observations)!=len(policy.checks):
         raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
     normalized=[]
@@ -302,3 +304,70 @@ def read_untrusted_reviewer_outbox_from_scratch(
     # The decoder verifies task/run/source/candidate/plan/lease/policy/binary
     # against the fixed F18 policy, and returns only an UNSIGNED transcript.
     return decode_untrusted_reviewer_outbox(raw, intent)
+
+
+@dataclass(frozen=True)
+class ProtectedReviewSubmission:
+    """Authenticated service evidence for later independent P2 acceptance.
+
+    Keep the opaque signed envelope intact. It cannot be converted to the old
+    guest-supplied HMAC receipt or an in-process Git promotion capability.
+    """
+    transcript: UnsignedReviewerTranscript
+    signed_service_receipt: str
+    state: str = "PROTECTED_REVIEW_REPORT_P2_ACCEPTANCE_PENDING"
+    may_promote: bool = False
+    independently_accepted: bool = False
+
+    def __post_init__(self):
+        if (not isinstance(self.transcript, UnsignedReviewerTranscript)
+            or type(self.signed_service_receipt) is not str
+            or not 1 <= len(self.signed_service_receipt) <= 32768
+            or self.state != "PROTECTED_REVIEW_REPORT_P2_ACCEPTANCE_PENDING"
+            or self.may_promote is not False or self.independently_accepted is not False):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+
+
+def review_protected_candidate(intent: IsolatedReviewerIntent, *,
+                               nonce_sha256: str, owner_consent_ref: str) -> ProtectedReviewSubmission:
+    """Fixed policy -> independent reviewer service -> signed nonce-bound report.
+
+    The protected reviewer, not the coder/Controller, must fetch the immutable
+    candidate, execute every fixed check in its own no-egress OS compartment,
+    recheck the live epoch and atomically consume nonce before signing. Missing
+    service/owner/P2 authority, replay, failed check or mismatched pins HOLDS.
+    No caller callback, supplied key, check result or arbitrary argv is used.
+    """
+    import base64
+    from my_local_ai.state.consent import ProtectedBrokerHold, dispatch_protected_action
+    if not isinstance(intent, IsolatedReviewerIntent):
+        raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
+    policy = _validate_protected_review_intent(intent)
+    try:
+        reply = dispatch_protected_action("reviewer", "review", binding={
+            "task_id": intent.task_id, "run_id": intent.run_id,
+            "plan_sha256": intent.plan_sha256, "source_sha": intent.source_sha,
+            "candidate_sha": intent.candidate_sha, "lease_epoch": intent.lease_epoch,
+            "nonce_sha256": nonce_sha256, "owner_consent_ref": owner_consent_ref,
+        }, payload={"policy_sha256": intent.policy_sha256,
+            "reviewer_binary_sha256": intent.reviewer_binary_sha256,
+            "check_ids": list(intent.check_ids), "policy": "F18_FIXED_CHECKS_V1"},
+            timeout_seconds=sum(c.timeout_seconds for c in policy.checks) + 10)
+        result = reply["result"]
+        if (set(result) != {"observations_b64", "nonce_state", "lease_state", "reviewer_binary_sha256"}
+            or result["nonce_state"] != "CONSUMED" or result["lease_state"] != "LIVE_AT_SIGNING"
+            or result["reviewer_binary_sha256"] != intent.reviewer_binary_sha256
+            or result["reviewer_binary_sha256"] != reply["peer_image_sha256"]
+            or type(result["observations_b64"]) is not str or len(result["observations_b64"]) > 10924):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+        raw = base64.b64decode(result["observations_b64"], validate=True)
+        transcript = decode_untrusted_reviewer_outbox(raw, intent)
+        # Signature verification already occurred in the authenticated transport;
+        # the unsigned inner transcript still cannot confer VERIFIED or Git GO.
+        return ProtectedReviewSubmission(transcript, reply["signed_envelope"])
+    except ProtectedReviewerHold:
+        raise
+    except ProtectedBrokerHold:
+        raise ProtectedReviewerHold("INDEPENDENT_OS_REVIEWER_NOT_ATTESTED") from None
+    except (ValueError, TypeError, KeyError):
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS") from None

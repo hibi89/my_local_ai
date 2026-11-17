@@ -1183,5 +1183,208 @@ def _capabilities_read_only_main() -> int:
     return 0
 
 
+def _hold_live_zero_network_appcontainer(pid: int, expected_sid: str,
+                                        creation_time: int):
+    """Read the actual suspended worker token/loopback exemptions, hold handles.
+
+    Restricted token/Job Object alone do not deny network. Require an actual
+    low-integrity AppContainer token, ZERO capability SIDs and no OS loopback
+    exemption. No profile, exemption, ACL or firewall setting is created here.
+    A signed service is still required for suspended launch/job/file isolation.
+    """
+    from contextlib import ExitStack
+    from my_local_ai.state.consent import _WindowsBrokerAPI, ProtectedBrokerHold
+    if (type(pid) is not int or not 1 <= pid <= 2**32 - 1
+        or type(creation_time) is not int or creation_time <= 0
+        or type(expected_sid) is not str
+        or re.fullmatch(r"S-1-15-2-(?:[0-9]+-)*[0-9]+", expected_sid) is None):
+        raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+    stack = ExitStack()
+    try:
+        api = _WindowsBrokerAPI()
+        c, w = api.c, api.w
+        roots = api.load_roots()
+        open_process = api._bind(api.kernel, "OpenProcess",
+            [w.DWORD, w.BOOL, w.DWORD], w.HANDLE)
+        process = open_process(0x1000 | 0x100000, False, pid)
+        if not process:
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        stack.callback(api.kernel.CloseHandle, process)
+        if api.process_sid(process) != roots["coder"][0]:
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        get_times = api._bind(api.kernel, "GetProcessTimes",
+            [w.HANDLE, c.POINTER(w.FILETIME), c.POINTER(w.FILETIME),
+             c.POINTER(w.FILETIME), c.POINTER(w.FILETIME)], w.BOOL)
+        times = [w.FILETIME() for _ in range(4)]
+        if (not get_times(process, *(c.byref(t) for t in times))
+            or (times[0].dwHighDateTime << 32 | times[0].dwLowDateTime) != creation_time):
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        token = w.HANDLE()
+        open_token = api._bind(api.advapi, "OpenProcessToken",
+            [w.HANDLE, w.DWORD, c.POINTER(w.HANDLE)], w.BOOL)
+        if not open_token(process, 8, c.byref(token)):
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        stack.callback(api.kernel.CloseHandle, token)
+        get = api._bind(api.advapi, "GetTokenInformation",
+            [w.HANDLE, c.c_int, c.c_void_p, w.DWORD, c.POINTER(w.DWORD)], w.BOOL)
+        def info(kind):
+            size = w.DWORD()
+            get(token, kind, None, 0, c.byref(size))
+            if not 4 <= size.value <= 65536:
+                raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+            buffer = c.create_string_buffer(size.value)
+            if not get(token, kind, buffer, len(buffer), c.byref(size)):
+                raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+            return buffer
+        restricted = api._bind(api.advapi, "IsTokenRestricted", [w.HANDLE], w.BOOL)
+        in_job = api._bind(api.kernel, "IsProcessInJob",
+            [w.HANDLE, w.HANDLE, c.POINTER(w.BOOL)], w.BOOL)
+        job = w.BOOL()
+        if (w.DWORD.from_buffer(info(29)).value != 1  # TokenIsAppContainer
+            or w.DWORD.from_buffer(info(30)).value != 0  # TokenCapabilities count
+            or w.DWORD.from_buffer(info(20)).value != 0  # TokenElevation
+            or not restricted(token) or not in_job(process, None, c.byref(job)) or not job.value):
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        package, integrity = info(31), info(25)
+        if (api.sid_string(c.cast(package, c.POINTER(c.c_void_p))[0]) != expected_sid
+            or api.sid_string(c.cast(integrity, c.POINTER(c.c_void_p))[0]) not in {"S-1-16-0", "S-1-16-4096"}):
+            raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        class SidAttributes(c.Structure):
+            _fields_ = [("sid", c.c_void_p), ("attributes", w.DWORD)]
+        firewall = c.WinDLL("FirewallAPI.dll", use_last_error=True, winmode=0x800)
+        enumerate_exempt = api._bind(firewall, "NetworkIsolationGetAppContainerConfig",
+            [c.POINTER(w.DWORD), c.POINTER(c.POINTER(SidAttributes))], w.DWORD)
+        heap = api._bind(api.kernel, "GetProcessHeap", [], w.HANDLE)
+        free = api._bind(api.kernel, "HeapFree", [w.HANDLE, w.DWORD, c.c_void_p], w.BOOL)
+        count, exemptions = w.DWORD(), c.POINTER(SidAttributes)()
+        error = enumerate_exempt(c.byref(count), c.byref(exemptions))
+        try:
+            if error or count.value > 65536 or count.value and not exemptions:
+                raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+            if any(api.sid_string(exemptions[i].sid) == expected_sid for i in range(count.value)):
+                raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+        finally:
+            if exemptions:
+                for i in range(count.value):
+                    free(heap(), 0, exemptions[i].sid)
+                free(heap(), 0, exemptions)
+        return stack
+    except BaseException as exc:
+        stack.close()
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+            raise
+        raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED") from None
+
+
+@dataclass(frozen=True)
+class ProtectedCoderArtifacts:
+    outbox: UntrustedGuestOutbox
+    files: tuple[tuple[str, str], ...]
+    state: str = "PROTECTED_CODER_ARTIFACTS_UNTRUSTED_F18_REQUIRED"
+    may_promote: bool = False
+    independent_f18_verified: bool = False
+
+    def __post_init__(self):
+        if (not isinstance(self.outbox, UntrustedGuestOutbox) or type(self.files) is not tuple
+            or self.state != "PROTECTED_CODER_ARTIFACTS_UNTRUSTED_F18_REQUIRED"
+            or self.may_promote is not False or self.independent_f18_verified is not False):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+
+
+def run_protected_coder(transport: OfflineCoderTransport, proposal: UntrustedHostQwenFiles,
+                        *, candidate_sha: str, lease_epoch: int, nonce_sha256: str,
+                        owner_consent_ref: str) -> ProtectedCoderArtifacts:
+    """Host model DATA -> protected suspended worker -> checked token -> output.
+
+    The service must implement prepare/run/abort, fixed tool policy, private
+    scratch, job budgets and automatic kill-on-disconnect/deadline. Host Qwen
+    remains the sole model; there is no guest model or host execution fallback.
+    No artifact is imported, executed, applied to original or promoted here.
+    Until that independently provisioned native service exists this path HOLDS.
+    """
+    from my_local_ai.state.consent import (
+        ProtectedBrokerHold, dispatch_protected_action, exchange_protected_broker,
+        _broker_canonical, _validate_broker_binding,
+    )
+    if (not isinstance(transport, OfflineCoderTransport)
+        or transport.state != "HOST_OFFLINE_MODEL_BROKER_UNAVAILABLE"
+        or any(getattr(transport, field) is not False for field in (
+            "sandbox_started", "model_executed", "network_egress_attested", "output_trusted",
+            "may_write_owner_checkout", "may_issue_review_receipt"))
+        or type(transport.request_sha256) is not str or not _SHA64.fullmatch(transport.request_sha256)
+        or type(transport.allowed_paths) is not tuple or not 1 <= len(transport.allowed_paths) <= 16
+        or not isinstance(proposal, UntrustedHostQwenFiles)
+        or proposal.task_id != transport.task_id or proposal.run_id != transport.run_id
+        or proposal.source_sha != transport.source_sha or proposal.plan_sha256 != transport.plan_sha256
+        or proposal.state != "UNTRUSTED_HOST_MODEL_OUTPUT_F18_REQUIRED"
+        or proposal.guest_executed or proposal.files_applied_to_original
+        or proposal.independent_f18_verified or proposal.can_publish
+        or not isinstance(proposal.files, tuple) or not 1 <= len(proposal.files) <= 16):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    # Revalidate dataclass contents; caller-created Python objects are not grants.
+    try:
+        files = tuple((_safe_path(name), content) for name, content in proposal.files)
+        if (any(name not in transport.allowed_paths or type(content) is not str or "\x00" in content
+                for name, content in files)
+            or len({name.casefold() for name, _ in files}) != len(files)
+            or tuple(sorted(files)) != files
+            or sum(len(content.encode("utf-8")) for _, content in files) > 131072
+            or sha256(b"mla-untrusted-host-files/v1|" + _broker_canonical(files)).hexdigest() != proposal.files_sha256):
+            raise ValueError()
+        binding = {"task_id": transport.task_id, "run_id": transport.run_id,
+            "plan_sha256": transport.plan_sha256, "source_sha": transport.source_sha,
+            "candidate_sha": candidate_sha, "lease_epoch": lease_epoch,
+            "nonce_sha256": nonce_sha256, "owner_consent_ref": owner_consent_ref}
+        _validate_broker_binding(binding)
+        payload = {"transport_sha256": transport.request_sha256,
+            "allowed_paths": list(transport.allowed_paths),
+            "files": [{"path": name, "content": content} for name, content in files],
+            "policy": "APPCONTAINER_ZERO_CAPABILITIES_RESTRICTED_JOB_V1",
+            "memory_mb": 512, "cpu_seconds": 60, "wall_seconds": 90,
+            "active_process_limit": 8}
+        prepared = dispatch_protected_action("coder", "prepare", binding=binding, payload=payload)
+        prep = prepared["result"]
+        try:
+            if (set(prep) != {"state", "preparation_id", "worker_pid", "appcontainer_sid", "creation_time"}
+                or prep["state"] != "READY_SUSPENDED"
+                or type(prep["preparation_id"]) is not str
+                or not _SHA64.fullmatch(prep["preparation_id"])):
+                raise WindowsIsolationHold("WINDOWS_HOST_ISOLATION_NOT_ATTESTED")
+            with _hold_live_zero_network_appcontainer(prep["worker_pid"], prep["appcontainer_sid"],
+                                                      prep["creation_time"]):
+                reply = dispatch_protected_action("coder", "run", binding=binding,
+                    payload={"preparation": prepared["signed_envelope"],
+                             "input_sha256": sha256(_broker_canonical(payload)).hexdigest()},
+                    timeout_seconds=95)
+            result = reply["result"]
+            if (set(result) != {"preparation_id", "outbox", "files", "timed_out"}
+                or result["preparation_id"] != prep["preparation_id"] or result["timed_out"] is not False
+                or type(result["outbox"]) is not dict or type(result["files"]) is not list):
+                raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+            outbox = decode_untrusted_coder_outbox(_broker_canonical(result["outbox"]), transport)
+            returned = []
+            for item in result["files"]:
+                if (type(item) is not dict or set(item) != {"path", "content"}
+                    or type(item["content"]) is not str or "\x00" in item["content"]):
+                    raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+                returned.append((_safe_path(item["path"]), item["content"]))
+            if (tuple(name for name, _ in returned) != outbox.declared_paths
+                or sum(len(content.encode("utf-8")) for _, content in returned) > 131072
+                or sha256(_broker_canonical(returned)).hexdigest() != result["outbox"]["output_sha256"]):
+                raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+            return ProtectedCoderArtifacts(outbox, tuple(returned))
+        finally:
+            # No retry of prepare/run. Cleanup is idempotent and bound to the
+            # exact signed preparation; the service also owns the kill deadline.
+            exchange_protected_broker("coder", "abort", binding=binding,
+                payload={"preparation": prepared["signed_envelope"]}, timeout_seconds=5)
+    except WindowsIsolationHold:
+        raise
+    except ProtectedBrokerHold:
+        raise WindowsIsolationHold("OWNER_SIGNER_NOT_AVAILABLE") from None
+    except (ValueError, TypeError, KeyError, UnicodeError):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE") from None
+
+
 if __name__ == "__main__":
     raise SystemExit(_capabilities_read_only_main())

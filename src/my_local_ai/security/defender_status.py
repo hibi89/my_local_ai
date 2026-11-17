@@ -330,3 +330,95 @@ def preview_owner_scoped_defender_scan(
         context.plan_sha256, context.source_git_sha,
         context.nonce_sha256, context.lease_epoch,
     )
+
+
+@dataclass(frozen=True)
+class DefenderFileScanResult:
+    state: str
+    content_sha256: str
+    scan_completed: bool
+    finding_count: int | None
+    reason: str
+    defender_policy_modified: bool = False
+    execution_allowed: bool = False
+    f18_verified: bool = False
+    may_promote: bool = False
+
+    def __post_init__(self):
+        if (self.state not in {"CLEAN_STATIC_ONLY", "FINDINGS_HOLD", "NOT_RUN_HOLD", "ERROR_HOLD"}
+            or type(self.content_sha256) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", self.content_sha256) is None
+            or type(self.scan_completed) is not bool
+            or self.state == "CLEAN_STATIC_ONLY" and (not self.scan_completed
+                or type(self.finding_count) is not int or self.finding_count != 0)
+            or self.state == "FINDINGS_HOLD" and (not self.scan_completed
+                or type(self.finding_count) is not int or self.finding_count <= 0)
+            or self.state in {"NOT_RUN_HOLD", "ERROR_HOLD"} and (self.scan_completed or self.finding_count is not None)
+            or any(getattr(self, field) is not False for field in (
+                "defender_policy_modified", "execution_allowed", "f18_verified", "may_promote"))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+
+def run_owner_scoped_defender_scan(
+    context: CodeShieldContext, *, disposable_worktree: str | Path,
+    original_checkout: str | Path, target_relative_path: str,
+    expected_content_sha256: str, timeout_seconds: int = 60,
+) -> DefenderFileScanResult:
+    """Scoped owner action -> protected scanner -> exact file scan result.
+
+    The native service must copy the locked, rehashed file into its private
+    no-egress scan area and use pinned MpCmdRun custom-file scan with
+    DisableRemediation. Start-MpScan's implicit remediation must NOT be used.
+    It must distinguish detection, scan errors and cancellation; a request ID
+    or a successful command submission alone is never a completed clean scan.
+    No executable, policy, exclusion, CFA or remediation is run by this client.
+    """
+    from .codeshield_contracts import DataClass
+    from my_local_ai.state.consent import ProtectedBrokerHold, dispatch_protected_action
+    if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 120:
+        raise CodeShieldHold()
+    request = preview_owner_scoped_defender_scan(
+        context, disposable_worktree=disposable_worktree, original_checkout=original_checkout,
+        target_relative_path=target_relative_path, expected_content_sha256=expected_content_sha256)
+    def held(state, reason):
+        return DefenderFileScanResult(state, request.content_sha256, False, None, reason)
+    if os.name != "nt":
+        return held("NOT_RUN_HOLD", "WINDOWS_REQUIRED")
+    if context.data_class != DataClass.PUBLIC_SYNTHETIC:
+        return held("NOT_RUN_HOLD", "PROTECTED_DATA_SCOPE_HOLD")
+    try:
+        reply = dispatch_protected_action("scanner", "defender", binding={
+            "task_id": context.task_id, "run_id": context.run_id,
+            "plan_sha256": request.plan_sha256, "source_sha": request.source_git_sha,
+            "candidate_sha": request.candidate_git_sha, "lease_epoch": request.lease_epoch,
+            "nonce_sha256": request.nonce_sha256, "owner_consent_ref": request.consent_reference,
+        }, payload={"context_sha256": request.context_sha256,
+            "disposable_root": str(Path(disposable_worktree)),
+            "relative_target": target_relative_path, "content_sha256": request.content_sha256,
+            "content_size": request.content_size, "timeout_seconds": timeout_seconds,
+            "policy": "DEFENDER_CUSTOM_FILE_OFFLINE_DISABLE_REMEDIATION_V1"},
+            timeout_seconds=timeout_seconds + 5)
+        result = reply["result"]
+        if (set(result) != {"content_sha256", "content_size", "scan_completed", "timed_out",
+                            "finding_count", "engine_exit_code", "remediation", "policy_changed"}
+            or result["content_sha256"] != request.content_sha256
+            or type(result["content_size"]) is not int or result["content_size"] != request.content_size
+            or result["scan_completed"] is not True or result["timed_out"] is not False
+            or result["remediation"] != "DISABLED" or result["policy_changed"] is not False
+            or type(result["finding_count"]) is not int or not 0 <= result["finding_count"] <= 100000
+            or type(result["engine_exit_code"]) is not int
+            or result["engine_exit_code"] != (2 if result["finding_count"] else 0)):
+            return held("ERROR_HOLD", "DEFENDER_COMPLETION_NOT_PROVEN")
+        # Repeat scope, ancestry, content and candidate binding after scanning.
+        after = preview_owner_scoped_defender_scan(
+            context, disposable_worktree=disposable_worktree, original_checkout=original_checkout,
+            target_relative_path=target_relative_path, expected_content_sha256=expected_content_sha256)
+        if after != request:
+            return held("ERROR_HOLD", "DEFENDER_TARGET_CHANGED")
+        count = result["finding_count"]
+        return DefenderFileScanResult("FINDINGS_HOLD" if count else "CLEAN_STATIC_ONLY",
+            request.content_sha256, True, count, "DEFENDER_FILE_FINDINGS" if count else "DEFENDER_STATIC_ONLY")
+    except ProtectedBrokerHold as exc:
+        return held("NOT_RUN_HOLD", exc.code)
+    except (CodeShieldHold, OSError, ValueError, TypeError, KeyError):
+        return held("ERROR_HOLD", "DEFENDER_RESULT_HOLD")
