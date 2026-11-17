@@ -1157,11 +1157,29 @@ def inspect_windows_host_capabilities_read_only() -> WindowsHostCapabilityObserv
 
 
 def _capabilities_read_only_main() -> int:
-    """No-args, nonprivileged diagnostic: python -m my_local_ai.ax_runtime.isolation_runner."""
+    """Single nonprivileged diagnostic: python -m my_local_ai.ax_runtime.isolation_runner.
+
+    Native CPU/APIs and process token state are sampled without OS changes.
+    The result is NOT protected identity, a verified network policy, a signer
+    or a green light to start any untrusted code.
+    """
     import json
-    observation = inspect_windows_host_capabilities_read_only()
-    print(json.dumps(observation.to_redacted_dict(), sort_keys=True))
-    # Exit 0 means the read-only diagnostic ran, NOT that isolation passed.
+    from my_local_ai.state.consent import inspect_windows_current_token_read_only
+
+    capability = inspect_windows_host_capabilities_read_only()
+    owner_token = inspect_windows_current_token_read_only()
+    report = {
+        "host_capabilities": capability.to_redacted_dict(),
+        "current_process_token": owner_token.to_redacted_dict(),
+        "native_isolation_attested": False,
+        "protected_owner_signer_attested": False,
+        "independent_f18_verified": False,
+        "network_egress_denial_attested": False,
+        "execution_allowed": False,
+        "p2": "LOCKED",
+    }
+    print(json.dumps(report, sort_keys=True))
+    # Exit 0 only signals a completed read-only observation, never PASS.
     return 0
 
 
