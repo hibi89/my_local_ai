@@ -151,3 +151,74 @@ def require_protected_reviewer_issuer(
     if not isinstance(transcript,UnsignedReviewerTranscript):
         raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
     raise ProtectedReviewerHold("INDEPENDENT_OS_REVIEWER_NOT_ATTESTED")
+
+
+
+# SWU-021: bounded real data ingress for externally extracted F18 observations.
+# The reviewer must still execute as a separate *protected* OS principal and
+# the receipt must be issued with the protected key outside this module.
+def decode_untrusted_reviewer_outbox(
+    raw: bytes, intent: IsolatedReviewerIntent,
+) -> UnsignedReviewerTranscript:
+    """Raw reviewer result bytes -> strict observations -> unsigned digest.
+
+    No user/guest-supplied 'trusted', 'signed', 'passed' or arbitrary argv
+    fields are accepted. This function does not run checks, accept owner GO,
+    verify the origin of raw bytes, issue a receipt or authorize promotion.
+    """
+    if not isinstance(raw, bytes) or not 1 <= len(raw) <= 8192:
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+
+    def no_duplicate_keys(pairs):
+        item = {}
+        for name, value in pairs:
+            if name in item:
+                raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+            item[name] = value
+        return item
+
+    try:
+        data = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=no_duplicate_keys,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+    except (UnicodeError, ValueError, TypeError, RecursionError):
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS") from None
+    if (not isinstance(data, dict)
+        or set(data) != {
+            "version", "task_id", "run_id", "source_sha",
+            "candidate_sha", "policy_sha256", "checks",
+        } or type(data["version"]) is not int or data["version"] != 1
+        or not isinstance(intent, IsolatedReviewerIntent)
+        or data["task_id"] != intent.task_id
+        or data["run_id"] != intent.run_id
+        or data["source_sha"] != intent.source_sha
+        or data["candidate_sha"] != intent.candidate_sha
+        or data["policy_sha256"] != intent.policy_sha256
+        or not isinstance(data["checks"], list)):
+        raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
+    policy = build_reviewer_policy()
+    if len(data["checks"]) != len(policy.checks):
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+    observations = []
+    for item, check in zip(data["checks"], policy.checks):
+        if (not isinstance(item, dict)
+            or set(item) != {
+                "check_id", "exit_code", "elapsed_ms",
+                "timed_out", "output_sha256",
+            }
+            or item["check_id"] != check.check_id
+            or type(item["exit_code"]) is not int
+            or type(item["elapsed_ms"]) is not int
+            or type(item["timed_out"]) is not bool
+            or not isinstance(item["output_sha256"], str)
+            or not _SHA64.fullmatch(item["output_sha256"])):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+        observations.append(HostCheckObservation(
+            item["check_id"], item["exit_code"], item["elapsed_ms"],
+            item["timed_out"], item["output_sha256"],
+        ))
+    # A passing transcript is *never* authenticated OS evidence.
+    return canonicalize_fixed_review_observations(
+        intent, tuple(observations),
+    )
