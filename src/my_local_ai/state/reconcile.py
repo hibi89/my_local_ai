@@ -64,7 +64,11 @@ def read_reconcile_state(
         # An attached DB or TEMP table can shadow unqualified plans/tasks
         # despite a legitimate application_id in main. Never trust them.
         attached = db.execute("PRAGMA database_list").fetchall()
-        if len(attached) != 1 or attached[0][1] != "main":
+        # SQLite lazily registers an empty built-in TEMP schema after the
+        # first sqlite_temp_master read. It is safe only when empty.
+        if (not 1 <= len(attached) <= 2 or attached[0][1] != "main"
+            or any(item[1] not in {"main", "temp"} for item in attached)
+            or len({item[1] for item in attached}) != len(attached)):
             raise ReconcileHold("BAD_STATE")
         if db.execute("SELECT 1 FROM sqlite_temp_master LIMIT 1").fetchone():
             raise ReconcileHold("BAD_STATE")

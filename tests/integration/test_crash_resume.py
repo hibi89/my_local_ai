@@ -340,3 +340,15 @@ class ReconcileDatabaseIdentityTests(unittest.TestCase):
         with self.assertRaises(ReconcileHold) as exc:
             self.run_reconcile()
         self.assertEqual(exc.exception.code, "BAD_STATE")
+
+
+class ReconcileRepeatedReadTests(unittest.TestCase):
+    setUp = CrashResumeContractTests.setUp
+    run_reconcile = CrashResumeContractTests.run_reconcile
+
+    def test_empty_builtin_temp_schema_does_not_change_read_only_decision(self):
+        first = self.run_reconcile()
+        second = self.run_reconcile()
+        self.assertEqual(first.status, "HOLD_NO_ACTIVE_LEASE")
+        self.assertEqual(first, second)
+        self.assertFalse(second.executable)
