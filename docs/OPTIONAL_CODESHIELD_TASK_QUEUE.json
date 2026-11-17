@@ -1,0 +1,354 @@
+{
+  "version": 1,
+  "project": "hibi89/my_local_ai",
+  "design": "V1.3-CODESHIELD",
+  "state": "OWNER_APPROVED_DESIGN_SOURCE_IMPLEMENTATION_NOT_STARTED",
+  "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
+  "protected_baseline_reqs": 30,
+  "protected_baseline_legacy_tasks": 28,
+  "protected_baseline_swu": 39,
+  "baseline_source_complete_at_design": 35,
+  "p1_source_swu_total": 8,
+  "p1_source_swu_implemented": 0,
+  "first_source_ready": [
+    "CS-01"
+  ],
+  "p2_status": "LOCKED",
+  "verified_rate": "UNASSESSED",
+  "real_windows": "NOT_RUN",
+  "owner_runtime_go": false,
+  "auto_install": false,
+  "auto_defender_changes": false,
+  "auto_os_changes": false,
+  "auto_remote_calls": false,
+  "counting_rule": "Track CS source as a separate 0/8 extension until High-approved rebaseline. A document commit never increases 35/39 baseline implementation candidates or 5/30 accepted REQ. Entire final blueprint cannot be called implemented if CS extension is not assessed.",
+  "failure_policy": {
+    "initial_non_improving_failures": 2,
+    "on_initial_failure": "ISOLATED_REDESIGN_PENDING_CONTINUE_INDEPENDENT_READY",
+    "additional_attempts_after_meaningFUL_REDESIGN": 2,
+    "on_cumulative_four_non_improving_failures": "SOLMAX_BATCH_PENDING_WITH_SHA_CAUSE_EVIDENCE",
+    "critical_path_or_safety_blocker": "IMMEDIATE_OWNER_SOLMAX_REQUEST_WITHOUT_WAITING",
+    "counting": "Only genuine different meaningful implementation attempts with no improvement count; document-only/CI/status does not consume attempts. Preserve inherited previous evidence.",
+    "safe_gates": "No F18/owner/OS/remote approval relaxation."
+  },
+  "tasks": [
+    {
+      "task_id": "CS-01",
+      "title": "CodeShield immutable policy, risk and evidence contract",
+      "req_ids": [
+        "REQ-CS-01",
+        "REQ-CS-02"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "src/my_local_ai/security/codeshield_contracts.py"
+      ],
+      "acceptance": [
+        "Exact repo/plan/source SHA, allowed paths, scanner tool/rules hashes and data classification; no model or checker-supplied approval. Non-executing result statuses only."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "MEDIUM",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-02",
+      "title": "Safe AST/changed-path preflight",
+      "req_ids": [
+        "REQ-CS-03",
+        "REQ-CS-04"
+      ],
+      "depends_on": [
+        "CS-01"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/security/ast_preflight.py",
+        "src/my_local_ai/gitops/path_guard.py"
+      ],
+      "acceptance": [
+        "Read-only AST parse, bounded files, symlink/reparse/ADS/Git hooks/filters, dangerous imports/delete/process/network detection; no import, eval, exec or guest tests; HOLD on violations."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-03",
+      "title": "Ruff pinned local Windows adapter",
+      "req_ids": [
+        "REQ-CS-05"
+      ],
+      "depends_on": [
+        "CS-01",
+        "CS-02"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/security/ruff_adapter.py"
+      ],
+      "acceptance": [
+        "Pinned native Ruff tool SHA/version, exact argv, isolated no-cache S/F/E, bounded JSON/error parsing, redacted findings; unavailable/error=HOLD for execution."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "MEDIUM",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-04",
+      "title": "Semgrep CE pinned local rules adapter",
+      "req_ids": [
+        "REQ-CS-06"
+      ],
+      "depends_on": [
+        "CS-01",
+        "CS-02"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/security/semgrep_adapter.py",
+        "src/my_local_ai/security/rules/codeshield.yaml"
+      ],
+      "acceptance": [
+        "Native Windows Semgrep local allowlisted rule file SHA, no registry/cloud/login/telemetry/updates, constrained scan and bounded result parsing; timeout/error=HOLD."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-05",
+      "title": "Secrets and dependency supply-chain gates",
+      "req_ids": [
+        "REQ-CS-07"
+      ],
+      "depends_on": [
+        "CS-01",
+        "CS-02"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/security/supply_chain.py"
+      ],
+      "acceptance": [
+        "Gitleaks local-only before Git/remote, OSV offline DB only when lockfile/dependency changes. No auto install/download; version/DB freshness and fail-closed scope."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-06",
+      "title": "Read-only Windows Defender PC-care adapter",
+      "req_ids": [
+        "REQ-CS-08"
+      ],
+      "depends_on": [
+        "CS-01"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/security/defender_status.py"
+      ],
+      "acceptance": [
+        "Read Get-MpComputerStatus, detect primary active AV; optional bounded download file scan with separate owner-authorized scope; no CFA/security policy/exception changes."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-07",
+      "title": "CodeShield Controller execution risk gate",
+      "req_ids": [
+        "REQ-CS-09",
+        "REQ-CS-10"
+      ],
+      "depends_on": [
+        "CS-02",
+        "CS-03",
+        "CS-04",
+        "CS-05",
+        "CS-06"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/controller/codeshield.py",
+        "src/my_local_ai/orchestrator.py"
+      ],
+      "acceptance": [
+        "Aggregate pinned scanner results into ALLOW_NON_EXECUTING / REQUIRES_ISOLATION_HOLD / HOLD_HIGH_RISK only. No SAFE_TO_EXECUTE; never bypass F18, owner signer, main/CAS or P2 gate."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    },
+    {
+      "task_id": "CS-08",
+      "title": "CLI and redacted FE status integration",
+      "req_ids": [
+        "REQ-CS-11",
+        "REQ-CS-12"
+      ],
+      "depends_on": [
+        "CS-07"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/cli.py",
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/app.py"
+      ],
+      "acceptance": [
+        "Show exact candidate SHA, scanner versions, reasons and missing tools without secrets; no inert approve button, no remote/malware execution; independent READY continues."
+      ],
+      "safety_checks": [
+        "NO_GUEST_CODE_EXECUTION_ON_HOST",
+        "PRESERVE_INDEPENDENT_F18",
+        "NO_OS_PERMISSION_OR_CFA_CHANGE",
+        "NO_EXTERNAL_CODE_OR_SECRETS_UPLOAD",
+        "DO_NOT_DISABLE_MANDATORY_CI",
+        "P2_LOCKED_UNTIL_HIGH"
+      ],
+      "risk": "MEDIUM",
+      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+      "implementation_evidence_sha": null,
+      "acceptance_evidence_sha": null,
+      "real_windows": "NOT_RUN",
+      "p2": "LOCKED",
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
+      "owner_go": false,
+      "blocked_if": [
+        "scanner_policy_or_tool_hash_missing",
+        "untrusted_code_requires_execution",
+        "owner_os_runtime_boundary_not_proven"
+      ],
+      "code_only_candidate": true
+    }
+  ]
+}

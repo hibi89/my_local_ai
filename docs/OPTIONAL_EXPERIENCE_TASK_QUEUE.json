@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "scope": "OPTIONAL_EXTENSION_DESIGN_ONLY",
+  "document": "docs/EXPERIENCE_LEARNING_ENGINE.md",
+  "owner_design_approval": "DESIGN_SCOPE_ONLY",
+  "base_p1_req_count": 30,
+  "base_p1_task_count": 28,
+  "base_p2_task_count": 8,
+  "phase_gate": "WORK_PHASE_GATES.json P2 LOCKED",
+  "integration_authorized": false,
+  "live_learning_authorized": false,
+  "external_training_authorized": false,
+  "paid_or_external_api_authorized": false,
+  "preexisting_dev_branch": "dev/instant-implementation-v1",
+  "implementation_evidence": "NOT_RUN",
+  "verification_evidence": "NOT_RUN",
+  "tasks": [
+    {
+      "task_id": "EXT-EXP-01",
+      "req_ids": [
+        "EXP-01"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "src/my_local_ai/experience/schema.py",
+        "src/my_local_ai/experience/policy.py",
+        "tests/unit/test_experience_contracts.py"
+      ],
+      "acceptance": [
+        "Immutable ExperienceEventV1 and ExperienceSuggestionV1; source/plan SHA typed, rights and privacy classifications",
+        "No model/guest can supply TRUSTED/VERIFIED/owner approval or unsafe command"
+      ],
+      "safety_checks": [
+        "SCHEMA_FAIL_CLOSED",
+        "NO_MODEL_SELF_ATTEST",
+        "NO_EXTERNAL_DATA"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-02",
+      "req_ids": [
+        "EXP-02"
+      ],
+      "depends_on": [
+        "EXT-EXP-01"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/experience/collector.py",
+        "src/my_local_ai/state/experience_migrations.py",
+        "tests/security/test_experience_canary.py"
+      ],
+      "acceptance": [
+        "Append-only redacted events in owned SQLite, APP_ID/backup safe migration",
+        "Only allowed source evidence, no secrets/private prompt or customer bytes in public GitHub/logs"
+      ],
+      "safety_checks": [
+        "NO_SECRETS",
+        "DATABASE_BACKUP",
+        "NO_CUSTOMER_DATA",
+        "OWNER_SCOPE"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-03",
+      "req_ids": [
+        "EXP-03"
+      ],
+      "depends_on": [
+        "EXT-EXP-01",
+        "EXT-EXP-02"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/experience/retrieval.py",
+        "tests/unit/test_experience_retrieval.py"
+      ],
+      "acceptance": [
+        "Default OFF; rights and exact source/scope gates before local FTS5 retrieval; top 3 results, conflicts/expiry excluded",
+        "If FTS5 missing or no matching valid record, local base controller and coder continue unchanged"
+      ],
+      "safety_checks": [
+        "NO_PRIVILEGE_BYPASS",
+        "PROMPT_INJECTION_DATA_ONLY",
+        "BUDGET_BOUNDED"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-04",
+      "req_ids": [
+        "EXP-04"
+      ],
+      "depends_on": [
+        "EXT-EXP-02",
+        "EXT-EXP-03"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/experience/curator.py",
+        "src/my_local_ai/experience/skills.py",
+        "tests/security/test_experience_poisoning.py"
+      ],
+      "acceptance": [
+        "Observed->proposed->synthetic-tested->trusted-evidence->owner-approved; never self-promote based on AI answer or guest receipt",
+        "Quarantine poisoning/irrelevant/outdated experiences, revocation and version rollback"
+      ],
+      "safety_checks": [
+        "F18_TRUSTED_REVIEW",
+        "OWNER_GO",
+        "NO_TRAINING_DATA_DISTILLATION"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-05",
+      "req_ids": [
+        "EXP-05"
+      ],
+      "depends_on": [
+        "EXT-EXP-03",
+        "EXT-EXP-04"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/controller/experience_selector.py",
+        "tests/integration/test_experience_offline_mode.py"
+      ],
+      "acceptance": [
+        "Read-only suggestion selected for approved READY without changing task plan SHA or allowed_paths",
+        "No memory and insufficient evidence fallback to original Qwen flow; no remote call/new authority"
+      ],
+      "safety_checks": [
+        "NO_AUTO_MERGE",
+        "TASK_SHA_LOCK",
+        "F18_HOLD",
+        "NO_EGRESS"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-06",
+      "req_ids": [
+        "EXP-06"
+      ],
+      "depends_on": [
+        "EXT-EXP-02",
+        "EXT-EXP-04"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ui/experience_status.py",
+        "src/my_local_ai/cli.py",
+        "tests/unit/test_experience_cli.py"
+      ],
+      "acceptance": [
+        "Read-only status/search/inspect and safe redacted export; no secret/raw prompt display",
+        "Learn/approve/revoke/delete operations separated behind scoped owner approval and permission tests"
+      ],
+      "safety_checks": [
+        "NO_UI_BROWSER_P1",
+        "NO_SECRETS",
+        "OWNER_SCOPE"
+      ],
+      "risk": "MEDIUM",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-EXP-07",
+      "req_ids": [
+        "EXP-07"
+      ],
+      "depends_on": [
+        "EXT-EXP-05",
+        "EXT-EXP-06"
+      ],
+      "allowed_paths": [
+        "docs/EXPERIENCE_ACCEPTANCE_EVIDENCE.md",
+        "tests/integration/test_experience_benchmark.py",
+        "tests/security/test_experience_privacy.py"
+      ],
+      "acceptance": [
+        "Synthetic own-source A/B against no-memory baseline exact SHA; record accepted REQ/hour, failures, regression, budget and safety",
+        "P2 actual validation locked until base 100% code candidate and High gate; owner approval before real user projects or data capture"
+      ],
+      "safety_checks": [
+        "P1_P2_STRICT_SPLIT",
+        "NO_REAL_PROVIDER",
+        "NO_CUSTOMER_DATA",
+        "INDEPENDENT_EVIDENCE"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGN_ONLY_NOT_READY_OWNER_SCOPE_AND_BASELINE_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": [
+        "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
+        "Source path and cross-module conflict audit before coding"
+      ],
+      "verification_status": "NOT_RUN"
+    }
+  ]
+}
