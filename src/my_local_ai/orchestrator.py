@@ -407,3 +407,40 @@ def preview_codeshield_static(
         or result["can_publish_remote"] is not False):
         raise ValueError("unsafe CodeShield preview")
     return result
+
+# Bounded source-on-disk → static scanner adapter → redacted result.
+# Never convert these results to CodeRunner, F18 TrustedReceipt or Git CAS.
+from my_local_ai.controller.codeshield import audit_scoped_sources as _audit_scoped_sources
+from my_local_ai.security.supply_chain import OfflineDatabasePin as _OfflineDatabasePin
+
+
+def preview_codeshield_scoped_static(
+    *, context: _CodeShieldContext, worktree: str | _Path,
+    original_checkout: str | _Path, changed_python_paths: tuple[str, ...],
+    ruff_binary: str | _Path | None = None,
+    gitleaks_binary: str | _Path | None = None,
+    semgrep_binary: str | _Path | None = None,
+    local_semgrep_rules: str | _Path | None = None,
+    local_osv_cache: str | _Path | None = None,
+    offline_database_pin: _OfflineDatabasePin | None = None,
+) -> dict[str, object]:
+    """Owner-callable read-only static audit. No owner/F18 execution unlock.
+
+    Results are NOT verified source provenance, Git diff, OS policy
+    attestation or independent scanner execution proof. Unknown => HOLD.
+    """
+    audit = _audit_scoped_sources(
+        context, worktree=worktree, original_checkout=original_checkout,
+        changed_python_paths=changed_python_paths,
+        ruff_binary=ruff_binary, gitleaks_binary=gitleaks_binary,
+        semgrep_binary=semgrep_binary, local_semgrep_rules=local_semgrep_rules,
+        local_osv_cache=local_osv_cache,
+        offline_database_pin=offline_database_pin,
+    )
+    result = audit.to_redacted_dict()
+    if (result.get("execution_allowed") is not False
+        or result.get("owner_go_verified") is not False
+        or result.get("independent_f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False):
+        raise ValueError("untrusted CodeShield static audit result")
+    return result
