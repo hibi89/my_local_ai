@@ -12,7 +12,10 @@
   "p1_source_swu_implemented": 5,
   "first_source_ready": [
     "CS-SWU-003",
-    "CS-SWU-014"
+    "CS-SWU-004",
+    "CS-SWU-006",
+    "CS-SWU-008",
+    "CS-SWU-011"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -358,7 +361,7 @@
   "legacy_task_group_total": 8,
   "legacy_task_group_source_candidate_count": 3,
   "legacy_task_group_status_preserved": true,
-  "swu_reestimate_status": "HIGH_REVIEW_PENDING_ON_CRITICAL_AND_PLATFORM_HIGH_RISK",
+  "swu_reestimate_status": "SCORED_AND_SPLIT_16_HIGH_SAFETY_REVIEW_PENDING",
   "swu_basis": "2026-11-17 High one-session P1 BE/FE code-only, actual caller→callee→result, each S/C/I/D/U 0-2. 16 SWU from 8 legacy CodeShield task groups; no P2 verification in denominator. Source-only components not end-to-end wired are not counted.",
   "p1_source_swu_tasks": [
     {
@@ -1193,5 +1196,9 @@
     "CS-SWU-012",
     "CS-SWU-014"
   ],
-  "source_evidence_head_before_reestimate": "18b361f1f4665936199ab3cd0477eb77ee43ba49"
+  "source_evidence_head_before_reestimate": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
+  "critical_high_safety_blocked": [
+    "CS-SWU-012",
+    "CS-SWU-014"
+  ]
 }
