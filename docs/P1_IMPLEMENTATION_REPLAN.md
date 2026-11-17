@@ -38,3 +38,8 @@ P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly autho
 - MLA-028: `5ac1b6ec5ab3f8cb80c9c999c6a343aebca37e64` — source-pin checked optional EAI advice data, no EAI original source import or execution
 - MLA-030: `9d6e63a3bf7f5fa274eb7b00e61df2e9f50c465e` — synthetic adversarial leak/hooks/injection tests
 - P1 safe integration CI `44017659318` PASS. Original runtime task statuses still `BLOCKED_DEPENDENCY`; no independent F18 or owner signer GO established. Next `MLA-018` source-only, not ref promotion.
+
+## Wave 2 code evidence (2026-11-17 KST)
+
+- MLA-018 pure isolated local CAS intent `46f6995ea7456f77632826712247ec099aa2582e`; cryptographic inspection alone never permits promotion; all Git writes disabled. Safe synthetic CI on exact source SHA PASS.
+- Current P1 code-only READY: MLA-019 BE/FE synthetic integration, MLA-023 **read-only** remote preview. Their original runtime statuses stay `BLOCKED_DEPENDENCY`, with runtime_authorization HOLD; no remote API/PR/actual original changes.

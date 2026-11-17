@@ -19,7 +19,8 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-018"
+    "MLA-019",
+    "MLA-023"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -625,8 +626,10 @@
       "safety_checks": "TRUSTED_RECEIPT_REQUIRED;NO_REMOTE",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "46f6995ea7456f77632826712247ec099aa2582e",
+      "blockers": [
+        "Isolated local ref CAS intent implemented, protected Git transaction/original protection not executed; receipt does not grant promotion"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -637,8 +640,12 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "F18_INDEPENDENT_OS",
+        "OWNER_SIGNER",
+        "RUNTIME_CAS_NOT_EXECUTED"
+      ]
     },
     {
       "task_id": "MLA-019",
@@ -683,7 +690,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -820,7 +827,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -1033,8 +1040,8 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-019",
-      "MLA-023",
+      "MLA-022",
+      "MLA-024",
       "MLA-029"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
@@ -1044,13 +1051,17 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-018"
+      "MLA-019",
+      "MLA-023"
     ],
     "completed_code_waves": [
       [
         "MLA-017",
         "MLA-028",
         "MLA-030"
+      ],
+      [
+        "MLA-018"
       ]
     ]
   }

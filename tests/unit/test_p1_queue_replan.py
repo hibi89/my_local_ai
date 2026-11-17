@@ -21,7 +21,7 @@ class CodeQueueSeparationTests(unittest.TestCase):
 
     def test_safe_code_only_ready_wave_has_no_runtime_go(self):
         report = self.audit(SOURCE)
-        self.assertEqual(report["p1_code_ready"], ("MLA-018",))
+        self.assertEqual(report["p1_code_ready"], ("MLA-019","MLA-023"))
         self.assertEqual(report["completed_req"], 5)
         self.assertEqual(SOURCE["p1_implementation_replan"]["completed_code_waves"][0], ["MLA-017","MLA-028","MLA-030"])
         self.assertEqual(report["runtime_actions_authorized"], 0)
@@ -53,7 +53,7 @@ class CodeQueueSeparationTests(unittest.TestCase):
     def test_missing_source_evidence_denied(self):
         fake=copy.deepcopy(SOURCE)
         for item in fake["tasks"]:
-            if item["task_id"] == "MLA-017":
+            if item["task_id"] == "MLA-018":
                 item["evidence_sha"]=None
         with self.assertRaises(ValueError):
             self.audit(fake)
@@ -61,7 +61,7 @@ class CodeQueueSeparationTests(unittest.TestCase):
     def test_code_ready_deps_stay_subset_original(self):
         fake=copy.deepcopy(SOURCE)
         for item in fake["tasks"]:
-            if item["task_id"] == "MLA-018":
+            if item["task_id"] == "MLA-019":
                 item["p1_code_depends_on"]=["MLA-022"]
         with self.assertRaises(ValueError):
             self.audit(fake)
