@@ -306,6 +306,7 @@ def _request_local_controller_action(
     """
     import hashlib
     import re
+    import sqlite3
     from .state.sqlite_store import _write_owned_transaction
 
     if action not in ("start", "stop", "resume"):
@@ -415,7 +416,10 @@ def _request_local_controller_action(
             "p2": "LOCKED",
         }
 
-    return _write_owned_transaction(state_db, persist)
+    try:
+        return _write_owned_transaction(state_db, persist)
+    except sqlite3.Error:
+        raise ValueError("invalid or unavailable owned Controller DB") from None
 
 
 def _request_plan_approval(path: Path) -> dict:

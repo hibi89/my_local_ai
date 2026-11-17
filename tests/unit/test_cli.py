@@ -298,3 +298,76 @@ class CliMissingRequiredCommandsTests(unittest.TestCase):
         self.assertFalse(report["owner_go"])
         self.assertFalse(report["real_use_allowed"])
         self.assertEqual(report["independent_f18"],"SECURITY_HOLD")
+
+
+class CliDurableActionRequestSafetyTests(unittest.TestCase):
+    """Immediate P1 safety check: no runtime authority from user CLI requests."""
+
+    def test_stop_is_durable_hold_and_idempotent_without_running_worker(self):
+        from my_local_ai.contracts.plan import PlanSpec
+        from my_local_ai.state.sqlite_store import initialize_state, persist_local_source_task
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            plan_file = folder / "plan.json"
+            raw = json.dumps(minimal_plan())
+            plan_file.write_text(raw, encoding="utf-8")
+            spec = PlanSpec.parse_json(raw)
+            db_path = folder / "owned.sqlite3"
+            initialize_state(db_path)
+            persist_local_source_task(
+                db_path, plan_id=spec.plan_id, task_id="TEST-001",
+                plan_sha256=spec.digest, source_sha=SHA, blueprint_sha=SHA,
+            )
+            args = ("stop", "--task-id", "TEST-001",
+                    "--plan-file", str(plan_file), "--state-db", str(db_path))
+            code, result = invoke(*args)
+            self.assertEqual(code, 2)
+            self.assertEqual(result["status"], "HOLD")
+            self.assertTrue(result["action_request_recorded"])
+            self.assertTrue(result["controller_consulted"])
+            self.assertTrue(result["task_state_changed"])
+            self.assertFalse(result["worker_stopped"])
+            self.assertFalse(result["owner_go_verified"])
+            self.assertFalse(result["execution_allowed"])
+            with sqlite3.connect(db_path) as db:
+                self.assertEqual(db.execute(
+                    "SELECT state FROM tasks WHERE plan_id=? AND task_id=?",
+                    (spec.plan_id,"TEST-001"),
+                ).fetchone(), ("HOLD",))
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM owner_consents").fetchone(), (0,))
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM leases").fetchone(), (0,))
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM reviews").fetchone(), (0,))
+            code2, again = invoke(*args)
+            self.assertEqual(code2, 2)
+            self.assertFalse(again["task_state_changed"])
+            self.assertEqual(again["event_id"], result["event_id"])
+            for command in (("queue", "start"), ("resume",)):
+                args2 = (*command, "--task-id", "TEST-001",
+                         "--plan-file", str(plan_file), "--state-db", str(db_path))
+                code3, held = invoke(*args2)
+                self.assertEqual(code3, 2)
+                self.assertEqual(held["status"], "HOLD")
+                self.assertTrue(held["controller_consulted"])
+                self.assertFalse(held["execution_allowed"])
+                self.assertFalse(held["task_state_changed"])
+
+    def test_unregistered_or_tampered_plan_is_not_mutated(self):
+        from my_local_ai.state.sqlite_store import initialize_state
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            file = folder / "plan.json"
+            file.write_text(json.dumps(minimal_plan()), encoding="utf-8")
+            db_path = folder / "owned.sqlite3"
+            initialize_state(db_path)
+            args = ("stop","--task-id","TEST-001",
+                    "--plan-file",str(file),"--state-db",str(db_path))
+            code, denied = invoke(*args)
+            self.assertEqual(code, 2)
+            self.assertEqual(denied["status"], "HOLD")
+            self.assertFalse(denied["execution_allowed"])
+            # The action must not bootstrap/approve an unknown plan.
+            import sqlite3
+            with sqlite3.connect(db_path) as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM plans").fetchone(), (0,))
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM events").fetchone(), (0,))
