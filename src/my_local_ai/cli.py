@@ -1,4 +1,7 @@
-"""Read-only MVP CLI; never invokes shell, models, network or local task execution."""
+"""Read-only MVP CLI; no model, guest-code, network, or task execution.
+
+The explicitly invoked CodeShield doctor runs only fixed OS Defender status query.
+"""
 from __future__ import annotations
 
 import argparse
@@ -83,6 +86,7 @@ def _parser() -> argparse.ArgumentParser:
     shield = subs.add_parser("codeshield", help="Read-only CodeShield source and security HOLD status")
     shield_sub = shield.add_subparsers(dest="shield_action", required=True)
     shield_sub.add_parser("status", help="Report source SWUs, missing scanner proof and F18 holds")
+    shield_sub.add_parser("doctor", help="Explicit read-only native Defender status probe; no policy changes")
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -543,6 +547,26 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "codeshield" and args.shield_action == "status":
             from my_local_ai.ui.status_view import load_codeshield_source_status
             payload = load_codeshield_source_status(_ROOT).to_public_dict()
+        elif args.command == "codeshield" and args.shield_action == "doctor":
+            from my_local_ai.security.defender_status import probe_defender_status
+            defender = probe_defender_status()
+            payload = {
+                "codeshield": "V1_3",
+                "defender": {
+                    "state": defender.state,
+                    "running_mode": defender.running_mode,
+                    "signatures_age_days": defender.signatures_age_days,
+                    "primary_active": defender.defender_primary_active,
+                    "query_executed": defender.probe_executed,
+                    "error_code": defender.error_code,
+                },
+                "os_permissions_modified": False,
+                "defender_policy_modified": False,
+                "owner_go_verified": False,
+                "f18_independent": False,
+                "allow_code_execution": False,
+                "phase": "P1_SOURCE_ONLY",
+            }
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":
