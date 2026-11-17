@@ -104,7 +104,6 @@ def _get_public_github_json(repo: str, suffix: str) -> object:
     if repo not in PINNED or not isinstance(suffix, str):
         raise ValueError("public pinned repository only")
     from urllib.error import HTTPError, URLError
-    from urllib.parse import quote
     from urllib.request import Request, build_opener, HTTPHandler, HTTPSHandler, HTTPRedirectHandler
     from urllib.parse import urlsplit
 
@@ -238,6 +237,7 @@ def audit_live_pinned_github(raw_manifest: str, *,
         "remote_live_sha_verified":(
             len(sources) == 2 and
             all(s["pinned_commit_verified"] and s["pinned_tree_verified"]
+                and s["live_branch_matches_pin"]
                 for s in sources)
         ),
         "source_tree_verified_count":sum(

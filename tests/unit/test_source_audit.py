@@ -70,3 +70,72 @@ class SourceAuditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LivePinnedSourceAuditSafetyTests(unittest.TestCase):
+    """Only fabricated GitHub API fixtures; no real HTTP or rights clearance."""
+
+    def _fetch_fixture(self, *, branch_drift=False, notice=False):
+        sources={entry["source_repo"]:entry for entry in SOURCE["sources"]}
+        def read(repo, suffix):
+            s=sources[repo]
+            snapshot=s["full_tree_snapshot"]
+            if suffix.startswith("git/commits/"):
+                return {"sha":s["commit_sha"],"tree":{"sha":snapshot["tree_sha"]}}
+            if suffix.startswith("git/trees/"):
+                candidates=[
+                    {"path":item["path"],"sha":item["blob_sha"],
+                     "mode":"100644","type":"blob"}
+                    for item in s["candidate_files"]
+                ]
+                count=snapshot["entry_count"]-len(candidates)
+                others=[
+                    {"path":f"extra/file-{i}.py","sha":"c"*40,
+                     "mode":"100644","type":"blob"}
+                    for i in range(count)
+                ]
+                if notice and repo == "hibi89/EAI":
+                    others[0]["path"]="NOTICE.md"
+                return {"sha":snapshot["tree_sha"],"truncated":False,
+                        "tree":candidates+others}
+            if suffix.startswith("branches/"):
+                return {"commit":{"sha":("f"*40 if branch_drift and
+                        repo=="hibi89/EAI" else s["commit_sha"])}}
+            raise AssertionError("unapproved source fetch")
+        return read
+
+    def test_exact_commit_tree_is_still_provenance_hold(self):
+        result=module.audit_live_pinned_github(
+            json.dumps(SOURCE),fetch_json=self._fetch_fixture(),
+        )
+        self.assertEqual(result["source_tree_verified_count"],2)
+        self.assertTrue(result["remote_live_sha_verified"])
+        self.assertFalse(result["license_cleared"])
+        self.assertEqual(result["source_imports"],0)
+        self.assertEqual(result["status"],"BLOCKED_PROVENANCE")
+
+    def test_branch_drift_not_mislabeled_as_current_pin(self):
+        result=module.audit_live_pinned_github(
+            json.dumps(SOURCE),fetch_json=self._fetch_fixture(branch_drift=True),
+        )
+        self.assertEqual(result["source_tree_verified_count"],2)
+        self.assertFalse(result["remote_live_sha_verified"])
+        self.assertEqual(result["status"],"BLOCKED_PROVENANCE")
+
+    def test_notice_or_unavailable_source_never_clears_rights(self):
+        with self.assertRaises(ValueError):
+            module.audit_live_pinned_github(
+                json.dumps(SOURCE),fetch_json=self._fetch_fixture(notice=True),
+            )
+        def unavailable(repo, suffix):
+            raise ConnectionError("simulated public API outage")
+        result=module.audit_live_pinned_github(
+            json.dumps(SOURCE),fetch_json=unavailable,
+        )
+        self.assertEqual(result["source_tree_verified_count"],0)
+        self.assertFalse(result["remote_live_sha_verified"])
+        self.assertFalse(result["license_cleared"])
+        self.assertTrue(all(
+            item["status"]=="HOLD_REMOTE_EVIDENCE_UNAVAILABLE"
+            for item in result["source_reads"]
+        ))
