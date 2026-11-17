@@ -2,16 +2,18 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "OWNER_APPROVED_DESIGN_SOURCE_IMPLEMENTATION_NOT_STARTED",
+  "state": "SOURCE_IMPLEMENTATION_IN_PROGRESS_P2_LOCKED",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
   "protected_baseline_swu": 39,
   "baseline_source_complete_at_design": 35,
   "p1_source_swu_total": 8,
-  "p1_source_swu_implemented": 0,
+  "p1_source_swu_implemented": 3,
   "first_source_ready": [
-    "CS-01"
+    "CS-04",
+    "CS-05",
+    "CS-06"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -55,8 +57,8 @@
         "P2_LOCKED_UNTIL_HIGH"
       ],
       "risk": "MEDIUM",
-      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
-      "implementation_evidence_sha": null,
+      "status": "SOURCE_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "d082901654a5bc14fe1bdb74bc8da5754d4e343b",
       "acceptance_evidence_sha": null,
       "real_windows": "NOT_RUN",
       "p2": "LOCKED",
@@ -95,8 +97,8 @@
         "P2_LOCKED_UNTIL_HIGH"
       ],
       "risk": "HIGH",
-      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
-      "implementation_evidence_sha": null,
+      "status": "SOURCE_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "ed8eb3c6f884da5929e1c273a105f961ada43723",
       "acceptance_evidence_sha": null,
       "real_windows": "NOT_RUN",
       "p2": "LOCKED",
@@ -134,8 +136,8 @@
         "P2_LOCKED_UNTIL_HIGH"
       ],
       "risk": "MEDIUM",
-      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
-      "implementation_evidence_sha": null,
+      "status": "SOURCE_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf",
       "acceptance_evidence_sha": null,
       "real_windows": "NOT_RUN",
       "p2": "LOCKED",
@@ -251,8 +253,8 @@
         "P2_LOCKED_UNTIL_HIGH"
       ],
       "risk": "HIGH",
-      "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
-      "implementation_evidence_sha": null,
+      "status": "PARTIAL_IMPLEMENTED_UNVERIFIED_SCAN_HOLD",
+      "implementation_evidence_sha": "05c085223b9743aeedc14d69c6510782312029c1",
       "acceptance_evidence_sha": null,
       "real_windows": "NOT_RUN",
       "p2": "LOCKED",
@@ -350,5 +352,8 @@
       ],
       "code_only_candidate": true
     }
-  ]
+  ],
+  "source_implementation_branch": "feature/code-shield-lightweight-v1",
+  "p1_local_syntax": "NOT_RUN_NO_EXECUTION_ENVIRONMENT",
+  "current_source_head_before_queue": "a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf"
 }
