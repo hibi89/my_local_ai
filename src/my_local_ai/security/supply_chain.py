@@ -26,8 +26,14 @@ _MAX_BINARY = 128 * 1024 * 1024
 _LOCKFILES = frozenset({
     "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml",
     "yarn.lock", "poetry.lock", "Pipfile.lock", "uv.lock",
-    "Cargo.lock", "go.sum",
+    "Cargo.lock", "go.mod",
 })
+_LOCKFILE_DB = {
+    "package-lock.json": "npm", "npm-shrinkwrap.json": "npm",
+    "pnpm-lock.yaml": "npm", "yarn.lock": "npm",
+    "poetry.lock": "PyPI", "Pipfile.lock": "PyPI", "uv.lock": "PyPI",
+    "Cargo.lock": "crates.io", "go.mod": "Go",
+}
 
 
 @dataclass(frozen=True)
@@ -218,6 +224,11 @@ def scan_osv_offline(
     if (not isinstance(changed_lockfile, str)
         or changed_lockfile.rsplit("/", 1)[-1] not in _LOCKFILES):
         return _emit(context, "osv", ScanStatus.ERROR, "LOCKFILE_SCOPE_HOLD")
+    if (not isinstance(database_pin, OfflineDatabasePin)
+        or database_pin.ecosystem != _LOCKFILE_DB[
+            changed_lockfile.rsplit("/", 1)[-1]
+        ]):
+        return _emit(context, "osv", ScanStatus.ERROR, "WRONG_LOCKFILE_ECOSYSTEM")
     try:
         preflight_changed_paths(
             context, worktree=work, original_checkout=original,
@@ -228,18 +239,36 @@ def scan_osv_offline(
             cache == work or cache in work.parents or work in cache.parents or
             cache == original or cache in original.parents or original in cache.parents):
             return _emit(context, "osv", ScanStatus.ERROR, "DB_ROOT_SCOPE_HOLD")
-        if (not isinstance(database_pin, OfflineDatabasePin)
-            or datetime.now(timezone.utc) < database_pin.checked_at_utc
-            or (datetime.now(timezone.utc) - database_pin.checked_at_utc).days
-               >= database_pin.maximum_age_days):
-            return _emit(context, "osv", ScanStatus.ERROR, "OFFLINE_DB_STALE")
+        cache_check = inspect_osv_offline_cache(
+            database_pin, cache_root=cache, worktree=work,
+            original_checkout=original,
+        )
+        if cache_check.state != "CACHE_PIN_MATCH_STATIC_ONLY":
+            return _emit(context, "osv", ScanStatus.ERROR, "OFFLINE_DB_STALE_OR_INVALID")
         database_file = cache / "osv-scalibr" / database_pin.ecosystem / "all.zip"
-        if _file_sha(database_file, _MAX_BINARY) != database_pin.zip_sha256:
-            return _emit(context, "osv", ScanStatus.ERROR, "OFFLINE_DB_INVALID")
         src = work / changed_lockfile
         before = _file_sha(src, _MAX_SOURCE)
         if before is None:
             return _emit(context, "osv", ScanStatus.ERROR, "LOCKFILE_CHANGED_OR_TOO_LARGE")
+        # Do not allow untrusted project-level ignore/override files to hide CVEs.
+        # Explicit -L is the only source; refuse all local osv-scanner.toml
+        # ancestors until a separately pinned trusted --config is implemented.
+        parent = src.parent
+        while True:
+            config = parent / "osv-scanner.toml"
+            try:
+                config.lstat()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                return _emit(context, "osv", ScanStatus.ERROR, "CONFIG_READ_HOLD")
+            else:
+                return _emit(context, "osv", ScanStatus.ERROR, "UNTRUSTED_OSV_CONFIG")
+            if parent == work:
+                break
+            if parent == parent.parent or work not in parent.parents:
+                return _emit(context, "osv", ScanStatus.ERROR, "CONFIG_PARENT_ESCAPE")
+            parent = parent.parent
         env = _environment(offline_db=str(cache))
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         version = subprocess.run(
@@ -251,8 +280,10 @@ def scan_osv_offline(
             or pin.version not in version.stdout.decode("ascii", "replace")):
             return _emit(context, "osv", ScanStatus.ERROR, "OSV_VERSION_HOLD")
         process = subprocess.run(
-            [str(exe), "--offline", "scan", "-L", str(src),
-             "--no-resolve", "--format=json"],
+            [str(exe), "--offline", "scan", "source",
+             "--no-resolve", "--no-call-analysis=go",
+             "--no-call-analysis=rust", "--format=json",
+             "--lockfile", str(src)],
             cwd=str(exe.parent), env=env, shell=False, capture_output=True,
             check=False, timeout=timeout_seconds, creationflags=flags,
         )
@@ -267,11 +298,38 @@ def scan_osv_offline(
         doc = json.loads(process.stdout.decode("utf-8"))
         if not isinstance(doc, dict) or not isinstance(doc.get("results"), list):
             return _emit(context, "osv", ScanStatus.ERROR, "OSV_INVALID_REPORT")
-        # Conservative: any nonempty results or nonzero code is a HOLD;
-        # false positives reviewed in independent P2, never silently waived.
-        findings = len(doc["results"])
-        if process.returncode == 1 and findings == 0:
-            findings = 1
+        # V2 results contain sources/packages; they are not vulnerability
+        # counts. Only count package.vulnerabilities, and reject malformed,
+        # empty or mismatched source data instead of manufacturing PASS.
+        result_items = doc["results"]
+        if len(result_items) > 10000:
+            return _emit(context, "osv", ScanStatus.ERROR, "OSV_RESULT_LIMIT")
+        findings = 0
+        packages_seen = 0
+        for record in result_items:
+            if not isinstance(record, dict):
+                return _emit(context, "osv", ScanStatus.ERROR, "OSV_INVALID_RECORD")
+            source = record.get("source")
+            packages = record.get("packages")
+            if (not isinstance(source, dict)
+                or source.get("type") != "lockfile"
+                or not isinstance(source.get("path"), str)
+                or os.path.normcase(os.path.normpath(source["path"]))
+                   != os.path.normcase(os.path.normpath(str(src)))
+                or not isinstance(packages, list) or len(packages) > 20000):
+                return _emit(context, "osv", ScanStatus.ERROR, "OSV_WRONG_SOURCE")
+            for pkg in packages:
+                if not isinstance(pkg, dict) or not isinstance(pkg.get("package"), dict):
+                    return _emit(context, "osv", ScanStatus.ERROR, "OSV_BAD_PACKAGE")
+                vulnerabilities = pkg.get("vulnerabilities", [])
+                if not isinstance(vulnerabilities, list) or len(vulnerabilities) > 10000:
+                    return _emit(context, "osv", ScanStatus.ERROR, "OSV_BAD_VULNS")
+                packages_seen += 1
+                findings += len(vulnerabilities)
+                if packages_seen > 20000 or findings > 100000:
+                    return _emit(context, "osv", ScanStatus.ERROR, "OSV_RESULT_LIMIT")
+        if packages_seen == 0 or (process.returncode == 1) != (findings > 0):
+            return _emit(context, "osv", ScanStatus.ERROR, "OSV_INCOMPLETE_OR_EXIT_MISMATCH")
         if findings:
             return _emit(context, "osv", ScanStatus.FINDINGS,
                          "OFFLINE_VULNERABILITIES_REDACTED", findings)
