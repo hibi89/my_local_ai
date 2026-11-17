@@ -134,3 +134,18 @@
 8. **보안/원본:** EAI/AX 정확 source SHA/license 미확정, **MLA-001 BLOCKED_PROVENANCE**. F18 코드 생성 게스트 서명/자가 PASS 불신, owner protected signer 미연결. remote, customer, paid, OS 권한, main 변경 금지. Github 코드·정책/합성 테스트 외 비밀 업로드 금지.
 9. **다음 READY/사용자 승인:** 현재 큐 `first_ready=[]`. 핵심 차단 `MLA-001` provenance, `MLA-003` F18 trust boundary, `MLA-009` owner identity. High가 `MLA-008/014` clean-room 신규 자체 코드 vs original source import 설계·의존성/allowed_paths·acceptance를 명시적 판단하고 READY 할당해야 구현 흐름을 계속할 수 있음. 임의 status/phase unlock 금지. 사용자 PC 작업 요구 불필요.
 10. **기준/검증:** KST 2026-11-17, exact SHA `ad224cfb59d30ed8c87bfc524976c02662ed7592`, run `44015752835`. User mobile `ㄱ` 반복 시 여러 독립 READY 묶음, 국소 보안 즉시검사 후 소스/테스트/커밋·실제 SHA·완료 REQ/30 보고. 브라우저/전체 CI·실 Win11/F18/24h P2에 후행, 기존 필수 CI 유지.
+
+---
+
+## 2026-11-17 KST P1 10차 장시간 묶음 구현 인수인계 — 최신
+
+1. **목표/기술:** `hibi89/my_local_ai` 독자 local Controller+Qwen/OpenCode P1; EAI advisor optional, original code not copied; Hydrogen default OFF. P1 REQ01..30 구현 후보 100% 목표, P2 별도 잠금.
+2. **완료 소스:** MLA-008 Controller+advisory safe non-executing logic `a4b37009`, MLA-014 read-only Git worktree path guard `b6bb6bb4`, MLA-016 once-repair+fenced interruption `66f0a244`, MLA-015 F18 signed receipt parser/nonce/check anti-forgery `705a139d`. **총 11개 추가 코드·테스트 파일**. 직접 실행·원본 승격 없음, 원본 EAI/AX 코드 복사 0.
+3. **테스트:** GitHub Actions `44016649399` @ code SHA `705a139d5ed8a3f363eb58c4c12a31e71b761542`: Python 3.11 compile PASS, synthetic unit 75/75, mock benchmark 8/8, synthetic security 61/61, total **144 PASS**. Windows/OpenCode/Ollama 실기기·독립 OS 격리·F18 실제 verifier·브라우저/24h/최종 검수 `NOT_RUN`.
+4. **진척:** 최종 코드 구현완료율 **5/30 = 16.67%** (REQ-04/08/10/18/29), 전회 동일. blocked 4개 task 구현의 **부분 코드** 근거가 있어도 최종 REQ/프로젝트 100% 후보로 산입하지 않는다. 공식 검증률 UNASSESSED, P2 LOCKED, 실사용 HOLD.
+5. **차단:** MLA-001 EAI/AX 출처·권리 미해결; MLA-003 F18 standalone real OS isolation/issuer 미검증; MLA-009 owner protected signer 미구현. MLA-008/014/015/016은 미완 의존성/실행기 남음. 코드만으로 OS 격리·보호된 영수증 증명 불가.
+6. **Repo/branch/SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, 최신 실제 소스 SHA `705a139d5ed8a3f363eb58c4c12a31e71b761542`; 이 HANDOFF/STATUS/큐 반영 뒤 HEAD 재조회. Design branch `design/final-blueprint-v1` 마지막 `e08e127dc372023d4ece477b176b99ac3b9d6412`.
+7. **실서비스:** 개인용 로컬 Windows 목표, 현 GitHub Actions synthetic only. Production 없음, Windows owner 실모델/24h 증거 없음, 외부 전송/결제/원본 쓰기 없음.
+8. **원본·보안:** 원본 비공개/고객 파일/토큰/모델 가중치 GitHub 미저장. HMAC MAC matching ≠ independent F18 PASS, all reviewer results `may_promote_git_ref=false`; privileged scopes remote/OS/paid/customer/production denied by default. Hooks/filter/ignored paths independent Git checks 추후 필요.
+9. **다음 실행:** 최신 `AGENTS.md`→큐/원본→F18 안전 대조 후 실제 차단되지 않는 독립 READY 발굴. 큐 READY 0, status 강제 READY 금지. High가 clean-room 신규 코드 의존성 재배정 및 protected Windows trusted executor/owner signer 설계·실제 구현 결정; 다음 최소 실행 코드 후보는 MLA-017 atomic lease/reconcile 및 MLA-019 FE/BE 통합의 **독립 비실행 하네스** 단위, 단 큐·경로·안전 확인 후. 실 owner GO 전 실제 self-running 원본 수정 금지.
+10. **갱신:** KST 2026-11-17, code SHA `705a139d5ed8a3f363eb58c4c12a31e71b761542`, run `44016649399` PASS. P1 소스/합성 evidence ≠ P2/실기기 완료.

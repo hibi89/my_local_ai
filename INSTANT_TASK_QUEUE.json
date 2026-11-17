@@ -229,8 +229,10 @@
       ],
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "a4b3700979ba54413f8f284d6d62f67865bfbc84",
+      "blockers": [
+        "Clean-room own Controller and optional JSON-only advisor tests synthetically PASS. MLA-001 original provenance gate not resolved; no owner signer/execution authority; final Controller integration pending MLA-019."
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -383,8 +385,10 @@
       "safety_checks": "WORKTREE_ISOLATION;PROVENANCE;F18_HOLD",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "b6bb6bb4fc1d051187b179e8d7fdc042006b6273",
+      "blockers": [
+        "Pure path preflight and worktree intent synthetically PASS, but no OS/Git worktree creation, Git ignores/hooks/filter provenance or F18 boundary; original/secure source unchanged."
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -409,8 +413,10 @@
       "safety_checks": "F18_GATE;NO_HOST_UNTRUSTED_TEST;SECURITY_REVIEW",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "705a139d5ed8a3f363eb58c4c12a31e71b761542",
+      "blockers": [
+        "Signed-receipt cryptographic/nonce/check schema inspection implemented as NON_AUTHORITATIVE candidate. Independently protected signer/OS verifier and Windows runtime NOT_RUN; critical F18 HOLD."
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -433,8 +439,10 @@
       "safety_checks": "ONE_FIX_ONLY;NO_FALSE_VERIFIED",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "66f0a244cea78e7fa3bb533dd7fcb36f4a9399b0",
+      "blockers": [
+        "Pure once-repair/lease-fence and interrupted-run HOLD policy synthetically PASS. Runtime recovery ledger/isolated reviewer dependencies unavailable; no execution or integration."
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -767,12 +775,12 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "ad224cfb59d30ed8c87bfc524976c02662ed7592",
-    "run_id": 44015752835,
+    "head_sha": "705a139d5ed8a3f363eb58c4c12a31e71b761542",
+    "run_id": 44016649399,
     "python_compile": "PASS",
-    "unit_tests_pass": 56,
+    "unit_tests_pass": 75,
     "benchmark_mock_tests_pass": 8,
-    "security_contract_tests_pass": 43,
+    "security_contract_tests_pass": 61,
     "scope": "SYNTHETIC_P1_ONLY_NOT_P2_VERIFICATION"
   }
 }

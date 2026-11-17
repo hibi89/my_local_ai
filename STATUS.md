@@ -110,3 +110,16 @@
 - `MLA-020/004` 코드·테스트 하네스: 기존 `scripts/benchmark_real_local.py`, `tests/integration/test_real_model_gate.py`의 mock-only 8개를 기존 read-only synthetic CI에 추가 (`ad224cfb59d30ed8c87bfc524976c02662ed7592`). P1의 실제 모델 다운로드·API/Windows 실행 없음. CI `44015752835` @ exact SHA **SUCCESS**: syntax PASS, unit **56/56**, fake benchmark **8/8**, synthetic security **43/43** (합계 107 PASS). 이 숫자는 P2 검증률 아님.
 - **HIGH/BLOCKER:** source provenance `MLA-001 BLOCKED_PROVENANCE` (고정 원본의 라이선스/제3자 권리 미확인·원본 복사 금지), F18 independent Windows trust boundary CRITICAL HOLD, protected owner signer/OS isolation HOLD. 현재 READY=[]; `MLA-008/014/015` 의존성의 임의 해제/고위험 범위 축소 금지. High가 독자 구현 경로와 출처 게이트를 재판정해야 다음 안전 READY 할당 가능.
 - main/EAI/AX 원본/Production/계정 권한·유료 API/고객 데이터 변경 없음. 실 Windows Qwen/OpenCode, 독립 감사, 24h, 브라우저 `NOT_RUN`.
+
+---
+
+## P1 2026-11-17 KST 구현 작업 집중 라운드 — 자체 BE·Git 경로·복구·F18 계약 (직접 코드 4종)
+
+- 시작 실 HEAD `2be64954d24e1a2ded5c98c104fb849505cc4347`, `AGENTS.md`/큐/확정 REQ 확인. **첫 READY=[]**이므로 승인 없는 의존성/권한을 해제하지 않고 후속 작업의 **비실행·무원본수정 안전 부분**만 실제 코드로 구현. 새 소스/테스트 **11개 파일**, 신규 소스 커밋 4건.
+- **MLA-008 clean-room Controller** `a4b3700979ba54413f8f284d6d62f67865bfbc84`: `controller/decision.py`, `advisors/eai.py`, `tests/unit/test_own_controller.py`, `test_eai_advisor_optional.py`. 자체 DAG READY ranking, optional trusted-data-only advisor JSON strict schema; 조언은 동일 risk 내부 정렬만 가능·작업/경로/권한 확대 불가. EAI 원본 코드 **복사 없음**, EAI 비설치에도 기본 동작. 모든 후보 `runnable=false`, 실제 owner GO/OS-격리 자동 실행 없음.
+- **MLA-014 path preflight** `b6bb6bb4fc1d051187b179e8d7fdc042006b6273`: `gitops/path_guard.py`, `gitops/worktree.py`, `tests/security/test_worktree_scope.py`. symlink/reparse/hardlink/metadata/casefold alias/original checkout overlap 차단·디렉터리 사전 검사, 전부 읽기전용 `PRECHECK_ONLY`; **실제 Git worktree 생성·hook/filter/ignored 파일 검증은 미구현**, P2 이전 실제 원본/중요 ref 승격 금지.
+- **MLA-016 repair-once recovery policy** `66f0a244cea78e7fa3bb533dd7fcb36f4a9399b0`: `ax_runtime/recovery.py`, `tests/unit/test_repair_once.py`. stale plan/source/epoch 차단, first review failure에서만 repair 제안, 2차 실패 HOLD, 중단 시 fresh lease/승인 재요구. 실행/SQLite 변경 없음.
+- **MLA-015 F18 receipt parsing** `705a139d5ed8a3f363eb58c4c12a31e71b761542`: `review/trusted_runner.py`, `review/receipt_guard.py`, `tests/security/test_independent_verifier.py`. 체크 축소/거짓 PASS/replay nonce/lease·task·run·SHA·HMAC 위변조 거부. MAC 매칭이라도 결과 `SIGNATURE_CHECKED_F18_NOT_PROVEN`이며 `may_promote_git_ref=false`. 보호된 독립 검증 실행기/서명자·실 Windows 경계 미구현 계속 `SECURITY_HOLD`.
+- CI `44016649399` at `705a139d5ed8a3f363eb58c4c12a31e71b761542` SUCCESS. Python compile PASS, synthetic unittest **75/75 PASS**, fake-only benchmark **8/8 PASS**, synthetic security **61/61 PASS**, 총 **144/144 PASS**, 이전 107 대비 +37. 실제 Windows/Ollama/OpenCode/OS F18/24h/브라우저 `NOT_RUN`.
+- P1 blocked task 코드 부분 증거는 큐 4종의 `evidence_sha`/blockers에 남겼으나 status는 그대로 **`BLOCKED_DEPENDENCY`**. **구현완료율 5/30 = 16.67% 유지**, 기존 완료 코드 REQ-04/08/10/18/29만 분자 인정. 코드 존재 ≠ task 수용조건 전수 완료, P2 검증 완료 아님.
+- 남은 핵심 막힘: `MLA-001 BLOCKED_PROVENANCE`(EAI/AX 원본 이식 불허), `MLA-003 F18 SECURITY_HOLD`, `MLA-009` protected owner signer 미구현, 실제 OS isolated trusted runner/P2 증거 부족. 최신 큐 `first_ready=[]`; High 최종설계·의존성 승인 전 **임의 READY·P2 해제·main 병합/Production/원본 쓰기 없음**. 비밀/.env/고객자료/유료 API/외부 전송 없음.
