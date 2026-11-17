@@ -23,6 +23,7 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 - AX Dev Factory F01–F20의 작업 계약·격리 Git 작업트리·SQLite 복구·1회 수정 후 HOLD·의존성·원본 보호 기준을 누락 없이 마이그레이션한다.
 - 모델/게스트가 작성한 테스트 PASS 영수증은 독립 증거 아님. F18 신뢰 경계가 실제 분리/검증되기 전에는 미검증 코드를 원본/중요 브랜치에 자동 승격하지 않는다. 안전 우회·비격리 호스트 fallback 금지.
 - 리스크나 데이터권한 변경은 즉시 검사. 개발 중 불필요한 전체 CI 대기 금지하나 기존 필수 CI/브랜치 보호 해제 금지.
+- **사용자 확정 브라우저 후행(2026-11-17):** P1 Instant/Codex/Qwen/Hydrogen 구현자는 BE+FE 코드/연결을 모두 작성하지만 반복 브라우저·Playwright E2E·시각/접근성/반응형 전체 검증은 `DEFERRED_TO_P2`. P1은 문법/타입/최소 빌드·국소 smoke 및 인증/권한/비밀/데이터 손실/F18 즉시 위험검사 유지. 브라우저 필수/고위험이면 최소 확인만 예외 허용, 사유·정확 SHA·결과 기록. P1 `IMPLEMENTED_UNVERIFIED`는 브라우저 PASS 아님. P2 전체 브라우저 검증은 High의 정확 구현 후보 SHA 게이트 후 `MLA-V007` 등에서 수행. `docs/PHASE_GATES.md`와 `docs/FINAL_BLUEPRINT.md F-1`을 확인한다.
 - 외부 Hydrogen/유료 서비스/고객 자료 외부 전송/GitHub App 권한·remote push/PR/OS startup/Production/배포/보안 정책 변경은 사전 승인. 모델은 자체 권한을 늘릴 수 없다.
 - PUBLIC repo: .env, 토큰, 모델 가중치, 비밀 프롬프트/고객 자료·민감 소스/DB/개인 경로·실제 실행 로그 원본 업로드 금지. 외부 데이터 업로드·원본 덮어쓰기 금지.
 - 작업 결과는 실제 SHA, PASS/FAIL/SKIP/NOT_RUN, 근거 환경, 차단/복구, 다음 READY로 기록. 공식 검증률은 사용자 승인 가중치 없으면 UNASSESSED. 구현 후보와 검증 완료/출시 승인 구별.
