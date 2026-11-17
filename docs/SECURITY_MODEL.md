@@ -25,3 +25,8 @@
 `DESIGNED` (현재), `IMPLEMENTED_UNVERIFIED`, `SYNTHETIC_CI_PASS`, `OWNER_WINDOWS_REAL_MODEL_PASS`, `ISOLATION_SECURITY_PASS`, `UNATTENDED_24H_PASS`, `OWNER_REAL_USE_GO`는 각각 독립 증거여야 한다.
 
 실제로 구현한 뒤 F18 trusted reviewer가 막히면 다른 안전한 READY는 진행 가능하지만 **중요 원본에 대한 자동 통합/무인 적용은 HOLD**다. 유료·외부 전송·권한/보안 변경·고객 원본·상용 출시 모두 사전 승인.
+
+
+## F18 P1 MLA-003 보안 계약 갱신
+
+\`docs/TRUST_BOUNDARY_DESIGN.md\`가 reviewer principal/비신뢰 게스트/보호된 attestation/lease 재사용 방어와 promotion HOLD 규칙의 상세 정본이다. \`tests/security/test_receipt_forgery.py\`는 **합성 PlanSpec 권한 위조 거부**만 검사하며 실제 trusted reviewer, Windows 격리, independent PASS, 원본 자동 승격의 성공을 주장하지 않는다. 기존 F18 보안 HOLD를 유지하며 다음 구현은 MLA-015·MLA-018에서 수행한다.
