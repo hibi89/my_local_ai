@@ -11,7 +11,7 @@ import re
 import sqlite3
 
 from my_local_ai.ax_runtime.leases import check_lease_fence
-from .migrations import APP_ID, SCHEMA_VERSION
+from .migrations import APP_ID, SCHEMA_VERSION, REQUIRED_TABLES, canonical_schema_sql
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _SHA64 = re.compile(r"[0-9a-f]{64}\Z")
@@ -60,6 +60,27 @@ def read_reconcile_state(
         if (db.execute("PRAGMA query_only").fetchone()[0] != 1
             or db.execute("PRAGMA application_id").fetchone()[0] != APP_ID
             or db.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION):
+            raise ReconcileHold("BAD_STATE")
+        # An attached DB or TEMP table can shadow unqualified plans/tasks
+        # despite a legitimate application_id in main. Never trust them.
+        attached = db.execute("PRAGMA database_list").fetchall()
+        if len(attached) != 1 or attached[0][1] != "main":
+            raise ReconcileHold("BAD_STATE")
+        if db.execute("SELECT 1 FROM sqlite_temp_master LIMIT 1").fetchone():
+            raise ReconcileHold("BAD_STATE")
+        expected = canonical_schema_sql()
+        objects = db.execute(
+            "SELECT name,type,sql FROM main.sqlite_master WHERE name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        actual = {
+            name: (kind, " ".join(sql.split()) if isinstance(sql, str) else None)
+            for name, kind, sql in objects
+        }
+        if (set(actual) != REQUIRED_TABLES or
+            any(actual.get(name) != ("table", statement) for name, statement in expected.items())):
+            raise ReconcileHold("BAD_STATE")
+        if (db.execute("PRAGMA quick_check").fetchone() != ("ok",)
+            or db.execute("PRAGMA foreign_key_check").fetchone() is not None):
             raise ReconcileHold("BAD_STATE")
         plans = db.execute("SELECT plan_sha,blueprint_sha,state FROM plans WHERE plan_id=?",
                            (plan_id,)).fetchall()

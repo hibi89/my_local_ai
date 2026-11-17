@@ -303,3 +303,40 @@ class RestartReconcileSecurityTests(CrashResumeContractTests):
 
 if __name__=="__main__":
     unittest.main()
+
+
+class ReconcileDatabaseIdentityTests(unittest.TestCase):
+    setUp = CrashResumeContractTests.setUp
+    run_reconcile = CrashResumeContractTests.run_reconcile
+
+    def test_attached_database_is_never_a_trusted_recovery_source(self):
+        self.db.execute("PRAGMA query_only=OFF")
+        self.db.execute("ATTACH DATABASE ':memory:' AS shadow")
+        self.db.execute("PRAGMA query_only=ON")
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code, "BAD_STATE")
+
+    def test_temp_table_shadowing_is_rejected(self):
+        self.db.execute("PRAGMA query_only=OFF")
+        self.db.execute("CREATE TEMP TABLE plans(plan_id TEXT)")
+        self.db.execute("PRAGMA query_only=ON")
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code, "BAD_STATE")
+
+    def test_schema_drift_cannot_be_used_for_recovery(self):
+        self.db.execute("PRAGMA query_only=OFF")
+        self.db.execute("ALTER TABLE plans ADD COLUMN attacker_claim TEXT")
+        self.db.execute("PRAGMA query_only=ON")
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code, "BAD_STATE")
+
+    def test_unsafe_triggers_are_not_trusted(self):
+        self.db.execute("PRAGMA query_only=OFF")
+        self.db.execute("CREATE TRIGGER sneaky AFTER INSERT ON plans BEGIN SELECT 1; END")
+        self.db.execute("PRAGMA query_only=ON")
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code, "BAD_STATE")

@@ -7,6 +7,7 @@ reparse and physical crash behavior remain P2 owner-device tests.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import closing
 import hashlib
 import os
 from pathlib import Path
@@ -109,7 +110,9 @@ def _inspect_existing(path: Path) -> int:
     version = int.from_bytes(header[60:64], "big")
     if app_id != APP_ID or version not in (0, SCHEMA_VERSION):
         raise ValueError("refusing unowned or unsupported state version")
-    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5.0) as read_only:
+    # A sqlite Connection context manager commits/rolls back but does NOT close.
+    # closing() releases WAL/SHM handles deterministically (important on Windows).
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5.0)) as read_only:
         _check_integrity(read_only)
         if version == 0:
             _check_empty_v0(read_only)
