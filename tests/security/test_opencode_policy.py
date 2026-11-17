@@ -109,9 +109,12 @@ class OpenCodePolicyTests(unittest.TestCase):
             ("read", "src/demo.py"), ("edit", "src/demo.py"),
             ("read", "tests/test_demo.py"), ("edit", "tests/test_demo.py"),
         })
-        for label in ("shell", "webfetch", "external_directory", "subagent"):
-            self.assertIn("tool.use", str(cfg["policies"]))
-            self.assertIn(label, str(cfg["policies"]))
+        self.assertIn({"action": "tool.use", "resource": "*", "effect": "deny"}, cfg["policies"])
+        self.assertFalse(any(
+            item["effect"] == "allow" and item["resource"].startswith(
+                ("shell:", "execute:", "webfetch:", "websearch:", "subagent:")
+            ) for item in cfg["policies"] if item["action"] == "tool.use"
+        ))
         self.assertEqual(set(dict(req.environment)), {"OPENCODE_CONFIG_CONTENT", "OLLAMA_HOST"})
 
     def test_bad_sha_or_model_or_prompt_denied_before_run(self):
@@ -233,7 +236,8 @@ class OpenCodePolicyTests(unittest.TestCase):
             (p["resource"],p["effect"]) for p in config["policies"][3:]
         }
         self.assertEqual(allowed,{
-            ("read:src/test.py","allow"),("edit:src/test.py","allow"),
+            ("read:src/demo.py","allow"),("edit:src/demo.py","allow"),
+            ("read:tests/test_demo.py","allow"),("edit:tests/test_demo.py","allow"),
         })
         # A broad hard deny followed by specific exceptions is the
         # documented V2 ordering. Shell/web/remote tools never get an allow.
