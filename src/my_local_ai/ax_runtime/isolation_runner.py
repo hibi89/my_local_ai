@@ -905,3 +905,57 @@ def write_disposable_sandbox_manifest(
         plan.task_id, plan.run_id, plan.source_sha,
         plan.plan_sha256, plan.manifest_sha256, len(plan.manifest_bytes),
     )
+
+
+
+def generate_and_stage_public_synthetic_coder_input(
+    *, profile: WindowsNoEgressProfile,
+    prepared: _PreparedOpenCodeRun,
+    coding_request: str,
+    budget: _BudgetGuard,
+) -> StagedUntrustedSandboxInput:
+    """Public/synthetic host model -> bounded untrusted files -> scratch disk.
+
+    This is a real, sequential caller→callee source path; it does NOT launch a
+    Sandbox/guest, approve owner access, change ACLs, write original source,
+    trust the generated code, or mint F18. The separate protected OS runner
+    remains mandatory before any generated source may be executed or promoted.
+    """
+    if (_os.name != "nt" or not isinstance(budget, _BudgetGuard)):
+        raise WindowsIsolationHold("WINDOWS_HOST_ISOLATION_NOT_ATTESTED")
+    if (not isinstance(profile, WindowsNoEgressProfile)
+        or not isinstance(prepared, _PreparedOpenCodeRun)
+        or profile.role != "CODER"):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    transport = prepare_offline_coder_transport(
+        profile=profile, prepared=prepared,
+    )
+    # Check the immutable, preprovisioned scratch *before* local inference.
+    expected_dir = Path(
+        str(_PureWindowsPath(r"C:\MLA_Disposable") / profile.run_id / "input")
+    )
+    try:
+        _pinned_existing_stage_dir(expected_dir)
+        with _os.scandir(expected_dir) as items:
+            if next(items, None) is not None:
+                raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    except WindowsIsolationHold:
+        raise
+    except (OSError, ValueError):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE") from None
+    request = prepare_host_qwen_generation(
+        transport, coding_request=coding_request,
+        classification="PUBLIC_SYNTHETIC_ONLY",
+    )
+    proposal = infer_host_qwen_public_synthetic(
+        request, transport, budget=budget,
+    )
+    plan = prepare_sandbox_readonly_patch_import(
+        profile=profile, proposed_files=proposal,
+        scratch_root=r"C:\MLA_Disposable",
+    )
+    # Exact content readback is repeated after the model call. Any stale run,
+    # existing data, reparse path, wrong package or inaccessible folder HOLDS.
+    return write_disposable_sandbox_manifest(
+        plan, profile=profile, proposed_files=proposal,
+    )
