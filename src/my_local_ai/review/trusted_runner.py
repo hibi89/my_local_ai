@@ -141,6 +141,13 @@ def plan_isolated_reviewer(
     if not isinstance(request,ReviewRequest) or not isinstance(policy,ReviewerPolicy):
         raise ReviewPlanHold("untrusted request")
     approved=build_reviewer_policy()
+    if (not isinstance(request.task_id,str) or not _ID.fullmatch(request.task_id)
+        or not isinstance(request.run_id,str) or not _ID.fullmatch(request.run_id)
+        or not isinstance(request.plan_sha256,str) or not _SHA64.fullmatch(request.plan_sha256)
+        or not isinstance(request.candidate_sha,str) or not _SHA40.fullmatch(request.candidate_sha)
+        or not isinstance(request.source_sha,str) or not _SHA40.fullmatch(request.source_sha)
+        or type(request.lease_epoch) is not int or request.lease_epoch <= 0):
+        raise ReviewPlanHold("stale or forged protected review request")
     if (policy != approved or policy.can_execute
         or not isinstance(protected_reviewer_binary_sha256,str)
         or not _SHA64.fullmatch(protected_reviewer_binary_sha256)
