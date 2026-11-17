@@ -148,3 +148,7 @@ Do not run browser, Windows Sandbox, 24-hour load or real model tests until P1 3
 | run_started_ended_and_artifacts | On-device timestamp, exit codes, hashes, logs with secrets redacted |
 
 All P1 fixture fields for actual outcomes remain `NOT_RUN`; no authorization, Git operations, live HTTP, OS elevation, model calls or browser runs are performed by creating this schema. `P2=LOCKED` and official verification `UNASSESSED` until separately proved.
+
+
+## 2026-11-17 P1 MLA-014/019/025 added code evidence
+GitHub code SHA `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`, GitHub Actions 44059023691: syntax PASS; synthetic unit 166/166, integration 118/118 and security 194/194 (**478/478 PASS**). Worktree lifecycle preflight and cleanup intent are metadata-only, with no real Git operation. Controller→OpenCode→F18 review is HOLD-only with no OS-separated reviewer. P2 browser/Windows scenario fixtures are authored but actual tests are NOT_RUN. This does not add independently accepted REQs; P1 5/30 unchanged, P2 LOCKED, verified UNASSESSED.

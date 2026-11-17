@@ -48,3 +48,7 @@
 
 ### P1 2026-11-17 source-only update (no new REQ acceptance)
 At code SHA `045c3959dca08a6f2c03ce7655c5c738db82bdd3`, safety hardening for MLA-002/021/023/024 was committed and P1 synthetic Actions run `44056170817` passed 465/465 checks (166 unit, 108 synthetic integration, 191 security, syntax PASS). REQ-03/04/07/22/29 are not newly accepted by these tests. Provenance, action-specific protected signer, F18 OS isolation and P2 browser/Windows remain pending. P1 formal code counter stays **5/30**.
+
+
+### 2026-11-17 18:49 KST P1 code-only wave MLA-014/019/025
+Source SHA `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`, Actions `44059023691`: 478/478 P1 synthetic PASS (166 unit, 118 integration, 194 security), Python syntax PASS. Scope: lifecycle and cleanup intent checks (not actual Git), typed Controller/coder/F18 review hold (not actual model/owner signer), authored P2 owner browser/Windows SHA evidence schemas (not run). REQ-05/09/12/13/17/28/30 remain pending individual P1 acceptance/High determination where applicable; formal P1 5/30 and P2 LOCKED/UNASSESSED unchanged.

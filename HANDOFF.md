@@ -340,3 +340,18 @@
 8. **Restore/security:** existing Git history and EAI/AX originals preserved; secrets and customer data never uploaded; runtime authorization must remain `HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES`.
 9. **Next READY:** `MLA-014` disposable worktree create/remove safe port, `MLA-019` typed fail-closed integration, `MLA-025` P2 harness source authoring. Verify current allowed paths/safety gates before touching; do not run actual privileged code/P2.
 10. **Time/scope:** 2026-11-17 KST; reference test source `045c3959dca08a6f2c03ce7655c5c738db82bdd3`, P1 synthetic GitHub Actions only. Final blueprint and runtime gates not edited.
+
+
+---
+
+## 2026-11-17 18:49 KST — P1 source handoff after MLA-014/019/025
+1. **Identity/goal:** standalone `hibi89/my_local_ai` Controller P1 source authoring, not EAI original development. Current REQ code denominator 30.
+2. **Implemented:** worktree lifecycle and cleanup **planning contracts only** on safe Git snapshot, rejects stale main/original or dirty paths; typed Controller→local coder→protected F18 **HOLD** handoff + safe FE payload; exact-SHA owner/browser/Windows P2 evidence fixtures written, never executed.
+3. **CI:** code SHA `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`, GitHub Actions `44059023691` PASS syntax + 166 unit + 118 synthetic integration + 194 synthetic security = 478/478 PASS. Real Win11, Qwen/Ollama/OpenCode process, Git worktree owner operation, independent F18, real 24h, browser/Playwright `NOT_RUN`.
+4. **Progress:** 5/30 (16.67%) P1 code REQs unchanged; 28 source task traces not equal 30 fulfilled REQs. Official verified UNASSESSED; P2 LOCKED; owner real-use HOLD.
+5. **Risk:** pure dataclass/source previews are untrusted input, not owner signing/OS ACLs; never run protected actions or delete paths based on lifecycle digest. Provenance, action signer, OS reviewer unresolved.
+6. **Canonical repo:** `hibi89/my_local_ai@dev/instant-implementation-v1`, implementation code SHA `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`; docs/queue commit following this source SHA must be verified as current HEAD.
+7. **Environment:** GitHub Actions Ubuntu Python3.11 synthetic only; local physical Windows device and real models never accessed. Production not applicable.
+8. **Safety:** main/EAI/AX originals untouched, no secret upload/remote PR or permission escalation, no Git history rewrite. Runtime authorizations remain HOLD.
+9. **Next code-only READY:** `MLA-006/013/018` in current queue; inspect allowed_paths, safety, source gaps before authoring. Avoid repeating already implemented source without targeted omission.
+10. **KST/time/evidence:** 2026-11-17 18:49 KST; source test SHA exact `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`; High must accept each REQ for a justified numerator increase.

@@ -286,3 +286,14 @@
 - **Source changes:** PlanSpec repository components and TaskSpec credential variants hardened; dashboard rejects duplicate state JSON, inconsistent P1 final GO and unlocked runtime claims while displaying HOLD; read-only remote draft preview binds actual change path inventory digest and publisher action fingerprint includes source SHA, ref and path digest. Tests added for malicious inputs. No GitHub network publish code or live owner signer added.
 - **Progress:** **5/30 (16.67%) unchanged**, REQ source acceptance not expanded merely by tests; `IMPLEMENTED_UNVERIFIED`. Official verification `UNASSESSED`; P2 `LOCKED`, F18/owner-signer/provenance `HOLD`. Windows/Qwen/OpenCode actual, browser/Playwright, 24h: `NOT_RUN`.
 - **Queue:** finished code-hardening wave 002/021/024; next author-only READY 014 (safe disposable worktree lifecycle port), 019 (typed controller→worker/review guarded integration), 025 (exact-SHA P2 harness authoring). Existing runtime blocked dependencies, full design, original repos, main and production unchanged. 
+
+
+---
+
+## 2026-11-17 18:49 KST P1 MLA-014/019/025 source implementation wave
+- **GitHub source SHA:** `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`, developer branch `dev/instant-implementation-v1`. Actions [44059023691](https://github.com/hibi89/my_local_ai/actions/runs/44059023691) at the exact source SHA: syntax PASS, **166 unit + 118 synthetic integration + 194 security = 478/478 PASS**.
+- **MLA-014:** source-only linked worktree lifecycle/cleanup holds with strict worktree scope/main+original baseline, clean metadata and re-read mismatch refusal. Never calls Git or cleans live files.
+- **MLA-019:** native Controller → non-executing Qwen/OpenCode request → independent F18 HOLD review request → redacted BE/FE state card; no owner GO, trusted receipt, model launch or worktree writes. Synthetic hostile F18/advisor/lease tests added.
+- **MLA-025:** P2 real-browser and owner Windows evidence scenario schemas updated, SHA-pinned and actual outcomes `NOT_RUN`. No P2 suite was executed by these source changes.
+- **Official P1 source implementation count:** **5/30=16.67% unchanged**, source-only task evidence `IMPLEMENTED_UNVERIFIED`, 28/28 task evidence pointers do not certify all REQ. Formal P2 verification `UNASSESSED`; `P2 LOCKED`; F18/owner-signer/provenance/real-use `HOLD`.
+- **Next READY:** MLA-006 read-only CLI evidence, MLA-013 local coding worker policy, MLA-018 local CAS/F18 guarded path. Runtime `depends_on/status` untouched; no main/remote/Production/original repo updates.
