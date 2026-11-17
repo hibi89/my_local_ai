@@ -179,13 +179,21 @@ _ALLOWED_SCAN_EXTENSIONS = frozenset({
 
 @dataclass(frozen=True)
 class DefenderOwnerScanRequest:
-    """Redacted, data-only intent; NEVER a grant to call Start-MpScan."""
+    """Replay-bound data-only intent; NEVER a grant to call Start-MpScan.
+
+    Plan/source/nonce/lease are proposal metadata, not protected signatures.
+    A future Windows broker must rederive them from its own trusted ledger.
+    """
     context_sha256: str
     candidate_git_sha: str
     consent_reference: str
     relative_target_sha256: str
     content_sha256: str
     content_size: int
+    plan_sha256: str
+    source_git_sha: str
+    nonce_sha256: str
+    lease_epoch: int
     stage: str = "HOLD_OWNER_ACTION_AND_TRUSTED_BROKER_NOT_AVAILABLE"
     owner_grant_verified: bool = False
     os_identity_verified: bool = False
@@ -197,12 +205,16 @@ class DefenderOwnerScanRequest:
     def __post_init__(self) -> None:
         for digest in (
             self.context_sha256, self.relative_target_sha256,
-            self.content_sha256,
+            self.content_sha256, self.plan_sha256, self.nonce_sha256,
         ):
             if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
                 raise CodeShieldHold("UNTRUSTED_DECISION")
         if (not isinstance(self.candidate_git_sha, str)
             or re.fullmatch(r"[0-9a-f]{40}", self.candidate_git_sha) is None
+            or not isinstance(self.source_git_sha, str)
+            or re.fullmatch(r"[0-9a-f]{40}", self.source_git_sha) is None
+            or type(self.lease_epoch) is not int
+            or not 1 <= self.lease_epoch <= 2**63 - 1
             or not isinstance(self.consent_reference, str)
             or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{2,63}",
                                 self.consent_reference)
@@ -315,4 +327,6 @@ def preview_owner_scoped_defender_scan(
         context.fingerprint_sha256, context.candidate_git_sha,
         context.owner_consent_ref, _sha256(relative.encode("utf-8")).hexdigest(),
         actual, size,
+        context.plan_sha256, context.source_git_sha,
+        context.nonce_sha256, context.lease_epoch,
     )
