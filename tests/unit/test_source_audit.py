@@ -39,6 +39,29 @@ class SourceAuditTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.audit_manifest('{"version":1,"version":1}')
 
+    def test_recursively_pinned_tree_evidence_cannot_be_forged(self):
+        for name, change in (
+            ("tree_sha", "f" * 40),
+            ("entry_count", 0),
+            ("tree_listing_truncated", True),
+            ("filename_license_notice_hits", ["LICENSE"]),
+            ("scan_scope", "RIGHTS_APPROVED"),
+        ):
+            altered = copy.deepcopy(SOURCE)
+            altered["sources"][0]["full_tree_snapshot"][name] = change
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                module.audit_manifest(json.dumps(altered))
+
+    def test_candidate_blob_and_inventory_changes_blocked(self):
+        altered = copy.deepcopy(SOURCE)
+        altered["sources"][1]["candidate_files"][0]["blob_sha"] = "f" * 40
+        with self.assertRaises(ValueError):
+            module.audit_manifest(json.dumps(altered))
+        altered = copy.deepcopy(SOURCE)
+        altered["sources"][0]["candidate_files"].pop()
+        with self.assertRaises(ValueError):
+            module.audit_manifest(json.dumps(altered))
+
     def test_path_traversal_rejected(self):
         changed = copy.deepcopy(SOURCE)
         changed["sources"][0]["candidate_files"][0]["path"] = "../.env"

@@ -10,6 +10,10 @@ PINNED = {
     "hibi89/Freelancer": ("tools/ax-dev-factory-local", "5ab94180471c7ea86344b691fc77ad5c29989071"),
 }
 SHA = re.compile(r"[0-9a-f]{40}\Z")
+SOURCE_TREE_EVIDENCE = {
+    "hibi89/EAI": {"tree_sha": "0144655d7e7fd837e9f5efef7d91d5c489467f48", "entry_count": 191, "candidate_files": {"eai/decision_engine.py":"119d112d7d756dc320adfcda9e12214b6c534fb2","eai/resource_schedule.py":"1324f96da2f20ded0c2903bc24e3619537c72f4c"}},
+    "hibi89/Freelancer": {"tree_sha": "abbf9dd919f91f1b6e9566e7d582988c6ba32b73", "entry_count": 123, "candidate_files": {"axdev/core.py":"c4fc2f4c5f5547e7225566a1baa9ee0e3ccada07","axdev/opencode_guard.py":"170478dd45e97f809ed11085b295f9528005df2f","axdev/windows_sandbox_runtime.py":"421951b3658a7f72e2889ded6a54c1f5bfacb02f"}},
+}
 PATH = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\Z")
 
 def _unique_pairs(pairs):
@@ -41,6 +45,18 @@ def audit_manifest(raw: str) -> dict:
             raise ValueError("revision drift")
         if source.get("root_license") != "NOT_FOUND_AT_PINNED_ROOT" or source.get("third_party_notice") != "NOT_REVIEWED" or source.get("ownership_review") != "PENDING":
             raise ValueError("license state must remain unresolved until new evidence")
+        snapshot = source.get("full_tree_snapshot")
+        expected = SOURCE_TREE_EVIDENCE[name]
+        if (not isinstance(snapshot, dict) or set(snapshot) != {
+            "tree_sha", "entry_count", "tree_listing_truncated",
+            "filename_license_notice_hits", "scan_scope"
+        } or snapshot["tree_sha"] != expected["tree_sha"]
+            or type(snapshot["entry_count"]) is not int
+            or snapshot["entry_count"] != expected["entry_count"]
+            or snapshot["tree_listing_truncated"] is not False
+            or snapshot["filename_license_notice_hits"] != []
+            or snapshot["scan_scope"] != "PINNED_RECURSIVE_TREE_FILE_NAMES_ONLY"):
+            raise ValueError("pinned full-tree filename audit mismatch")
         files = source.get("candidate_files")
         if not isinstance(files, list) or not files:
             raise ValueError("missing candidate files")
@@ -53,7 +69,11 @@ def audit_manifest(raw: str) -> dict:
                 raise ValueError("invalid or duplicate file path")
             if not isinstance(blob, str) or not SHA.fullmatch(blob):
                 raise ValueError("invalid blob sha")
+            if expected["candidate_files"].get(path) != blob:
+                raise ValueError("candidate blob is not pinned")
             visited.add(path)
+        if set(visited) != set(expected["candidate_files"]):
+            raise ValueError("candidate inventory drift")
     if data.get("imports") != [] or data.get("import_decision") != "BLOCKED_PROVENANCE":
         raise ValueError("source import must remain blocked")
     return {

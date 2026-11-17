@@ -20,7 +20,14 @@
           "path": "eai/resource_schedule.py",
           "blob_sha": "1324f96da2f20ded0c2903bc24e3619537c72f4c"
         }
-      ]
+      ],
+      "full_tree_snapshot": {
+        "tree_sha": "0144655d7e7fd837e9f5efef7d91d5c489467f48",
+        "entry_count": 191,
+        "tree_listing_truncated": false,
+        "filename_license_notice_hits": [],
+        "scan_scope": "PINNED_RECURSIVE_TREE_FILE_NAMES_ONLY"
+      }
     },
     {
       "source_repo": "hibi89/Freelancer",
@@ -42,10 +49,17 @@
           "path": "axdev/windows_sandbox_runtime.py",
           "blob_sha": "421951b3658a7f72e2889ded6a54c1f5bfacb02f"
         }
-      ]
+      ],
+      "full_tree_snapshot": {
+        "tree_sha": "abbf9dd919f91f1b6e9566e7d582988c6ba32b73",
+        "entry_count": 123,
+        "tree_listing_truncated": false,
+        "filename_license_notice_hits": [],
+        "scan_scope": "PINNED_RECURSIVE_TREE_FILE_NAMES_ONLY"
+      }
     }
   ],
   "imports": [],
   "import_decision": "BLOCKED_PROVENANCE",
-  "review_notes": "Root contents checked at exact pinned SHA. No root LICENSE found; this does NOT prove no licensing rights. Third-party and owner rights not established. No copied source in my_local_ai."
+  "review_notes": "GitHub pinned recursive tree read-only inventory: EAI 191 entries and AX 123 entries (both untruncated). Conventional filename LICENSE/LICENCE/NOTICE/COPYING/COPYRIGHT hits: none. Filename-only scan is not license clearance or full rights proof; no source imported."
 }

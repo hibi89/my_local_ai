@@ -17,3 +17,11 @@
 - 위 결과는 **해당 루트의 파일명과 후보 blob 확인**만 의미한다. 전체 서브트리의 NOTICE/라이선스·제3자 권리·소유자 재사용 권한은 미확인. `LICENSE` 부재가 자동으로 이용 금지를 확정하는 것은 아님.
 - `docs/IMPORT_MANIFEST.json`은 원본 복사 없이 출처만 기록하고, `scripts/audit_sources.py`의 오프라인 읽기 전용 검사에서 `BLOCKED_PROVENANCE` 유지. `tests/unit/test_source_audit.py`는 합성 변조 차단만 검사.
 - 해당 5개 후보 원본 소스 코드의 실제 이식/수정/배포는 **미실시**. EAI와 AX 원본 저장소 및 브랜치 무변경.
+
+## 2026-11-17 MLA-001 고정 전체트리 감사 보강
+
+- GitHub 읽기전용 재귀 tree 조회: EAI 고정 SHA `5186cb1a...` → tree `0144655d7e7fd837e9f5efef7d91d5c489467f48`, **191개 항목**, truncated=false. AX 고정 SHA `5ab94180...` → tree `abbf9dd919f91f1b6e9566e7d582988c6ba32b73`, **123개 항목**, truncated=false.
+- 통상적인 `LICENSE/LICENCE/NOTICE/COPYING/COPYRIGHT` 기반 이름을 포함하는 파일명은 두 고정 트리에서 찾지 못했다. **파일명 검사만 수행**했으므로 코드 내부 권리 고지나 실제 소유·재사용권에 관한 결론 아님. 후보 5개 원본 blob SHA를 고정 트리에서 일치 확인했으며 제3자 코드 권리/라이선스와 소유자 권한은 여전히 미확인이다.
+- EAI 대상 브랜치 현재 HEAD `af57af08e0d71fb656c76be241944e8cf232a57a`는 기존 고정 SHA와 다름. AX 브랜치 HEAD는 고정 SHA 일치. 새 SHA로 임의 재고정하지 않음.
+- `audit_sources.py`는 고정 tree/blob·목록 완전성 진술 변조, 숨겨진 항목 삭제 및 자체 허가 주장 차단. 오프라인 스크립트 자체는 실 GitHub API를 조회하지 않으므로 원격 현재 SHA 검증 아님.
+- **`BLOCKED_PROVENANCE` 유지, 소스 이식 0건.** 복사 없이 신규 My Local AI 자체 코드를 작성하는 것은 가능하지만, High의 명시적 의존성/권리 재판정 없이 MLA-008·014 READY 해제 또는 새 P1 완료 REQ 산입 금지.
