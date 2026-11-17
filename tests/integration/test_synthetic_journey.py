@@ -164,3 +164,36 @@ class SyntheticControllerWorkerJourneyTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+class SyntheticPublicMetadataForgeryTests(unittest.TestCase):
+    def test_worker_card_refuses_malformed_model_claim_or_sha(self):
+        from my_local_ai.orchestrator import ControllerCodePreview
+        from my_local_ai.app import safe_code_request_card
+        good = ControllerCodePreview("TASK-019-A","b"*64,"a"*40,
+                                     "LOCAL_QWEN_OPENCODE",1,"c"*64)
+        self.assertFalse(safe_code_request_card(good)["execution_allowed"])
+        for changed in (
+            replace(good,provider="REMOTE_HYDROGEN"),
+            replace(good,task_id="<script>alert(1)</script>"),
+            replace(good,allowed_file_count=True),
+            replace(good,baseline_sha="0"*39),
+            replace(good,prepared_request_sha256="not-a-sha"),
+        ):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                safe_code_request_card(changed)
+
+    def test_untrusted_planning_snapshot_cannot_claim_f18_or_inject_ids(self):
+        from my_local_ai.orchestrator import PlanningPreview
+        good = PlanningPreview("b"*64,"a"*40,1,("TASK-019-A",),"DISABLED")
+        self.assertFalse(redact_preview(good)["execution_allowed"])
+        for changed in (
+            replace(good,f18_independently_verified=True),
+            replace(good,owner_go_verified=True),
+            replace(good,p2_locked=False),
+            replace(good,candidate_task_ids=("<img src=x>",)),
+            replace(good,plan_sha256="malformed"),
+            replace(good,can_publish_remote=True),
+        ):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                redact_preview(changed)

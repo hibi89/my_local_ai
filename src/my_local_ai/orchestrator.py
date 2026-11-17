@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import re
 from typing import Iterable
 
 from my_local_ai.contracts.plan import PlanSpec
@@ -60,8 +61,24 @@ def preview_plan(
 
 def redact_preview(preview: PlanningPreview) -> dict:
     """Only safe identifiers; never serialize plan goals/paths/prompts/data."""
-    if not isinstance(preview,PlanningPreview) or preview.can_run_coder:
-        raise ValueError("invalid preview")
+    if (not isinstance(preview, PlanningPreview)
+        or preview.phase != "P1_IMPLEMENTATION"
+        or preview.owner_go_verified or preview.f18_independently_verified
+        or preview.can_run_coder or preview.can_write_git or preview.can_publish_remote
+        or preview.p2_locked is not True
+        or type(preview.task_count) is not int or not 1 <= preview.task_count <= 256
+        or not isinstance(preview.plan_sha256, str) or
+            re.fullmatch(r"[0-9a-f]{64}", preview.plan_sha256) is None
+        or not isinstance(preview.source_sha, str) or
+            re.fullmatch(r"[0-9a-f]{40}", preview.source_sha) is None
+        or preview.advisory_status not in
+            {"DISABLED", "OPTIONAL_HINTS_ACCEPTED", "INVALID_HINTS_IGNORED"}
+        or not isinstance(preview.candidate_task_ids, tuple)
+        or len(preview.candidate_task_ids) > preview.task_count
+        or len(set(preview.candidate_task_ids)) != len(preview.candidate_task_ids)
+        or any(not isinstance(x,str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}",x)
+               for x in preview.candidate_task_ids)):
+        raise ValueError("invalid or unsafe preview")
     return {
         "phase":preview.phase,
         "source_sha":preview.source_sha,

@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+import re
 
 from my_local_ai.orchestrator import PlanningPreview,preview_plan,redact_preview
 from my_local_ai.ui.status_view import StatusSnapshot,load_snapshot
@@ -54,7 +55,17 @@ def safe_code_request_card(preview: object) -> dict:
     if (preview.stage != "CODE_REQUEST_PREPARED_ONLY" or preview.may_execute
         or preview.may_write_git or preview.code_worker_executed
         or preview.owner_signed_go or preview.real_isolation_verified
-        or preview.candidate_verified):
+        or preview.candidate_verified or preview.provider != "LOCAL_QWEN_OPENCODE"
+        or type(preview.allowed_file_count) is not int
+        or not 1 <= preview.allowed_file_count <= 16
+        or not isinstance(preview.task_id,str) or
+            re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}",preview.task_id) is None
+        or not isinstance(preview.plan_sha256,str) or
+            re.fullmatch(r"[0-9a-f]{64}",preview.plan_sha256) is None
+        or not isinstance(preview.baseline_sha,str) or
+            re.fullmatch(r"[0-9a-f]{40}",preview.baseline_sha) is None
+        or not isinstance(preview.prepared_request_sha256,str) or
+            re.fullmatch(r"[0-9a-f]{64}",preview.prepared_request_sha256) is None):
         raise ValueError("unsafe or forged worker preview")
     return {
         "task_id": preview.task_id,

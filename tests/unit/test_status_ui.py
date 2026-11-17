@@ -122,3 +122,33 @@ class StatusUiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UiPhaseConsistencyTests(unittest.TestCase):
+    def test_queue_and_gate_req_counters_must_agree_before_render(self):
+        import shutil
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as temp:
+            directory = Path(temp)
+            for name in ("WORK_PHASE_GATES.json", "INSTANT_TASK_QUEUE.json"):
+                shutil.copy2(ROOT / name, directory / name)
+            qpath = directory / "INSTANT_TASK_QUEUE.json"
+            queue = json.loads(qpath.read_text(encoding="utf-8"))
+            queue["code_completed_req"] += 1
+            qpath.write_text(json.dumps(queue), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "inconsistent"):
+                load_snapshot(directory)
+
+    def test_runtime_ready_in_source_queue_fails_closed(self):
+        import shutil
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as temp:
+            directory = Path(temp)
+            for name in ("WORK_PHASE_GATES.json", "INSTANT_TASK_QUEUE.json"):
+                shutil.copy2(ROOT / name, directory / name)
+            qpath = directory / "INSTANT_TASK_QUEUE.json"
+            queue = json.loads(qpath.read_text(encoding="utf-8"))
+            queue["operational_ready"] = ["MLA-019"]
+            qpath.write_text(json.dumps(queue), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_snapshot(directory)

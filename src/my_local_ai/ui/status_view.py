@@ -77,8 +77,12 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     if phase not in ("P1_IMPLEMENTATION", "P0_DESIGN_AWAITING_OWNER_GO"):
         raise ValueError("unsupported dashboard phase")
     tasks = queue.get("tasks")
-    if not isinstance(tasks, list) or not 0 <= len(tasks) <= 128:
-        raise ValueError("invalid queue")
+    if (queue.get("phase") != "P1_IMPLEMENTATION_ONLY"
+        or queue.get("code_completed_req") != done
+        or queue.get("total_code_req") != total
+        or queue.get("operational_ready") != []
+        or not isinstance(tasks, list) or len(tasks) != 28):
+        raise ValueError("inconsistent code-only queue and phase metrics")
     statuses = []
     for task in tasks:
         if not isinstance(task, dict) or not isinstance(task.get("status"), str) or not _STATE_KEY.fullmatch(task["status"]):

@@ -60,3 +60,20 @@ class OwnerJourneyP2Tests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+def authored_owner_evidence_manifest(gates: dict, exact_sha: str | None) -> tuple[dict, ...]:
+    """P1 source-only checklist. No mocked fixture can claim a P2 test PASS."""
+    ready = p2_gate_ready(gates, exact_sha)
+    return tuple({
+        "scenario_id": code,
+        "description": description,
+        "implementation_sha": exact_sha if ready else None,
+        "p2_gate_ready": ready,
+        "owner_real_browser_result": "NOT_RUN",
+        "trusted_f18_result": "NOT_RUN",
+        "requires_owner_controlled_runner": True,
+        "may_update_original": False,
+        "may_publish": False,
+    } for code, description in SCENARIOS)
