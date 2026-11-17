@@ -86,3 +86,14 @@
 - **GitHub 필수 합성 CI PASS** `44013825139` at `748caecf30e680b2794fde287bbf674801c88079`, `44014035939` at `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c`. 최신 CI syntax PASS, unit **54/54 PASS**, security **32/32 PASS**. 이는 브라우저·실 Windows·실 모델·F18/24h/P2 전수 검증이 아님.
 - **P1 작업 작성 후보:** 이전 9/28 (MLA-012 포함) + MLA-013, MLA-020 = **11/28**; `MLA-001 BLOCKED_PROVENANCE`, `MLA-003 PARTIAL_F18_SECURITY_HOLD`, `MLA-009 PARTIAL_TRUST_ROOT_HOLD`. 다음 queue READY = 0 (잔여 작업이 의존성/보안 차단). High 판단 필요: 권리 미해결 시 원본 복사 없이 신규 코드 경로 승인, isolated F18 trust boundary 및 protected owner signer 설계·작업 차단 해소. 차단 항목과 무관한 범위만 재개.
 - **P2 `LOCKED`, 공식 검증완료율 `UNASSESSED`, 실사용 `HOLD`.** GitHub main, EAI, AX Dev Factory, 사용자 PC/OS/외부 API/Production 미변경.
+
+---
+
+## 2026-11-17 KST P1 9차 실제 구현·증거 보강 — MLA-001 (원본 출처·권리)
+
+- 고정 브랜치 HEAD `dev/instant-implementation-v1`에서 **MLA-001 허용된 4개 파일** 감사 기능/합성 테스트/고정 메타데이터 실변경; 소스 SHA **`ffea825ba253b2b12246d3c36f63fb2642215e1d`**. EAI 고정 원본 Git 트리 **191개/완전 목록**, AX 고정 원본 **123개/완전 목록**, 후보 5개 blob SHA 일치, 통상 LICENSE/NOTICE 등 파일명 히트 0. 파일명 0건은 **라이선스·제3자 권리 승인 아님**. 공개 원본 코드 복사·실이식 0.
+- `scripts/audit_sources.py`: 핀된 전체 트리 SHA, 후보 blob SHA, tree entry-count, truncation/filename scan 범위 위변조, 누락된 후보 및 자체 라이선스 승인 주장 거부. `docs/IMPORT_MANIFEST.json`에 읽기 전용 증거를 보존. 원격 현재 SHA 실증은 connector 읽기 증거이며 offline audit 스크립트 실행만으로 실 API 확인 불가.
+- 원본 EAI 참조 브랜치 현재 SHA `af57af08e0d71fb656c76be241944e8cf232a57a`는 기존 고정 기준 `5186cb1aa7928054d56b1cd0a40ea5943a5b3892`와 다름. 무단 re-pin/원본 수정 금지. AX 고정 브랜치 SHA 일치.
+- **GitHub Actions `44014692103` @ `ffea825ba253b2b12246d3c36f63fb2642215e1d` SUCCESS**: Python 3.11 syntax PASS, synthetic unit **56/56 PASS** (기존 54에서 +2), synthetic security **32/32 PASS**. 실제 OS F18/Windows/Ollama/브라우저/24시간, 소스 재사용 법적 검토는 `NOT_RUN/UNRESOLVED`.
+- **구현완료율 5/30 = 16.67% (변동 없음)**. 완결 REQ-04/08/10/18/29. MLA-001은 감사 구현 보강이지만 root license/third-party/owner 권리 확인 미해결로 `BLOCKED_PROVENANCE` 유지. 다음 P1 READY 없음; 구조적 의존성 MLA-008·014는 High의 별도 청정 재구현 기준안 승인이 있을 때만 재분류. F18 `SECURITY_HOLD`, MLA-009 보호된 서명자 미구현 유지.
+- P2 `LOCKED`, 공식 검증완료율 `UNASSESSED`, 실사용 `HOLD`. main/EAI/AX/Production/OS/remote/유료 API 변경 없음.

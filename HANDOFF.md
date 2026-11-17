@@ -104,3 +104,18 @@
 8. 비밀/원본/보안: no external API, no model pull, no main merge, no remote PR/permission changes. 원본 EAI/AX 미수정. Model prompt/output 원문은 benchmark evidence에 저장하지 않음.
 9. 다음 작업: 큐 `first_ready=[]` (2 READY 소진). 기존 `MLA-001` provenance·LICENSE 블록 및 `MLA-003`/009 F18/trust-root 블록을 High 설계 판단과 연결한 뒤 실제 의존성 해소 및 MLA-014 등 다음 READY 수행. 새 `ㄱ`마다 GitHub 최신 정책/HEAD와 blocked dependencies 확인; 사용자 PC 작업 금지.
 10. KST 2026-11-17, exact evidence sources 위 2 SHA, P1 소스 후보, P2 독립 검증 미실시. 과거 문서의 구형 READY 우선순위 대신 실제 최신 큐를 사용.
+
+---
+
+## 2026-11-17 KST P1 9차 모바일 `ㄱ` 인수인계 — MLA-001 provenance deep audit
+
+1. 임무: `hibi89/my_local_ai` 자체 로컬 Controller 중심 P1 소스 구현. EAI/AX 원본 읽기 전용, Main/Production/Hydrogen 외부 API 변경 금지.
+2. 완료: pinned Git trees EAI(191 items, tree `0144655d7e7fd837e9f5efef7d91d5c489467f48`)/AX(123 items, tree `abbf9dd919f91f1b6e9566e7d582988c6ba32b73`) complete verified; source candidates 5 blobs anchored; provenance manifest, offline audit and adversarial tests 강화. 변경 소스 SHA `ffea825ba253b2b12246d3c36f63fb2642215e1d`.
+3. 테스트: GitHub Actions `44014692103` (exact `ffea825ba253b2b12246d3c36f63fb2642215e1d`) SUCCESS — Python syntax PASS, unit 56/56 PASS, security 32/32 PASS; Windows/Ollama/OpenCode/OS F18/24h/Playwright/권리 법적 승인 NOT_RUN.
+4. 진척: 구현완료율 **5/30=16.67%**, REQ 5개는 기존 코드 완료 후보, 신규 REQ completion 0. MLA-001 상태 `BLOCKED_PROVENANCE`; code task candidate count 변화 없음(11/28 기존).
+5. 장애/대안: pinned source full tree에서 LICENSE/NOTICE 등 관례적 파일명 0건, 실제 재사용권/제3자 통합 라이선스 미확정. 선택지 A 독립 새 코드(clean-room)로 재구현 시 HIGH 설계·계약/큐 의존성 변경 명시 승인 필요. B 소유/제3자 권리 문서 확인 후만 원본 이식. F18 독립 OS 신뢰 경계와 protected owner-signer 계속 HIGH/CRITICAL HOLD.
+6. Repo/branch: `hibi89/my_local_ai@dev/instant-implementation-v1`; 감사 소스 SHA `ffea825ba253b2b12246d3c36f63fb2642215e1d`. 현재 문서 증거 갱신 이후 HEAD는 다시 조회. 설계 `design/final-blueprint-v1` 마지막 확인 `e08e127dc372023d4ece477b176b99ac3b9d6412`, 구형 queue/STATUS 덮어쓰기 금지.
+7. Runtime: 개인용 Windows 앱 대상, 실제 원격 배포/모델/하드웨어 평가 NOT_RUN; PUBLIC repo 정책·고객 원본·키 보호.
+8. 원본/보안: EAI 현재 브랜치 관측 SHA `af57af08e0d71fb656c76be241944e8cf232a57a` (기존 pinned SHA와 다름), AX HEAD 고정 일치, 원본 쓰기 0. SHA/license scan만으로 라이선스 승인하지 않음; Git 이력 롤백 경로 보존.
+9. Next: P1 queue `first_ready=[]`. High 설계 판단 전 MLA-008/014 의존성 강제 READY 전환/외부 소스 복사 금지. 차단 없는 실제 작업이 생기면 새 `ㄱ`에서 dependency·allowed_paths 확인 후 구현. F18 및 signer는 별도 불변 안전 게이트.
+10. 갱신 2026-11-17 KST, exact evidence source `ffea825ba253b2b12246d3c36f63fb2642215e1d`, Actions `44014692103`. P2 `LOCKED`, 검증률 `UNASSESSED`, 실사용 `HOLD`.
