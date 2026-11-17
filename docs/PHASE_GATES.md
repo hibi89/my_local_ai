@@ -39,3 +39,11 @@
 - 실제 브라우저 클릭/폼, Playwright, 스크린샷 시각 비교, 반응형·키보드/a11y, Console/Network·UI 회귀 실행은 잠긴 `VERIFICATION_TASK_QUEUE.json#MLA-V007`에서만 P2 수행한다. `MLA-006` CLI-only는 브라우저 비대상.
 - 인증·권한·비밀·외부전송·원본/DB 손실·F18 즉시 위험검사와 기존 필수 CI는 P1에서도 유지. 고위험 확인에 브라우저가 불가결하면 최소 예외 검사만 SHA·사유 기록.
 - **설계 브랜치의 `owner_design_approval=P0`, `code_completed_req=0`는 설계 브랜치 역사적 상태이며 실제 dev 진척을 덮지 않는다.** 운영 진척은 dev `STATUS.md`/작업큐에서 확인. dev의 현재 기록 4/30=13.33% (최신 HEAD 재검토 필수).
+
+---
+
+## V1.2 경험학습 확장 단계 잠금
+- `Experience Learning Engine`은 사용자 확정 **새 최종설계 확장 방향**이지만 현재 기본 `REQ-01~30 / P1 28작업` 및 `P2 8검증/LOCKED`의 분자·분모에 자동 산입하지 않는다. 구현 범위/우선순위·파일 충돌·정확 dev HEAD를 확인한 별도 작업 승인 전 `EXT-EXP-01..07` 전부 `DESIGN_ONLY_NOT_READY`.
+- P1 구현 중 필요 없는 실모델·브라우저·Playwright E2E·데이터 수집/외부 API를 실행하거나 기다리지 않는다. 문법·타입·국소 스모크·인증/권한/비밀/DB 손실/F18 즉시 위험검사는 유지.
+- 경험 관측(비신뢰)·추천 후보와 `IMPLEMENTED_UNVERIFIED`는 검증된 경험 또는 수용 PASS를 의미하지 않는다. 공식 독립 검증/성과 A/B·Windows/24h/브라우저 전체는 기본 P1 100% 후보·High 게이트 후 P2에서 처리.
+- owner GO·정확 SHA 없이는 학습 스킬 자동 활성, 권한 상승·main/원격 push, 고객/개인·비공개 데이터 저장/송신, 대량 외부 모델 답변 수집/모델 재학습을 하지 않는다.
