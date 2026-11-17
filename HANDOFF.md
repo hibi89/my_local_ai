@@ -468,3 +468,18 @@
 8. **Original/backups:** Existing dev Git SHA preserved, no force push or source rebase; original EAI/Freelancer untouched; no Windows OS settings/anti-virus changes, no signers provisioned. Secrets/credentials never committed.
 9. **Next READY & acceptance:** CS-01 policy/immutable evidence/negative authorization schema; next CS-02 AST/path scan; independent compatible tasks follow source queue. Full acceptance REQ-CS-01..12 in acceptance matrix. Implement CodeShield without changing legacy 39 SWU/P2 gate, mandatory CI/F18 HOLD. Real untrusted code execution requires independent attested OS confinement + owner GO and cannot be inferred from scanners.
 10. **Review/date:** 2026-11-17 KST, only design + Git branch/docs operations verified, verified product feature scope ZERO. No owner runtime authorization, no ready-to-release or final integration claimed.
+
+---
+
+## 2026-11-17 KST — CodeShield V1.3 isolated implementation branch continuation
+
+1. **Locked goal:** MLA lightweight safety layer on existing `hibi89/my_local_ai`, `feature/code-shield-lightweight-v1`, not EAI or AX Dev Factory.
+2. **Changed source:** `src/my_local_ai/security/codeshield_contracts.py` CS-01 immutable policy/risk/evidence; `security/ast_preflight.py` CS-02 bounded no-execute AST + pre-existing worktree path guard; `security/ruff_adapter.py` CS-03 offline pinned Ruff S/E/F adapter; `security/defender_status.py` CS-06 read-only Defender status + held optional scan plan.
+3. **Checks:** GitHub file create/readback PASS. Local Python syntax/runtime/smoke, GitHub Actions for new SHA, actual Windows/Ruff/Defender/OS isolation/Qwen/F18 **NOT_RUN**; CodeShield security VERIFIED must remain false. Source files alone do not prove scanner hardening.
+4. **Implementation status:** CS-01/02/03 `SOURCE_IMPLEMENTED_UNVERIFIED` (**3/8**); CS-06 partial (actual optional scan not implemented); CS-04/05/07/08 not implemented. Legacy 35/39 = 89.74%, approved P1 REQ 5/30 = 16.67%; P2 locked/official verification UNASSESSED.
+5. **Holds/failures:** Protected owner signer, Windows AppContainer proof, F18, untrusted host execution, protected original/main/remote, Defender configuration changes all held. 2+2 failures = **0 newly confirmed**.
+6. **SHA:** CS01 `d082901654a5bc14fe1bdb74bc8da5754d4e343b`, CS02 `ed8eb3c6f884da5929e1c273a105f961ada43723`, CS06 `05c085223b9743aeedc14d69c6510782312029c1`, CS03 `a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf`; queue `4b7804fb2b5c3f45fb45ede1b466b6b9b900f8c1`, status `53f22fede69b91f4a213fbc577e4c1c515310c79`. HEAD after this handoff commit must be re-read.
+7. **Environment:** Local user Windows/Defender/Qwen NOT_RUN; no Vercel or Production applicable. Github-only source commits; no remote app invocation or security policy mutations.
+8. **Safety:** Original sources and history preserved; public code only, no token/customer files/installer. Scanner PASS never grants execution; independent F18 and owner signer remain absent.
+9. **Next READY:** CS-04 native Semgrep allowlisted local rules, CS-05 Gitleaks/OSV offline, CS-06 optional protected-scope scan completion if approved owner grant exists. Then CS-07 Controller risk gate, CS-08 CLI/FE. Minimum syntax/smoke must be executed when appropriate runner is available; do not claim PASS retroactively.
+10. **Basis:** 2026-11-17 KST; design `265bd86d6d36f4a94ab16fb79223bf7896519331`, feature branch from `0365db53a7fc72afcd48522dd39ada91e8cf5566`, source+queue+status facts as of `53f22fede69b91f4a213fbc577e4c1c515310c79`.
