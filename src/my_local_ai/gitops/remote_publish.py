@@ -124,3 +124,140 @@ def prepare_draft_action_intent(draft: DraftPRPreview) -> DraftActionIntent:
         draft.repository,draft.base_branch,
         draft.expected_base_sha,draft.candidate_sha,digest,
     )
+
+
+# SWU-029: narrowly scoped one-shot draft PR source port for an independently
+# protected future publisher. V1 refuses REMOTE_PR at authorize_claim; neither
+# this function nor a prepared intent is approval to upload even public code.
+from urllib.parse import quote as _url_quote
+
+
+class DraftPublishHold(ValueError):
+    """Remote publishing remains HOLD on any stale grant or readback."""
+
+
+@dataclass(frozen=True)
+class DraftPublishReceipt:
+    repository: str
+    candidate_sha: str
+    review_ref: str
+    draft_pr_number: int
+    draft_pr_url: str
+    state: str = "REMOTE_DRAFT_CREATED_AWAIT_INDEPENDENT_VERIFICATION"
+    may_merge: bool = False
+    may_change_main: bool = False
+    may_publish_further: bool = False
+    release_approved: bool = False
+
+
+def publish_action_bound_draft_pr(
+    draft: DraftPRPreview, intent: DraftActionIntent, *,
+    plan_sha256: str, owner_grant: OwnerGrant | None,
+    trusted_hmac_key: bytes | None, trusted_live_consent_check,
+    now_seconds: int, protected_f18_acceptance,
+    protected_remote_readback, protected_push_new_ref,
+    protected_create_draft_pr,
+) -> DraftPublishReceipt:
+    """One protected PUBLIC_SYNTHETIC_ONLY draft PR; never merges or force-pushes.
+
+    No callback may run until the exact REMOTE_PR action consent validates.
+    Today's V1 signer always rejects REMOTE_PR, so calling this function
+    with guest-supplied functions cannot cause network activity. Future
+    High+owner approval must also establish independently protected F18
+    acceptance, content classification, remote-ref pin and one-shot replay.
+    """
+    if (not isinstance(draft, DraftPRPreview)
+        or not isinstance(intent, DraftActionIntent)
+        or intent != prepare_draft_action_intent(draft)
+        or intent.state != "REMOTE_DRAFT_ACTION_OWNER_GO_HOLD"
+        or intent.owner_go_verified is not False
+        or intent.network_enabled is not False
+        or intent.may_create_pr is not False
+        or intent.may_merge is not False
+        or not isinstance(plan_sha256, str)
+        or not _DIGEST.fullmatch(plan_sha256)
+        or type(now_seconds) is not int or now_seconds <= 0
+        or not all(callable(cb) for cb in (
+            protected_f18_acceptance, protected_remote_readback,
+            protected_push_new_ref, protected_create_draft_pr,
+        ))):
+        raise DraftPublishHold("INVALID_REMOTE_INTENT")
+    if not authorize_claim(
+        owner_grant, trusted_hmac_key=trusted_hmac_key,
+        expected_plan_sha=plan_sha256,
+        expected_source_sha=draft.source_sha,
+        required_scope="REMOTE_PR", now_seconds=now_seconds,
+        trusted_live_consent_check=trusted_live_consent_check,
+    ):
+        raise DraftPublishHold("REMOTE_ACTION_OWNER_GO_REQUIRED")
+
+    # A future protected publisher supplies these sealed callbacks (not an
+    # agent-provided HTTP client) and validates the action nonce is unspent.
+    # All callbacks must revalidate exactly the same repository and action.
+    ref = draft.target_local_ref
+    if (not _REF.fullmatch(ref)
+        or draft.candidate_sha in (draft.source_sha,draft.expected_base_sha)
+        or draft.repository != intent.repository
+        or draft.base_branch != intent.base_branch
+        or draft.expected_base_sha != intent.base_sha):
+        raise DraftPublishHold("INVALID_REMOTE_INTENT")
+    try:
+        valid_f18 = protected_f18_acceptance(
+            plan_sha256, draft.source_sha, draft.candidate_sha,
+            intent.action_sha256,
+        )
+        snapshot = protected_remote_readback(
+            intent.repository, intent.base_branch, ref,
+        )
+    except Exception:
+        raise DraftPublishHold("PROTECTED_READBACK_FAILED") from None
+    if valid_f18 is not True or type(snapshot) is not dict:
+        raise DraftPublishHold("F18_OR_REMOTE_TARGET_HOLD")
+    if (set(snapshot) != {
+            "base_sha","branch_sha","base_protected",
+            "public_synthetic_attested","action_unspent",
+        } or snapshot["base_sha"] != intent.base_sha
+        or snapshot["branch_sha"] is not None
+        or snapshot["base_protected"] is not True
+        or snapshot["public_synthetic_attested"] is not True
+        or snapshot["action_unspent"] is not True):
+        raise DraftPublishHold("F18_OR_REMOTE_TARGET_HOLD")
+    # Never --force or reuse an existing branch. If push partially succeeds
+    # and PR creation fails, leave the branch for owner-side reconciliation.
+    try:
+        pushed = protected_push_new_ref(
+            intent.repository, draft.candidate_sha, ref,
+            expected_remote_old_sha=None, force=False,
+        )
+        if pushed is not True:
+            raise DraftPublishHold("REMOTE_PUSH_FAILED")
+        fresh = protected_remote_readback(
+            intent.repository, intent.base_branch, ref,
+        )
+        if (type(fresh) is not dict
+            or fresh.get("base_sha") != intent.base_sha
+            or fresh.get("branch_sha") != draft.candidate_sha
+            or fresh.get("base_protected") is not True):
+            raise DraftPublishHold("REMOTE_PARTIAL_RECONCILIATION_REQUIRED")
+        response = protected_create_draft_pr(
+            intent.repository, base_branch=intent.base_branch,
+            head_ref=ref, title="My Local AI isolated review",
+            body="Owner-authorized draft; no automatic merge or release.",
+            draft=True,
+        )
+    except DraftPublishHold:
+        raise
+    except Exception:
+        raise DraftPublishHold("REMOTE_PARTIAL_RECONCILIATION_REQUIRED") from None
+    if (type(response) is not dict or set(response) != {"number","url","draft"}
+        or type(response["number"]) is not int
+        or response["number"] <= 0 or response["draft"] is not True
+        or response["url"] != (
+            "https://github.com/" + intent.repository + "/pull/" +
+            str(response["number"])
+        )):
+        raise DraftPublishHold("REMOTE_PARTIAL_RECONCILIATION_REQUIRED")
+    return DraftPublishReceipt(
+        intent.repository, draft.candidate_sha, ref,
+        response["number"], response["url"],
+    )
