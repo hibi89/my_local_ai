@@ -737,11 +737,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "44fe02a560feb776351737d53f13b5d5c18c415b",
+      "partial_source_sha": "1cd25dfb7f1be5f67dae8cb89359a9c8c5620485",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation.",
       "runtime_gap": "Separate Windows owner principal, ACL/key custody with actual protected signer and one-shot owner action grants remain absent. New Windows current-user DPAPI MAC check is an advisory real crypto path only; does not establish independent signer or F18 and cannot execute/merge/publish. Protected owner service requires separately authorized provisioning and real Windows security evidence.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -752,7 +752,7 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "SOURCE_PROGRESS_SQLITE_CLOSE_FIXED_PROTECTED_OWNER_BROKER_HOLD",
+      "retry_stage": "SOURCE_PROGRESS_WINDOWS_NATIVE_OBSERVER_OWNER_OS_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [
@@ -778,6 +778,13 @@
           "outcome": "POSITIVE_SOURCE_CORRECTNESS_PROGRESS_NATIVE_OWNER_OS_PRINCIPAL_STILL_MISSING",
           "nonprogress_failure": false,
           "checks": "GITHUB_ACTIONS_SUCCESS; ISOLATED_SQLITE_READONLY_CLOSE_SMOKE_PASS"
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261118-SRC-TOKEN",
+          "method": "Read-only native Windows process TOKEN_QUERY for elevation/AppContainer/restricted token/Job membership, redacted deny-only posture; load DPAPI DLL only from System32",
+          "evidence_sha": "1cd25dfb7f1be5f67dae8cb89359a9c8c5620485",
+          "outcome": "POSITIVE_SOURCE_PROGRESS_NATIVE_READ_ONLY_DIAGNOSTIC_NO_PROTECTED_TRUST",
+          "nonprogress_failure": false
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -1407,11 +1414,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
+      "partial_source_sha": "08c4ceb7cd7e841c90806272c0190efb9cc9cb60",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch. Additional source 09064c611c9460cbe3d81d66b16f2466e7f9cabf: native Windows read-only isolation capability observer and no-args CLI diagnostic; reports OS feature/API hints but never OS attestation, security policy, or runtime rights. Owner-device execution NOT_RUN.",
+      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch. Additional source 09064c611c9460cbe3d81d66b16f2466e7f9cabf: native Windows read-only isolation capability observer and no-args CLI diagnostic; reports OS feature/API hints but never OS attestation, security policy, or runtime rights. Owner-device execution NOT_RUN.\n2026-11-18 @ 08c4ceb7cd7e841c90806272c0190efb9cc9cb60: One-call Windows host + process token read-only diagnostic, still no protected signer, sandbox launch, host-egress attestation or independent F18.",
       "runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN. | GitHub Actions 44139329888 SUCCESS Python compile, synthetic unit/integration/F18 contract; targeted owner Windows probe NOT_RUN; no OS config, host guest, F18 or egress proof.",
       "legacy_attempt_policy_20261117": {
@@ -1422,7 +1429,7 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "POSITIVE_SOURCE_PROGRESS_HOST_GUEST_BROKER_HOLD",
+      "retry_stage": "SOURCE_PROGRESS_WINDOWS_NATIVE_OBSERVER_OWNER_OS_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [
@@ -1445,6 +1452,13 @@
           "method": "Windows 11 read-only native CPU SLAT/firmware virtualization and system32-restricted AppContainer/restricted-token/Job Object API export probe, callable as a no-args local module diagnostic, bounded redacted output, fail-shut capability-only status",
           "evidence_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
           "outcome": "REAL_READ_ONLY_HOST_CAPABILITY_PROBE_SOURCE_ADDED_OWNER_DEVICE_NOT_RUN",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "MLA-SWU-015-20261118-SRC-TOKEN-LINK",
+          "method": "Connect existing owner-side Windows host CPU/API diagnostics to current-process token observer in a single explicitly invoked non-executing module CLI",
+          "evidence_sha": "08c4ceb7cd7e841c90806272c0190efb9cc9cb60",
+          "outcome": "POSITIVE_SOURCE_PROGRESS_NATIVE_READ_ONLY_DIAGNOSTIC_NO_PROTECTED_TRUST",
           "nonprogress_failure": false
         }
       ],
@@ -5648,34 +5662,38 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
     "branch": "dev/instant-implementation-v1",
+    "source_sha": "08c4ceb7cd7e841c90806272c0190efb9cc9cb60",
+    "commits": [
+      "1cd25dfb7f1be5f67dae8cb89359a9c8c5620485",
+      "08c4ceb7cd7e841c90806272c0190efb9cc9cb60"
+    ],
     "swus_source_complete": [],
     "swus_partial_source": [
+      "MLA-SWU-008",
       "MLA-SWU-015"
-    ],
-    "commits": [
-      "09064c611c9460cbe3d81d66b16f2466e7f9cabf"
     ],
     "source_complete_count": 35,
     "source_incomplete_count": 4,
-    "feature_integrated_source_count": 13,
-    "required_total_swu": 55,
-    "active_dev_source_candidates": 48,
-    "feature_progress_delta": 0,
-    "syntax": "PASS_MANDATORY_GITHUB_ACTIONS_44139329888",
-    "targeted_unit": "PASS_SYNTHETIC_ACTIONS_44139329888",
-    "synthetic_f18_security": "PASS_SYNTHETIC_ACTIONS_44139329888",
-    "owner_device_capability_probe": "NOT_RUN_OWNER_PC",
-    "real_windows": "NOT_RUN",
-    "sandbox_guest": "NOT_RUN",
-    "no_egress": "NOT_RUN",
-    "independent_f18": "NOT_RUN",
-    "p2": "LOCKED",
+    "code_shield_integrated_source_count": 13,
+    "source_candidate_total": 48,
+    "required_swu_total": 55,
+    "source_candidate_percent": 87.27,
+    "checks": {
+      "github_actions_run": 44140503567,
+      "compile": "PASS",
+      "synthetic_unit": "PASS",
+      "synthetic_integration": "PASS",
+      "synthetic_f18_contract": "PASS",
+      "owner_windows": "NOT_RUN",
+      "windows_token_actual": "NOT_RUN",
+      "independent_f18": "NOT_RUN",
+      "network_no_egress": "NOT_RUN"
+    },
+    "trust_boundary": "HOLD",
     "owner_go": false,
-    "solmax_executed": false,
-    "nonprogress_failures_added": 0,
-    "speed_effect": "UNMEASURED"
+    "p2": "LOCKED",
+    "nonprogress_failures_added": 0
   },
   "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
   "legacy_retry_policy_before_20261117": {
