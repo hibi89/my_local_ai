@@ -565,8 +565,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-009": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
       "evidence_sha_by_legacy": {
         "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
       },
@@ -588,7 +588,15 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "partial_source_implemented": true,
+      "partial_source_sha": "2c0c047052c2d7b76f9dbd0feb9090cab69536cd",
+      "partial_source_paths": [
+        "src/my_local_ai/state/consent.py"
+      ],
+      "partial_source_description": "Owner-local existing grant MAC and live SQLite ledger read with strict LOCAL_PLAN scope and redacted result. No key provisioning, signer, protected Windows principal or authority issuance.",
+      "runtime_gap": "Protected OS identity and key custody, real signer broker, independently confirmed owner grant; current inspection cannot authorize execution.",
+      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
     },
     {
       "id": "MLA-SWU-009",
@@ -1061,8 +1069,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -1086,7 +1094,15 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "partial_source_implemented": true,
+      "partial_source_sha": "a2f181e6bae1b3ee1b100ba8d78c037cad543486",
+      "partial_source_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "partial_source_description": "Fixed-argv OpenCode Qwen worker request bound to no-network WSB profile plus strictly bounded untrusted guest output decoder; no model invocation or host original writes.",
+      "runtime_gap": "A protected, separately installed offline Windows guest model/runtime and OS broker required. Host 127.0.0.1 Ollama is unreachable from network-disabled Sandbox; real coder execution NOT_RUN.",
+      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
     },
     {
       "id": "MLA-SWU-016",
@@ -1513,8 +1529,8 @@
         "MLA-003": 0,
         "MLA-015": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
@@ -1539,7 +1555,15 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "partial_source_implemented": true,
+      "partial_source_sha": "0d651c61ff02e73cb10139b7e17a08d9ec3450db",
+      "partial_source_paths": [
+        "src/my_local_ai/review/protected_reviewer.py"
+      ],
+      "partial_source_description": "Independent review transcript validates exact fixed policy/check IDs, timing, timeout, zero exit, context SHA and immutable untrusted digest. No signer key or independent receipt issuance.",
+      "runtime_gap": "Separate Windows OS reviewer security principal, tamper-resistant reviewer binary and policy, protected nonce/key issuer and F18 receipts.",
+      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
     },
     {
       "id": "MLA-SWU-022",
@@ -4782,34 +4806,38 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "f0fdc7bf504802c78e6ab2b584798b600e171da4",
+    "source_sha": "ee211e6025f4dc6389224c73d9439764a46dbdec",
     "source_commits": [
-      "be7984e8d4cd2fa744570dac04f5569e0f1dced1",
-      "33fb36e80eb8d1689b611491d859049d500a3047",
-      "67f0de110d34a77c4d040cdad3915a51349e6bbe",
-      "f0fdc7bf504802c78e6ab2b584798b600e171da4"
+      "0d651c61ff02e73cb10139b7e17a08d9ec3450db",
+      "2c0c047052c2d7b76f9dbd0feb9090cab69536cd",
+      "bae4a8afb08dcf1ba64dbfd18e0af70d798ccc43",
+      "a2f181e6bae1b3ee1b100ba8d78c037cad543486",
+      "ee211e6025f4dc6389224c73d9439764a46dbdec"
     ],
-    "swus_source_candidates": [
-      "MLA-SWU-001"
+    "swus_source_complete": [],
+    "swus_partial_source": [
+      "MLA-SWU-008",
+      "MLA-SWU-015",
+      "MLA-SWU-021"
     ],
-    "swus_partial_source_hold": [
-      "MLA-SWU-031"
-    ],
+    "swu_031": "PARTIAL_SOURCE_FROM_PRIOR_WAVE_UNCHANGED",
     "mandatory_actions_runs": [
-      44082730630,
-      44082973608,
-      44083456680,
-      44083565677
+      44090617033,
+      44090757495,
+      44091036151,
+      44091094939,
+      44091236138
     ],
-    "mandatory_ci": "PASS_AT_SOURCE_SHAS",
-    "live_public_github_tree": "READ_ONLY_CONNECTOR_CONFIRMED_PINNED_SHA_UNTRUNCATED; NEW_SCRIPT_LIVE_CLI_NOT_RUN",
-    "live_source_rights": "BLOCKED_PROVENANCE_NO_SOURCE_COPY",
-    "windows_sandbox_egress": "CONFIG_ONLY_NOT_HOST_ATTESTED",
-    "windows_sandbox_runner": "NOT_RUN_NO_OWNER_OS_CHANGE_GO",
-    "independent_f18": "SECURITY_HOLD",
-    "real_windows": "NOT_RUN",
+    "mandatory_ci": "SUCCESS_ALL",
+    "source_complete_count": 35,
+    "source_incomplete_count": 4,
     "p2": "LOCKED",
-    "owner_go": false
+    "real_windows": "NOT_RUN",
+    "owner_go": false,
+    "host_ollama_guest_access": "BLOCKED_BY_SANDBOX_NETWORK_DISABLE",
+    "f18_independent_reviewer": "NOT_RUN",
+    "signer_key": "NOT_PROVISIONED",
+    "remote_writes": "NONE"
   },
-  "next_wave_exception_reason": "Four high-risk trust SWUs remain: 008 protected owner signer, 015 isolated coder with secure offline host↔guest broker, 021 independent F18 reviewer/issuer, 031 actual host-attested egress denial. SWU-031 source-only no-network XML is partial, not network enforcement. Need High architecture decision and user OS/security permissions approval before any execution; no workaround that mints fake F18."
+  "next_wave_exception_reason": "All 4 remaining P1 SWUs are protected trust-root capabilities, not simple code-only interfaces. WSB Networking=Disable isolates guest from host local Ollama, so runnable coder needs independent offline guest model or High-approved network-only design; owner key/OS identity protected signer and F18 independent reviewer require actual separate Windows principals. Do not promote partial source to SOURCE_COMPLETE. High to decide architecture and owner-go before risky Windows OS changes. No unsanctioned network, secret creation, host fallback."
 }
