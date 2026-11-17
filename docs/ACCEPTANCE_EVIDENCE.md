@@ -105,3 +105,11 @@ At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory A
 - Exact source `1bf6a17e...` repaired recovery-loop, orphan SQLite review, F18-less isolated ref CAS replay issues; Actions `44033355352` 388/388 PASS.
 - `9933c4f591a70b64dbc397735f521bd0900cd3a8` added malformed synthetic CAS task-ID denial; Actions `44033513775` PASS Python compile + **149 unit, 101 integration, 139 security = 389/389**. All tests are synthetic, on GitHub Ubuntu Python3.11. Real protected owner Windows, physical DB+Git crash, independent F18 signer/receipt, 24h local operation and browser are NOT_RUN.
 - Source REQ progress **5/30=16.67% unchanged**; P2 verified rate UNASSESSED, P2 LOCKED, real-use HOLD. Original source rights, protected signer and F18 isolation remain blocking.
+
+
+## 2026-11-17 P1 source safety rounds MLA-014/015/022/023/029/030
+
+- Worktree: lexical parent traversal and metadata race checks. F18: non-executable redacted intent only. Operations: long-window telemetry gap HOLD. Remote PR: unsafe / hidden / credentials names denied, task-ref binding; **no real network**.
+- Actions `44036388713` @ source SHA `306a01ef634ea0aa5e8d6eb160e5b28673fb87bd`: 149 unit, 105 synthetic integration, 174 synthetic security = **428/428 PASS**.
+- Actions `44036759148` @ exact SHA `8f565feb0e694da6dede00932e2b76e6197bacb0`: 153 unit, 105 synthetic integration, 186 synthetic security = **444/444 PASS** + Python syntax PASS. Intermediate test error `f0e93764...` and uncovered `credentials.json` case `d34a2f9...` fixed before final PASS.
+- The Windows F18 P2 check preconditions are **source authored only**; actual OS isolation, owner principal/Windows Sandbox and real browser/24h verification `NOT_RUN`. Owner signer/HIGH trust & original rights HOLD. P1 REQs **5/30=16.67% unchanged**; official verified rate `UNASSESSED`, P2 `LOCKED`.

@@ -293,3 +293,19 @@
 8. **Preservation:** `docs/FINAL_BLUEPRINT.md`, EAI, AX Dev Factory, main, customer originals, backups and history unchanged; no secrets, external paid/network, OS permissions or real DB/remote work.
 9. **Next READY:** source-only `MLA-014` Git worktree, `MLA-015` independent reviewer contracts, `MLA-022` long-run supervisor. Their former P1 blockers were P2 actual OS/24h validation notes and have been retained under `p1_runtime_deferred_reasons` and untouched original `blockers`. Protected owner signer and independent F18 still not implemented for real use.
 10. **Evidence time:** 2026-11-17 KST; last exact code SHA and Actions `44033513775` synthetic PASS; documentation commit HEAD needs independent CI readback.
+
+
+---
+
+## Latest 2026-11-17 KST P1 source handoff — no independent/runtime attestation
+
+1. **Goal:** My Local AI native offline-first self-contained Controller, local Qwen/OpenCode, optional EAI advisory only; P1 source implementation, P2 validation deferred/LOCKED.
+2. **Code:** MLA-014 linked worktree preflight `..` and file replacement defense; 015 F18 non-executing reviewer intent public-safe summary and pinned SHA; 022 synthetic sensor/owner-go validation; 023 remote synthetic draft disclosure and ref identity; 029 Windows F18 harness source-only checks; 030 hostile synthetic disclosure/path/injection fixtures. No real protected OS, browser, user DB, remote PR or original file touched.
+3. **Tests:** exact latest **code SHA `8f565feb0e694da6dede00932e2b76e6197bacb0`** Actions `44036759148` SUCCESS, Python compile PASS, unit **153/153**, synthetic integration **105/105**, synthetic security **186/186**, total **444/444 PASS**. Earlier `306a01ef...` Actions `44036388713` SUCCESS 428/428. Intermediate FAIL: helper typo `f0e93764` fixed `306a01ef`; missing credentials filename guard `d34a2f9c` fixed `8f565feb0e694da6dede00932e2b76e6197bacb0`. P2 hardware/Windows/F18/24h/Playwright **NOT_RUN**.
+4. **Completion:** Official P1 completed REQs **5/30=16.67% unchanged**; source 28/28 tasks is not actual full acceptance. P2 official verification rate `UNASSESSED`, P3 auditor NOT_RUN, owner GO false, release HOLD.
+5. **Risk:** MLA-001 original EAI/AX source rights `BLOCKED_PROVENANCE`; MLA-003 actual independent OS F18 `SECURITY_HOLD`; MLA-009 protected owner signer `TRUST_ROOT_HOLD`. All runtime authorizations `HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES` unchanged. No grant from a boolean, MAC or model self-assertion.
+6. **Repo/branch/SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`; latest tested SOURCE SHA `8f565feb0e694da6dede00932e2b76e6197bacb0`; this documentation/queue commit advances HEAD. Read AGENTS/HANDOFF/STATUS and verify newest GitHub HEAD on next turn; no main merge.
+7. **Production/environment:** none; Actions Ubuntu Python3.11 synthetic only. No owner Windows tests, Git worktree operations, external provider/payment or CI restriction change.
+8. **Rights/data preservation:** final blueprint unchanged, EAI and Freelancer AX repo unchanged, no customer source/secret/weights/.env uploads, no destructive DB; all Git history preserved.
+9. **Next READY:** `MLA-011` model lock and bounded budget, `MLA-012` Ollama provider, `MLA-013` protected OpenCode preparation. P1 code-only; runtime source license, OS/F18 and owner-signer gates unchanged. Formal REQ score cannot increase without source-level acceptance criteria resolution by High.
+10. **Evidence:** KST 2026-11-17, exact code SHA `8f565feb0e694da6dede00932e2b76e6197bacb0` and Actions `44036759148`; Windows actual and independent reviewer `NOT_RUN`, official verified `UNASSESSED`.
