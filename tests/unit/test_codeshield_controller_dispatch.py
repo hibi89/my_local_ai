@@ -175,5 +175,15 @@ class ControllerCodeShieldDispatchTests(unittest.TestCase):
         self.assertFalse(hasattr(orchestration, "preview_codeshield_sandbox_fallback"))
 
 
+    def test_semgrep_public_api_excludes_windows_sandbox_fallback(self):
+        import my_local_ai.security.semgrep_adapter as scanner
+        self.assertFalse(hasattr(scanner, "prepare_on_demand_sandbox_fallback"))
+        self.assertFalse(hasattr(scanner, "OfflineSandboxConfigPreview"))
+        self.assertFalse(hasattr(scanner, "_validate_sandbox_xml"))
+        self.assertFalse(scanner._is_trusted_fixed_semgrep_path(
+            __import__("pathlib").Path("semgrep.exe")
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()

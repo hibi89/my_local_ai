@@ -12,6 +12,8 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
+import tempfile
 
 from .ast_preflight import preflight_changed_paths
 from .codeshield_contracts import (
@@ -84,10 +86,10 @@ _MAX_SOURCES_TOTAL = 1024 * 1024
 
 @dataclass(frozen=True)
 class SemgrepBrokerRequest:
-    """Pure pinned scan *data* for a future independently protected OS broker.
+    """Pinned data for a fixed local static scanner operator.
 
-    The Python Controller cannot prove the caller's Windows SID, egress policy
-    or OS sandbox. Nothing here is a capability, authorizer or runnable grant.
+    This record is not a runtime owner grant, no-egress OS attestation,
+    F18 verdict, or permission to execute generated code.
     """
     context_sha256: str
     candidate_git_sha: str
@@ -98,7 +100,7 @@ class SemgrepBrokerRequest:
     source_sha256: tuple[tuple[str, str], ...]
     allowed_paths: tuple[str, ...]
     timeout_seconds: int
-    stage: str = "PROTECTED_WINDOWS_BROKER_NOT_INSTALLED"
+    stage: str = "PINNED_STATIC_TOOL_REQUEST_ONLY"
     can_spawn: bool = False
     network_isolation_attested: bool = False
     host_execution_allowed: bool = False
@@ -106,7 +108,7 @@ class SemgrepBrokerRequest:
     owner_go_verified: bool = False
 
     def __post_init__(self) -> None:
-        if (self.stage != "PROTECTED_WINDOWS_BROKER_NOT_INSTALLED"
+        if (self.stage != "PINNED_STATIC_TOOL_REQUEST_ONLY"
             or not isinstance(self.argv, tuple)
             or len(self.argv) < 9 or len(self.argv) > 40
             or not isinstance(self.source_sha256, tuple)
@@ -182,11 +184,10 @@ def prepare_protected_semgrep_request(
     original_checkout: str | Path, changed_paths: tuple[str, ...],
     timeout_seconds: int = 20,
 ) -> SemgrepBrokerRequest:
-    """Preflight exact local inputs, producing a non-executing broker request.
+    """Bounded preflight for an owner-installed, pinned static scanner.
 
-    This function NEVER invokes a process or trusts a caller 'isolated' bool.
-    The future OS broker must independently revalidate SHA, owner/OS identity,
-    WFP egress policy, Git source, open handles, process tree and tool version.
+    The request is inert. Model text cannot choose an executable or flags;
+    the trusted fixed operator checks its own protected installation root.
     """
     if (not isinstance(context, CodeShieldContext)
         or type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 30):
@@ -304,24 +305,140 @@ def read_untrusted_semgrep_report(
     )
 
 
+def _is_trusted_fixed_semgrep_path(path: Path) -> bool:
+    """Only a machine-managed vendor tool location; never a user worktree exe.
+
+    The observed ProgramFiles location is not proof of vendor authenticity;
+    exact binary SHA is also required, and real Windows signature/ACL tests
+    remain P2. No PATH, user profile, temporary or downloaded exe fallback.
+    """
+    import re
+    if os.name != "nt":
+        return False
+    program_files = os.environ.get("ProgramFiles", "")
+    if not re.fullmatch(r"[A-Za-z]:\\\\Program Files", program_files, re.IGNORECASE):
+        return False
+    expected = Path(program_files) / "Semgrep" / "semgrep.exe"
+    return path == expected
+
+
+def _run_pinned_semgrep_static_operator(
+    context: CodeShieldContext, request: SemgrepBrokerRequest, *,
+    executable: Path, rules: Path, disposable_worktree: Path,
+) -> SemgrepResult:
+    """Actual Semgrep CE static scan on public/synthetic text, never code run.
+
+    No VM, container, shell or guest. The vendor CLI is a fixed trusted
+    operator; firewall-enforced no-egress is NOT attested. Hence this path
+    refuses private/customer data and never creates an F18/runtime grant.
+    """
+    from .codeshield_contracts import DataClass
+    from my_local_ai.state.consent import _broker_decode, ProtectedBrokerHold
+    if (context.data_class != DataClass.PUBLIC_SYNTHETIC
+        or not _is_trusted_fixed_semgrep_path(executable)):
+        return _result(context, ScanStatus.NOT_RUN, "TRUSTED_STATIC_OPERATOR_SCOPE_HOLD")
+    if (request.can_spawn or request.network_isolation_attested
+        or request.owner_go_verified or request.f18_verified
+        or request.stage != "PINNED_STATIC_TOOL_REQUEST_ONLY"):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    root = disposable_worktree
+    if (_digest(executable, max_size=_MAX_BINARY) != request.binary_sha256
+        or _digest(rules, max_size=_MAX_RULES) != request.rules_sha256
+        or any(_bounded_source_sha256(root / name) != digest
+               for name, digest in request.source_sha256)):
+        return _result(context, ScanStatus.ERROR, "PIN_OR_SOURCE_CHANGED_HOLD")
+    # Minimal process environment; no inherited secrets/SDK credentials.
+    # Proxy hints & Semgrep options reduce accidental calls but do NOT prove
+    # kernel-enforced network isolation, and cannot be treated as such.
+    systemroot = os.environ.get("SystemRoot", "")
+    if not systemroot or not Path(systemroot).is_absolute():
+        return _result(context, ScanStatus.NOT_RUN, "INVALID_NATIVE_SYSTEMROOT")
+    env = {
+        "SystemRoot": systemroot,
+        "WINDIR": systemroot,
+        "PATH": str(Path(systemroot) / "System32"),
+        "SEMGREP_SEND_METRICS": "off",
+        "SEMGREP_ENABLE_VERSION_CHECK": "0",
+        "SEMGREP_APP_TOKEN": "",
+        "NO_COLOR": "1",
+        "HTTP_PROXY": "http://127.0.0.1:9",
+        "HTTPS_PROXY": "http://127.0.0.1:9",
+        "ALL_PROXY": "http://127.0.0.1:9",
+        "NO_PROXY": "",
+    }
+    try:
+        # Keep stdout bounded even if a malicious source produces huge output.
+        with tempfile.TemporaryFile(mode="w+b") as output:
+            completed = subprocess.run(
+                list(request.argv), cwd=str(root), env=env,
+                stdin=subprocess.DEVNULL, stdout=output,
+                stderr=subprocess.DEVNULL, shell=False, check=False,
+                timeout=request.timeout_seconds,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if completed.returncode not in (0, 1) or output.tell() > _MAX_REPORT:
+                return _result(context, ScanStatus.ERROR, "STATIC_SCAN_ERROR_HOLD")
+            output.seek(0)
+            raw = output.read(_MAX_REPORT + 1)
+        report = _broker_decode(raw)
+        if (not isinstance(report.get("results"), list)
+            or not isinstance(report.get("errors"), list)
+            or report["errors"]
+            or not isinstance(report.get("paths"), dict)
+            or report["paths"].get("skipped") != []):
+            return _result(context, ScanStatus.ERROR, "INCOMPLETE_STATIC_COVERAGE_HOLD")
+        import ntpath
+        scanned = report["paths"].get("scanned")
+        expected = [str(root / name) for name in request.allowed_paths]
+        if (not isinstance(scanned, list)
+            or len(scanned) != len(expected)
+            or {ntpath.normcase(ntpath.normpath(v)) for v in scanned
+                if isinstance(v, str)}
+               != {ntpath.normcase(ntpath.normpath(v)) for v in expected}):
+            return _result(context, ScanStatus.ERROR, "INCOMPLETE_STATIC_COVERAGE_HOLD")
+        # Bounded, strict result-shape check already refuses forged paths,
+        # duplicate JSON keys and mismatched finding exit codes.
+        parsed = read_untrusted_semgrep_report(
+            request, raw, exit_code=completed.returncode,
+        )
+        if (any(_bounded_source_sha256(root / name) != digest
+                for name, digest in request.source_sha256)
+            or _digest(executable, max_size=_MAX_BINARY) != request.binary_sha256
+            or _digest(rules, max_size=_MAX_RULES) != request.rules_sha256):
+            return _result(context, ScanStatus.ERROR, "STATIC_INPUT_CHANGED_HOLD")
+        return _result(
+            context, ScanStatus.FINDINGS if parsed.finding_count else ScanStatus.PASS,
+            "LOCAL_STATIC_FINDINGS_ONLY" if parsed.finding_count
+            else "LOCAL_STATIC_PASS_NO_RUNTIME_AUTHORITY",
+            parsed.finding_count,
+        )
+    except (subprocess.TimeoutExpired, OSError, ValueError, TypeError,
+            ProtectedBrokerHold, CodeShieldHold):
+        return _result(context, ScanStatus.ERROR, "LOCAL_STATIC_SCAN_ERROR_HOLD")
+
+
 def run_local_semgrep(
     context: CodeShieldContext, *, executable: str | Path,
     local_rules: str | Path, disposable_worktree: str | Path,
     original_checkout: str | Path, changed_paths: tuple[str, ...],
     owner_protected_no_egress: bool = False, timeout_seconds: int = 20,
 ) -> SemgrepResult:
-    """Validate local scan request only; no direct Windows scanner execution.
+    """Validate exact public/synthetic inputs then run fixed static tool only.
 
-    The legacy boolean is retained for callers but is NOT an authorization,
-    including when True. Actual Semgrep execution requires a separate,
-    independently attested native Windows no-egress broker, not yet present.
+    Legacy owner_protected_no_egress boolean is inert, never a grant.
+    A clean scan is a P1 static observation, NOT F18 or OS no-egress proof.
     """
+    from .codeshield_contracts import DataClass
     if not isinstance(context, CodeShieldContext):
         raise CodeShieldHold()
     if type(owner_protected_no_egress) is not bool:
         raise CodeShieldHold("UNTRUSTED_DECISION")
     if os.name != "nt":
         return _result(context, ScanStatus.NOT_RUN, "WINDOWS_REQUIRED")
+    if context.data_class != DataClass.PUBLIC_SYNTHETIC:
+        return _result(context, ScanStatus.NOT_RUN, "PUBLIC_SYNTHETIC_ONLY_HOLD")
+    if not _is_trusted_fixed_semgrep_path(Path(executable)):
+        return _result(context, ScanStatus.NOT_RUN, "UNTRUSTED_SCANNER_LOCATION_HOLD")
     try:
         request = prepare_protected_semgrep_request(
             context, executable=executable, local_rules=local_rules,
@@ -329,85 +446,12 @@ def run_local_semgrep(
             original_checkout=original_checkout,
             changed_paths=changed_paths, timeout_seconds=timeout_seconds,
         )
-    except (CodeShieldHold, OSError, ValueError):
+    except (CodeShieldHold, OSError, ValueError, TypeError):
         return _result(context, ScanStatus.ERROR, "SEMGREP_INPUT_OR_PIN_HOLD")
-    if request.can_spawn or request.network_isolation_attested:
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    return _run_protected_semgrep(
-        context, request, disposable_worktree=Path(disposable_worktree),
+    return _run_pinned_semgrep_static_operator(
+        context, request, executable=Path(executable), rules=Path(local_rules),
+        disposable_worktree=Path(disposable_worktree),
     )
-
-
-def _run_protected_semgrep(context: CodeShieldContext, request: SemgrepBrokerRequest,
-                           *, disposable_worktree: Path) -> SemgrepResult:
-    """Pinned scanner data -> authenticated no-egress service -> static result.
-
-    The independent native service must stage these exact bytes into its own
-    readonly package, rehash its scanner/rules, use fixed offline argv, and
-    return complete scanned/skipped/error coverage. No host subprocess fallback.
-    Even an authenticated clean scan grants only non-executing static review.
-    """
-    import base64
-    from .codeshield_contracts import DataClass
-    from my_local_ai.state.consent import (
-        ProtectedBrokerHold, dispatch_protected_action, _broker_decode,
-    )
-    if context.data_class != DataClass.PUBLIC_SYNTHETIC:
-        return _result(context, ScanStatus.NOT_RUN, "PROTECTED_DATA_SCOPE_HOLD")
-    try:
-        sources = []
-        for name, expected in request.source_sha256:
-            path = disposable_worktree / name
-            if _bounded_source_sha256(path) != expected:
-                raise CodeShieldHold("STALE_EVIDENCE")
-            with path.open("rb") as stream:
-                data = stream.read(_MAX_SOURCE_BYTES + 1)
-            if len(data) > _MAX_SOURCE_BYTES or sha256(data).hexdigest() != expected:
-                raise CodeShieldHold("STALE_EVIDENCE")
-            sources.append({"path": name, "sha256": expected,
-                            "content_b64": base64.b64encode(data).decode("ascii")})
-        # Never send host executable/worktree/original paths to the worker.
-        reply = dispatch_protected_action("scanner", "semgrep", binding={
-            "task_id": context.task_id, "run_id": context.run_id,
-            "plan_sha256": context.plan_sha256, "source_sha": context.source_git_sha,
-            "candidate_sha": context.candidate_git_sha, "lease_epoch": context.lease_epoch,
-            "nonce_sha256": context.nonce_sha256, "owner_consent_ref": context.owner_consent_ref,
-        }, payload={"context_sha256": context.fingerprint_sha256,
-            "binary_sha256": request.binary_sha256, "rules_sha256": request.rules_sha256,
-            "version": request.pinned_version, "sources": sources,
-            "timeout_seconds": request.timeout_seconds,
-            "policy": "SEMGREP_CE_OFFLINE_NOSEMGREPIGNORE_NO_NOSEM_V1"},
-            timeout_seconds=request.timeout_seconds + 5)
-        result = reply["result"]
-        if (set(result) != {"exit_code", "report_b64", "scanned_paths", "skipped_paths",
-                            "binary_sha256", "rules_sha256", "version", "timed_out"}
-            or result["timed_out"] is not False
-            or result["binary_sha256"] != request.binary_sha256
-            or result["rules_sha256"] != request.rules_sha256
-            or result["version"] != request.pinned_version
-            or result["scanned_paths"] != list(request.allowed_paths)
-            or result["skipped_paths"] != []
-            or type(result["report_b64"]) is not str
-            or len(result["report_b64"]) > (_MAX_REPORT * 4 // 3 + 4)):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-        raw = base64.b64decode(result["report_b64"], validate=True)
-        report = _broker_decode(raw)  # Duplicate keys/nonfinite JSON rejected.
-        coverage = report.get("paths")
-        if (type(coverage) is not dict or coverage.get("scanned") != list(request.allowed_paths)
-            or coverage.get("skipped", []) != []):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-        parsed = read_untrusted_semgrep_report(request, raw, exit_code=result["exit_code"])
-        # Revoke a clean result if caller-owned inputs changed during scanning.
-        if any(_bounded_source_sha256(disposable_worktree / name) != digest
-               for name, digest in request.source_sha256):
-            raise CodeShieldHold("STALE_EVIDENCE")
-        return _result(context, ScanStatus.FINDINGS if parsed.finding_count else ScanStatus.PASS,
-                       "PROTECTED_STATIC_FINDINGS" if parsed.finding_count else "PROTECTED_STATIC_ONLY",
-                       parsed.finding_count)
-    except ProtectedBrokerHold as exc:
-        return _result(context, ScanStatus.NOT_RUN, exc.code)
-    except (CodeShieldHold, OSError, ValueError, TypeError, KeyError):
-        return _result(context, ScanStatus.ERROR, "PROTECTED_SEMGREP_RESULT_HOLD")
 
 
 @dataclass(frozen=True)
@@ -448,232 +492,3 @@ def inspect_packaged_semgrep_rules(context: CodeShieldContext) -> SemgrepRulesIn
     )
 
 
-# CS-SWU-007: manually approved Windows Sandbox fallback (CONFIG ONLY).
-# NEVER starts Sandbox, enables Windows features, runs scanners or writes .wsb.
-# Microsoft Windows Sandbox supports Networking=Disable and mapped ReadOnly
-# folders; actual OS/network isolation and Windows policy require P2 evidence.
-from xml.etree import ElementTree as _ET
-
-
-def _validate_sandbox_xml(xml_text: str) -> None:
-    """Reject altered .wsb content even when its digest was recalculated.
-
-    This checks only an inert configuration preview. It does not attest to
-    an effective Windows policy or permit launching the Sandbox.
-    """
-    if (type(xml_text) is not str or not 0 < len(xml_text) <= 4096
-        or "<!" in xml_text or "<?" in xml_text):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    try:
-        root = _ET.fromstring(xml_text)
-    except _ET.ParseError:
-        raise CodeShieldHold("UNTRUSTED_DECISION") from None
-    settings = (
-        ("VGpu", "Disable"), ("Networking", "Disable"),
-        ("AudioInput", "Disable"), ("VideoInput", "Disable"),
-        ("ProtectedClient", "Enable"), ("PrinterRedirection", "Disable"),
-        ("ClipboardRedirection", "Disable"), ("MemoryInMB", "2048"),
-    )
-    if (root.tag != "Configuration" or root.attrib
-        or [part.tag for part in root] != [
-            *(name for name, _ in settings), "MappedFolders"
-        ]):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    for node, (name, expected) in zip(root, settings):
-        if (node.tag != name or node.attrib or len(node) != 0
-            or node.text != expected or node.tail not in (None, "")):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-    mapped = root[-1]
-    if (mapped.attrib or mapped.text not in (None, "")
-        or mapped.tail not in (None, "") or len(mapped) != 1):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    entry = mapped[0]
-    if (entry.tag != "MappedFolder" or entry.attrib
-        or entry.text not in (None, "") or entry.tail not in (None, "")
-        or [part.tag for part in entry] != [
-            "HostFolder", "SandboxFolder", "ReadOnly"
-        ]):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    for part in entry:
-        if part.attrib or len(part) != 0 or part.tail not in (None, ""):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-    host = entry[0].text
-    if (not isinstance(host, str) or not Path(host).is_absolute()
-        or ".." in Path(host).parts or len(host) > 180
-        or "%" in host or "\x00" in host
-        or entry[1].text != r"C:\CodeShieldIn"
-        or entry[2].text != "true"):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    # Accept only the exact producer format; discard XML extensions/comments.
-    if _ET.tostring(root, encoding="unicode", short_empty_elements=False) != xml_text:
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-
-
-@dataclass(frozen=True)
-class OfflineSandboxConfigPreview:
-    """Inert fallback .wsb XML from an exactly pinned disposable input staging.
-
-    The host folder must be a *minimal* owner-prepared staging directory:
-    semgrep.exe, codeshield.yaml and numbered source copies only. There are no
-    host executable actions or Sandbox LogonCommand. Never treat this as OS
-    attestation, permission, successful scan, or independent F18.
-    """
-    request_context_sha256: str
-    inventory_sha256: str
-    configuration_sha256: str
-    xml_text: str
-    source_count: int
-    stage: str = "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
-    may_launch_sandbox: bool = False
-    may_run_scanner: bool = False
-    os_isolation_attested: bool = False
-    owner_permission_verified: bool = False
-    f18_verified: bool = False
-    git_promotion_allowed: bool = False
-
-    def __post_init__(self) -> None:
-        if (self.stage != "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
-            or type(self.source_count) is not int
-            or not 1 <= self.source_count <= 16
-            or any(not isinstance(value, str) or len(value) != 64
-                   or any(c not in "0123456789abcdef" for c in value)
-                   for value in (
-                       self.request_context_sha256,
-                       self.inventory_sha256,
-                       self.configuration_sha256,
-                   ))
-            or not isinstance(self.xml_text, str)
-            or len(self.xml_text) > 4096
-            or sha256(self.xml_text.encode("utf-8")).hexdigest()
-               != self.configuration_sha256
-            or any(getattr(self, flag) is not False for flag in (
-                "may_launch_sandbox", "may_run_scanner",
-                "os_isolation_attested", "owner_permission_verified",
-                "f18_verified", "git_promotion_allowed",
-            ))):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-
-        _validate_sandbox_xml(self.xml_text)
-
-    def to_redacted_dict(self) -> dict[str, object]:
-        """Never include local paths or executable config in UI/log output."""
-        return {
-            "stage": self.stage,
-            "request_context_sha256": self.request_context_sha256,
-            "inventory_sha256": self.inventory_sha256,
-            "configuration_sha256": self.configuration_sha256,
-            "source_count": self.source_count,
-            "networking_requested": "Disable",
-            "readonly_mapping_requested": True,
-            "logon_command_present": False,
-            "may_launch_sandbox": False,
-            "may_run_scanner": False,
-            "os_isolation_attested": False,
-            "f18_verified": False,
-            "git_promotion_allowed": False,
-        }
-
-
-def prepare_on_demand_sandbox_fallback(
-    request: SemgrepBrokerRequest, *,
-    minimal_staging_folder: str | Path,
-) -> OfflineSandboxConfigPreview:
-    """Return inert, offline Windows Sandbox XML for optional future owner GO.
-
-    This is NOT the default scanner runner. A protected Windows service must
-    independently verify the owner principal, staging ACLs, folder inventory,
-    OS Sandbox support, effective networking policy and exact Git snapshot.
-    No shell, OS settings, file write, .wsb launch, network or model call.
-    """
-    if not isinstance(request, SemgrepBrokerRequest):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    if os.name != "nt":
-        raise CodeShieldHold("WINDOWS_REQUIRED")
-    folder = Path(minimal_staging_folder)
-    if (not folder.is_absolute() or ".." in folder.parts
-        or folder.anchor == str(folder) or len(folder.parts) < 3
-        or len(str(folder)) > 180 or "%" in str(folder)):
-        raise CodeShieldHold("UNSAFE_PATH")
-    # Staging cannot be the candidate source worktree or trusted tool dir.
-    toolpath = Path(request.argv[0])
-    sources = tuple(request.source_sha256)
-    if (not 1 <= len(sources) <= 16 or len(request.allowed_paths) != len(sources)
-        or request.can_spawn or request.network_isolation_attested
-        or request.owner_go_verified or request.f18_verified):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    if (folder == toolpath.parent or folder in toolpath.parents
-        or toolpath in folder.parents
-        or any(folder == Path(p).parent or folder in Path(p).parents
-               or Path(p) in folder.parents for p in request.argv[-len(sources):])):
-        raise CodeShieldHold("UNSAFE_PATH")
-    expected = {
-        "semgrep.exe": request.binary_sha256,
-        "codeshield.yaml": request.rules_sha256,
-    }
-    for index, (relative, digest) in enumerate(sources):
-        if (relative != request.allowed_paths[index]
-            or not isinstance(digest, str) or len(digest) != 64
-            or any(v not in "0123456789abcdef" for v in digest)):
-            raise CodeShieldHold("UNTRUSTED_DECISION")
-        suffix = Path(relative).suffix.lower()
-        if suffix not in _SUFFIXES:
-            raise CodeShieldHold("UNSAFE_PATH")
-        expected[f"source_{index:02d}{suffix}"] = digest
-    # No unexpected files, nested directories, symlinks, NTFS junctions,
-    # hardlinked files or stealth config. Include *only* scanner/rule/sources.
-    try:
-        for parent in (folder, *folder.parents):
-            st = parent.lstat()
-            if (not stat.S_ISDIR(st.st_mode) or stat.S_ISLNK(st.st_mode)
-                or getattr(st, "st_file_attributes", 0)
-                   & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
-                raise CodeShieldHold("UNSAFE_PATH")
-        # Bounded enumeration: hostile staging with millions of files must
-        # not force unbounded memory allocation in the Controller.
-        from itertools import islice
-        with os.scandir(folder) as iterator:
-            entries = [item.name for item in islice(iterator, len(expected) + 1)]
-        if (len(entries) != len(expected)
-            or set(entries) != set(expected)
-            or len({v.casefold() for v in entries}) != len(entries)):
-            raise CodeShieldHold("UNSAFE_PATH")
-        for name, digest in expected.items():
-            limit = (_MAX_BINARY if name.endswith(".exe")
-                     else _MAX_RULES if name.endswith(".yaml")
-                     else _MAX_SOURCE_BYTES)
-            if _digest(folder / name, max_size=limit) != digest:
-                raise CodeShieldHold("STALE_EVIDENCE")
-    except CodeShieldHold:
-        raise
-    except (OSError, ValueError, UnicodeError):
-        raise CodeShieldHold("UNSAFE_PATH") from None
-    root = _ET.Element("Configuration")
-    for key, value in (
-        ("VGpu", "Disable"), ("Networking", "Disable"),
-        ("AudioInput", "Disable"), ("VideoInput", "Disable"),
-        ("ProtectedClient", "Enable"), ("PrinterRedirection", "Disable"),
-        ("ClipboardRedirection", "Disable"), ("MemoryInMB", "2048"),
-    ):
-        _ET.SubElement(root, key).text = value
-    mapped = _ET.SubElement(root, "MappedFolders")
-    item = _ET.SubElement(mapped, "MappedFolder")
-    _ET.SubElement(item, "HostFolder").text = str(folder)
-    _ET.SubElement(item, "SandboxFolder").text = r"C:\CodeShieldIn"
-    _ET.SubElement(item, "ReadOnly").text = "true"
-    xml = _ET.tostring(root, encoding="unicode", short_empty_elements=False)
-    # No <LogonCommand>: even starting this config must not auto-run Semgrep.
-    if "LogonCommand" in xml:
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    inventory = sha256(
-        json.dumps({
-            "context": request.context_sha256,
-            "candidate": request.candidate_git_sha,
-            "staging": str(folder),
-            "files": sorted(expected.items()),
-        }, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    ).hexdigest()
-    return OfflineSandboxConfigPreview(
-        request.context_sha256, inventory,
-        sha256(xml.encode("utf-8")).hexdigest(),
-        xml, len(sources),
-    )
