@@ -97,8 +97,12 @@ def run_local_semgrep(
         raise CodeShieldHold()
     if os.name != "nt":
         return _result(context, ScanStatus.NOT_RUN, "WINDOWS_REQUIRED")
+    # A caller boolean is forgeable: it cannot authenticate a separate Windows
+    # network-restricted principal. Until a protected OS broker and attested
+    # invocation exist, fail closed even if the caller supplies True.
     if owner_protected_no_egress is not True:
         return _result(context, ScanStatus.NOT_RUN, "OS_EGRESS_BOUNDARY_UNPROVEN")
+    return _result(context, ScanStatus.NOT_RUN, "PROTECTED_EGRESS_BROKER_NOT_IMPLEMENTED")
     pins = [p for p in context.scanner_pins if p.tool == "semgrep"]
     if len(pins) != 1 or pins[0].rules_sha256 is None:
         return _result(context, ScanStatus.NOT_RUN, "SEMGREP_PIN_MISSING")
