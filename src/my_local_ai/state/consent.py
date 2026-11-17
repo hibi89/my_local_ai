@@ -81,24 +81,45 @@ class ConsentLedger:
                 if (db.execute("PRAGMA application_id").fetchone()[0] != APP_ID
                     or db.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION):
                     return False
+                # SQLite data_version changes on commits by OTHER
+                # connections. Check it before and after the read as a second
+                # revocation-race signal; absence of change is not OS trust.
+                version_before = db.execute("PRAGMA data_version").fetchone()[0]
                 matches = db.execute(
                     "SELECT state FROM owner_consents WHERE consent_id=? AND plan_sha=? AND scope=?",
                     (grant_id, plan_sha256, scope),
                 ).fetchall()
+                version_after = db.execute("PRAGMA data_version").fetchone()[0]
             # Detect file replacement or mutation during a consent decision.
             # This is defense in depth, NOT a substitute for protected ACLs.
             after = _check_safe_owned_file(self._path)
             sidecars_after = _safe_sidecar_identity(self._path)
-            # SQLite's read-only WAL reader may create a benign -shm file.
-            # Accept only newly created *regular* sidecars, while rejecting
-            # a replaced inode for any sidecar already present at read start.
-            after_ids = {item[0]: item[1:3] for item in sidecars_after}
+            # Reject any WAL file added/replaced/appended during the read,
+            # including a same-inode WAL modification (possible revocation).
+            # Query-only SQLite may create a new -shm reader index; permit
+            # this *only* when a stable WAL already existed at the start.
+            # The before/after identity tuples include size and mtime_ns,
+            # not just device/inode. Guest-writable ACLs remain untrusted.
+            side_before = {entry[0]: entry[1:] for entry in sidecars_before}
+            side_after = {entry[0]: entry[1:] for entry in sidecars_after}
             existing_sidecars_stable = all(
-                after_ids.get(item[0]) == item[1:3]
-                for item in sidecars_before
+                side_after.get(suffix) == identity
+                for suffix, identity in side_before.items()
             )
-            return (before == after and existing_sidecars_stable
-                    and len(matches) == 1 and matches[0][0] == "APPROVED")
+            new_sidecars = set(side_after) - set(side_before)
+            allowed_shm_creation = (
+                not new_sidecars
+                or (new_sidecars == {"-shm"} and "-wal" in side_before)
+            )
+            return (
+                before == after
+                and existing_sidecars_stable
+                and allowed_shm_creation
+                and type(version_before) is int
+                and version_before == version_after
+                and len(matches) == 1
+                and matches[0][0] == "APPROVED"
+            )
         except (OSError, sqlite3.Error, ValueError):
             return False
 
