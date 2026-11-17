@@ -1,21 +1,42 @@
 {
-  "version": 1,
+  "version": 2,
   "program": "my_local_ai",
-  "prepared_at_kst": "2026-11-17",
+  "phase": "P1_IMPLEMENTATION_ONLY",
+  "description": "구현완료율: BE/FE 실제 코드 작성 100% 후보까지. 전체 검증완료율과 독립.",
   "repo": "hibi89/my_local_ai",
+  "prepared_at_kst": "2026-11-17",
   "canonical_design_branch": "design/final-blueprint-v1",
   "implementation_branch": "dev/instant-implementation-v1",
-  "execution_gate": "OWNER_FINAL_BLUEPRINT_GO_REQUIRED",
-  "design_source_sha": "99ea633b27905fca4e67157bbc895880bad126c6",
-  "implementation_status": "NOT_STARTED",
-  "official_verification_status": "UNASSESSED",
-  "task_count": 30,
+  "owner_design_approval": "AWAITING_EXPLICIT_GO",
+  "implementation_candidate_status": "NOT_STARTED",
+  "implementation_req_ids": "REQ-01..REQ-30",
+  "not_code_req_ids": [
+    "REQ-31",
+    "REQ-32"
+  ],
+  "total_code_req": 30,
+  "code_completed_req": 0,
+  "official_verification": "UNASSESSED",
+  "task_count": 28,
   "first_ready": [
     "MLA-001",
     "MLA-002",
     "MLA-003",
     "MLA-004",
     "MLA-005"
+  ],
+  "verification_queue": "VERIFICATION_TASK_QUEUE.json",
+  "phase_gate": "WORK_PHASE_GATES.json",
+  "allowed_before_P1_candidate": [
+    "MANDATORY_CI_MUST_REMAIN_ENABLED",
+    "SYNTAX_TYPE_LOCAL_SMOKE",
+    "IMMEDIATE_AUTH_DATA_SECURITY_ORIGINAL_CHECKS"
+  ],
+  "defer_until_P2": [
+    "FULL_CI_MANUAL_RUN_AND_WAIT",
+    "FULL_INTEGRATION_AND_REGRESSION",
+    "REAL_OWNER_WINDOWS_MODEL_AND_24H",
+    "INDEPENDENT_Codex_Astra_AUDIT"
   ],
   "tasks": [
     {
@@ -36,7 +57,10 @@
       "risk": "HIGH",
       "status": "READY_AFTER_OWNER_DESIGN_GO",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-002",
@@ -56,7 +80,10 @@
       "risk": "HIGH",
       "status": "READY_AFTER_OWNER_DESIGN_GO",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-003",
@@ -71,12 +98,15 @@
         "docs/TRUST_BOUNDARY_DESIGN.md",
         "tests/security/test_receipt_forgery.py"
       ],
-      "acceptance": "Reproduce guest receipt spoof failure, record trusted verifier architecture and denial expectations before runtime integration",
+      "acceptance": "Design F18 separate trusted reviewer contract, build fail-closed source and adversarial synthetic tests; no claim of actual independent-host PASS",
       "safety_checks": "NO_HOST_UNTRUSTED_TEST;F18_HOLD",
       "risk": "CRITICAL",
       "status": "READY_AFTER_OWNER_DESIGN_GO",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-004",
@@ -95,7 +125,10 @@
       "risk": "MEDIUM",
       "status": "READY_AFTER_OWNER_DESIGN_GO",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-005",
@@ -114,7 +147,10 @@
       "risk": "LOW",
       "status": "READY_AFTER_OWNER_DESIGN_GO",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-006",
@@ -134,7 +170,10 @@
       "risk": "LOW",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-007",
@@ -154,7 +193,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-008",
@@ -176,7 +218,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-009",
@@ -197,7 +242,10 @@
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-010",
@@ -218,7 +266,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-011",
@@ -239,7 +290,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-012",
@@ -261,7 +315,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-013",
@@ -281,7 +338,10 @@
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-014",
@@ -304,7 +364,10 @@
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-015",
@@ -322,12 +385,15 @@
         "src/my_local_ai/review/receipt_guard.py",
         "tests/security/test_independent_verifier.py"
       ],
-      "acceptance": "Independent reviewer with host-rooted identity, cannot trust guest receipt; adversarial proof of denial, allowlisted argv",
+      "acceptance": "Implement trusted reviewer + receipt validation and anti-forgery denial tests; real OS independent boundary verified later in P2",
       "safety_checks": "F18_GATE;NO_HOST_UNTRUSTED_TEST;SECURITY_REVIEW",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-016",
@@ -348,7 +414,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-017",
@@ -371,7 +440,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-018",
@@ -392,7 +464,10 @@
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-019",
@@ -420,7 +495,10 @@
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-020",
@@ -437,14 +515,15 @@
         "tests/integration/test_real_model_gate.py",
         "docs/LOCAL_MODEL_EVIDENCE.md"
       ],
-      "acceptance": "Owner-device genuine model benchmark for 3B/4B, throughput, RAM/VRAM, success; synthetic-vs-real distinguished",
+      "acceptance": "Code benchmark harness and mocked tests; actual owner Windows/Qwen benchmark deferred to P2",
       "safety_checks": "OWNER_DEVICE;NO_MODEL_DOWNLOAD;NO_BILLING",
       "risk": "MEDIUM",
-      "status": "BLOCKED_HOST",
+      "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": [
-        "owner device/real Ollama access"
-      ]
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-021",
@@ -465,7 +544,10 @@
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-022",
@@ -482,14 +564,15 @@
         "src/my_local_ai/ops/resource_monitor.py",
         "tests/integration/test_long_run.py"
       ],
-      "acceptance": "Power/sleep/crash/watchdog/restart; 24h actual uptime acceptance separate from synthetic",
+      "acceptance": "Implement long-run supervisor/resource monitor/recovery and synthetic tests; actual 24h trial deferred to P2",
       "safety_checks": "NO_OS_POLICY_CHANGE;THERMAL_LIMIT;OWNER_DEVICE",
       "risk": "HIGH",
-      "status": "BLOCKED_HOST",
+      "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": [
-        "owner 24h device run"
-      ]
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-023",
@@ -509,7 +592,10 @@
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-024",
@@ -524,14 +610,17 @@
         "src/my_local_ai/gitops/remote_publish.py",
         "tests/security/test_publish_approval.py"
       ],
-      "acceptance": "Separate owner-approved scoped draft PR publish only, no main merge; remote mutation NOT_RUN until GO",
+      "acceptance": "Implement opt-in GitHub draft PR publisher with synthetic denied-permission tests, remote publishing stays OFF unless separately approved",
       "safety_checks": "OWNER_REMOTE_WRITE_GO;NO_MAIN_MERGE;NO_FORCE",
       "risk": "CRITICAL",
-      "status": "BLOCKED_APPROVAL",
+      "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
       "blockers": [
-        "explicit remote write approval"
-      ]
+        "actual remote publish approval remains separate"
+      ],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-025",
@@ -541,61 +630,23 @@
       "depends_on": [
         "MLA-019",
         "MLA-021",
-        "MLA-022"
+        "MLA-022",
+        "MLA-029"
       ],
       "allowed_paths": [
         "tests/e2e/test_owner_journey.py",
         "tests/windows/test_windows_acceptance.py",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "Full Linux/Windows CI+security+actual owner device model/runtime and 24h report; no cross-SHA success reuse",
+      "acceptance": "Author full CI/Windows/E2E verification test harness and acceptance evidence schema; execution of whole regression belongs to P2",
       "safety_checks": "EXACT_SHA;REAL_HOST_DISTINCT",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
-    },
-    {
-      "task_id": "MLA-026",
-      "req_ids": [
-        "REQ-31"
-      ],
-      "depends_on": [
-        "MLA-025"
-      ],
-      "allowed_paths": [
-        "docs/AUDIT_CODEX.md",
-        "docs/AUDIT_ASTRA.md",
-        "docs/ACCEPTANCE_EVIDENCE.md"
-      ],
-      "acceptance": "Two independent reviewers on same exact SHA; actual execution evidence, BLOCKER/HIGH resolved",
-      "safety_checks": "INDEPENDENT_AUDIT;NO_CLAIM_WITHOUT_EXECUTION",
-      "risk": "HIGH",
-      "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": []
-    },
-    {
-      "task_id": "MLA-027",
-      "req_ids": [
-        "REQ-32"
-      ],
-      "depends_on": [
-        "MLA-026"
-      ],
-      "allowed_paths": [
-        "docs/FINAL_ACCEPTANCE.md",
-        "STATUS.md",
-        "HANDOFF.md"
-      ],
-      "acceptance": "High final REQ sweep, real-use safety and user GO separately recorded; RELEASE HOLD unless passed",
-      "safety_checks": "OWNER_GO;NO_COMMERCIAL_DEPLOY",
-      "risk": "CRITICAL",
-      "status": "BLOCKED_APPROVAL",
-      "evidence_sha": null,
-      "blockers": [
-        "owner final real-use approval"
-      ]
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-028",
@@ -617,7 +668,10 @@
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-029",
@@ -634,14 +688,15 @@
         "docs/SECURITY_MODEL.md",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "Real Win11 Pro F18 separate reviewer and forged guest receipt hostile test; refuse unsafe fallback",
+      "acceptance": "Author F18 real-host forged-receipt attack test harness; execution and genuine proof deferred to P2",
       "safety_checks": "OWNER_WINDOWS;F18_SECURITY_HOLD",
       "risk": "CRITICAL",
-      "status": "BLOCKED_HOST",
+      "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": [
-        "owner Windows/Sandbox access"
-      ]
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     },
     {
       "task_id": "MLA-030",
@@ -660,12 +715,15 @@
         "tests/security/test_git_hooks.py",
         "tests/security/test_injection.py"
       ],
-      "acceptance": "Prove path/network/prompt/tool/policy defenses via hostile synthetic tests, no host secret exposure",
+      "acceptance": "Author synthetic hostile path/network/hook/prompt tests, run immediate narrow security checks where risky; full P2 suite deferred",
       "safety_checks": "NO_SECRET;NO_HOST_EXECUTION",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
-      "blockers": []
+      "blockers": [],
+      "phase": "P1_IMPLEMENTATION",
+      "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
+      "verification_status": "NOT_RUN"
     }
   ]
 }

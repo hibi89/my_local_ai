@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "program": "my_local_ai",
+  "current_phase": "P0_DESIGN_AWAITING_OWNER_GO",
+  "p1": {
+    "queue": "INSTANT_TASK_QUEUE.json",
+    "status": "NOT_STARTED",
+    "implementation_complete_candidate": false,
+    "code_req_total": 30,
+    "code_req_completed": 0,
+    "implementation_sha": null,
+    "high_approved_candidate": false
+  },
+  "p2": {
+    "queue": "VERIFICATION_TASK_QUEUE.json",
+    "status": "LOCKED",
+    "verified_sha": null,
+    "verified_rate": "UNASSESSED",
+    "gate_conditions": [
+      "owner_approved_blueprint",
+      "REQ01_30_IMPLEMENTATION_SOURCE_EVIDENCE",
+      "ALL_P1_TASKS_ACCOUNTED_FOR",
+      "HIGH_EXPLICIT_IMPLEMENTATION_100_CANDIDATE",
+      "PINNED_EXACT_IMPLEMENTATION_SHA",
+      "NO_UNRESOLVED_CRITICAL_INTEGRITY_FAILURE"
+    ],
+    "ci_full": "NOT_RUN",
+    "real_windows": "NOT_RUN",
+    "f18": "SECURITY_HOLD"
+  },
+  "p3": {
+    "status": "NOT_STARTED",
+    "codex_audit": "NOT_RUN",
+    "astra_audit": "NOT_RUN"
+  },
+  "p4": {
+    "status": "NOT_STARTED",
+    "high_final_acceptance": "NOT_RUN",
+    "owner_go": false
+  },
+  "safety": {
+    "mandatory_ci": "MUST_REMAIN_ENABLED_AND_UNBYPASSED",
+    "P1_immediate_checks": [
+      "syntax_type_smoke",
+      "auth_permissions",
+      "data_loss_integrity",
+      "secret_leakage",
+      "security_scope",
+      "F18_fail_closed"
+    ],
+    "remote_writes": "REQUIRES_SEPARATE_OWNER_GO",
+    "paid_api": "DENIED_BY_DEFAULT",
+    "customer_data_upload": "DENIED_BY_DEFAULT"
+  }
+}

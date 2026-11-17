@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "program": "my_local_ai",
+  "phase": "P2_VERIFICATION_ONLY_WITH_P3_P4_HANDOFF",
+  "description": "검증완료율은 구현 100% 후보와 별도. P2 전체 테스트 및 결함수정 뒤 P3 독립감사·P4 High 인수.",
+  "repo": "hibi89/my_local_ai",
+  "prepared_at_kst": "2026-11-17",
+  "gate_status": "CLOSED_P1_NOT_COMPLETED",
+  "gate_condition": "IMPLEMENTATION_100_CANDIDATE_AND_HIGH_APPROVED_EXACT_SHA",
+  "p1_queue": "INSTANT_TASK_QUEUE.json",
+  "p2_verified_sha": null,
+  "verification_weight_status": "UNASSESSED",
+  "verification_task_count": 8,
+  "post_verification_audit_count": 1,
+  "post_verification_final_acceptance_count": 1,
+  "task_count": 10,
+  "first_ready_after_gate": [
+    "MLA-V001"
+  ],
+  "tasks": [
+    {
+      "task_id": "MLA-V001",
+      "req_ids": [
+        "REQ-02",
+        "REQ-04",
+        "REQ-30"
+      ],
+      "depends_on": [
+        "MLA-025"
+      ],
+      "allowed_paths": [
+        "tests/",
+        "docs/ACCEPTANCE_EVIDENCE.md",
+        "STATUS.md"
+      ],
+      "acceptance": "Execute entire Linux/hosted-Windows CI/compileall/unittest/security/packaging exact P1 SHA; record PASS/FAIL/SKIP/NOT_RUN",
+      "safety_checks": [
+        "KEEP_MANDATORY_CI",
+        "EXACT_SHA",
+        "NO_OLD_PASS"
+      ],
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "P1 implementation candidate / High gate"
+      ]
+    },
+    {
+      "task_id": "MLA-V002",
+      "req_ids": [
+        "REQ-01",
+        "REQ-11",
+        "REQ-13",
+        "REQ-15",
+        "REQ-23",
+        "REQ-24",
+        "REQ-30"
+      ],
+      "depends_on": [
+        "MLA-V001",
+        "MLA-030"
+      ],
+      "allowed_paths": [
+        "tests/security/",
+        "docs/SECURITY_MODEL.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Execute adversarial path/secret/hook/filter/prompt/network/receipt spoof negative security suite, fix and rerun",
+      "safety_checks": [
+        "NO_HOST_UNTRUSTED_EXECUTION",
+        "F18_HOLD_UNTIL_PROVED"
+      ],
+      "risk": "CRITICAL",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "P1 gate",
+        "trusted verifier"
+      ]
+    },
+    {
+      "task_id": "MLA-V003",
+      "req_ids": [
+        "REQ-09",
+        "REQ-10",
+        "REQ-11",
+        "REQ-25",
+        "REQ-27"
+      ],
+      "depends_on": [
+        "MLA-V001",
+        "MLA-020"
+      ],
+      "allowed_paths": [
+        "tests/windows/",
+        "docs/LOCAL_MODEL_EVIDENCE.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Actual owner Win11 Pro Qwen/Ollama/OpenCode synthetic coding, speed/RAM/VRAM measured; mock CI is not real model",
+      "safety_checks": [
+        "OWNER_WINDOWS_ONLY",
+        "NO_MODEL_AUTO_DOWNLOAD",
+        "NO_PRIVATE_DATA"
+      ],
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "owner host"
+      ]
+    },
+    {
+      "task_id": "MLA-V004",
+      "req_ids": [
+        "REQ-12",
+        "REQ-14",
+        "REQ-15",
+        "REQ-21",
+        "REQ-24"
+      ],
+      "depends_on": [
+        "MLA-V001",
+        "MLA-029"
+      ],
+      "allowed_paths": [
+        "tests/windows/",
+        "tests/security/",
+        "docs/SECURITY_MODEL.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Run hostile forged guest receipt test on real Win11 Sandbox, prove separately trusted reviewer; no automatic integration from guest PASS",
+      "safety_checks": [
+        "F18_TRUST_BOUNDARY",
+        "NO_HOST_FALLBACK"
+      ],
+      "risk": "CRITICAL",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "owner Windows Sandbox",
+        "independent reviewer"
+      ]
+    },
+    {
+      "task_id": "MLA-V005",
+      "req_ids": [
+        "REQ-07",
+        "REQ-08",
+        "REQ-16",
+        "REQ-17",
+        "REQ-18",
+        "REQ-19",
+        "REQ-20",
+        "REQ-21"
+      ],
+      "depends_on": [
+        "MLA-V001",
+        "MLA-017",
+        "MLA-018"
+      ],
+      "allowed_paths": [
+        "tests/integration/",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Execute crash/lease/SQLite+Git SHA CAS failure injection, resume and idempotency with disposable data",
+      "safety_checks": [
+        "NO_ORIGINAL_OVERWRITE",
+        "CRASH_RECONCILIATION"
+      ],
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "approved isolated test environment"
+      ]
+    },
+    {
+      "task_id": "MLA-V006",
+      "req_ids": [
+        "REQ-19",
+        "REQ-20",
+        "REQ-25",
+        "REQ-26",
+        "REQ-27"
+      ],
+      "depends_on": [
+        "MLA-V003",
+        "MLA-V004",
+        "MLA-V005",
+        "MLA-022"
+      ],
+      "allowed_paths": [
+        "tests/e2e/",
+        "tests/windows/",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Actual owner-host 24h synthetic unattended run: stop/restart/thermal/memory/no duplicate verified work",
+      "safety_checks": [
+        "OWNER_HOST",
+        "THERMAL_SAFE",
+        "F18_PASS_REQUIRED"
+      ],
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "owner host 24h availability",
+        "F18 PASS"
+      ]
+    },
+    {
+      "task_id": "MLA-V007",
+      "req_ids": [
+        "REQ-28",
+        "REQ-29"
+      ],
+      "depends_on": [
+        "MLA-V001",
+        "MLA-021"
+      ],
+      "allowed_paths": [
+        "tests/e2e/",
+        "docs/UI_UX.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Execute CLI/optional dashboard status, keyboard/accessibility/Host/CSRF UX acceptance; actual browser proof separate",
+      "safety_checks": [
+        "NO_EXTERNAL_UI",
+        "NO_RAW_SECRETS"
+      ],
+      "risk": "MEDIUM",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "UI/CLI runtime"
+      ]
+    },
+    {
+      "task_id": "MLA-V008",
+      "req_ids": [
+        "REQ-01",
+        "REQ-02",
+        "REQ-30"
+      ],
+      "depends_on": [
+        "MLA-V002",
+        "MLA-V003",
+        "MLA-V004",
+        "MLA-V005",
+        "MLA-V006",
+        "MLA-V007"
+      ],
+      "allowed_paths": [
+        "docs/ACCEPTANCE_MATRIX.md",
+        "docs/ACCEPTANCE_EVIDENCE.md",
+        "STATUS.md",
+        "HANDOFF.md"
+      ],
+      "acceptance": "Reconcile REQ01-30 actual verification evidence with approved weights, exact SHA and unresolved blockers; no invented percentages",
+      "safety_checks": [
+        "EXACT_SHA",
+        "NO_RELEASE_WITH_BLOCKERS",
+        "NO_PERCENT_GUESS"
+      ],
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "stage": "P2_VERIFICATION",
+      "evidence_sha": null,
+      "verification_status": "NOT_RUN",
+      "blockers": [
+        "all P2 evidence"
+      ]
+    },
+    {
+      "task_id": "MLA-026",
+      "req_ids": [
+        "REQ-31"
+      ],
+      "depends_on": [
+        "MLA-V008"
+      ],
+      "allowed_paths": [
+        "docs/AUDIT_CODEX.md",
+        "docs/AUDIT_ASTRA.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Two independent reviewers on same exact SHA; actual execution evidence, BLOCKER/HIGH resolved",
+      "safety_checks": "INDEPENDENT_AUDIT;NO_CLAIM_WITHOUT_EXECUTION",
+      "risk": "HIGH",
+      "status": "BLOCKED_BY_P1_GATE",
+      "evidence_sha": null,
+      "blockers": [
+        "P2 complete",
+        "independent actual audit"
+      ],
+      "stage": "P3_INDEPENDENT_AUDIT",
+      "phase": "POST_P2",
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "MLA-027",
+      "req_ids": [
+        "REQ-32"
+      ],
+      "depends_on": [
+        "MLA-026"
+      ],
+      "allowed_paths": [
+        "docs/FINAL_ACCEPTANCE.md",
+        "STATUS.md",
+        "HANDOFF.md"
+      ],
+      "acceptance": "High final REQ sweep, real-use safety and user GO separately recorded; RELEASE HOLD unless passed",
+      "safety_checks": "OWNER_GO;NO_COMMERCIAL_DEPLOY",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_BY_P1_GATE",
+      "evidence_sha": null,
+      "blockers": [
+        "P3 complete",
+        "owner GO"
+      ],
+      "stage": "P4_HIGH_FINAL_ACCEPTANCE",
+      "phase": "POST_P2",
+      "verification_status": "NOT_RUN"
+    }
+  ]
+}
