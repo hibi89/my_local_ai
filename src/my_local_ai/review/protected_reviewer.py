@@ -187,13 +187,18 @@ def decode_untrusted_reviewer_outbox(
     if (not isinstance(data, dict)
         or set(data) != {
             "version", "task_id", "run_id", "source_sha",
-            "candidate_sha", "policy_sha256", "checks",
+            "candidate_sha", "plan_sha256", "lease_epoch",
+            "policy_sha256", "reviewer_binary_sha256", "checks",
         } or type(data["version"]) is not int or data["version"] != 1
         or not isinstance(intent, IsolatedReviewerIntent)
         or data["task_id"] != intent.task_id
         or data["run_id"] != intent.run_id
         or data["source_sha"] != intent.source_sha
         or data["candidate_sha"] != intent.candidate_sha
+        or data["plan_sha256"] != intent.plan_sha256
+        or type(data["lease_epoch"]) is not int
+        or data["lease_epoch"] != intent.lease_epoch
+        or data["reviewer_binary_sha256"] != intent.reviewer_binary_sha256
         or data["policy_sha256"] != intent.policy_sha256
         or not isinstance(data["checks"], list)):
         raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
@@ -222,3 +227,78 @@ def decode_untrusted_reviewer_outbox(
     return canonicalize_fixed_review_observations(
         intent, tuple(observations),
     )
+
+
+# SWU-021: bounded reader for the *untrusted*, never signed, reviewer outbox.
+# Only independently protected Windows reviewer/issuer can attest OS identity,
+# consume a lease nonce and sign a genuine F18 receipt.
+from pathlib import Path as _Path, PureWindowsPath as _PureWindowsPath
+import os as _os
+import stat as _stat
+
+_MAX_F18_OUTBOX_BYTES = 8192
+_REPARSE_ATTRIBUTE = getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+
+
+def _lstat_review_outbox_parent_chain(parent: _Path) -> tuple[tuple[int, int, int], ...]:
+    result = []
+    for segment in (parent, *parent.parents):
+        info = segment.lstat()
+        if (not _stat.S_ISDIR(info.st_mode) or _stat.S_ISLNK(info.st_mode)
+            or getattr(info, "st_file_attributes", 0) & _REPARSE_ATTRIBUTE):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+        result.append((info.st_dev, info.st_ino, info.st_mode))
+    return tuple(result)
+
+
+def read_untrusted_reviewer_outbox_from_scratch(
+    intent: IsolatedReviewerIntent,
+) -> UnsignedReviewerTranscript:
+    """Read fixed local reviewer outbox → validate pinned lease/checks → digest.
+
+    Windows-only; exact path C:\MLA_Disposable\<run_id>\review\outbox.json.
+    No execution, no arbitrary caller path, no follow-symlink fallback, no
+    deletion/writes, no F18 receipt issuing. Same-user scratch can be forged,
+    so a valid UNSIGNED transcript is ALWAYS untrusted, even on hash match.
+    """
+    if (_os.name != "nt" or not isinstance(intent, IsolatedReviewerIntent)
+        or not isinstance(intent.run_id, str) or not _ID.fullmatch(intent.run_id)):
+        raise ProtectedReviewerHold("INDEPENDENT_OS_REVIEWER_NOT_ATTESTED")
+    filename = _Path(str(
+        _PureWindowsPath(r"C:\MLA_Disposable")
+        / intent.run_id / "review" / "outbox.json"
+    ))
+    try:
+        ancestry = _lstat_review_outbox_parent_chain(filename.parent)
+        before = filename.lstat()
+        if (not _stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+            or getattr(before, "st_file_attributes", 0) & _REPARSE_ATTRIBUTE
+            or not 1 <= before.st_size <= _MAX_F18_OUTBOX_BYTES):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+        flags = (_os.O_RDONLY | getattr(_os, "O_BINARY", 0)
+                 | getattr(_os, "O_NOFOLLOW", 0))
+        fd = _os.open(filename, flags)
+        with _os.fdopen(fd, "rb") as stream:
+            opened = _os.fstat(stream.fileno())
+            raw = stream.read(_MAX_F18_OUTBOX_BYTES + 1)
+            final_handle = _os.fstat(stream.fileno())
+        after = filename.lstat()
+        identity = (
+            before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns
+        )
+        if (len(raw) != before.st_size
+            or (opened.st_dev, opened.st_ino, opened.st_size,
+                opened.st_mtime_ns) != identity
+            or (final_handle.st_dev, final_handle.st_ino,
+                final_handle.st_size, final_handle.st_mtime_ns) != identity
+            or (after.st_dev, after.st_ino, after.st_size,
+                after.st_mtime_ns) != identity
+            or _lstat_review_outbox_parent_chain(filename.parent) != ancestry):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+    except ProtectedReviewerHold:
+        raise
+    except (OSError, OverflowError, ValueError):
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS") from None
+    # The decoder verifies task/run/source/candidate/plan/lease/policy/binary
+    # against the fixed F18 policy, and returns only an UNSIGNED transcript.
+    return decode_untrusted_reviewer_outbox(raw, intent)
