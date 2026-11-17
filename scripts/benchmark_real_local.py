@@ -10,7 +10,7 @@ import re
 import time
 from typing import Callable, Protocol
 
-from my_local_ai.ax_runtime.budgets import BudgetGuard
+from my_local_ai.ax_runtime.budgets import BudgetGuard, BudgetExceeded
 from my_local_ai.ax_runtime.ollama_provider import OllamaProvider, UntrustedGeneration
 from my_local_ai.ax_runtime.provider_policy import ProviderHold, require_qwen_model
 from my_local_ai.ax_runtime.worker_lock import OneModelLock
@@ -24,7 +24,7 @@ _FIXTURE = "SYNTHETIC_CODING_TASK_V1"
 class BenchmarkHold(RuntimeError):
     def __init__(self, reason: str):
         reasons = {"P2_LOCKED", "NO_OWNER_GO", "OWNER_DEVICE_REQUIRED",
-                   "BAD_BENCHMARK", "MODEL_UNAVAILABLE", "RESOURCE_LIMIT", "BAD_OBSERVATION"}
+                   "BAD_BENCHMARK", "MODEL_UNAVAILABLE", "RESOURCE_LIMIT", "BAD_OBSERVATION", "MODEL_POLICY_HOLD", "INCONSISTENT_BATCH"}
         self.code = reason if reason in reasons else "BAD_OBSERVATION"
         super().__init__(self.code)
 
@@ -118,8 +118,9 @@ def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
                                     budget=budget, allow_generation=True)
             end = float(clock())
         except ProviderHold as error:
-            raise BenchmarkHold("MODEL_UNAVAILABLE" if error.code in {
-                "MODEL_ABSENT", "OLLAMA_UNAVAILABLE"} else "RESOURCE_LIMIT") from None
+            raise BenchmarkHold(classify_benchmark_failure(error)) from None
+        except BudgetExceeded:
+            raise BenchmarkHold("RESOURCE_LIMIT") from None
         except (OSError, ValueError, TypeError, TimeoutError):
             raise BenchmarkHold("BAD_OBSERVATION") from None
         if (not math.isfinite(start) or not math.isfinite(end) or end < start
@@ -127,8 +128,10 @@ def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
             or result.model != plan.model):
             raise BenchmarkHold("BAD_OBSERVATION")
         try:
+            if not isinstance(result.text, str):
+                raise TypeError("invalid output type")
             raw = result.text.encode("utf-8")
-        except (AttributeError, UnicodeError):
+        except (AttributeError, UnicodeError, TypeError):
             raise BenchmarkHold("BAD_OBSERVATION") from None
         if len(raw) > budget.limits.max_output_bytes:
             raise BenchmarkHold("RESOURCE_LIMIT")
@@ -186,3 +189,66 @@ def run_real_local_p2(
         raise BenchmarkHold("BAD_BENCHMARK")
     return _observe(plan, model=provider, prompt=prompt, model_lock=model_lock,
                     budget=budget, clock=clock, level="LOCAL_MEASURED_P2_UNVERIFIED")
+
+
+
+@dataclass(frozen=True)
+class BenchmarkBatchSummary:
+    """A summary of candidate observations; never an acceptance or speed claim."""
+    model: str
+    source_sha: str
+    plan_sha256: str
+    fixture_id: str
+    evidence_level: str
+    attempts: int
+    elapsed_total_seconds: float
+    elapsed_min_seconds: float
+    elapsed_max_seconds: float
+    status: str = "UNVERIFIED_CANDIDATE"
+
+    def to_redacted_json(self) -> str:
+        return json.dumps(asdict(self), sort_keys=True, allow_nan=False)
+
+
+def classify_benchmark_failure(error: BaseException) -> str:
+    """Finite redacted codes; do not export exception text or private paths."""
+    if isinstance(error, BenchmarkHold):
+        return error.code
+    if isinstance(error, ProviderHold):
+        if error.code in {"MODEL_ABSENT", "OLLAMA_UNAVAILABLE"}:
+            return "MODEL_UNAVAILABLE"
+        if error.code in {"RESOURCE_LIMIT", "NO_BUDGET", "NO_MODEL_LOCK"}:
+            return "RESOURCE_LIMIT"
+        return "MODEL_POLICY_HOLD"
+    if isinstance(error, (BudgetExceeded, MemoryError)):
+        return "RESOURCE_LIMIT"
+    return "BAD_OBSERVATION"
+
+
+def summarize_observations(
+    observations: tuple[BenchmarkObservation, ...],
+) -> BenchmarkBatchSummary:
+    if not isinstance(observations, tuple) or not 1 <= len(observations) <= 3:
+        raise BenchmarkHold("INCONSISTENT_BATCH")
+    first = observations[0]
+    if not isinstance(first, BenchmarkObservation):
+        raise BenchmarkHold("INCONSISTENT_BATCH")
+    signature = (first.model, first.source_sha, first.plan_sha256,
+                 first.fixture_id, first.evidence_level)
+    if any(not isinstance(item, BenchmarkObservation) or
+           (item.model, item.source_sha, item.plan_sha256,
+            item.fixture_id, item.evidence_level) != signature
+           for item in observations):
+        raise BenchmarkHold("INCONSISTENT_BATCH")
+    durations = [item.elapsed_seconds for item in observations]
+    total = math.fsum(durations)
+    if not math.isfinite(total):
+        raise BenchmarkHold("INCONSISTENT_BATCH")
+    return BenchmarkBatchSummary(
+        model=first.model, source_sha=first.source_sha,
+        plan_sha256=first.plan_sha256, fixture_id=first.fixture_id,
+        evidence_level=first.evidence_level, attempts=len(observations),
+        elapsed_total_seconds=total,
+        elapsed_min_seconds=min(durations),
+        elapsed_max_seconds=max(durations),
+    )

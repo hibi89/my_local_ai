@@ -9,3 +9,9 @@ The real model path is P2-only, gated on exact candidate SHA, explicit High appr
 The evidence schema stores duration, redacted output SHA256 and status UNVERIFIED_CANDIDATE. Generated token count, actual RAM/VRAM, power/thermal and accepted REQ/hour remain null until trustworthy independent instrumentation and accepted-REQ evidence exist. Mock numbers are not real performance measurements.
 
 P2 later: validate exact model/version + workload SHA; run bounded trials on owner device; capture trusted memory, thermal, power, token, retry and acceptance metrics; independently verify F18 boundary before promotion. No real tests are claimed from this P1 harness.
+
+## MLA-020 P1 bounded summary hardening
+
+\`summarize_observations\` only accepts 1–3 schema-valid observations with identical model, source SHA, plan SHA256, synthetic fixture ID and evidence level. A mixed mock/real or different-source batch is rejected; the redacted summary includes only count/min/max/total duration, not prompts, generated text, invented tokens/sec or accepted REQ/hour. Exceptions use redacted policy/resource/model-unavailable/observation reason codes.
+
+**No live benchmark has run.** Injected model fakes are local test fixtures; mock durations have zero hardware evidentiary weight. The P2 entrypoint remains non-CLI, owner-consent and exact-SHA gated and Windows-only. OS-enforced F18, Windows real device and trusted metric collectors remain NOT_RUN.

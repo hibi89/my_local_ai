@@ -118,3 +118,42 @@ class BenchmarkHarnessSecurityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BenchmarkAggregationTests(BenchmarkHarnessSecurityTests):
+    def test_summary_keeps_mock_scope_and_never_invents_speed(self):
+        fake = FakeModel()
+        result = self.mock(fake)
+        summary = mod.summarize_observations(result)
+        self.assertEqual(summary.attempts, 1)
+        self.assertEqual(summary.elapsed_total_seconds, 1.5)
+        self.assertEqual(summary.evidence_level, "MOCK_ONLY")
+        self.assertNotIn("tokens_per_second", summary.to_redacted_json())
+        self.assertNotIn("VERIFIED_PASS", summary.to_redacted_json())
+
+    def test_summary_rejects_mixed_source_sha_and_empty(self):
+        first = self.mock(FakeModel())[0]
+        from dataclasses import replace
+        second = replace(first, source_sha="c" * 40)
+        with self.assertRaises(mod.BenchmarkHold) as err:
+            mod.summarize_observations((first, second))
+        self.assertEqual(err.exception.code, "INCONSISTENT_BATCH")
+        with self.assertRaises(mod.BenchmarkHold):
+            mod.summarize_observations(())
+
+    def test_failure_classification_redacted_and_separate_policy(self):
+        from my_local_ai.ax_runtime.provider_policy import ProviderHold
+        self.assertEqual(mod.classify_benchmark_failure(ProviderHold("MODEL_ABSENT")),
+                         "MODEL_UNAVAILABLE")
+        self.assertEqual(mod.classify_benchmark_failure(ProviderHold("UNSAFE_ENDPOINT")),
+                         "MODEL_POLICY_HOLD")
+        self.assertEqual(mod.classify_benchmark_failure(TimeoutError("SECRET")),
+                         "BAD_OBSERVATION")
+
+    def test_mock_rejects_malformed_generated_text(self):
+        class BadModel(FakeModel):
+            def generate(self, prompt, *, model_lock, budget, allow_generation):
+                return UntrustedGeneration(None, self.model)
+        with self.assertRaises(mod.BenchmarkHold) as err:
+            self.mock(BadModel())
+        self.assertEqual(err.exception.code, "BAD_OBSERVATION")
