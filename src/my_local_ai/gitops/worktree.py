@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .path_guard import ScopePreflight, preflight_paths
+import re
+
+_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
 
 
 @dataclass(frozen=True)
@@ -27,7 +30,7 @@ def plan_disposable(
     original_checkout: str | Path, baseline_sha: str,
     allowed_paths: tuple[str, ...],
 ) -> WorktreeIntent:
-    if not isinstance(task_id, str) or not task_id.isascii() or not (3 <= len(task_id) <= 64):
+    if not isinstance(task_id, str) or _TASK_ID.fullmatch(task_id) is None:
         raise ValueError("invalid task ID")
     checked = preflight_paths(
         worktree=worktree, original_checkout=original_checkout,
@@ -181,6 +184,7 @@ def audit_disposable_git_inventory(
 # This read-only check is not OS isolation and cannot authorize integration.
 from pathlib import Path as _Path
 import stat as _stat
+import os as _os
 
 
 @_dataclass(frozen=True)
@@ -201,7 +205,14 @@ def _read_unique_metadata(path: _Path, *, max_bytes: int = 4096) -> str:
             & getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
             or before.st_size > max_bytes):
             raise GitInventoryHold("UNSAFE_GIT_METADATA")
-        with path.open("rb") as f:
+        flags = (_os.O_RDONLY | getattr(_os, "O_NOFOLLOW", 0)
+                 | getattr(_os, "O_BINARY", 0))
+        fd = _os.open(path, flags)
+        with _os.fdopen(fd, "rb") as f:
+            opened = _os.fstat(f.fileno())
+            if (not _stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+                or (opened.st_ino, opened.st_dev) != (before.st_ino, before.st_dev)):
+                raise GitInventoryHold("UNSAFE_GIT_METADATA")
             raw = f.read(max_bytes + 1)
         after = path.lstat()
         if (len(raw) > max_bytes or before.st_ino != after.st_ino

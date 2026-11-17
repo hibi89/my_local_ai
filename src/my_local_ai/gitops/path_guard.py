@@ -95,8 +95,11 @@ def preflight_paths(
         original = Path(original_checkout)
     else:
         raise ScopeHold()
-    if not work.is_absolute() or not original.is_absolute():
-        raise ScopeHold()
+    if (not work.is_absolute() or not original.is_absolute()
+        or ".." in work.parts or ".." in original.parts):
+        # Pathlib preserves lexical '..'; following it before identity checks
+        # could make a disposable path refer to the owner's original files.
+        raise ScopeHold("UNSAFE_ORIGINAL")
     try:
         _safe_ancestors(work)
         _safe_ancestors(original)
@@ -106,7 +109,15 @@ def preflight_paths(
         raise ScopeHold() from None
     if work == original or work in original.parents or original in work.parents:
         raise ScopeHold("UNSAFE_ORIGINAL")
-    paths = tuple(allowed_paths)
+    # Bounded pull: an untrusted infinite generator cannot hang the scheduler.
+    # Do not accept a string as an iterable of individual path characters.
+    from itertools import islice
+    if isinstance(allowed_paths, (str, bytes)) or allowed_paths is None:
+        raise ScopeHold()
+    try:
+        paths = tuple(islice(iter(allowed_paths), 17))
+    except (TypeError, ValueError):
+        raise ScopeHold() from None
     if not 1 <= len(paths) <= 16:
         raise ScopeHold()
     normalized: list[str] = []

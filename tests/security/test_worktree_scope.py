@@ -261,3 +261,63 @@ class LinkedGitdirAttackTests(ScopePreflightTests):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class ExtraWorktreeTraversalTests(ScopePreflightTests):
+    def test_parent_dotdot_alias_rejected_even_when_target_exists(self):
+        from my_local_ai.gitops.path_guard import ScopeHold
+        for candidate in (self.worktree / ".." / "original",
+                          self.root / "disposable" / ".." / "disposable"):
+            with self.subTest(candidate=str(candidate)), self.assertRaises(ScopeHold):
+                preflight_paths(
+                    worktree=candidate, original_checkout=self.original,
+                    baseline_sha=SHA, allowed_paths=("src/main.py",),
+                )
+
+    def test_original_dotdot_alias_refused(self):
+        with self.assertRaises(ScopeHold):
+            preflight_paths(
+                worktree=self.worktree,
+                original_checkout=self.original / ".." / "original",
+                baseline_sha=SHA, allowed_paths=("src/main.py",),
+            )
+
+    def test_generator_overflow_terminates_after_seventeen_paths(self):
+        seen=[]
+        def excessive():
+            for number in range(1000000):
+                seen.append(number)
+                yield f"src/path{number}.py"
+        with self.assertRaises(ScopeHold):
+            self.inspect(excessive())
+        self.assertEqual(len(seen),17)
+
+    def test_string_as_path_collection_not_accepted(self):
+        with self.assertRaises(ScopeHold):
+            self.inspect("src/main.py")
+
+    def test_disposable_plan_task_ids_are_strict_alphanumeric(self):
+        for tid in ("../owner", "TASK/014", "TASK 014", "TASK.014", "ø-task"):
+            with self.subTest(tid=tid),self.assertRaises(ValueError):
+                plan_disposable(
+                    task_id=tid, worktree=self.worktree,
+                    original_checkout=self.original,
+                    baseline_sha=SHA,allowed_paths=("src/main.py",)
+                )
+
+
+class MetadataFileReplacementTests(LinkedGitdirAttackTests):
+    def test_symlink_replacement_during_metadata_open_denied(self):
+        from unittest.mock import patch
+        import my_local_ai.gitops.worktree as worktree_module
+        marker,target=self.install_link()
+        real_open=worktree_module._os.open
+        def swapping_open(path, flags, *args, **kwargs):
+            if Path(path)==marker and marker.is_file() and not marker.is_symlink():
+                marker.unlink()
+                marker.symlink_to(target / "gitdir")
+            return real_open(path,flags,*args,**kwargs)
+        with patch.object(worktree_module._os,"open",side_effect=swapping_open):
+            with self.assertRaises(GitInventoryHold):
+                audit_linked_worktree_metadata(self.intent())

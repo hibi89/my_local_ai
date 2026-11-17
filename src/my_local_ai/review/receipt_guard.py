@@ -89,10 +89,11 @@ def inspect_receipt(
     """
     if not isinstance(expected, ExpectedReceipt):
         raise ReceiptHold()
-    if (not isinstance(raw_json, str)
-        or len(raw_json.encode("utf-8")) > _MAX_BYTES):
+    if not isinstance(raw_json, str):
         raise ReceiptHold()
     try:
+        if len(raw_json.encode("utf-8")) > _MAX_BYTES:
+            raise ReceiptHold()
         receipt = json.loads(raw_json, object_pairs_hook=_no_duplicate_keys,
                              parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
     except (ValueError, TypeError, UnicodeError, RecursionError):

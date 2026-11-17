@@ -28,7 +28,8 @@ def assess_supervisor(
     owner_go_claimed: bool = False,
 ) -> SupervisorProposal:
     """Never mistake a boolean owner claim for a protected signer."""
-    if (type(code_ready) is not bool or type(lease_epoch) is not int
+    if (type(code_ready) is not bool or type(owner_go_claimed) is not bool
+        or type(lease_epoch) is not int
         or lease_epoch < 0 or type(attempts) is not int or not 0 <= attempts <= 2):
         raise ValueError("invalid supervised run metadata")
     observed=assess_resources(resource_reading,resource_limits)

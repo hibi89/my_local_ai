@@ -125,3 +125,40 @@ class SyntheticWindowRegressionTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class LongRunSampleIntegrityTests(unittest.TestCase):
+    def test_synthetic_sensor_gap_is_hold_not_unattended_24h_proof(self):
+        series=(
+            ResourceSample(0,0,reading()),
+            ResourceSample(1,30,reading()),
+            ResourceSample(2,86400,reading()),
+        )
+        result=assess_synthetic_window(series,LIMITS)
+        self.assertEqual(result.state,"HOLD")
+        self.assertIn("SENSOR_WINDOW_GAP",result.reasons)
+        self.assertFalse(result.real_hardware_verified)
+        self.assertFalse(result.may_restart_worker)
+
+    def test_synthetic_sensor_horizon_stays_unverified_even_if_no_gap(self):
+        samples=tuple(ResourceSample(i,i*1800,reading()) for i in range(50))
+        result=assess_synthetic_window(samples,LIMITS)
+        self.assertEqual(result.state,"SYNTHETIC_WINDOW_NOT_REAL_DEVICE_PROVEN")
+        self.assertFalse(result.real_hardware_verified)
+
+    def test_bool_resource_limits_and_bad_gap_settings_denied(self):
+        with self.assertRaises(ValueError):
+            ResourceLimits(max_temperature_c=True)
+        with self.assertRaises(ValueError):
+            ResourceLimits(max_cpu_percent=False)
+        for gap in (0,True,1.5,-1,86401):
+            with self.subTest(gap=gap),self.assertRaises(ValueError):
+                assess_synthetic_window(
+                    (ResourceSample(0,0,reading()),),LIMITS,max_gap_seconds=gap)
+
+    def test_owner_go_claim_type_must_be_boolean_not_truthy_object(self):
+        with self.assertRaises(ValueError):
+            supervise(owner_go_claimed={"signed":True})
+        with self.assertRaises(ValueError):
+            supervise(owner_go_claimed=1)

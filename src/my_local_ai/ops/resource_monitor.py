@@ -19,10 +19,10 @@ class ResourceLimits:
     def __post_init__(self):
         if (type(self.max_ram_mb) is not int or not 256 <= self.max_ram_mb <= 262144
             or type(self.max_vram_mb) is not int or not 128 <= self.max_vram_mb <= 262144
-            or not isinstance(self.max_temperature_c,(float,int))
+            or type(self.max_temperature_c) not in (float,int)
             or not math.isfinite(self.max_temperature_c)
             or not 30 <= self.max_temperature_c <= 105
-            or not isinstance(self.max_cpu_percent,(float,int))
+            or type(self.max_cpu_percent) not in (float,int)
             or not math.isfinite(self.max_cpu_percent)
             or not 1 <= self.max_cpu_percent <= 100):
             raise ValueError("invalid resource limits")
@@ -88,11 +88,12 @@ class ResourceWindow:
 
 def assess_synthetic_window(
     samples: tuple[ResourceSample, ...], limits: ResourceLimits,
-    *, min_samples: int = 3,
+    *, min_samples: int = 3, max_gap_seconds: int = 1800,
 ) -> ResourceWindow:
     """Detect missing/over-limit readings; never claim actual 24h operation."""
     if (not isinstance(samples, tuple) or not 1 <= len(samples) <= 128
-        or type(min_samples) is not int or not 1 <= min_samples <= 128):
+        or type(min_samples) is not int or not 1 <= min_samples <= 128
+        or type(max_gap_seconds) is not int or not 1 <= max_gap_seconds <= 86400):
         raise ValueError("invalid resource window")
     previous=-1
     issues=[]
@@ -102,6 +103,9 @@ def assess_synthetic_window(
             or type(sample.elapsed_seconds) is not int
             or sample.elapsed_seconds <= previous):
             raise ValueError("untrusted sensor sequence or timestamp")
+        if previous >= 0 and sample.elapsed_seconds-previous > max_gap_seconds:
+            if "SENSOR_WINDOW_GAP" not in issues:
+                issues.append("SENSOR_WINDOW_GAP")
         previous=sample.elapsed_seconds
         check=assess_resources(sample.reading,limits)
         for reason in check.reasons:

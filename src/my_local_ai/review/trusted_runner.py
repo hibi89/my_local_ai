@@ -154,6 +154,7 @@ def plan_isolated_reviewer(
         or request.source_sha != trusted_source_sha
         or request.plan_sha256 != trusted_plan_sha256
         or request.candidate_sha != trusted_candidate_sha
+        or request.candidate_sha == request.source_sha
         or request.required_argv_ids != tuple(c.check_id for c in approved.checks)
         or request.guest_can_issue_receipt is not False
         or request.host_fallback_allowed is not False
@@ -165,3 +166,46 @@ def plan_isolated_reviewer(
         policy.policy_sha256,protected_reviewer_binary_sha256,
         request.required_argv_ids,
     )
+
+
+
+def redact_isolated_review_intent(intent: IsolatedReviewerIntent) -> dict:
+    """Render fixed source-only F18 HOLD metadata, never commands or tokens.
+
+    Not an attestation API: even a valid static review plan cannot establish
+    that the coder/reviewer actually occupy separate OS security principals.
+    """
+    if (not isinstance(intent, IsolatedReviewerIntent)
+        or intent.state != "HOLD_UNTIL_INDEPENDENT_OS_REVIEWER"
+        or intent.executable is not False
+        or intent.can_issue_trusted_receipt is not False
+        or intent.host_fallback is not False
+        or not isinstance(intent.task_id, str) or not _ID.fullmatch(intent.task_id)
+        or not isinstance(intent.run_id, str) or not _ID.fullmatch(intent.run_id)
+        or not isinstance(intent.plan_sha256, str) or not _SHA64.fullmatch(intent.plan_sha256)
+        or not isinstance(intent.source_sha, str) or not _SHA40.fullmatch(intent.source_sha)
+        or not isinstance(intent.candidate_sha, str) or not _SHA40.fullmatch(intent.candidate_sha)
+        or intent.candidate_sha == intent.source_sha
+        or type(intent.lease_epoch) is not int or intent.lease_epoch <= 0
+        or intent.policy_sha256 != build_reviewer_policy().policy_sha256
+        or not isinstance(intent.reviewer_binary_sha256, str)
+        or not _SHA64.fullmatch(intent.reviewer_binary_sha256)
+        or intent.check_ids != ("SYNTAX-001", "UNIT-001", "SECURITY-001")):
+        raise ReviewPlanHold("unsafe public reviewer metadata")
+    return {
+        "task_id":intent.task_id,
+        "run_id":intent.run_id,
+        "plan_sha256":intent.plan_sha256,
+        "source_sha":intent.source_sha,
+        "candidate_sha":intent.candidate_sha,
+        "lease_epoch":intent.lease_epoch,
+        "review_policy_sha256":intent.policy_sha256,
+        "required_check_ids":list(intent.check_ids),
+        "stage":intent.state,
+        "reviewer_os_isolation":"NOT_RUN",
+        "f18_verified":False,
+        "guest_can_sign":False,
+        "owner_go_verified":False,
+        "executable":False,
+        "may_promote":False,
+    }

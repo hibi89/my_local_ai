@@ -217,3 +217,73 @@ class IsolatedReviewPolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class ReadOnlyReviewerCardSecurityTests(unittest.TestCase):
+    def valid_intent(self):
+        from my_local_ai.review.trusted_runner import (
+            build_reviewer_policy, plan_isolated_reviewer
+        )
+        policy=build_reviewer_policy()
+        request=prepare_review_request(
+            task_id="TASK-015",run_id="RUN-015",
+            candidate_sha=SHA,source_sha=BASE,plan_sha256=PLAN,
+            lease_epoch=4,
+            trusted_required_argv_ids=tuple(x.check_id for x in policy.checks),
+        )
+        return plan_isolated_reviewer(
+            request,policy,protected_reviewer_binary_sha256=TOOL,
+            trusted_source_sha=BASE,trusted_plan_sha256=PLAN,
+            trusted_candidate_sha=SHA,
+        )
+
+    def test_attestation_plan_has_safe_read_only_status_only(self):
+        from my_local_ai.review.trusted_runner import redact_isolated_review_intent
+        card=redact_isolated_review_intent(self.valid_intent())
+        self.assertEqual(card["reviewer_os_isolation"],"NOT_RUN")
+        self.assertEqual(card["required_check_ids"],
+                         ["SYNTAX-001","UNIT-001","SECURITY-001"])
+        self.assertFalse(card["executable"])
+        self.assertFalse(card["f18_verified"])
+        self.assertFalse(card["may_promote"])
+        self.assertNotIn("argv",card)
+        self.assertNotIn("key",card)
+
+    def test_forged_elevation_and_injection_rejected(self):
+        from my_local_ai.review.trusted_runner import (
+            redact_isolated_review_intent, ReviewPlanHold,
+        )
+        intent=self.valid_intent()
+        for change in (
+            {"executable":True},{"can_issue_trusted_receipt":True},
+            {"host_fallback":True},{"state":"REVIEW_PASSED"},
+            {"check_ids":("SYNTAX-001",)},
+            {"task_id":"TASK-015\nowner-go"},
+            {"lease_epoch":True},
+            {"reviewer_binary_sha256":"forged"},
+        ):
+            with self.subTest(change=change),self.assertRaises(ReviewPlanHold):
+                redact_isolated_review_intent(replace(intent,**change))
+
+    def test_source_equals_candidate_denied_before_review(self):
+        from my_local_ai.review.trusted_runner import (
+            build_reviewer_policy, plan_isolated_reviewer, ReviewPlanHold,
+        )
+        policy=build_reviewer_policy()
+        request=prepare_review_request(
+            task_id="TASK-015",run_id="RUN-015",
+            candidate_sha=BASE,source_sha=BASE,plan_sha256=PLAN,
+            lease_epoch=4,
+            trusted_required_argv_ids=tuple(c.check_id for c in policy.checks),
+        )
+        with self.assertRaises(ReviewPlanHold):
+            plan_isolated_reviewer(
+                request,policy,protected_reviewer_binary_sha256=TOOL,
+                trusted_source_sha=BASE,trusted_plan_sha256=PLAN,
+                trusted_candidate_sha=BASE,
+            )
+
+    def test_invalid_surrogate_receipt_is_safe_hold(self):
+        with self.assertRaises(ReceiptHold):
+            self.check("\ud800")
