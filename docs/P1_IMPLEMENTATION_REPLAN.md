@@ -49,3 +49,10 @@ P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly autho
 - MLA-019 Controller→redacted read-only app synthetic journey source `5b6f5c83d2c3dae51db8a103422d952a4e58138d`.
 - MLA-023 read-only remote action preview source `efc2f33713ed4c3af77583b2d276cf601615f12e` (fixed rejected traversal-like repo IDs after synthetic regression), no API/push/PR capability.
 - Next independent code-only READY: MLA-022 supervisor/resource synthetic policy, MLA-024 action-bound remote publish fail-closed gate, MLA-029 Windows trust-boundary fixture authoring. Runtime task statuses remain BLOCKED and P2 locked. This audit now pins every original runtime `depends_on` edge and tests are dynamic across code-only waves.
+
+## Wave 4 source evidence and wave 5 code-only READY (2026-11-17 KST)
+
+- MLA-022 supervisor resource/thermal/lease policy `8996b5bb56188a3fcc132f0bf87b43af9e6e6b33`; synthetic 24 samples do not simulate 24 real hours.
+- MLA-024 denied-by-default action-specific remote publish gate `4fe0adc1b8c1e54ea358ce311c88550cd548de1a`; no network/PR/push.
+- MLA-029 Windows F18 owner-test harness and evidence ledger `a426c690d25c29c6e96fff7e2d226e23a75de51a`; actual Windows owner and F18 independent isolation `NOT_RUN`.
+- Next P1 code READY MLA-025: write E2E and Windows test **source**, not browser or hardware execution. Full runtime status remains blocked. After this wave, prioritize strengthening real P1 gap modules rather than mistaking file evidence for complete REQs.

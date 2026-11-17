@@ -19,9 +19,7 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-022",
-    "MLA-024",
-    "MLA-029"
+    "MLA-025"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -789,8 +787,10 @@
       "safety_checks": "NO_OS_POLICY_CHANGE;THERMAL_LIMIT;OWNER_DEVICE",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "8996b5bb56188a3fcc132f0bf87b43af9e6e6b33",
+      "blockers": [
+        "Code-only source & synthetic contracts; F18, original, remote operation and real owner Windows remain HOLD"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -801,8 +801,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "ACTUAL_RUNTIME_AND_PROTECTED_OS_ACCEPTANCE_NOT_RUN"
+      ]
     },
     {
       "task_id": "MLA-023",
@@ -856,9 +858,9 @@
       "safety_checks": "OWNER_REMOTE_WRITE_GO;NO_MAIN_MERGE;NO_FORCE",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
+      "evidence_sha": "4fe0adc1b8c1e54ea358ce311c88550cd548de1a",
       "blockers": [
-        "actual remote publish approval remains separate"
+        "Code-only source & synthetic contracts; F18, original, remote operation and real owner Windows remain HOLD"
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -868,8 +870,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "ACTUAL_RUNTIME_AND_PROTECTED_OS_ACCEPTANCE_NOT_RUN"
+      ]
     },
     {
       "task_id": "MLA-025",
@@ -907,7 +911,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -970,8 +974,10 @@
       "safety_checks": "OWNER_WINDOWS;F18_SECURITY_HOLD",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "a426c690d25c29c6e96fff7e2d226e23a75de51a",
+      "blockers": [
+        "Code-only source & synthetic contracts; F18, original, remote operation and real owner Windows remain HOLD"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -981,8 +987,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "ACTUAL_RUNTIME_AND_PROTECTED_OS_ACCEPTANCE_NOT_RUN"
+      ]
     },
     {
       "task_id": "MLA-030",
@@ -1047,7 +1055,9 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-025"
+      "MLA-014",
+      "MLA-015",
+      "MLA-017"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
@@ -1056,9 +1066,7 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-022",
-      "MLA-024",
-      "MLA-029"
+      "MLA-025"
     ],
     "completed_code_waves": [
       [
@@ -1072,6 +1080,11 @@
       [
         "MLA-019",
         "MLA-023"
+      ],
+      [
+        "MLA-022",
+        "MLA-024",
+        "MLA-029"
       ]
     ]
   }
