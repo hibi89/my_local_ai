@@ -91,3 +91,70 @@ def propose_recovery(
                                 checkpoint.plan_sha, checkpoint.baseline_sha, True)
     return RecoveryProposal("REPAIR_ONCE", "SUGGEST_ONE_REPAIR_ONLY", 2, floor,
                             checkpoint.plan_sha, checkpoint.baseline_sha, True)
+
+
+# A second attempt must include a *different* bounded corrective strategy,
+# not a blind retry of the same failed prompt, tool or command. This is still a
+# scheduling request only: owner consent, a new fenced lease, OS isolation,
+# and F18 verification must occur in other protected components.
+from hashlib import sha256 as _sha256
+
+_ALLOWED_FAILURES=frozenset({
+    "SYNTAX_ERROR", "UNIT_FAILURE", "SECURITY_FAILURE",
+    "CONTRACT_FAILURE", "SANDBOX_TIMEOUT",
+})
+_ALLOWED_FIXES=frozenset({
+    "LIMITED_SYNTAX_REPAIR", "ISOLATED_UNIT_FIX",
+    "NARROW_PERMISSION_FIX", "CONTRACT_SCOPE_CORRECTION",
+    "REDUCE_BATCH_MEMORY",
+})
+
+
+@dataclass(frozen=True)
+class RepairIntent:
+    task_id: str
+    run_id: str
+    source_sha: str
+    plan_sha256: str
+    previous_candidate_sha: str
+    error_fingerprint_sha256: str
+    new_strategy: str
+    expected_previous_epoch: int
+    minimum_next_epoch: int
+    attempt_number: int = 2
+    state: str = "IMPROVED_REPAIR_PROPOSAL_OWNER_GO_REQUIRED"
+    auto_retry: bool = False
+    may_run_on_host: bool = False
+    may_mark_verified: bool = False
+
+
+def plan_improved_repair(
+    checkpoint: RecoveryCheckpoint, *,
+    failed_check: str, failure_fingerprint_sha256: str,
+    previous_strategy: str, proposed_strategy: str,
+    observed_epoch: int, plan_sha256: str, source_sha: str,
+) -> RepairIntent:
+    """Reject same-method retries and untrusted/stale failure summaries."""
+    if (not isinstance(checkpoint,RecoveryCheckpoint)
+        or failed_check not in _ALLOWED_FAILURES
+        or not isinstance(failure_fingerprint_sha256,str)
+        or not _SHA64.fullmatch(failure_fingerprint_sha256)
+        or previous_strategy not in _ALLOWED_FIXES
+        or proposed_strategy not in _ALLOWED_FIXES
+        or proposed_strategy==previous_strategy
+        or checkpoint.candidate_sha is None):
+        raise ValueError("invalid or unimproved repair evidence")
+    proposal=propose_recovery(
+        checkpoint,event="REVIEW_FAILED",
+        expected_plan_sha=plan_sha256,
+        expected_baseline_sha=source_sha,
+        observed_lease_epoch=observed_epoch,
+    )
+    if proposal.state!="REPAIR_ONCE" or proposal.next_attempt!=2:
+        raise ValueError("repair exhausted or untrusted")
+    return RepairIntent(
+        checkpoint.task_id,checkpoint.run_id,checkpoint.baseline_sha,
+        checkpoint.plan_sha,checkpoint.candidate_sha,
+        failure_fingerprint_sha256,proposed_strategy,
+        checkpoint.lease_epoch,proposal.minimum_next_lease_epoch,
+    )

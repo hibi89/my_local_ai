@@ -85,5 +85,56 @@ class RecoveryPolicyTests(unittest.TestCase):
             decide(event="MERGE_TO_MAIN")
 
 
+from my_local_ai.ax_runtime.recovery import plan_improved_repair
+
+
+class ImprovedRepairPolicyTests(unittest.TestCase):
+    def plan(self,**change):
+        values=dict(
+            checkpoint=checkpoint(),
+            failed_check="UNIT_FAILURE",
+            failure_fingerprint_sha256="e"*64,
+            previous_strategy="LIMITED_SYNTAX_REPAIR",
+            proposed_strategy="ISOLATED_UNIT_FIX",
+            observed_epoch=42,plan_sha256=PLAN,source_sha=BASE,
+        )
+        values.update(change)
+        return plan_improved_repair(**values)
+
+    def test_one_improved_retry_requires_new_lease_and_owner_go(self):
+        r=self.plan()
+        self.assertEqual(r.attempt_number,2)
+        self.assertEqual(r.minimum_next_epoch,43)
+        self.assertEqual(r.new_strategy,"ISOLATED_UNIT_FIX")
+        self.assertFalse(r.auto_retry)
+        self.assertFalse(r.may_run_on_host)
+        self.assertFalse(r.may_mark_verified)
+
+    def test_identical_retry_or_same_failure_without_improvement_denied(self):
+        with self.assertRaises(ValueError):
+            self.plan(proposed_strategy="LIMITED_SYNTAX_REPAIR")
+        with self.assertRaises(ValueError):
+            self.plan(proposed_strategy="RUN_ARBITRARY_SHELL")
+        with self.assertRaises(ValueError):
+            self.plan(failed_check="SELF_VERIFIED")
+
+    def test_second_failure_exhaustion_denied(self):
+        with self.assertRaises(ValueError):
+            self.plan(checkpoint=checkpoint(attempts_used=2))
+        with self.assertRaises(ValueError):
+            self.plan(checkpoint=checkpoint(attempts_used=0))
+
+    def test_stale_plan_source_epoch_or_untrusted_candidate_denied(self):
+        for change in (
+            {"observed_epoch":41},
+            {"plan_sha256":"f"*64},
+            {"source_sha":"f"*40},
+            {"checkpoint":checkpoint(candidate_sha=None)},
+            {"failure_fingerprint_sha256":"wrong"},
+        ):
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                self.plan(**change)
+
+
 if __name__ == "__main__":
     unittest.main()
