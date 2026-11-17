@@ -107,3 +107,19 @@ GPT-6 High가 한 번 작성한 최종설계의 전체 REQ-ID/의존성/허용 �
 Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-cards/gemini-4-hydrogen/ ; Gemini API 무료/유료 가격: https://ai.google.dev/gemini-api/docs/pricing ; 모델별·프로젝트별 변동 한도: https://ai.google.dev/gemini-api/docs/rate-limits . 무료/유료·기능 지원은 실제 계정 사용 전에 다시 확인한다.
 
 **전체 세부설계:** `docs/DETACHABLE_MULTI_MODEL_WORKERS.md` · **작업큐:** `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`. 이 확장은 문서 설계만 반영한 것으로, 구현완료율·검증완료율을 상승시키지 않는다.
+
+---
+
+## I. V1.2 Experience Learning Engine — 경험 기반 적응형 개발 시스템 (2026-11-17 사용자 확정)
+
+**확정 설계 방향:** My Local AI는 매 상황의 수백·수천 변수를 하드코딩하거나 Sol Max의 대량 답변을 모델 학습용으로 축적하지 않는다. 자신의 합법적·비민감 개발 작업에서 발생한 실제 오류, 선택한 수정, 독립 테스트 결과, 재작업·복구 기록을 분석해 **재사용 가능한 SKILL.md·자체 코드 템플릿·작업 분할/도구 선택의 추천**을 점진적으로 개선한다. 학습은 **MLA의 SQLite 기반 외부 경험 메모리/선택 정책**을 뜻하며 Qwen·기타 모델의 가중치 수정이 아니다.
+
+**대안:** A 많은 고정 규칙/AXNODE 우선(조합 폭발), B Sol Max 답변 대량 수집·대체 모델 학습(비용·오염·권리/정책 위험), **C 실제 자기 개발 경험→독립 검증→지식 선별→가역적 스킬 추천(선택)**. 초기 실행은 Python3.11/SQLite·FTS5 가능 시 선택형 검색, 템플릿·SKILL.md 버전 관리. AXNODE는 검증된 뒤에만 선택적 graph/export adapter로 사용하며 독자 바이너리 런타임을 필수로 만들지 않는다.
+
+**흐름:** approved PlanSpec/DAG/owner GO → read-only ExperienceSelector(권리/민감도/환경/버전·안전 필터, 근거 있는 사례 top3) → Qwen/OpenCode 또는 승인된 선택형 워커 → 격리 CandidateDiff → **독립 F18 수용 결과** → redacted 자기 경험 이벤트 → quarantine/curation → synthetic A/B 및 owner 승인 → versioned skill 활성·취소. 어떤 모델의 답변도 test PASS·안전 승인·원격 송신 권한이 아니다. 경험 없는 상태/오염·충돌/DB 오류에도 기존 로컬 Controller와 Qwen이 정상 동작한다.
+
+**필수 안전:** 소스/계획 SHA·REQ/allowed_paths·권리·고객/비공개·비밀 데이터 차단, 원본·승인·돈0·GitHub 브랜치 보호/F18 검증 경계 우선. 외부 Sol Max/API의 출력은 허가된 소프트웨어 개발 과정의 참고사항일 수 있으나 대체 AI 모델 훈련용 데이터·선호 라벨·보상/평가 과제의 대량 선별·생성이나 비공개 reasoning 추출을 하지 않는다. 공개 GitHub에는 코드·합성 스키마만; 실제 기록/프롬프트/고객·개인 로그는 로컬. 장기보존/삭제·사용 목적·서비스별 약관·승인은 별도 검증.
+
+**수용·단계:** `EXP-AC-01..10`, 별도 선택형 `EXT-EXP-01..07` 큐. 처음에는 기본 OFF와 합성·읽기전용 관찰만 후보, 성능 실측 전 지능 향상·Codex 대체율·검증 PASS 주장 금지. **기존 P1 30 REQ·28 구현작업, P2 8검증/LOCKED, Hydrogen EXT-HYD-01..08, P1 브라우저 DEFERRED_TO_P2 모두 불변**. 이 확장은 이번 사용자 요청으로 **설계 반영**한 것이며 즉시 새로운 P1 READY/분모 변경/실사용 데이터 수집 승인이 아니다.
+
+**정본:** `docs/EXPERIENCE_LEARNING_ENGINE.md` · `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`.
