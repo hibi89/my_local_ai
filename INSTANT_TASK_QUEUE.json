@@ -68,8 +68,12 @@
       "p1_code_depends_on": [],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": []
+      "p1_code_status": "BLOCKED_PROVENANCE",
+      "p1_code_blockers": [
+        "source_rights",
+        "third_party_notices",
+        "owner_provenance"
+      ]
     },
     {
       "task_id": "MLA-002",
