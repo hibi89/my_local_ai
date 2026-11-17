@@ -13,3 +13,17 @@
 - 다음 실행: 사용자 최종설계 확인/GO 후 `dev/instant-implementation-v1`의 MLA-001/002/003/004/005. 설계만으로 READY를 VERIFIED로 기록 금지.
 - 2026-11-21~22 주말 통합은 목표일, PC/독립 보안 경계·실모델 접근으로 막힐 수 있음. 개인 실사용 및 출시 HOLD.
 - 인수인계 기준 설계 소스 커밋/이후 HEAD는 실제 GitHub 브랜치를 재확인. 디자인 문서 커밋의 Python 테스트 PASS 없음.
+
+---
+
+## P1 구현 최신 상태 — 2026-11-17 KST (이하가 위 P0 설계 당시 상태를 갱신)
+
+- **현재 단계:** P1 구현 진행. 사용자의 반복 `ㄱ` 명령에 따라 준비된 코드 작업을 실행했으며, P2 FULL VERIFICATION은 **LOCKED**로 보존.
+- **완료 REQ 기준 구현완료율:** **1/30 = 3.33%**, `REQ-04` (TaskSpec ID·경로·검사 argv·예산·source baseline 스키마) 소스 구현 완료 **후행 공식 검증 전**. REQ-03 등 다른 REQ는 전수 구현 완료로 계산하지 않음.
+- **구현 큐:** MLA-002/004/005 `IMPLEMENTED_UNVERIFIED` 3/28개, MLA-001 출처 감사 코드+5개 blob PIN 작성했으나 권리/라이선스 미확정으로 `BLOCKED_PROVENANCE`; MLA-003/006/007 다음 READY. 이 숫자는 전체 REQ 구현률과 별도.
+- **실제 Python 소스·테스트 근거:** 마지막 코드 수정 커밋 `7814996f9ee0f8e6243be38a5a63284665227c85`. `src/my_local_ai/contracts/task.py`, `plan.py`, `tests/unit/test_contracts.py`; audit `scripts/audit_sources.py`·`docs/IMPORT_MANIFEST.json`·synthetic bench·CI scaffold도 신규 작성.
+- **국소 합성 CI:** GitHub Actions `44003823329` (코드 SHA `7814996f9ee0f8e6243be38a5a63284665227c85`) Python 3.11 syntax compile PASS, 21 synthetic unit tests PASS/0 FAIL. 그 직전 run `44003728366`은 계획 SHA-256 64자리 vs Git SHA 40자리 혼동 오류로 FAIL, 코드 수정 후 PASS. **이는 P2 전체 검증, Windows 실모델 검증이 아님.**
+- **경계:** 라이선스 확인 전 EAI/AX 소스 이식 없음, 원본 repo 무변경. 모델 생성 영수증 인증·F18 독립 verifier 실 OS 검증 `NOT_RUN/SECURITY_HOLD`; Git 원격 게시·시작프로그램·Production·고객 원본·유료 API 변경 없음.
+- **P2/P3/P4:** P2 `LOCKED`, 공식 검증률 `UNASSESSED`, Windows/Ollama/OpenCode 실측 `NOT_RUN`, 24h `NOT_RUN`, 외부 감사 `NOT_RUN`, 운영 `HOLD`.
+- **다음 구현 묶음:** MLA-003(F18 fail-closed 경계 설계/적대 테스트), MLA-006(로컬 CLI read-only/dry-run), MLA-007(SQLite 합성 DB·백업/마이그레이션). 계약 source SHA를 참조하고 새 REQ는 실제 전체 경로가 완성될 때만 분자에 산입.
+- **기준:** 본 갱신은 이전 `제품 코드 미구현` 문장의 P0 역사적 스냅샷을 대체한다. 사용자 승인된 고정 분모 30, 검증 가중치 미승인 `UNASSESSED`.
