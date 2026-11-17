@@ -97,5 +97,88 @@ class LocalGitCASGateTests(unittest.TestCase):
         self.assertNotIn("execute",v.__dict__)
 
 
+class SyntheticCASStateMachineTests(unittest.TestCase):
+    def intent(self):
+        return LocalCASIntent(
+            "refs/heads/mla/isolated/TASK-018", SHA0, CAND, SHA1, "TASK-018",
+        )
+
+    def store(self):
+        from my_local_ai.gitops.local_integration import SyntheticIsolatedRefStore
+        return SyntheticIsolatedRefStore(
+            {"refs/heads/mla/isolated/TASK-018": SHA0},
+            owner_original_sha=SHA1, main_sha="d"*40,
+        )
+
+    def test_atomic_cas_updates_only_synthetic_isolated_ref(self):
+        store=self.store()
+        original,main=store.original_sha,store.main_sha
+        receipt=store.synthetic_compare_swap(self.intent(),expected_main_sha=main)
+        self.assertEqual(receipt.status,"SYNTHETIC_MEMORY_ONLY_NOT_VERIFIED")
+        self.assertEqual(store.read(self.intent().target_local_ref),CAND)
+        self.assertEqual(store.original_sha,original)
+        self.assertEqual(store.main_sha,main)
+        self.assertFalse(receipt.f18_verified)
+        self.assertFalse(receipt.may_push_remote)
+
+    def test_second_worker_cannot_reuse_old_ref_generation(self):
+        store=self.store()
+        store.synthetic_compare_swap(self.intent(),expected_main_sha=store.main_sha)
+        with self.assertRaises(IntegrationHold) as ctx:
+            store.synthetic_compare_swap(self.intent(),expected_main_sha=store.main_sha)
+        self.assertEqual(ctx.exception.code,"SHA_MISMATCH")
+        self.assertEqual(store.read(self.intent().target_local_ref),CAND)
+
+    def test_main_or_original_sha_race_preserves_ref(self):
+        store=self.store()
+        with self.assertRaises(IntegrationHold):
+            store.synthetic_compare_swap(self.intent(),expected_main_sha="f"*40)
+        with self.assertRaises(IntegrationHold):
+            store.synthetic_compare_swap(
+                replace(self.intent(),owner_original_sha="f"*40),
+                expected_main_sha=store.main_sha,
+            )
+        self.assertEqual(store.read(self.intent().target_local_ref),SHA0)
+
+    def test_forged_permission_bools_cannot_become_operating_right(self):
+        store=self.store()
+        for changes in (
+            {"executable":True},{"may_write_ref":True},{"may_write_original":True},
+            {"may_push_remote":True},{"state":"VERIFIED"},
+            {"target_local_ref":"refs/heads/main"},
+        ):
+            with self.subTest(changes=changes),self.assertRaises(IntegrationHold):
+                store.synthetic_compare_swap(
+                    replace(self.intent(),**changes),expected_main_sha=store.main_sha,
+                )
+        self.assertEqual(store.read(self.intent().target_local_ref),SHA0)
+
+    def test_unknown_ref_and_untrusted_store_names_denied(self):
+        from my_local_ai.gitops.local_integration import SyntheticIsolatedRefStore
+        for ref in ("refs/heads/main","refs/remotes/origin/main",
+                    "refs/heads/mla/isolated/xx.lock"):
+            with self.assertRaises(IntegrationHold):
+                SyntheticIsolatedRefStore({ref:SHA0},owner_original_sha=SHA1,main_sha="d"*40)
+        store=self.store()
+        with self.assertRaises(IntegrationHold):
+            store.synthetic_compare_swap(
+                replace(self.intent(),target_local_ref="refs/heads/mla/isolated/OTHER-1"),
+                expected_main_sha=store.main_sha,
+            )
+
+    def test_altered_intent_cannot_write_in_memory(self):
+        store=self.store()
+        for changes in (
+            {"proposed_candidate_sha":"f"*39},
+            {"proposed_candidate_sha":SHA0},
+            {"expected_old_sha":"f"*40},
+        ):
+            with self.assertRaises(IntegrationHold):
+                store.synthetic_compare_swap(
+                    replace(self.intent(),**changes),expected_main_sha=store.main_sha,
+                )
+        self.assertEqual(store.read(self.intent().target_local_ref),SHA0)
+
+
 if __name__=="__main__":
     unittest.main()
