@@ -752,7 +752,7 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+      "retry_stage": "MLA_WORKER_CRITICALITY_TRIAGE_PENDING",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [],
@@ -1979,7 +1979,7 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+      "retry_stage": "MLA_WORKER_CRITICALITY_TRIAGE_PENDING",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [],
@@ -5648,23 +5648,31 @@
     "historical_attempts_used_not_assumed_failures": true,
     "no_task_id_or_chat_reset": true,
     "initial_attempts_do_not_auto_expand_permissions": true,
-    "project_security_F18_owner_signer_P2_LOCK_unchanged": true
+    "project_security_F18_owner_signer_P2_LOCK_unchanged": true,
+    "responsible_actor": "MLA_P1_SWU_EXECUTING_WORKER",
+    "request_user_directly_when_critical_blocker_confirmed_by_worker": true,
+    "hub_role": "COMMON_POLICY_MAINTENANCE_ONLY_NO_MLA_ESCALATION_ON_BEHALF",
+    "no_hub_initiated_sol_max_request": true
   },
   "sol_max_escalation": {
     "immediate_request_candidates": [
       {
         "task_id": "MLA-SWU-008",
         "root_cause": "protected owner signer/OS identity unavailable; 015 and 021 depend on this SWU",
-        "request_status": "OWNER_REQUEST_REQUIRED",
+        "request_status": "MLA_WORKER_REASSESS_REQUIRED",
         "actual_failed_attempts": "UNASSESSED",
-        "sol_max_executed": false
+        "sol_max_executed": false,
+        "candidate_origin": "HUB_POLICY_REVIEW_NOT_MLA_WORKER_DETERMINATION",
+        "criticality_confirmed_by_mla_worker": false
       },
       {
         "task_id": "MLA-SWU-021",
         "root_cause": "independent F18 OS-separated reviewer/protected issuer absent; 031 depends on trust chain",
-        "request_status": "OWNER_REQUEST_REQUIRED",
+        "request_status": "MLA_WORKER_REASSESS_REQUIRED",
         "actual_failed_attempts": "UNASSESSED",
-        "sol_max_executed": false
+        "sol_max_executed": false,
+        "candidate_origin": "HUB_POLICY_REVIEW_NOT_MLA_WORKER_DETERMINATION",
+        "criticality_confirmed_by_mla_worker": false
       }
     ],
     "related_blocked_dependencies": [
@@ -5673,7 +5681,11 @@
     ],
     "deferred_batch": [],
     "model_review_execution": "NOT_RUN",
-    "no_implicit_permission_approval": true
+    "no_implicit_permission_approval": true,
+    "request_owner": "MLA_P1_EXECUTING_WORKER",
+    "hub_may_request_on_mla_behalf": false,
+    "triage_required_before_request": true,
+    "preliminary_candidates_only": true
   },
   "policy_only_change_adds_implementation_progress": false
 }
