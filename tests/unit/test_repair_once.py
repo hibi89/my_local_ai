@@ -138,3 +138,55 @@ class ImprovedRepairPolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class RepairLoopPreventionTests(unittest.TestCase):
+    def test_cannot_reenter_repair_once_checkpoint_even_with_attempt_one(self):
+        unusual = checkpoint(state="REPAIR_ONCE", attempts_used=1)
+        response = decide(unusual)
+        self.assertEqual(response.state, "HOLD")
+        self.assertIsNone(response.next_attempt)
+        with self.assertRaises(ValueError):
+            plan_improved_repair(
+                unusual, failed_check="UNIT_FAILURE",
+                failure_fingerprint_sha256="e" * 64,
+                previous_strategy="LIMITED_SYNTAX_REPAIR",
+                proposed_strategy="ISOLATED_UNIT_FIX",
+                observed_epoch=42, plan_sha256=PLAN, source_sha=BASE,
+            )
+
+    def test_failed_review_without_candidate_cannot_get_repair_budget(self):
+        response = decide(checkpoint(candidate_sha=None))
+        self.assertEqual(response.state, "HOLD")
+        self.assertFalse(response.runnable)
+
+    def test_strategy_change_must_match_actual_failure_category(self):
+        original = checkpoint()
+        for failure, inappropriate in (
+            ("SYNTAX_ERROR", "REDUCE_BATCH_MEMORY"),
+            ("UNIT_FAILURE", "NARROW_PERMISSION_FIX"),
+            ("SECURITY_FAILURE", "REDUCE_BATCH_MEMORY"),
+            ("CONTRACT_FAILURE", "LIMITED_SYNTAX_REPAIR"),
+            ("SANDBOX_TIMEOUT", "ISOLATED_UNIT_FIX"),
+        ):
+            with self.subTest(failure=failure), self.assertRaises(ValueError):
+                plan_improved_repair(
+                    original, failed_check=failure,
+                    failure_fingerprint_sha256="e" * 64,
+                    previous_strategy="CONTRACT_SCOPE_CORRECTION",
+                    proposed_strategy=inappropriate,
+                    observed_epoch=42, plan_sha256=PLAN, source_sha=BASE,
+                )
+
+    def test_timeout_repair_is_specific_and_never_self_runs(self):
+        out = plan_improved_repair(
+            checkpoint(), failed_check="SANDBOX_TIMEOUT",
+            failure_fingerprint_sha256="f" * 64,
+            previous_strategy="ISOLATED_UNIT_FIX",
+            proposed_strategy="REDUCE_BATCH_MEMORY",
+            observed_epoch=42, plan_sha256=PLAN, source_sha=BASE,
+        )
+        self.assertEqual(out.new_strategy, "REDUCE_BATCH_MEMORY")
+        self.assertFalse(out.auto_retry)
+        self.assertFalse(out.may_mark_verified)

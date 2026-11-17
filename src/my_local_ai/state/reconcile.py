@@ -129,6 +129,23 @@ def read_reconcile_state(
         ).fetchall()
         if len(integrated)>1:
             raise ReconcileHold("BAD_STATE")
+        # A review without its integration is a partial crash boundary, not
+        # permission to start another worker. Orphan/duplicate review states
+        # cannot be used as standalone F18 proof.
+        reviews = db.execute(
+            "SELECT rv.review_id,rv.run_id,rv.candidate_sha,rv.result "
+            "FROM reviews rv JOIN runs r ON rv.run_id=r.run_id "
+            "WHERE r.plan_id=? AND r.task_id=?",
+            (plan_id,task_id),
+        ).fetchall()
+        if len(reviews)>1 or (integrated and len(reviews)!=1):
+            raise ReconcileHold("INCOMPLETE_TRUST_EVIDENCE")
+        exact_ref = "refs/heads/mla/isolated/" + task_id
+        all_ref_claims = db.execute(
+            "SELECT COUNT(*) FROM integrations WHERE local_ref=?", (exact_ref,)
+        ).fetchone()[0]
+        if type(all_ref_claims) is not int or all_ref_claims != len(integrated):
+            raise ReconcileHold("BAD_STATE")
         if rows:
             epoch,run_id=rows[0]
             info=run_index.get(run_id)
@@ -139,6 +156,8 @@ def read_reconcile_state(
                 raise ReconcileHold("STALE_LEASE")
             if info[2] not in ("REVIEW_PENDING","INTERRUPTED","HOLD","CODING","REPAIR_ONCE"):
                 raise ReconcileHold("BAD_STATE")
+            if epochs and epoch != max(epochs):
+                raise ReconcileHold("STALE_LEASE")
             # A completed integration and an active coding lease cannot be
             # reconciled without a separate protected DB/Git transaction log.
             if integrated:
@@ -150,7 +169,8 @@ def read_reconcile_state(
             integrated_sha,local_ref,review_status,review_sha,run_id,run_source,run_sha=integrated[0]
             if (not isinstance(integrated_sha,str) or not _SHA40.fullmatch(integrated_sha)
                 or not isinstance(local_ref,str)
-                or not local_ref.startswith("refs/heads/mla/isolated/")
+                or local_ref != exact_ref
+                or reviews[0][1] != run_id
                 or not isinstance(run_source,str) or run_source != trusted_source_sha
                 or review_status != "TRUSTED_PASS"
                 or integrated_sha != review_sha or integrated_sha != run_sha
@@ -161,6 +181,8 @@ def read_reconcile_state(
             return ReconcileDecision(task_id,"PRESERVE_PREVIOUS_REF_AWAIT_F18")
         if protected_ref_sha is not None:
             raise ReconcileHold("REF_MISMATCH")
+        if reviews:
+            return ReconcileDecision(task_id, "HOLD_PARTIAL_REVIEW_REQUIRES_F18")
         if tasks[0][1] == "VERIFIED":
             raise ReconcileHold("UNTRUSTED_VERIFIED")
         if historical:

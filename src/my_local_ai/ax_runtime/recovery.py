@@ -83,7 +83,7 @@ def propose_recovery(
                                 checkpoint.plan_sha, checkpoint.baseline_sha, True)
     # A failed independent review can propose at most one repair. The
     # controller must issue a fresh lease/owner grant and re-attest source.
-    if checkpoint.state not in {"REVIEW_PENDING", "REPAIR_ONCE"}:
+    if checkpoint.state != "REVIEW_PENDING" or checkpoint.candidate_sha is None:
         return RecoveryProposal("HOLD", "MISSING_REVIEW_BOUNDARY", None, floor,
                                 checkpoint.plan_sha, checkpoint.baseline_sha, True)
     if checkpoint.attempts_used != 1:
@@ -108,6 +108,15 @@ _ALLOWED_FIXES=frozenset({
     "NARROW_PERMISSION_FIX", "CONTRACT_SCOPE_CORRECTION",
     "REDUCE_BATCH_MEMORY",
 })
+# A different label alone is not a plausible improvement. Intent is still a
+# proposal, never evidence that the changed strategy actually fixed anything.
+_FAILURE_STRATEGIES = {
+    "SYNTAX_ERROR": frozenset({"LIMITED_SYNTAX_REPAIR"}),
+    "UNIT_FAILURE": frozenset({"ISOLATED_UNIT_FIX", "LIMITED_SYNTAX_REPAIR"}),
+    "SECURITY_FAILURE": frozenset({"NARROW_PERMISSION_FIX", "CONTRACT_SCOPE_CORRECTION"}),
+    "CONTRACT_FAILURE": frozenset({"CONTRACT_SCOPE_CORRECTION", "ISOLATED_UNIT_FIX"}),
+    "SANDBOX_TIMEOUT": frozenset({"REDUCE_BATCH_MEMORY"}),
+}
 
 
 @dataclass(frozen=True)
@@ -141,7 +150,8 @@ def plan_improved_repair(
         or not _SHA64.fullmatch(failure_fingerprint_sha256)
         or previous_strategy not in _ALLOWED_FIXES
         or proposed_strategy not in _ALLOWED_FIXES
-        or proposed_strategy==previous_strategy
+        or proposed_strategy == previous_strategy
+        or proposed_strategy not in _FAILURE_STRATEGIES.get(failed_check, ())
         or checkpoint.candidate_sha is None):
         raise ValueError("invalid or unimproved repair evidence")
     proposal=propose_recovery(

@@ -182,3 +182,45 @@ class SyntheticCASStateMachineTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class SyntheticRefIdentityAndReplayTests(unittest.TestCase):
+    def test_task_cannot_prepare_cas_for_another_task_ref(self):
+        forged=replace(review(), independent_os_review_proven=True,
+                       may_promote_git_ref=True)
+        with self.assertRaises(IntegrationHold) as exc:
+            propose(snapshot=baseline(
+                target_local_ref="refs/heads/mla/isolated/OTHER-018"),
+                inspection=forged, trusted_owner_grant_present=True)
+        self.assertEqual(exc.exception.code,"BAD_REF")
+
+    def test_synthetic_cas_rejects_task_ref_mismatch(self):
+        from my_local_ai.gitops.local_integration import SyntheticIsolatedRefStore
+        store=SyntheticIsolatedRefStore({
+            "refs/heads/mla/isolated/TASK-018":SHA0,
+            "refs/heads/mla/isolated/OTHER-018":SHA0,
+        }, owner_original_sha=SHA1, main_sha="d"*40)
+        intent=LocalCASIntent(
+            "refs/heads/mla/isolated/OTHER-018",SHA0,CAND,SHA1,"TASK-018"
+        )
+        with self.assertRaises(IntegrationHold):
+            store.synthetic_compare_swap(intent,expected_main_sha=store.main_sha)
+        self.assertEqual(store.read("refs/heads/mla/isolated/OTHER-018"),SHA0)
+
+    def test_aba_ref_transition_cannot_reuse_spent_candidate_intent(self):
+        from my_local_ai.gitops.local_integration import SyntheticIsolatedRefStore
+        ref="refs/heads/mla/isolated/TASK-018"
+        store=SyntheticIsolatedRefStore(
+            {ref:SHA0},owner_original_sha=SHA1,main_sha="d"*40
+        )
+        first=LocalCASIntent(ref,SHA0,CAND,SHA1,"TASK-018")
+        store.synthetic_compare_swap(first,expected_main_sha=store.main_sha)
+        # Restore the initial ref in *synthetic memory*, not in real Git.
+        restore=LocalCASIntent(ref,CAND,SHA0,SHA1,"TASK-018")
+        store.synthetic_compare_swap(restore,expected_main_sha=store.main_sha)
+        self.assertEqual(store.read(ref),SHA0)
+        with self.assertRaises(IntegrationHold) as exc:
+            store.synthetic_compare_swap(first,expected_main_sha=store.main_sha)
+        self.assertEqual(exc.exception.code,"SHA_MISMATCH")
+        self.assertEqual(store.read(ref),SHA0)

@@ -69,7 +69,7 @@ def propose_lease(snapshot: LeaseSnapshot, *, trusted_plan_sha: str,
         # controller & independent verifier before a new epoch may be issued.
         raise LeaseHold("ACTIVE_LEASE")
     digest=hashlib.sha256(
-        f"mla-lease/v1|{snapshot.plan_sha}|{snapshot.task_id}|"
+        f"mla-lease/v2|{snapshot.plan_id}|{snapshot.plan_sha}|{snapshot.task_id}|"
         f"{snapshot.baseline_sha}|{snapshot.existing_epoch + 1}".encode("ascii")
     ).hexdigest()
     return LeaseProposal(snapshot.plan_id, snapshot.task_id,
@@ -121,7 +121,20 @@ def claim_synthetic_lease(
     if (not isinstance(run_id,str) or not _ID.fullmatch(run_id)
         or not isinstance(plan_sha256,str) or not _SHA64.fullmatch(plan_sha256)
         or not isinstance(source_sha,str) or not _SHA40.fullmatch(source_sha)
+        or not isinstance(proposal.plan_id,str) or not _ID.fullmatch(proposal.plan_id)
+        or not isinstance(proposal.task_id,str) or not _ID.fullmatch(proposal.task_id)
+        or not isinstance(proposal.baseline_sha,str) or not _SHA40.fullmatch(proposal.baseline_sha)
         or proposal.baseline_sha != source_sha
+        or type(proposal.expected_previous_epoch) is not int
+        or proposal.expected_previous_epoch < 0
+        or type(proposal.proposed_epoch) is not int
+        or proposal.proposed_epoch != proposal.expected_previous_epoch + 1
+        or not isinstance(proposal.idempotency_key,str)
+        or not _SHA64.fullmatch(proposal.idempotency_key)
+        or proposal.idempotency_key != hashlib.sha256(
+            f"mla-lease/v2|{proposal.plan_id}|{plan_sha256}|{proposal.task_id}|"
+            f"{source_sha}|{proposal.proposed_epoch}".encode("ascii")
+        ).hexdigest()
         or type(now_seconds) is not int or now_seconds <= 0):
         raise LeaseHold("INVALID_CONTEXT")
     # Production-file and even temp-disk databases are categorically refused.

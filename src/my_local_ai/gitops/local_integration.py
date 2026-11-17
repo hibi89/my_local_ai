@@ -66,6 +66,7 @@ def plan_isolated_local_cas(
         raise IntegrationHold("SHA_MISMATCH")
     if (not isinstance(snapshot.target_local_ref,str)
         or not _ISOLATED.fullmatch(snapshot.target_local_ref)
+        or snapshot.target_local_ref != "refs/heads/mla/isolated/" + task_id
         or snapshot.target_local_ref.endswith(("/main","/master"))
         or ".." in snapshot.target_local_ref):
         raise IntegrationHold("BAD_REF")
@@ -129,6 +130,7 @@ class SyntheticIsolatedRefStore:
         self._original_sha = owner_original_sha
         self._main_sha = main_sha
         self._isolated = {}
+        self._spent_transitions: set[tuple[str, str, str, str]] = set()
         for ref, sha in isolated_refs.items():
             if (not isinstance(ref, str) or not _ISOLATED.fullmatch(ref)
                 or ".." in ref or ref.endswith((".lock", "/main", "/master"))
@@ -159,6 +161,7 @@ class SyntheticIsolatedRefStore:
             raise IntegrationHold("UNTRUSTED_REVIEW")
         if (not isinstance(intent.target_local_ref, str)
             or not _ISOLATED.fullmatch(intent.target_local_ref)
+            or intent.target_local_ref != "refs/heads/mla/isolated/" + intent.task_id
             or ".." in intent.target_local_ref
             or intent.target_local_ref.endswith((".lock", "/main", "/master"))):
             raise IntegrationHold("BAD_REF")
@@ -180,6 +183,14 @@ class SyntheticIsolatedRefStore:
                 raise IntegrationHold("SHA_MISMATCH")
             if intent.proposed_candidate_sha in (self._original_sha, self._main_sha):
                 raise IntegrationHold("SHA_MISMATCH")
+            transition = (intent.target_local_ref, actual,
+                          intent.proposed_candidate_sha, intent.task_id)
+            # Reject a second use of this exact transition even after a
+            # synthetic ABA ref reset. A real owner runner needs durable
+            # lease-generation CAS; this in-memory proof is not that runner.
+            if transition in self._spent_transitions:
+                raise IntegrationHold("SHA_MISMATCH")
+            self._spent_transitions.add(transition)
             self._isolated[intent.target_local_ref] = intent.proposed_candidate_sha
             return SyntheticCASReceipt(
                 intent.target_local_ref, actual, intent.proposed_candidate_sha

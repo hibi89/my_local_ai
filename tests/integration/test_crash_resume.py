@@ -352,3 +352,91 @@ class ReconcileRepeatedReadTests(unittest.TestCase):
         self.assertEqual(first.status, "HOLD_NO_ACTIVE_LEASE")
         self.assertEqual(first, second)
         self.assertFalse(second.executable)
+
+
+
+class ReconcilePartialReviewAndLeaseTests(CrashResumeContractTests):
+    def test_review_without_integration_blocks_next_execution(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state,"
+            "candidate_sha) VALUES(?,?,?,?,?,?,?)",
+            ("RUN-PARTIAL","PLAN-017","TASK-017",SRC,2,
+             "REVIEW_PENDING", CANDIDATE),
+        )
+        self.write(
+            "INSERT INTO reviews(review_id,run_id,candidate_sha,result) VALUES(?,?,?,?)",
+            ("REVIEW-PARTIAL","RUN-PARTIAL",CANDIDATE,"TRUSTED_PASS"),
+        )
+        out=self.run_reconcile()
+        self.assertEqual(out.status,"HOLD_PARTIAL_REVIEW_REQUIRES_F18")
+        self.assertFalse(out.new_lease_allowed)
+        self.assertFalse(out.git_write_allowed)
+        self.assertFalse(out.independently_verified)
+
+    def test_future_orphan_run_invalidates_stale_active_lease(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state)"
+            "VALUES(?,?,?,?,?,?)",
+            ("RUN-OLD","PLAN-017","TASK-017",SRC,1,"CODING"),
+        )
+        self.write(
+            "INSERT INTO leases(plan_id,task_id,generation,run_id) VALUES(?,?,?,?)",
+            ("PLAN-017","TASK-017",1,"RUN-OLD"),
+        )
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state)"
+            "VALUES(?,?,?,?,?,?)",
+            ("RUN-NEWER","PLAN-017","TASK-017",SRC,2,"INTERRUPTED"),
+        )
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code,"STALE_LEASE")
+
+    def test_cross_task_ref_claim_is_never_considered_our_ref(self):
+        self.write(
+            "INSERT INTO tasks(plan_id,task_id,source_sha,state) VALUES(?,?,?,?)",
+            ("PLAN-017","TASK-OTHER",SRC,"REVIEW_PENDING"),
+        )
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,"
+            "state,candidate_sha) VALUES(?,?,?,?,?,?,?)",
+            ("RUN-OTHER","PLAN-017","TASK-OTHER",SRC,1,"REVIEW_PENDING",CANDIDATE),
+        )
+        self.write(
+            "INSERT INTO reviews(review_id,run_id,candidate_sha,result) VALUES(?,?,?,?)",
+            ("REVIEW-OTHER","RUN-OTHER",CANDIDATE,"TRUSTED_PASS"),
+        )
+        self.write(
+            "INSERT INTO integrations(integration_id,review_id,local_ref,integrated_sha)"
+            "VALUES(?,?,?,?)",
+            ("INTEG-OTHER","REVIEW-OTHER",
+             "refs/heads/mla/isolated/TASK-017",CANDIDATE),
+        )
+        with self.assertRaises(ReconcileHold) as exc:
+            self.run_reconcile()
+        self.assertEqual(exc.exception.code,"BAD_STATE")
+
+    def test_lease_proposals_include_plan_id_in_fence_identity(self):
+        a=propose_lease(snapshot(plan_id="PLAN-017"),trusted_plan_sha=PLAN,
+                        trusted_baseline_sha=SRC)
+        b=propose_lease(snapshot(plan_id="PLAN-OTHER"),trusted_plan_sha=PLAN,
+                        trusted_baseline_sha=SRC)
+        self.assertNotEqual(a.idempotency_key,b.idempotency_key)
+
+
+class SyntheticLeaseProposalForgeryTests(SyntheticLeaseTransactionTests):
+    def test_forged_idempotency_key_or_epoch_denied_before_transaction(self):
+        from dataclasses import replace
+        for changes in ({"idempotency_key":"f"*64},
+                        {"proposed_epoch":True},
+                        {"expected_previous_epoch":True},
+                        {"task_id":"../escape"}):
+            with self.subTest(changes=changes),self.assertRaises(LeaseHold):
+                self.issue(proposal=replace(
+                    propose_lease(snapshot(existing_epoch=0),
+                        trusted_plan_sha=PLAN, trusted_baseline_sha=SRC),
+                    **changes,
+                ))
+        self.assertEqual(
+            self.db.execute("SELECT COUNT(*) FROM runs").fetchone()[0],0
+        )
