@@ -123,3 +123,14 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 **수용·단계:** `EXP-AC-01..10`, 별도 선택형 `EXT-EXP-01..07` 큐. 처음에는 기본 OFF와 합성·읽기전용 관찰만 후보, 성능 실측 전 지능 향상·Codex 대체율·검증 PASS 주장 금지. **기존 P1 30 REQ·28 구현작업, P2 8검증/LOCKED, Hydrogen EXT-HYD-01..08, P1 브라우저 DEFERRED_TO_P2 모두 불변**. 이 확장은 이번 사용자 요청으로 **설계 반영**한 것이며 즉시 새로운 P1 READY/분모 변경/실사용 데이터 수집 승인이 아니다.
 
 **정본:** `docs/EXPERIENCE_LEARNING_ENGINE.md` · `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`.
+
+---
+
+## J. V1.3 CodeShield — 경량 사전검수 기본 아키텍처 (사용자 2026-11-17 확정)
+
+**확정:** Windows Sandbox/VM 상시는 중단하고, 호스트 Qwen 단일 모델 + 비실행 Python AST/MLA 경로·Git guard + Ruff S + native Windows Semgrep CE 로컬 규칙 + 조건부 Gitleaks/OSV offline + 기존 Defender 상태 점검을 기본 CodeShield로 선택한다. 검사기 GPU 상주/두 번째 백신 엔진/원격 paid 의존은 없다. 사용 기술·구체 실행 조건·위험 등급·Windows 실기기 검증·성능/수용은 docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md를 따른다.
+
+**절대 불변:** 정적 검사 PASS는 임의 모델 생성 코드/테스트/설치 script/외부 executable을 호스트 PC에서 실행하는 권한이 아니다. 실제 실행은 보호된 OS 격리+F18 별도 독립 검수 입증이 필요하며 실패·미구현은 HOLD. AppContainer/Job Object는 P2 실기기 호환성·보안 후보, Windows Sandbox는 필요시 승인된 fallback; 무조건 VM 제거 아님. Defender CFA/ACL/Windows 보안/방화벽 변경은 소유자 별도 GO. 원본·비밀·Git main·고객·Production 접근과 F18/CAS 보호 불변.
+
+**단계/지표:** 기존 30 REQ/39개 source SWU와 28 legacy 구현, P2 8개 검증 LOCKED 및 V1.1 Hydrogen/V1.2 경험학습을 보존한다. CodeShield 추가는 docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json의 CS-01..CS-08 별도 source 구현 큐 (0/8 DESIGN_ONLY), 검증·구현률 증가나 실운용 허가를 뜻하지 않는다. CodeShield 기능은 최신 최종설계 인수 때 별도로 완료해야 한다.
+
