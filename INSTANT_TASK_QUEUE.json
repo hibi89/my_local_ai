@@ -15,11 +15,12 @@
     "REQ-32"
   ],
   "total_code_req": 30,
-  "code_completed_req": 4,
+  "code_completed_req": 5,
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-012"
+    "MLA-013",
+    "MLA-020"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -331,9 +332,11 @@
       "acceptance": "Local Ollama loopback allowlist, deny DNS rebinding/nonlocal URLs, missing model HOLD, no secret env leakage",
       "safety_checks": "LOOPBACK_ONLY;NO_CLOUD;NO_DOWNLOAD",
       "risk": "HIGH",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "1d29951f5a0b0fdbb0585a98b523842a917df6e8",
+      "blockers": [
+        "Owner Windows/Qwen and true OS egress/F18 isolation NOT_RUN; caller consent integration MLA-013 pending"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -354,7 +357,7 @@
       "acceptance": "Guard effective OpenCode tool permissions/config/argv and prompt injection; model edits approved disposable paths only",
       "safety_checks": "LOCAL_MODEL_ONLY;NO_UNTRUSTED_HOST_EXECUTION",
       "risk": "CRITICAL",
-      "status": "BLOCKED_DEPENDENCY",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
@@ -539,7 +542,7 @@
       "acceptance": "Code benchmark harness and mocked tests; actual owner Windows/Qwen benchmark deferred to P2",
       "safety_checks": "OWNER_DEVICE;NO_MODEL_DOWNLOAD;NO_BILLING",
       "risk": "MEDIUM",
-      "status": "BLOCKED_DEPENDENCY",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",

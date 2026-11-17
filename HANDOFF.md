@@ -74,3 +74,18 @@
 8. **백업/권한:** Git 이력 원본 보존, .env/키/고객자료/모델 가중치 public repo 업로드 금지. 모델/Hydrogen/remote PR/OS startup/상용/고객 원본 파괴·Production 별도 GO. 원본 EAI/AX source read-only.
 9. **다음 READY/완료기준:** 다음 `ㄱ`은 최신 HEAD→`AGENTS.md`→`HANDOFF.md`→`STATUS.md`→`REQUIREMENTS.md`/Final Blueprint→P1 큐/실제 코드 확인 후 `MLA-012` 로컬 Ollama loopback provider부터 실제 구현; 가능한 독립 READY 묶음. 변경 SHA·문법/국소 보안 체크 근거, REQ 분자 엄격 산정. 전체 CI 수동 대기·실브라우저 검사 반복 금지.
 10. **갱신:** 2026-11-17 KST, 브라우저 검증 이관은 설계·큐 **작업 분류 수정**, 코드 기능 진척 0. P2 브라우저 `MLA-V007`는 High 100% 후보 승인+정확 SHA 게이트 전 `BLOCKED_BY_P1_GATE`. 최신 기준 HEAD와 실제 CI는 다음 채팅에서 확인.
+
+---
+
+## 2026-11-17 KST P1 MLA-012 실구현 완료 — 다음 모바일 재개 인수인계
+
+1. **목표/기술:** 독립 My Local AI Controller + 로컬 Ollama/Qwen/OpenCode worker, EAI advisor 선택형. P1 REQ-01..30 분모 30, P2 별도 LOCKED. High V1.2 경험 기반 학습은 **설계만**, 별도 optional queue/기본 P1에 미포함.
+2. **변경/기능:** `MLA-012`의 Ollama provider와 strict loopback endpoint policy, hostile network/secret/model absence synthetic tests 구현. 생성 기본 OFF, local Qwen allowlist, no automatic pulls, model lock+budget, output untrusted. 새 코드 `1d29951f5a0b0fdbb0585a98b523842a917df6e8`.
+3. **테스트:** Python compile + isolated mocked 10/10 security PASS; GitHub Actions `44012906535` at exact `1d29951f5a0b0fdbb0585a98b523842a917df6e8` status **SUCCESS** (syntax/unit/security synthetic). 개발 컨테이너에서 기존 lock/budget은 test stub 사용, **Actions에서는 repository 실제 모듈 실행**. Windows/Ollama/OpenCode real, browser/Playwright, OS F18 independent review, 24h: `NOT_RUN`.
+4. **상태:** 구현완료율 **5/30 = 16.67%**, 완료 코드 REQ-04/08/10/18/29. REQ-23 등은 부분이며 분자 제외. P1 code task MLA-012 `IMPLEMENTED_UNVERIFIED`, P2 `LOCKED`, 공식 검증률 `UNASSESSED`, 실사용 `HOLD`.
+5. **위험/대안:** F18 guest-self-receipt CRITICAL HOLD, protected owner signer 미연결, provenance/license 해결 전 원본 코드 이식 금지. Python connector의 literal-loopback 제한은 **OS 전체 네트워크 격리 실증 아님**. 실모델 태그/성능 미확인, 설치/다운로드 금지. 독립 READY 계속 처리.
+6. **repo/branch/SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`; 신규 소스 commit `1d29951f5a0b0fdbb0585a98b523842a917df6e8`. STATUS/HANDOFF/queue/gate 기록 commit 이후 HEAD는 실시간 재조회. `design/final-blueprint-v1` 재조회 시 `e08e127dc372023d4ece477b176b99ac3b9d6412`, 이 설계 브랜치의 구형 소스/queue는 dev에 통째 병합하지 않는다.
+7. **운영:** 로컬 Windows 11 PC 실기기 시험 `NOT_RUN`, Production/유료/클라우드/remote PR/자동 시작 `NOT_APPLICABLE or HOLD`. Python 합성 GitHub Actions만 성공.
+8. **원본/보안:** .env/고객 자료/토큰/모델/비공개 소스 GitHub 미반영. 로컬 HTTP 경로 `/api/tags`, `/api/generate` 외 차단. 사용자 승인 없는 OS 권한·원격 사용·main 병합 금지. 변경 취소는 기존 Git history에서 가능.
+9. **다음 READY:** `MLA-013` OpenCode worker 실행계약/권한/argv·environment·격리 fail-closed, `MLA-020` local benchmark **하네스만**; dependency/allowed_paths 재확인 후 독립 작업 묶음. 완료 후보의 정직한 REQ 단위 산정 및 고위험 국소 검사 필수.
+10. **갱신/검증 경계:** 2026-11-17 KST, source SHA `1d29951f5a0b0fdbb0585a98b523842a917df6e8`, GitHub Actions `44012906535`; P2/Windows/브라우저/실 OS F18는 미검증. 다음 `ㄱ`에서 최신 HEAD→AGENTS→queue→원본 코드 후 실제 구현 수행.

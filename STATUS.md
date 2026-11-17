@@ -64,3 +64,14 @@
 - P1은 실제 BE/FE 소스·HTML/API·test fixture·구현 수용코드까지 작성하고 Python 문법/type·최소 빌드·국소 합성 HTTP smoke·보안 즉시검사만 실행. 기존 GitHub 필수 CI/branch protection 유지. 보안 고위험 시 최소 브라우저 예외 가능(근거 기록).
 - **다음 `ㄱ`:** `MLA-012` localhost-only Ollama provider 구현, 다른 독립 READY는 실제 큐에서 확인 후 묶음 실행. 사용자 PC 작업 금지, EAI/AX 원본 수정 금지. 비인가 Hydrogen/결제/외부전송 금지. SHA·실제 완료 REQ/30 백분율·NOT_RUN/SECURITY_HOLD·다음 READY 보고.
 - **P2:** `WORK_PHASE_GATES.json` `LOCKED`, 공식 검증완료율 `UNASSESSED`, F18 실기기 분리 `SECURITY_HOLD`, Windows/Ollama/OpenCode/24h `NOT_RUN`. 브라우저 관련 편의 검증을 P1 진행 차단으로 사용하지 않는다.
+
+---
+
+## P1 2026-11-17 KST 구현 7차 — MLA-012 Ollama 로컬 모델 포트
+
+- **구현완료율: 5/30 = 16.67%** (기존 REQ-04/08/18/29 + 신규 **REQ-10**). REQ-23은 전체 비밀·외부 통신 보호 전수 미구현으로 분자 제외. 현재 모든 수치는 P1 source implementation candidate이며 검증완료율과 다름.
+- **실제 코드 SHA:** `1d29951f5a0b0fdbb0585a98b523842a917df6e8` (`dev/instant-implementation-v1`). 변경 경로: `src/my_local_ai/ax_runtime/provider_policy.py`, `src/my_local_ai/ax_runtime/ollama_provider.py`, `tests/security/test_ollama_loopback.py`.
+- **MLA-012:** loopback **literal IP** HTTP만 허용 (DNS `localhost` 포함 호스트명·클라우드·프록시·userinfo·redirect 거부), Qwen 태그 allowlist, `GET /api/tags` 모델 확인·부재/실패 HOLD, `POST /api/generate` 비스트리밍 응답 제한, **`/api/pull` 호출 없음**, 기본 생성 disabled, `OneModelLock`/BudgetGuard 필수, 결과 `UNTRUSTED`. 실제 owner consent issuance·trusted F18·OS-level egress 차단은 별도 게이트이며 이 커넥터만으로 보증 불가.
+- **합성 국소:** 별도 개발 컨테이너 Python 문법 검사 PASS, 10/10 mocked security tests PASS (기존 budgets/worker_lock은 로컬 합성 스텁으로 연결 테스트; GitHub CI는 실제 모듈에 실행). **GitHub 필수 CI** `44012906535` @ `1d29951f5a0b0fdbb0585a98b523842a917df6e8` **SUCCESS**, syntax/unit/security synthetic jobs PASS. 실제 Windows/Ollama/Qwen/OpenCode/real browser/independent OS F18/24h `NOT_RUN`.
+- 큐: MLA-012 `IMPLEMENTED_UNVERIFIED`; MLA-013 (OpenCode 정책 격리) 및 MLA-020 (benchmark 실행 하네스, 실모델 호출 P2) `READY`. MLA-001 `BLOCKED_PROVENANCE`, MLA-003 F18 `SECURITY_HOLD`, MLA-009 owner signer `HOLD` 유지.
+- **공식 검증완료율: UNASSESSED**, P2 `LOCKED`, 사용자 실사용 `HOLD`. 원본 EAI/AX/main 변경 없음. 설계 브랜치 신규 V1.2 경험학습 확장은 별도 설계로 유지하며 P1 30 REQ 분모에 산입하지 않음.
