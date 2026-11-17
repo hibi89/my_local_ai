@@ -1,0 +1,671 @@
+{
+  "version": 1,
+  "program": "my_local_ai",
+  "prepared_at_kst": "2026-11-17",
+  "repo": "hibi89/my_local_ai",
+  "canonical_design_branch": "design/final-blueprint-v1",
+  "implementation_branch": "dev/instant-implementation-v1",
+  "execution_gate": "OWNER_FINAL_BLUEPRINT_GO_REQUIRED",
+  "design_source_sha": "99ea633b27905fca4e67157bbc895880bad126c6",
+  "implementation_status": "NOT_STARTED",
+  "official_verification_status": "UNASSESSED",
+  "task_count": 30,
+  "first_ready": [
+    "MLA-001",
+    "MLA-002",
+    "MLA-003",
+    "MLA-004",
+    "MLA-005"
+  ],
+  "tasks": [
+    {
+      "task_id": "MLA-001",
+      "req_ids": [
+        "REQ-01",
+        "REQ-02"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "docs/PROVENANCE_AND_LICENSES.md",
+        "docs/IMPORT_MANIFEST.json",
+        "scripts/audit_sources.py",
+        "tests/unit/test_source_audit.py"
+      ],
+      "acceptance": "Pin exact EAI/AX source/branch/blob SHA, audit owned/third-party licenses; no source copy until approved",
+      "safety_checks": "SOURCE_READ_ONLY;LICENSE_REVIEW;NO_EXTERNAL_DATA",
+      "risk": "HIGH",
+      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-002",
+      "req_ids": [
+        "REQ-03",
+        "REQ-04"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "src/my_local_ai/contracts/__init__.py",
+        "src/my_local_ai/contracts/plan.py",
+        "src/my_local_ai/contracts/task.py",
+        "tests/unit/test_contracts.py"
+      ],
+      "acceptance": "Strict canonical immutable PlanSpec/TaskSpec parse, SHA, duplicates, path/glob, dependency constraints and owner approval separation",
+      "safety_checks": "NO_EXECUTION;NO_SECRET;PLAN_HASH",
+      "risk": "HIGH",
+      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-003",
+      "req_ids": [
+        "REQ-15",
+        "REQ-23",
+        "REQ-24"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "docs/SECURITY_MODEL.md",
+        "docs/TRUST_BOUNDARY_DESIGN.md",
+        "tests/security/test_receipt_forgery.py"
+      ],
+      "acceptance": "Reproduce guest receipt spoof failure, record trusted verifier architecture and denial expectations before runtime integration",
+      "safety_checks": "NO_HOST_UNTRUSTED_TEST;F18_HOLD",
+      "risk": "CRITICAL",
+      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-004",
+      "req_ids": [
+        "REQ-30"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "pyproject.toml",
+        "tests/conftest.py",
+        "tests/unit/test_smoke.py",
+        ".github/workflows/ci.yml"
+      ],
+      "acceptance": "Safe synthetic test harness Python 3.11+; low permission CI read-only, no model/network/secret checkout; baseline test exact SHA",
+      "safety_checks": "NO_PAID_RUNNER;NO_SECRET;NO_PRIVILEGED_WORKFLOW",
+      "risk": "MEDIUM",
+      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-005",
+      "req_ids": [
+        "REQ-25",
+        "REQ-27"
+      ],
+      "depends_on": [],
+      "allowed_paths": [
+        "scripts/benchmark_synthetic.py",
+        "tests/unit/test_benchmark_contract.py",
+        "docs/MODEL_BENCHMARK_PLAN.md"
+      ],
+      "acceptance": "Synthetic metric record schema, no false real speed; 3B/4B comparisons planned but no model invoked by default",
+      "safety_checks": "NO_MODEL_DOWNLOAD;NO_PRIVATE_SOURCE;NO_COST",
+      "risk": "LOW",
+      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-006",
+      "req_ids": [
+        "REQ-28"
+      ],
+      "depends_on": [
+        "MLA-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/__main__.py",
+        "src/my_local_ai/cli.py",
+        "tests/unit/test_cli.py"
+      ],
+      "acceptance": "Doctor/plan-validate/status dry-run and rejection semantics, no real execution side effect",
+      "safety_checks": "CLI_NO_SIDE_EFFECTS;NO_REMOTE",
+      "risk": "LOW",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-007",
+      "req_ids": [
+        "REQ-18"
+      ],
+      "depends_on": [
+        "MLA-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/sqlite_store.py",
+        "src/my_local_ai/state/migrations.py",
+        "tests/unit/test_state.py"
+      ],
+      "acceptance": "SQLite one-writer WAL FK, backup-on-migration and schema receipts; no user DB opened",
+      "safety_checks": "SYNTHETIC_DB_ONLY;NO_DESTRUCTIVE_MIGRATION",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-008",
+      "req_ids": [
+        "REQ-05",
+        "REQ-06"
+      ],
+      "depends_on": [
+        "MLA-001",
+        "MLA-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/eai_core/adapter.py",
+        "src/my_local_ai/eai_core/intake.py",
+        "tests/unit/test_eai_cpu.py"
+      ],
+      "acceptance": "Pinned CPU planning proposes allowed READY IDs only; local classifier input-only; model cannot approve/solve code",
+      "safety_checks": "CPU_DECISION_OWNER;NO_EXTERNAL_API;SOURCE_PROVENANCE",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-009",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "depends_on": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/contracts/approval.py",
+        "src/my_local_ai/state/consent.py",
+        "tests/security/test_approvals.py"
+      ],
+      "acceptance": "Separate immutable owner GO for plan/remote/OS/paid/customer actions; explicit revocation, wrong SHA denies",
+      "safety_checks": "OWNER_GO_PER_SCOPE;NO_PRIVILEGE_ESCALATION",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-010",
+      "req_ids": [
+        "REQ-08",
+        "REQ-17"
+      ],
+      "depends_on": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/queue.py",
+        "tests/unit/test_queue_dag.py"
+      ],
+      "acceptance": "DAG cycle/unknown reject; only verified dependencies start, unrelated READY survives HOLD",
+      "safety_checks": "DEPENDENCY_VERIFIED_ONLY;NO_DOUBLE_EXECUTION",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-011",
+      "req_ids": [
+        "REQ-09",
+        "REQ-25"
+      ],
+      "depends_on": [
+        "MLA-010"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/worker_lock.py",
+        "src/my_local_ai/ax_runtime/budgets.py",
+        "tests/unit/test_worker_lock.py"
+      ],
+      "acceptance": "Exactly one model residency, bounded budgets/timeout, stale lock recovery fail closed",
+      "safety_checks": "ONE_MODEL;RAM_BUDGET;FENCING",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-012",
+      "req_ids": [
+        "REQ-10",
+        "REQ-23"
+      ],
+      "depends_on": [
+        "MLA-005",
+        "MLA-011"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/ollama_provider.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py",
+        "tests/security/test_ollama_loopback.py"
+      ],
+      "acceptance": "Local Ollama loopback allowlist, deny DNS rebinding/nonlocal URLs, missing model HOLD, no secret env leakage",
+      "safety_checks": "LOOPBACK_ONLY;NO_CLOUD;NO_DOWNLOAD",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-013",
+      "req_ids": [
+        "REQ-11",
+        "REQ-24"
+      ],
+      "depends_on": [
+        "MLA-012"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py",
+        "tests/security/test_opencode_policy.py"
+      ],
+      "acceptance": "Guard effective OpenCode tool permissions/config/argv and prompt injection; model edits approved disposable paths only",
+      "safety_checks": "LOCAL_MODEL_ONLY;NO_UNTRUSTED_HOST_EXECUTION",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-014",
+      "req_ids": [
+        "REQ-12",
+        "REQ-13"
+      ],
+      "depends_on": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/worktree.py",
+        "src/my_local_ai/gitops/path_guard.py",
+        "tests/security/test_worktree_scope.py"
+      ],
+      "acceptance": "Disposable Git worktree; no symlink/reparse/ignored/hooks/filter bypass, original and main SHA preserved",
+      "safety_checks": "WORKTREE_ISOLATION;PROVENANCE;F18_HOLD",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-015",
+      "req_ids": [
+        "REQ-14",
+        "REQ-15"
+      ],
+      "depends_on": [
+        "MLA-003",
+        "MLA-004",
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/review/trusted_runner.py",
+        "src/my_local_ai/review/receipt_guard.py",
+        "tests/security/test_independent_verifier.py"
+      ],
+      "acceptance": "Independent reviewer with host-rooted identity, cannot trust guest receipt; adversarial proof of denial, allowlisted argv",
+      "safety_checks": "F18_GATE;NO_HOST_UNTRUSTED_TEST;SECURITY_REVIEW",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-016",
+      "req_ids": [
+        "REQ-16",
+        "REQ-17"
+      ],
+      "depends_on": [
+        "MLA-010",
+        "MLA-015"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py",
+        "tests/unit/test_repair_once.py"
+      ],
+      "acceptance": "One improved fix then HOLD; independent queue proceeds; no repeated loop",
+      "safety_checks": "ONE_FIX_ONLY;NO_FALSE_VERIFIED",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-017",
+      "req_ids": [
+        "REQ-19",
+        "REQ-20"
+      ],
+      "depends_on": [
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/reconcile.py",
+        "src/my_local_ai/ax_runtime/leases.py",
+        "tests/integration/test_crash_resume.py"
+      ],
+      "acceptance": "Reboot/interrupted lease preserves verified ref; duplicate tasks/partial DB-Git transaction rejected",
+      "safety_checks": "IDEMPOTENCY;FENCING;NO_DATA_LOSS",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-018",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "depends_on": [
+        "MLA-014",
+        "MLA-015",
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/local_integration.py",
+        "tests/security/test_integration_gate.py"
+      ],
+      "acceptance": "Apply only exact trusted receipt to isolated local ref with CAS; original/main unchanged",
+      "safety_checks": "TRUSTED_RECEIPT_REQUIRED;NO_REMOTE",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-019",
+      "req_ids": [
+        "REQ-05",
+        "REQ-09",
+        "REQ-17",
+        "REQ-28"
+      ],
+      "depends_on": [
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/app.py",
+        "src/my_local_ai/orchestrator.py",
+        "tests/integration/test_synthetic_journey.py"
+      ],
+      "acceptance": "One approved synthetic end-to-end selected/modified/reviewed/resumed task; no fake PASS",
+      "safety_checks": "SYNTHETIC_ONLY;F18_SECURITY_PASS",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-020",
+      "req_ids": [
+        "REQ-25",
+        "REQ-27"
+      ],
+      "depends_on": [
+        "MLA-005",
+        "MLA-012"
+      ],
+      "allowed_paths": [
+        "scripts/benchmark_real_local.py",
+        "tests/integration/test_real_model_gate.py",
+        "docs/LOCAL_MODEL_EVIDENCE.md"
+      ],
+      "acceptance": "Owner-device genuine model benchmark for 3B/4B, throughput, RAM/VRAM, success; synthetic-vs-real distinguished",
+      "safety_checks": "OWNER_DEVICE;NO_MODEL_DOWNLOAD;NO_BILLING",
+      "risk": "MEDIUM",
+      "status": "BLOCKED_HOST",
+      "evidence_sha": null,
+      "blockers": [
+        "owner device/real Ollama access"
+      ]
+    },
+    {
+      "task_id": "MLA-021",
+      "req_ids": [
+        "REQ-29"
+      ],
+      "depends_on": [
+        "MLA-006",
+        "MLA-007"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/ui/local_dashboard.py",
+        "tests/unit/test_status_ui.py"
+      ],
+      "acceptance": "Readable local HOLD/READY, consent, stop/status; CSRF/Host and keyboard accessibility; no raw secrets",
+      "safety_checks": "LOCALHOST_SECURE;NO_SECRET",
+      "risk": "MEDIUM",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-022",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "depends_on": [
+        "MLA-017",
+        "MLA-019",
+        "MLA-020"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ops/supervisor.py",
+        "src/my_local_ai/ops/resource_monitor.py",
+        "tests/integration/test_long_run.py"
+      ],
+      "acceptance": "Power/sleep/crash/watchdog/restart; 24h actual uptime acceptance separate from synthetic",
+      "safety_checks": "NO_OS_POLICY_CHANGE;THERMAL_LIMIT;OWNER_DEVICE",
+      "risk": "HIGH",
+      "status": "BLOCKED_HOST",
+      "evidence_sha": null,
+      "blockers": [
+        "owner 24h device run"
+      ]
+    },
+    {
+      "task_id": "MLA-023",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "depends_on": [
+        "MLA-009",
+        "MLA-018"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/remote_preview.py",
+        "tests/unit/test_remote_preview.py"
+      ],
+      "acceptance": "Read-only draft PR preview and exact target branch/protection policy, zero push",
+      "safety_checks": "READ_ONLY_REMOTE;NO_PRODUCTION",
+      "risk": "MEDIUM",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-024",
+      "req_ids": [
+        "REQ-22",
+        "REQ-07"
+      ],
+      "depends_on": [
+        "MLA-023"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/remote_publish.py",
+        "tests/security/test_publish_approval.py"
+      ],
+      "acceptance": "Separate owner-approved scoped draft PR publish only, no main merge; remote mutation NOT_RUN until GO",
+      "safety_checks": "OWNER_REMOTE_WRITE_GO;NO_MAIN_MERGE;NO_FORCE",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_APPROVAL",
+      "evidence_sha": null,
+      "blockers": [
+        "explicit remote write approval"
+      ]
+    },
+    {
+      "task_id": "MLA-025",
+      "req_ids": [
+        "REQ-30"
+      ],
+      "depends_on": [
+        "MLA-019",
+        "MLA-021",
+        "MLA-022"
+      ],
+      "allowed_paths": [
+        "tests/e2e/test_owner_journey.py",
+        "tests/windows/test_windows_acceptance.py",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Full Linux/Windows CI+security+actual owner device model/runtime and 24h report; no cross-SHA success reuse",
+      "safety_checks": "EXACT_SHA;REAL_HOST_DISTINCT",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-026",
+      "req_ids": [
+        "REQ-31"
+      ],
+      "depends_on": [
+        "MLA-025"
+      ],
+      "allowed_paths": [
+        "docs/AUDIT_CODEX.md",
+        "docs/AUDIT_ASTRA.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Two independent reviewers on same exact SHA; actual execution evidence, BLOCKER/HIGH resolved",
+      "safety_checks": "INDEPENDENT_AUDIT;NO_CLAIM_WITHOUT_EXECUTION",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-027",
+      "req_ids": [
+        "REQ-32"
+      ],
+      "depends_on": [
+        "MLA-026"
+      ],
+      "allowed_paths": [
+        "docs/FINAL_ACCEPTANCE.md",
+        "STATUS.md",
+        "HANDOFF.md"
+      ],
+      "acceptance": "High final REQ sweep, real-use safety and user GO separately recorded; RELEASE HOLD unless passed",
+      "safety_checks": "OWNER_GO;NO_COMMERCIAL_DEPLOY",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_APPROVAL",
+      "evidence_sha": null,
+      "blockers": [
+        "owner final real-use approval"
+      ]
+    },
+    {
+      "task_id": "MLA-028",
+      "req_ids": [
+        "REQ-05",
+        "REQ-14"
+      ],
+      "depends_on": [
+        "MLA-008",
+        "MLA-015"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/eai_core/typed_goals.py",
+        "tests/integration/test_eai_goal_compatibility.py",
+        "docs/PROVENANCE_AND_LICENSES.md"
+      ],
+      "acceptance": "Original 13 CPU goal kinds either evidence-proven supported or honestly unsupported; preserve EAI independence",
+      "safety_checks": "SOURCE_LICENSE;NO_FALSE_COMPATIBILITY",
+      "risk": "MEDIUM",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    },
+    {
+      "task_id": "MLA-029",
+      "req_ids": [
+        "REQ-15",
+        "REQ-26"
+      ],
+      "depends_on": [
+        "MLA-015",
+        "MLA-019"
+      ],
+      "allowed_paths": [
+        "tests/windows/test_trust_boundary_real.py",
+        "docs/SECURITY_MODEL.md",
+        "docs/ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": "Real Win11 Pro F18 separate reviewer and forged guest receipt hostile test; refuse unsafe fallback",
+      "safety_checks": "OWNER_WINDOWS;F18_SECURITY_HOLD",
+      "risk": "CRITICAL",
+      "status": "BLOCKED_HOST",
+      "evidence_sha": null,
+      "blockers": [
+        "owner Windows/Sandbox access"
+      ]
+    },
+    {
+      "task_id": "MLA-030",
+      "req_ids": [
+        "REQ-13",
+        "REQ-23",
+        "REQ-24"
+      ],
+      "depends_on": [
+        "MLA-004",
+        "MLA-014",
+        "MLA-015"
+      ],
+      "allowed_paths": [
+        "tests/security/test_secret_exfiltration.py",
+        "tests/security/test_git_hooks.py",
+        "tests/security/test_injection.py"
+      ],
+      "acceptance": "Prove path/network/prompt/tool/policy defenses via hostile synthetic tests, no host secret exposure",
+      "safety_checks": "NO_SECRET;NO_HOST_EXECUTION",
+      "risk": "HIGH",
+      "status": "BLOCKED_DEPENDENCY",
+      "evidence_sha": null,
+      "blockers": []
+    }
+  ]
+}
