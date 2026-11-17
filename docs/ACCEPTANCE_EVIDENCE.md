@@ -21,3 +21,9 @@ Must have exact code SHA and High candidate 30/30 evidence; owner-protected sign
 
 ## Implementation wave notes
 The `INSTANT_TASK_QUEUE.json` `p1_code_status` fields track source writing only. `status` and `depends_on` remain full runtime/acceptance gates. `p1_ready_mode=CODE_ONLY_NOT_RUNTIME`, `operational_ready=[]`, `WORK_PHASE_GATES.json` P2=LOCKED.
+
+## 2026-11-17 MLA-025 P1 Test Source Checklist (execution deferred)
+
+- `tests/e2e/test_owner_journey.py` enumerates 10 owner E2E scenarios covering Controller/app/EAI-off/GO/F18/CAS/recovery/remote/keyboard. Its actual test class refuses to run without `p2.status=P2_VERIFICATION`, documented `30/30` code candidate and exact High-approved SHA, and **still requires an independent owner-runner implementation**. Nothing is labeled PASS here.
+- `tests/windows/test_windows_acceptance.py` enumerates 10 real Windows checks: genuine Sandbox isolation, protected signer, no egress, lease/crash/original SHA, model, RAM/VRAM/temperature and 24h. All real owner hardware tests are unconditionally skipped in this P1 candidate. `NOT_RUN` is authoritative; passing Python3.11 compile alone does not certify them.
+- These two files are authored source only, **not placed in mandatory P1 unit or synthetic integration test discovery**. Full Playwright/browser E2E, Windows hardware, 24h, provider, independent reviewers and operational release remain P2/P3/P4.

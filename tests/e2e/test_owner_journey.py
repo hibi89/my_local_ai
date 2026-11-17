@@ -1,0 +1,62 @@
+"""P2 owner journey scenarios authored in P1, deliberately NOT auto-executed.
+
+Do not add to the P1 synthetic CI. Real Playwright/keyboard/console/runtime
+tests are locked until exact implementation SHA + High gate + owner consent.
+"""
+from __future__ import annotations
+import unittest
+from pathlib import Path
+import json
+
+ROOT=Path(__file__).resolve().parents[2]
+
+SCENARIOS=(
+    ("P2-E2E-001","owner loads local app; no remote network"),
+    ("P2-E2E-002","open plan with exact source SHA; P1 progress visible"),
+    ("P2-E2E-003","optional EAI OFF does not change DAG and coding proposal"),
+    ("P2-E2E-004","owner GO scope shows separate local vs remote action"),
+    ("P2-E2E-005","untrusted coder patch cannot touch original checkout"),
+    ("P2-E2E-006","independent F18 review rejects forged self PASS"),
+    ("P2-E2E-007","isolated local ref CAS preserves original/main"),
+    ("P2-E2E-008","interrupted/expired run remains HOLD and lease fenced"),
+    ("P2-E2E-009","remote publish without separate owner GO denied"),
+    ("P2-E2E-010","console errors/accessibility/responsive keyboard checked"),
+)
+
+
+def p2_gate_ready(gates: dict, exact_sha: str) -> bool:
+    """Static condition only, not authorization to perform actions."""
+    if not isinstance(gates,dict) or not isinstance(exact_sha,str):
+        return False
+    p1,p2=gates.get("p1"),gates.get("p2")
+    if not isinstance(p1,dict) or not isinstance(p2,dict):
+        return False
+    return (
+        p1.get("code_req_total")==30
+        and p1.get("code_req_completed")==30
+        and p1.get("implementation_complete_candidate") is True
+        and p1.get("high_approved_candidate") is True
+        and p1.get("implementation_sha")==exact_sha
+        and p2.get("status")=="P2_VERIFICATION"
+    )
+
+
+class OwnerJourneyP2Tests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # This suite intentionally never starts Playwright, a model, a local
+        # app, Git, Windows security features or a real device in P1.
+        gates=json.loads((ROOT/"WORK_PHASE_GATES.json").read_text(encoding="utf-8"))
+        candidate=gates.get("p1",{}).get("implementation_sha")
+        if not p2_gate_ready(gates,candidate):
+            raise unittest.SkipTest("P2_LOCKED: owner E2E browser/runtime NOT_RUN")
+        # Even if the gate is later opened, a protected owner-runner must
+        # explicitly implement these tests; never silently report PASS.
+        raise unittest.SkipTest("P2_OWNER_RUNNER_AND_EXACT_SHA_NOT_CONFIGURED")
+
+    def test_owner_workflow_requires_real_browser_and_reviewer(self):
+        self.fail("Owner-approved real browser/Windows fixture required")
+
+
+if __name__=="__main__":
+    unittest.main()
