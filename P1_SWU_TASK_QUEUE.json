@@ -5652,7 +5652,15 @@
     "responsible_actor": "MLA_P1_SWU_EXECUTING_WORKER",
     "request_user_directly_when_critical_blocker_confirmed_by_worker": true,
     "hub_role": "COMMON_POLICY_MAINTENANCE_ONLY_NO_MLA_ESCALATION_ON_BEHALF",
-    "no_hub_initiated_sol_max_request": true
+    "no_hub_initiated_sol_max_request": true,
+    "request_surface_selection_required": true,
+    "request_surface_options": [
+      "CODEX",
+      "CHATGPT_WORK"
+    ],
+    "choose_surface_by_work_type": true,
+    "model_available_must_be_verified": true,
+    "requesting_actor_unchanged": "MLA_P1_SWU_EXECUTING_WORKER"
   },
   "sol_max_escalation": {
     "immediate_request_candidates": [
@@ -5685,7 +5693,34 @@
     "request_owner": "MLA_P1_EXECUTING_WORKER",
     "hub_may_request_on_mla_behalf": false,
     "triage_required_before_request": true,
-    "preliminary_candidates_only": true
+    "preliminary_candidates_only": true,
+    "execution_surface_selection": {
+      "required_before_owner_request": true,
+      "selected_by": "MLA_P1_EXECUTING_WORKER",
+      "options": [
+        "CODEX",
+        "CHATGPT_WORK"
+      ],
+      "default": null,
+      "code_repository_security_CI": "CODEX",
+      "browser_external_UI": "CHATGPT_WORK",
+      "mixed": "SEPARATE_PHASES_AND_ACCOUNTABILITY",
+      "model_availability": "VERIFY_EXPLICITLY_WORK_NOT_EQUIVALENT_TO_CODEX_SOL_MAX",
+      "required_request_fields": [
+        "owner",
+        "task_id",
+        "req_ids",
+        "repo_branch_sha",
+        "blocker_class",
+        "evidence_attempts",
+        "execution_surface",
+        "model_actual_or_MODEL_UNVERIFIED",
+        "selection_reason",
+        "allowed_paths",
+        "acceptance",
+        "authorization_needed"
+      ]
+    }
   },
   "policy_only_change_adds_implementation_progress": false
 }
