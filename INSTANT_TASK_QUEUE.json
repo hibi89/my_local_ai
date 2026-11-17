@@ -230,7 +230,7 @@
       "safety_checks": "CLI_NO_SIDE_EFFECTS;NO_REMOTE",
       "risk": "LOW",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "da9174c3d8ac795a52ec6473ee9cd9cad3c385a5",
+      "evidence_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
       "blockers": [
         "CLI queue next, synthetic evidence and stop/resume explicit HOLD. Protected owner runtime actions remain NOT_RUN."
       ],
@@ -252,7 +252,8 @@
       "p1_fast_track_attempts": 1,
       "p1_fast_track_limit": 2,
       "p1_fast_track_exception_reason": null,
-      "p1_fast_track_disposition": "SOURCE_DELIVERED_UNVERIFIED"
+      "p1_fast_track_disposition": "SOURCE_DELIVERED_UNVERIFIED",
+      "p1_fast_track_feature_evidence_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8"
     },
     {
       "task_id": "MLA-007",
@@ -1188,10 +1189,10 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea",
-    "run_id": 44059023691,
+    "head_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
+    "run_id": 44061302925,
     "python_compile": "PASS",
-    "unit_tests_pass": 166,
+    "unit_tests_pass": 173,
     "synthetic_integration_tests_pass": 118,
     "security_contract_tests_pass": 194,
     "scope": "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18"
@@ -1346,14 +1347,16 @@
     "means": "SOURCE_PATH_TOUCH_ONLY_NOT_REQUIREMENTS_ACCEPTANCE"
   },
   "p1_recent_wave": {
-    "source_sha": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea",
-    "run_id": 44059023691,
+    "source_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
+    "run_id": 44061302925,
     "changed_task_ids": [
-      "MLA-014",
-      "MLA-019",
-      "MLA-025"
+      "MLA-006"
     ],
-    "result": "P1_SYNTHETIC_PASS_478_NOT_F18_NOT_P2",
+    "source_confirmed_existing": [
+      "MLA-013",
+      "MLA-018"
+    ],
+    "result": "P1_SOURCE_POLICY_AND_CLI_485_SYNTHETIC_PASS",
     "req_completed_unchanged": 5
   },
   "p1_fast_track": {
@@ -1388,6 +1391,6 @@
       "MLA-018"
     ],
     "real_runtime_executions": 0,
-    "source_commit_sha": null
+    "source_commit_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8"
   }
 }

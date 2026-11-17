@@ -297,3 +297,14 @@
 - **MLA-025:** P2 real-browser and owner Windows evidence scenario schemas updated, SHA-pinned and actual outcomes `NOT_RUN`. No P2 suite was executed by these source changes.
 - **Official P1 source implementation count:** **5/30=16.67% unchanged**, source-only task evidence `IMPLEMENTED_UNVERIFIED`, 28/28 task evidence pointers do not certify all REQ. Formal P2 verification `UNASSESSED`; `P2 LOCKED`; F18/owner-signer/provenance/real-use `HOLD`.
 - **Next READY:** MLA-006 read-only CLI evidence, MLA-013 local coding worker policy, MLA-018 local CAS/F18 guarded path. Runtime `depends_on/status` untouched; no main/remote/Production/original repo updates.
+
+
+---
+
+## 2026-11-17 KST — P1 single-pass fast track adopted, CLI implementation
+- **Exact source SHA:** `0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8`; GitHub Actions [44061302925](https://github.com/hibi89/my_local_ai/actions/runs/44061302925) **PASS** syntax, **173 unit + 118 synthetic integration + 194 synthetic security = 485/485 PASS**. No real Windows/OS F18/browser/model tests.
+- **Owner policy:** `docs/P1_FAST_IMPLEMENTATION_RUNBOOK.md` and `AGENTS.md` updated; target **1 distinct code implementation per task**, default max 2 material attempts, third requires explicit high-risk exception, two consecutive non-improving failures STOP, code wave target 4–6 disjoint READY. Retrospective hardening rounds are not falsely counted as new attempts. `scripts/p1_queue_replan.py` enforces attempt/batch/safety invariants.
+- **MLA-006:** CLI now recognizes `plan approve --file`, `queue start --task-id`, `benchmark`, `evidence export`. Owner approval/start still return explicit HOLD rather than forging a protected grant; benchmark declares no real measurement; evidence stdout only. Tests included.
+- **MLA-013 and MLA-018:** previous code already exists; their remaining barriers are independent OS F18/sandbox/effective host Git CAS + owner signer, **not new P1 source TODOs**. Removed from repeated hardening READY. Their operational `status/blockers` remain intact.
+- **Progress:** 5/30 (16.67%) REQ unchanged pending per-REQ acceptance; `IMPLEMENTED_UNVERIFIED` != `VERIFIED`. P2 LOCKED, verified UNASSESSED, owner GO false; provenance/F18/signer HOLD.
+- **Next five P1 code-ready gaps for one-pass triage:** MLA-012/016/017/020/022 (separate source paths). Inspect actual missing features before editing; if source already sufficient, remove from P1 READY and retain P2/run blockers without rehardening.

@@ -355,3 +355,18 @@
 8. **Safety:** main/EAI/AX originals untouched, no secret upload/remote PR or permission escalation, no Git history rewrite. Runtime authorizations remain HOLD.
 9. **Next code-only READY:** `MLA-006/013/018` in current queue; inspect allowed_paths, safety, source gaps before authoring. Avoid repeating already implemented source without targeted omission.
 10. **KST/time/evidence:** 2026-11-17 18:49 KST; source test SHA exact `d15485dab9bde0e430cafdad85fca53a1c6dc7ea`; High must accept each REQ for a justified numerator increase.
+
+
+---
+
+## 2026-11-17 KST latest handoff — fast-track single-pass delivery
+1. **Goal:** standalone My Local AI P1 real BE/FE code implementation only; not EAI; 30 REQs and 28 tasks unchanged.
+2. **Implemented:** policy `docs/P1_FAST_IMPLEMENTATION_RUNBOOK.md`, executable queue invariant guard; four previously missing CLI routes (approve request, queue start HOLD, synthetic-only benchmark, redacted stdout evidence export); existing OpenCode and local Git CAS code retained without duplicate work.
+3. **Actual checks:** source `0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8`, Actions `44061302925`, Python syntax PASS; 173 unit +118 synthetic integration +194 synthetic security =485/485 PASS. Real Windows/Qwen/OpenCode host/independent F18/browser/24h all NOT_RUN.
+4. **Progress:** formal P1 5/30 =16.67% unchanged, P2 LOCKED, official verification UNASSESSED, runtime HOLD. Do not count new CLI command stubs as full protected owner approval implementation.
+5. **Blockers:** provenance/license MLA-001, F18 trust root MLA-003, signer MLA-009. MLA-013 sandbox and MLA-018 actual local CAS await protected owner environment; repeated P1 hardening is forbidden absent identified source defect.
+6. **Repo/branch/source SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, `0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8`. Doc/queue commit after source SHA must be confirmed against latest HEAD.
+7. **Runtime:** no Production, no remote PR, no customer data transmission, paid API, OS privilege or user original write. Synthetic Ubuntu Actions only.
+8. **Recovery:** source preserved through Git history; no secrets/materials from EAI/AX copied; immutable original and main; abort after two non-improving attempts.
+9. **Next READY:** `MLA-012/016/017/020/022` 5 independent modules, under first-implementation target 1 attempt; select only real source gaps; no P2 validation or user PC steps.
+10. **Evidence scope/time:** 2026-11-17 KST, exact source `0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8`; final documentation HEAD checked after next commit; authoritative `AGENTS.md` and `docs/FINAL_BLUEPRINT.md` unchanged safety precedence.
