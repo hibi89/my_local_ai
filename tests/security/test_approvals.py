@@ -1,4 +1,5 @@
 """Synthetic approval adversarial tests. No secrets, owner records or real GO."""
+from contextlib import closing
 import hashlib
 import hmac
 import json
@@ -37,7 +38,7 @@ class ConsentTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "only_synthetic.sqlite3"
         initialize_state(self.path)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("INSERT INTO owner_consents(consent_id,plan_sha,scope,state) VALUES(?,?,?,?)",
                        ("SYNTH-GRANT-0001",PLAN,"LOCAL_PLAN","APPROVED"))
         self.ledger = ConsentLedger(self.path)
@@ -48,7 +49,7 @@ class ConsentTests(unittest.TestCase):
         self.assertFalse(check(self.claim,self.ledger,trusted_hmac_key=None))
 
     def test_revocation_immediately_denies(self):
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("UPDATE owner_consents SET state='REVOKED' WHERE consent_id=?",("SYNTH-GRANT-0001",))
         self.assertFalse(check(self.claim,self.ledger))
 
@@ -75,7 +76,7 @@ class ConsentTests(unittest.TestCase):
     def test_malformed_or_moved_state_file_does_not_authorize(self):
         other = Path(self.tmp.name) / "replacement.sqlite3"
         initialize_state(other)
-        with sqlite3.connect(other) as db:
+        with closing(sqlite3.connect(other)) as db, db:
             db.execute("INSERT INTO owner_consents(consent_id,plan_sha,scope,state) VALUES(?,?,?,?)",
                        ("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN", "NOT_APPROVED"))
         original_is_live = self.ledger.is_live
@@ -125,7 +126,7 @@ class ConsentTests(unittest.TestCase):
 
     def test_unowned_database_refused(self):
         other = Path(self.tmp.name) / "other.sqlite3"
-        with sqlite3.connect(other) as db:
+        with closing(sqlite3.connect(other)) as db, db:
             db.execute("CREATE TABLE private(payload TEXT)")
         with self.assertRaises(ValueError):
             ConsentLedger(other)
