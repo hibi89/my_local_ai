@@ -197,3 +197,163 @@ class SyntheticIsolatedRefStore:
             return SyntheticCASReceipt(
                 intent.target_local_ref, actual, intent.proposed_candidate_sha
             )
+
+
+# SWU-027: Git update-ref plumbing for a *future* independently protected
+# owner controller. V1 denies OS_CHANGE and the runtime P2/F18 gate is LOCKED.
+# Source authoring here does not grant local ref mutation to a guest.
+from pathlib import Path as _Path
+from my_local_ai.contracts.approval import authorize_claim as _authorize_claim
+
+
+@dataclass(frozen=True)
+class ProtectedLocalCASReceipt:
+    task_id: str
+    target_ref: str
+    old_sha: str
+    new_sha: str
+    source_sha: str
+    lease_generation: int
+    state: str = "PROTECTED_LOCAL_REF_WRITTEN_UNVERIFIED"
+    owner_original_written: bool = False
+    remote_pushed: bool = False
+    independent_f18_attested_by_this_receipt: bool = False
+    may_resume_worker: bool = False
+    may_publish: bool = False
+
+
+def _protected_sha_reader(protected_read, original: _Path,
+                          argv: tuple[str, ...]) -> str:
+    """Require byte-exact, bounded protected Git readback, no shell strings."""
+    if not callable(protected_read):
+        raise IntegrationHold("UNTRUSTED_REVIEW")
+    try:
+        data = protected_read(original, argv)
+    except Exception:
+        raise IntegrationHold("UNTRUSTED_REVIEW") from None
+    if not isinstance(data, bytes) or len(data) > 128:
+        raise IntegrationHold("UNTRUSTED_REVIEW")
+    try:
+        value = data.decode("ascii").strip()
+    except UnicodeDecodeError:
+        raise IntegrationHold("SHA_MISMATCH") from None
+    if not _SHA.fullmatch(value):
+        raise IntegrationHold("SHA_MISMATCH")
+    return value
+
+
+def persist_protected_local_ref_cas(
+    original_checkout: str | _Path, *, intent: LocalCASIntent,
+    plan_sha256: str, trusted_source_sha: str, expected_main_sha: str,
+    lease_epoch: int, owner_grant, trusted_hmac_key: bytes | None,
+    trusted_live_consent_check, now_seconds: int,
+    protected_lease_epoch_check, protected_f18_review_check,
+    protected_git_read, protected_git_write,
+) -> ProtectedLocalCASReceipt:
+    """Atomic Git plumbing for a single isolated task ref, never main.
+
+    A detached model/guest cannot reach this function's OS-side boundary:
+    the current owner V1 signer *categorically denies* OS_CHANGE. A future
+    High-reviewed owner controller must independently attest exact active
+    lease generation, actual F18 principal separation and accepted review,
+    immutable candidate, original checkout identity/ACL and Git config.
+    No HMAC-only guest receipt, boolean owner claim or plan JSON can suffice.
+    """
+    if (not isinstance(intent, LocalCASIntent)
+        or intent.state != "HOLD_PENDING_INDEPENDENT_F18_AND_OWNER_GO"
+        or intent.executable or intent.may_write_ref
+        or intent.may_write_original or intent.may_push_remote
+        or not isinstance(intent.task_id, str) or not _TASK.fullmatch(intent.task_id)
+        or intent.target_local_ref != "refs/heads/mla/isolated/" + intent.task_id
+        or not _ISOLATED.fullmatch(intent.target_local_ref)
+        or any(not isinstance(s, str) or not _SHA.fullmatch(s) for s in (
+            intent.expected_old_sha, intent.proposed_candidate_sha,
+            intent.owner_original_sha, trusted_source_sha, expected_main_sha,
+        ))
+        or not isinstance(plan_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None
+        or type(lease_epoch) is not int or lease_epoch <= 0
+        or type(now_seconds) is not int or now_seconds <= 0
+        or not all(callable(cb) for cb in (
+            protected_lease_epoch_check, protected_f18_review_check,
+            protected_git_read, protected_git_write,
+        ))):
+        raise IntegrationHold("SHA_MISMATCH")
+    # This deliberate denial must execute before filesystem/Git reads or
+    # writes. It cannot be bypassed with a callable that returns "True".
+    if not _authorize_claim(
+        owner_grant, trusted_hmac_key=trusted_hmac_key,
+        expected_plan_sha=plan_sha256,
+        expected_source_sha=trusted_source_sha,
+        required_scope="OS_CHANGE", now_seconds=now_seconds,
+        trusted_live_consent_check=trusted_live_consent_check,
+    ):
+        raise IntegrationHold("MISSING_OWNER_GO")
+    # P2/High must add a host-protected port before future OS_CHANGE issuance.
+    # The following implementation is an atomic source path, NOT a currently
+    # authorized operation. A guest cannot supply the trusted ports.
+    original = _Path(original_checkout)
+    if not original.is_absolute() or ".." in original.parts:
+        raise IntegrationHold("BAD_REF")
+    try:
+        if (protected_lease_epoch_check(
+            intent.task_id, lease_epoch, trusted_source_sha, plan_sha256
+        ) is not True or protected_f18_review_check(
+            intent.task_id, lease_epoch, intent.proposed_candidate_sha,
+            trusted_source_sha, plan_sha256,
+        ) is not True):
+            raise IntegrationHold("F18_NOT_INDEPENDENT")
+    except IntegrationHold:
+        raise
+    except Exception:
+        raise IntegrationHold("F18_NOT_INDEPENDENT") from None
+    original_head = _protected_sha_reader(
+        protected_git_read, original, ("rev-parse", "--verify", "HEAD^{commit}"),
+    )
+    main_head = _protected_sha_reader(
+        protected_git_read, original,
+        ("rev-parse", "--verify", "refs/heads/main^{commit}"),
+    )
+    ref_head = _protected_sha_reader(
+        protected_git_read, original,
+        ("rev-parse", "--verify", intent.target_local_ref + "^{commit}"),
+    )
+    candidate = _protected_sha_reader(
+        protected_git_read, original,
+        ("rev-parse", "--verify", intent.proposed_candidate_sha + "^{commit}"),
+    )
+    if (original_head != intent.owner_original_sha
+        or original_head != trusted_source_sha
+        or main_head != expected_main_sha
+        or ref_head != intent.expected_old_sha
+        or candidate != intent.proposed_candidate_sha
+        or candidate in (original_head, main_head, ref_head)):
+        raise IntegrationHold("STALE_ORIGINAL")
+    try:
+        result = protected_git_write(original, (
+            "update-ref", "--no-deref", intent.target_local_ref,
+            intent.proposed_candidate_sha, intent.expected_old_sha,
+        ))
+    except Exception:
+        raise IntegrationHold("SHA_MISMATCH") from None
+    if type(result) is not int or result != 0:
+        raise IntegrationHold("SHA_MISMATCH")
+    # Git's old-OID argument supplies the atomic compare-and-swap.
+    # A post-write mismatch is HOLD (not a license to retry/overwrite).
+    if (_protected_sha_reader(
+            protected_git_read, original,
+            ("rev-parse", "--verify", intent.target_local_ref + "^{commit}"),
+        ) != intent.proposed_candidate_sha
+        or _protected_sha_reader(
+            protected_git_read, original,
+            ("rev-parse", "--verify", "HEAD^{commit}"),
+        ) != original_head
+        or _protected_sha_reader(
+            protected_git_read, original,
+            ("rev-parse", "--verify", "refs/heads/main^{commit}"),
+        ) != main_head):
+        raise IntegrationHold("STALE_ORIGINAL")
+    return ProtectedLocalCASReceipt(
+        intent.task_id, intent.target_local_ref, intent.expected_old_sha,
+        intent.proposed_candidate_sha, trusted_source_sha, lease_epoch,
+    )
