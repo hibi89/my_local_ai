@@ -81,7 +81,9 @@ def _public_synthetic_file(relative: str) -> bool:
         lower = segment.casefold()
         if (not lower or lower.startswith(".") or lower in _SENSITIVE_PARTS
             or lower.endswith(_SENSITIVE_EXTENSIONS)
-            or lower.startswith((".env", ".npmrc", ".pypirc"))):
+            or lower.startswith((".env", ".npmrc", ".pypirc",
+                                 "credentials.", "credential.", "secrets.",
+                                 "secret.", "token.", "api_key.", "private_key."))):
             return False
     return True
 
