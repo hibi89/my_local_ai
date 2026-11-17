@@ -2,7 +2,7 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_13_OF_16_IMPLEMENTED_UNVERIFIED_2_PLUS_2_PRESERVED",
+  "state": "P1_13_OF_16_IMPLEMENTED_UNVERIFIED_CS007_BROKER_CONTRACT_HOLD_2_PLUS_2",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
@@ -11,7 +11,8 @@
   "p1_source_swu_total": 16,
   "p1_source_swu_implemented": 13,
   "first_source_ready": [
-    "CS-SWU-007"
+    "CS-SWU-012",
+    "CS-SWU-014"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -707,17 +708,27 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_HIGH_REVIEW_EGRESS_HOLD",
-      "implementation_evidence_sha": "f1a2bfde6526f9d0dfabccb61b2d950f22dfecf0",
+      "source_status": "SOURCE_BROKER_CONTRACT_IMPLEMENTED_UNVERIFIED_OS_HOLD",
+      "implementation_evidence_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "NONE",
+      "retry_stage": "PROGRESS_OS_BROKER_PENDING",
       "retry_evidence": [],
       "owner_go": false,
       "code_only_work_allowed": true,
-      "code_only_scope": "Implement protected broker interface and refusal state only; do not enable Semgrep native execution before independent OS principal and egress evidence"
+      "code_only_scope": "Implement protected broker interface and refusal state only; do not enable Semgrep native execution before independent OS principal and egress evidence",
+      "code_only_progress": "Pinned file/rule/hash/argv request plus strict untrusted JSON parser wired into Semgrep hold adapter; scanner invocation removed. Real OS network-isolated principal broker remains missing, so not completed SWU.",
+      "code_only_attempts": [
+        {
+          "attempt_id": "CS007-20261118-A1",
+          "method": "Replace bypass-prone direct subprocess with bounded protected-broker request/strict JSON reader and ignore guards",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
+          "nonprogress_failure": false
+        }
+      ]
     },
     {
       "task_id": "CS-SWU-008",
@@ -973,7 +984,9 @@
       "redesign_nonimproving_failures": 0,
       "retry_stage": "NONE",
       "retry_evidence": [],
-      "owner_go": false
+      "owner_go": false,
+      "code_only_attempt_allowed": true,
+      "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant"
     },
     {
       "task_id": "CS-SWU-013",
@@ -1086,7 +1099,17 @@
       "retry_evidence": [],
       "owner_go": false,
       "implementation_blocker": "PROTECTED_OS_EXECUTOR_AND_INDEPENDENT_F18_REVIEWER_NOT_PROVEN_RUNTIME_HOLD_ONLY",
-      "code_only_attempt_allowed_after_dependencies": true
+      "code_only_attempt_allowed_after_dependencies": true,
+      "p1_code_depends_on": [
+        "CS-SWU-003",
+        "CS-SWU-005",
+        "CS-SWU-008",
+        "CS-SWU-010",
+        "CS-SWU-011",
+        "CS-SWU-013",
+        "CS-SWU-007_BROKER_REQUEST_CONTRACT_ONLY"
+      ],
+      "p1_code_only_scope": "Implement Controller fail-closed stage ordering and denial result before any execution; OS broker/F18/CAS runtime activation remains HOLD"
     },
     {
       "task_id": "CS-SWU-015",
@@ -1207,20 +1230,20 @@
   ],
   "last_source_wave": {
     "branch": "feature/code-shield-lightweight-v1",
-    "source_sha": "bdccd9724f1c315a81eba61fb034bd707cfb6382",
+    "source_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
     "task_ids": [
-      "CS-SWU-010"
+      "CS-SWU-007"
     ],
-    "status": "IMPLEMENTED_UNVERIFIED",
-    "syntax": "NOT_RUN_REPO_NOT_AVAILABLE_ON_PYTHON_RUNNER",
+    "status": "PARTIAL_SOURCE_PROGRESS_UNVERIFIED_OS_EGRESS_BROKER_HOLD",
+    "python_syntax": "NOT_RUN_GITHUB_CONNECTOR_ONLY",
+    "targeted_smoke": "NOT_RUN_GITHUB_CONNECTOR_ONLY",
     "native_windows": "NOT_RUN",
+    "semgrep_native": "NOT_RUN",
     "f18": "SECURITY_HOLD",
     "full_ci": "DEFERRED_TO_P2",
-    "tool_cli_exact_version": "P2_NOT_RUN",
     "owner_go": false,
     "untrusted_execution": false,
-    "nonprogress_attempts_added": 0,
-    "source_safety_patch": "OSV database subdir reparse guard and JSON errors fail-closed"
+    "nonprogress_failures_added": 0
   },
   "sol_max_escalation": {
     "status": "DEFERRED_CONDITIONAL_2_PLUS_2",
@@ -1232,7 +1255,7 @@
     ],
     "selected_surface": "CODEX",
     "selected_model": "GPT-6.1 Sol Max",
-    "reason": "CS-SWU-007 safe code-only work remains; 014 owner signer/F18 still runtime HOLD, no demonstrated indispensable deadlock",
+    "reason": "SWU-007 source contract advanced; two independent code-only tasks remain (012 grant contract and 014 Controller denial stage), no actual unavoidable deadlock; runtime OS/F18 still HOLD",
     "trigger": "ACTUAL_UNAVOIDABLE_MANDATORY_BLOCKAGE_OR_FOUR_EVIDENCED_NONPROGRESS_FAILURES",
     "owner_go_required": true,
     "source_head": "aeb058a10b77d1c4e68892b5b1614afda7642f31",
@@ -1258,5 +1281,5 @@
       "NO_ORIGINAL_OR_MAIN_WRITE"
     ]
   },
-  "next_safe_code_only_ready_reason": "CS-SWU-010 dependencies CS-SWU-003/009 are source connected; native OSV invocation remains HOLD until verified trusted Windows offline runner"
+  "next_safe_code_only_ready_reason": "No trusted OS egress runner yet; source-only owner-scoped Defender contract and Controller hard-stop stage can be authored independently without performing high-risk runtime actions"
 }
