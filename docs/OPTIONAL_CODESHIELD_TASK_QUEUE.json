@@ -2,16 +2,16 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_12_OF_16_SOURCE_CONNECTED_UNVERIFIED_2_PLUS_2_SAFE_CODE_READY",
+  "state": "P1_13_OF_16_IMPLEMENTED_UNVERIFIED_2_PLUS_2_PRESERVED",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
   "protected_baseline_swu": 39,
   "baseline_source_complete_at_design": 35,
   "p1_source_swu_total": 16,
-  "p1_source_swu_implemented": 12,
+  "p1_source_swu_implemented": 13,
   "first_source_ready": [
-    "CS-SWU-010"
+    "CS-SWU-007"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -715,7 +715,9 @@
       "redesign_nonimproving_failures": 0,
       "retry_stage": "NONE",
       "retry_evidence": [],
-      "owner_go": false
+      "owner_go": false,
+      "code_only_work_allowed": true,
+      "code_only_scope": "Implement protected broker interface and refusal state only; do not enable Semgrep native execution before independent OS principal and egress evidence"
     },
     {
       "task_id": "CS-SWU-008",
@@ -851,15 +853,17 @@
         "REAL_OS_BOUNDARY",
         "P2_PHASE_GATE"
       ],
-      "p1_source_acceptance": "caller protected supply-chain port -> scan_osv_offline -> zero-network vulnerability status",
+      "p1_source_acceptance": "Protected supply-chain scan port -> pinned OSV binary/cache+lockfile preflight -> fixed --offline scan source -L (no-resolve/no-call-analysis), redact vulnerability count/UNKNOWN_HOLD; no user code execution or remote upload",
       "p2_deferred_tests": [
         "real Windows/pinned binary verification",
         "adversarial F18 and OS egress checks",
-        "full CI integration/security/regression"
+        "full CI integration/security/regression",
+        "Windows OSV v2 exact version/options and clean/vulnerable lockfile real run",
+        "OSV config-file ignore bypass, DB symlink/reparse, parser/output edge cases"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_HIGH_REVIEW_PENDING",
-      "implementation_evidence_sha": "7624fc318825d75982ca2fb85e44b0fd84440fa6",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "4dd59cd5126d1bad085be86370fd15bd5584b8b5",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -867,8 +871,9 @@
       "retry_stage": "NONE",
       "retry_evidence": [],
       "owner_go": false,
-      "code_only_work_allowed": true,
-      "code_only_scope": "Offline dependency scanner integration only; no network, package install, untrusted host execution, or implicit Windows egress proof"
+      "code_only_work_allowed": false,
+      "code_only_scope": "Offline dependency scanner integration only; no network, package install, untrusted host execution, or implicit Windows egress proof",
+      "next_gap": "Protected native scanner execution/OS isolation and independent evidence pending P2/High; source path wired but not verified"
     },
     {
       "task_id": "CS-SWU-011",
@@ -1192,7 +1197,6 @@
   ],
   "swu_high_review_pending": [
     "CS-SWU-007",
-    "CS-SWU-010",
     "CS-SWU-012",
     "CS-SWU-014"
   ],
@@ -1203,21 +1207,18 @@
   ],
   "last_source_wave": {
     "branch": "feature/code-shield-lightweight-v1",
-    "head_sha": "8426d30f55809ba10458b53ab034db9ea76f3ca1",
-    "completed_code_only_swu": [
-      "CS-SWU-003",
-      "CS-SWU-004",
-      "CS-SWU-005",
-      "CS-SWU-006",
-      "CS-SWU-008",
-      "CS-SWU-009",
-      "CS-SWU-011"
+    "source_sha": "4dd59cd5126d1bad085be86370fd15bd5584b8b5",
+    "task_ids": [
+      "CS-SWU-010"
     ],
-    "local_syntax": "NOT_RUN_NO_PYTHON_RUNNER",
-    "unit_tests": "DEFERRED_TO_P2",
+    "status": "IMPLEMENTED_UNVERIFIED",
+    "syntax": "NOT_RUN_REPO_NOT_AVAILABLE_ON_PYTHON_RUNNER",
     "native_windows": "NOT_RUN",
     "f18": "SECURITY_HOLD",
-    "runtime_authorized": false,
+    "full_ci": "DEFERRED_TO_P2",
+    "tool_cli_exact_version": "P2_NOT_RUN",
+    "owner_go": false,
+    "untrusted_execution": false,
     "nonprogress_attempts_added": 0
   },
   "sol_max_escalation": {
@@ -1230,7 +1231,7 @@
     ],
     "selected_surface": "CODEX",
     "selected_model": "GPT-6.1 Sol Max",
-    "reason": "Protected execution/F18 is high risk, but safe unconnected CodeShield implementation remains; no demonstrated unavoidable P1 coding deadlock and no four evidenced no-progress failures",
+    "reason": "CS-SWU-007 safe code-only work remains; 014 owner signer/F18 still runtime HOLD, no demonstrated indispensable deadlock",
     "trigger": "ACTUAL_UNAVOIDABLE_MANDATORY_BLOCKAGE_OR_FOUR_EVIDENCED_NONPROGRESS_FAILURES",
     "owner_go_required": true,
     "source_head": "aeb058a10b77d1c4e68892b5b1614afda7642f31",
