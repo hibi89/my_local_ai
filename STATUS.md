@@ -26,3 +26,13 @@
 - **차단:** 외부 API·무료 티어/가격/데이터 전송·자격·확장 구현/동기화 필요 시 별도 사용자 GO 및 High 실제 dev HEAD/allowed_paths 충돌 검사. F18 trust boundary CRITICAL HOLD, P2 LOCKED 유지.
 - **다음:** Instant는 본래 P1 READY 지속. 향후 High가 신규 확장 mock/contract 작업의 적용 범위·경로를 승인하고 **동일 SHA의 설계 문서만** dev에 동기화(진행 중 P1 STATUS/queue 덮어쓰기 금지). 실제 live Hydrogen 호출은 별도 사용자 승인이 있어야 한다.
 - **근거:** 설계 브랜치 정확 최종 HEAD는 GitHub 조회; 제품 코드·계정 실연동·가속 실측 `NOT_RUN` / provider extension `DESIGN_ONLY` / 공식 검증률 `UNASSESSED`.
+
+
+---
+
+## 2026-11-17 KST 최신 설계 추가 — 브라우저 전수 검증 P2 후행
+- 사용자 확정: P1(Instant/Codex/Qwen/Hydrogen)은 BE/FE 코드 구현과 syntax/type/최소 build/국소 smoke에 집중한다. 반복 브라우저/Playwright E2E·시각/반응형/a11y 검증은 P2까지 `DEFERRED_TO_P2`.
+- 예외: 인증/인가·데이터 손실·비밀·권한/F18 등 즉시 안전 검사는 P1 유지; 실제 브라우저 필수인 좁은 핵심 확인만 사유·SHA·실행 결과 기록 후 수행.
+- 반영 파일: `docs/FINAL_BLUEPRINT.md F-1`, `docs/PHASE_GATES.md`, `AGENTS.md`, `INSTANT_RUNBOOK.md`, `REQUIREMENTS.md`, `docs/ACCEPTANCE_MATRIX.md`, `VERIFICATION_TASK_QUEUE.json MLA-V007`, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`.
+- 이번 변경은 **설계·문서/P2 큐 수용조건만 수정**, GitHub에 소스 실행/브라우저 테스트/CI 재실행은 하지 않았다. 구현완료율 상승 0, 공식 검증률 `UNASSESSED`, P2 `LOCKED`, F18 `SECURITY_HOLD`. 기존 dev Instant 작업 결과·진척은 현재 dev HEAD를 다시 읽어야 정확하며 이 설계 브랜치 기록은 실적 대체가 아니다.
+- 개발 브랜치 코드/큐/STATUS, main, EAI, AX 원본, 유료/외부 API·권한·원격 PR/Production 미변경. 다음: 설계 SHA 기준 dev에 안전 동기화 후 기존 P1 READY 지속; P2 실제 브라우저 검증은 P1 100% 후보와 High 판정 이후.
