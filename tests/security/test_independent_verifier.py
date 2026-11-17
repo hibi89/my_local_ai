@@ -286,4 +286,7 @@ class ReadOnlyReviewerCardSecurityTests(unittest.TestCase):
 
     def test_invalid_surrogate_receipt_is_safe_hold(self):
         with self.assertRaises(ReceiptHold):
-            self.check("\ud800")
+            inspect_receipt(
+                "\ud800", context(), trusted_hmac_key=KEY,
+                trusted_consume_nonce=lambda *_: True,
+            )
