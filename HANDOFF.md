@@ -483,3 +483,18 @@
 8. **Safety:** Original sources and history preserved; public code only, no token/customer files/installer. Scanner PASS never grants execution; independent F18 and owner signer remain absent.
 9. **Next READY:** CS-04 native Semgrep allowlisted local rules, CS-05 Gitleaks/OSV offline, CS-06 optional protected-scope scan completion if approved owner grant exists. Then CS-07 Controller risk gate, CS-08 CLI/FE. Minimum syntax/smoke must be executed when appropriate runner is available; do not claim PASS retroactively.
 10. **Basis:** 2026-11-17 KST; design `265bd86d6d36f4a94ab16fb79223bf7896519331`, feature branch from `0365db53a7fc72afcd48522dd39ada91e8cf5566`, source+queue+status facts as of `53f22fede69b91f4a213fbc577e4c1c515310c79`.
+
+---
+
+## 2026-11-17 KST — CodeShield High SWU 8→16, development handoff
+
+1. **Goal:** My Local AI V1.3 CodeShield P1 BE-first source implementation on feature/code-shield-lightweight-v1; no EAI/AX rewrite.
+2. **Implementation:** 8 legacy CodeShield groups rescored/repartitioned into 16 High-sized P1 source SWUs (S/C/I/D/U and risk) in the *existing* optional CodeShield queue. Static code paths wired end-to-end for CS-SWU-001/002/013/015/016: contracts, bounded AST, Controller nonexecuting aggregation, CLI redacted status, app FE source-status payload. Semgrep local rules/adapters, Gitleaks+OSV offline, Ruff, Defender source components exist but protected executor integration remains unwired.
+3. **Checks:** GitHub connector file readback PASS; Python syntax/type/smoke NOT_RUN, feature branch Actions NOT_RUN (no matching runs at time of check). Real Windows/Qwen/scanner binaries/OS isolation/F18/24h/browser P2 NOT_RUN. No claim of protected runtime.
+4. **Progress:** CodeShield **5/16 = 31.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED**; legacy CodeShield **3/8** is historical component count, not new SWU rate. Existing MLA baseline **35/39 = 89.74%**, official 5/30 = 16.67% (unchanged); P2 LOCKED/verified UNASSESSED.
+5. **Risk:** CS-SWU-007 egress, 010 offline database/vendor behavior, 012 Defender owner-scoped scan, 014 Controller OS/F18 execution gate require High review (4+ complexity score/high trust). CS-012 and 014 actual execution stays SECURITY_HOLD. No auth, AV, Git ref, customer data, paid service or source-risk changes. 2+2 nonimproving attempts: zero confirmed.
+6. **Repo/SHA:** hibi89/my_local_ai; target branch feature/code-shield-lightweight-v1; code waves 3bd3a83/f1a2bfd/7624fc3/b42ea16/18b361f/6820472/08e83ea/0d5368a; scored queue d2265039510f75d60a82ab07e093a7d2d8064f4b; status 293060e2a4f158eeec1751649a8af55db0ce1dbf; newest HEAD re-read after this handoff commit.
+7. **Deployment:** local Windows application, Vercel/Production not applicable; no install or execution performed on owner PC.
+8. **Preservation:** main/dev/design source, F18, original data, owner consent, protected signer, mandatory CI, P2 lock, 30 MLA REQs not changed. Public source only; no secret or customer artifacts.
+9. **Next READY:** CS-SWU-003/004/006/008/011 integration and reliable local-only scanner pins, then protected CS-SWU-014 dispatch gate after High/Sol Max safety review. CLI HTML/browser P2 validation deferred. Escalation is owned by MLA implementer (Codex Sol Max for security/code review; Work only for UI/browser/site workflows if later needed).
+10. **Date/evidence:** 2026-11-17 KST, GitHub source writes/readbacks only; exact feature HEAD after final handoff update required.
