@@ -52,3 +52,24 @@
 출시·상용화·모든 상품 자동 완성 보장은 이번 프로젝트 범위 밖이다. 숫자 근거 없이 완성률 100%·검증 100% 금지.
 
 > **단계 분리:** 위 REQ-01~REQ-30 수용 조건은 P1 중에는 테스트·코드 작성 여부로만 구현 근거를 기록하고, **P2에서 실제로 통과**해야 검증 근거가 된다. REQ-31은 P3 독립 감사, REQ-32는 P4 High 최종 인수/사용자 GO이며 P1 코드 분모가 아니다. 각 P2 작업 ID 및 정확 SHA는 `VERIFICATION_TASK_QUEUE.json`에서 확인한다. `INSTANT_TASK_QUEUE.json`의 P1 `status`를 P2 PASS로 해석 금지.
+
+
+---
+
+## V1.1 확장 수용표 — Hydrogen 탈부착 병렬 워커 (별도, 기존 32 REQ/P2 LOCK 불변)
+이 확장은 기존 P1 30 REQ·28 작업 또는 P2 8 검증의 완료 근거가 아니다. 2026-11-17 현재 모든 아래 HYD-AC는 **NOT_RUN**, 외부 API/사용자 Windows/인증·권한은 **NOT_APPROVED**.
+
+| AC-ID | 독립 수용 조건 | 방법/필수 증거 | 결과 |
+|---|---|---|---|
+| HYD-AC-01 | 기본 OFF에서 outbound 0, 로컬 Qwen만 정상 | socket denial + local synthetic exact SHA | NOT_RUN |
+| HYD-AC-02 | 다른 독립 READY 2개 격리 실행·경로 충돌 없음 | mock coder + disposable worktree | NOT_RUN |
+| HYD-AC-03 | shared lockfile/DB/schema/API contract와 경로 중첩 병렬 거부 | adversarial scheduler tests | NOT_RUN |
+| HYD-AC-04 | 429/401/403/paid/unknown tier/no key/OFF 모두 API stop | fake transport + request counter | NOT_RUN |
+| HYD-AC-05 | epoch invalidation, 중단/재시작 중복 patch 0, Qwen 안전 재배정 | injected crash + SQLite/Git SHA reconciliation | NOT_RUN |
+| HYD-AC-06 | private repo/고객 DB/token/.env egress 0 | synthetic canary/scope classifier tests | NOT_RUN |
+| HYD-AC-07 | Hydrogen 위조 PASS/receipt/approval 거부 | F18 independent reviewer exact SHA; owner Win11 OS boundary | NOT_RUN |
+| HYD-AC-08 | 12 합성 작업의 accepted REQ/hour · 정확성 · 비용/시간 비교 | fixed baseline SHA, separate worker reports | NOT_RUN |
+| HYD-AC-09 | remote API·비용·권한·GitHub PR/고객 자료 각각 별도 GO | denied-policy tests, redacted ledger | NOT_RUN |
+| HYD-AC-10 | Provider OFF 이후 기존 30 REQ/원래 기능 보존 | exact-SHA regression tests (P2 후행) | NOT_RUN |
+
+작업 ID·의존성·허용 파일/상태는 \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\`, 상세 수용 정의는 \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`. 선택형 확장을 필수 범위로 재편하면 새로운 승인된 REQ/가중치/acceptance 버전을 만든 뒤에만 분모 변경; 기존 수치 소급 변경 금지.
