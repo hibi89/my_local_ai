@@ -132,3 +132,43 @@ def build_p1_source_candidate_card(
     return evaluate_p1_source_candidate(
         project_root, exact_source_sha=exact_source_sha,
     ).to_public_dict()
+
+
+def build_controller_hold_cycle_card(cycle: object) -> dict:
+    """Redacted BE->FE result of a real SQLite HOLD, never an execution grant."""
+    from my_local_ai.orchestrator import ControllerHoldCycle
+    if (not isinstance(cycle, ControllerHoldCycle)
+        or cycle.state != "HOLD_F18_INDEPENDENCE_NOT_ESTABLISHED"
+        or cycle.task_state_changed is not True
+        or type(cycle.event_id) is not int or cycle.event_id <= 0
+        or any((
+            cycle.coder_executed,cycle.reviewer_executed,
+            cycle.trusted_receipt_issued,cycle.lease_created,
+            cycle.owner_go_verified,cycle.may_promote,cycle.may_publish,
+        ))
+        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}",cycle.task_id) is None
+        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}",cycle.run_id) is None
+        or any(re.fullmatch(r"[0-9a-f]{64}",value) is None for value in (
+            cycle.plan_sha256,cycle.request_sha256,
+            cycle.review_policy_sha256,
+        ))
+        or re.fullmatch(r"[0-9a-f]{40}",cycle.source_sha) is None):
+        raise ValueError("untrusted Controller HOLD card")
+    return {
+        "task_id":cycle.task_id,
+        "run_id":cycle.run_id,
+        "plan_sha256":cycle.plan_sha256,
+        "source_sha":cycle.source_sha,
+        "worker_request_sha256":cycle.request_sha256,
+        "review_policy_sha256":cycle.review_policy_sha256,
+        "event_id":cycle.event_id,
+        "state":cycle.state,
+        "task_state_changed":True,
+        "reviewer_result":"NOT_RUN",
+        "owner_go_verified":False,
+        "independent_f18_verified":False,
+        "execution_allowed":False,
+        "may_promote":False,
+        "may_publish":False,
+        "p2":"LOCKED",
+    }
