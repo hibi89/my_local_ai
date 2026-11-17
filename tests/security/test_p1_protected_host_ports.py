@@ -139,5 +139,30 @@ class NoVMPurePlayerSafetyTests(unittest.TestCase):
         self.assertFalse(result["git_promotion_allowed"])
 
 
+    def test_zero_vm_broker_never_accepts_dynamic_coder_operations(self):
+        from my_local_ai.state.consent import (
+            exchange_protected_broker, dispatch_protected_action,
+            ProtectedBrokerHold,
+        )
+        binding = {
+            "task_id":"TEST-001","run_id":"RUN-001",
+            "plan_sha256":F,"source_sha":A,"candidate_sha":B,
+            "lease_epoch":1,"nonce_sha256":F,
+            "owner_consent_ref":"SYNTH-CONSENT",
+        }
+        for operation in ("prepare","run","abort"):
+            with self.subTest(operation=operation):
+                with self.assertRaises(ProtectedBrokerHold):
+                    exchange_protected_broker(
+                        "coder",operation,binding=binding,payload={},
+                    )
+        for operation in ("prepare","run"):
+            with self.subTest(operation=operation):
+                with self.assertRaises(ProtectedBrokerHold):
+                    dispatch_protected_action(
+                        "coder",operation,binding=binding,payload={},
+                    )
+
+
 if __name__=="__main__":
     unittest.main()

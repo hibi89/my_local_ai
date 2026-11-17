@@ -527,7 +527,7 @@ class ProtectedBrokerHold(PermissionError):
 _BROKER_ROLES = ("owner", "coder", "reviewer", "scanner")
 _BROKER_OPERATIONS = {
     "owner": frozenset({"authorize"}),
-    "coder": frozenset({"prepare", "run", "abort"}),
+    "coder": frozenset(),  # Zero-VM V1.3: no generated-code broker execution.
     "reviewer": frozenset({"runtime-permit", "review"}),
     "scanner": frozenset({"semgrep", "defender"}),
 }
@@ -977,15 +977,16 @@ def exchange_protected_broker(role: str, operation: str, *, binding: dict,
 
 def dispatch_protected_action(role: str, operation: str, *, binding: dict,
                               payload: dict, timeout_seconds: int = 30) -> dict:
-    """Owner live action -> independent runtime permit -> fixed service callee.
+    """Owner live action -> independent permit -> fixed read-only service.
 
+    Zero-VM policy denies coder prepare/run/abort even with owner claims.
     The native callee MUST validate both signed envelopes, live lease, P2/
-    owner GO and one-shot nonce in its own protected store before any spawn.
+    owner GO and one-shot nonce before any nonexecuting fixed scan/review.
     This client cannot install/provide those services or certify their policy.
     Existing V1 HMAC LOCAL_PLAN grants remain categorically insufficient.
     """
     from hashlib import sha256
-    if (role, operation) not in {("coder", "prepare"), ("coder", "run"), ("reviewer", "review"),
+    if (role, operation) not in {("reviewer", "review"),
                                  ("scanner", "semgrep"), ("scanner", "defender")}:
         raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
     if type(payload) is not dict or type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 600:
