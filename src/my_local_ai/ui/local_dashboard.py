@@ -62,6 +62,7 @@ a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
 <p>코드 작성 대기 작업: <strong>{code_ready_names}</strong> (실행 허가 아님)</p>
 <p>단계: <strong>{escape(state['phase'])}</strong></p>
 <p>실사용 승인: <strong>{"승인됨" if state["owner_real_use_go"] else "미승인"}</strong></p>
+<p>실행 상태: <strong>HOLD · 사용자 승인 및 독립 검증 대기</strong></p>
 <p>중지·재개 제어: <strong>미연결 · 조회 전용</strong></p>
 <p>P2 전체 검증: <strong>LOCKED</strong></p>
 <p>공식 검증률: <strong>UNASSESSED</strong></p>

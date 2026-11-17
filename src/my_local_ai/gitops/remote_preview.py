@@ -5,6 +5,8 @@ publisher. V1 plan-wide LOCAL_PLAN HMAC CANNOT approve REMOTE_PR.
 """
 from __future__ import annotations
 from dataclasses import dataclass
+import hashlib
+import json
 import re
 
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -116,6 +118,7 @@ class DraftPRPreview:
     draft_pr_created: bool = False
     remote_push_allowed: bool = False
     target_branch_modified: bool = False
+    change_paths_sha256: str = ""  # metadata claim, not owner proof
 
 
 def preview_protected_draft(
@@ -162,8 +165,13 @@ def preview_protected_draft(
         seen.add(checked.casefold())
     # Important: this metadata is a caller-provided CLAIM, not a live
     # GitHub protection readback or a data classification attestation.
+    # A file count is insufficient to bind a specific future draft action.
+    manifest = json.dumps(sorted(paths, key=str.casefold), ensure_ascii=True,
+                          separators=(",", ":")).encode("ascii")
+    paths_digest = hashlib.sha256(b"mla-draft-paths/v1|" + manifest).hexdigest()
     return DraftPRPreview(
         reviewed.repository, snapshot.base_branch,
         snapshot.expected_base_sha, reviewed.source_sha,
         reviewed.candidate_sha, len(paths), reviewed.intended_ref,
+        change_paths_sha256=paths_digest,
     )

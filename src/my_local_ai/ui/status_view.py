@@ -40,11 +40,25 @@ class StatusSnapshot:
             "verification": self.verification,
             "owner_real_use_go": self.owner_real_use_go,
             "operation_allowed": self.operation_allowed,
+            "runtime_state": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
             "provider_remote": "OFF_NOT_APPROVED",
             "optional_eai_default": "OFF",
             "optional_eai_can_grant_authority": False,
             "browser_validation": "DEFERRED_TO_P2",
         }
+
+def _no_duplicate_keys(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise ValueError("duplicate status JSON key")
+        obj[key] = value
+    return obj
+
+
+def _reject_nonfinite(value):
+    raise ValueError("nonfinite status JSON")
+
 
 def _read_limited(path: Path) -> dict:
     if path.is_symlink():
@@ -53,7 +67,8 @@ def _read_limited(path: Path) -> dict:
         raw = stream.read(_MAX_BYTES + 1)
     if len(raw) > _MAX_BYTES:
         raise ValueError("oversized status")
-    data = json.loads(raw.decode("utf-8"))
+    data = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicate_keys,
+                      parse_constant=_reject_nonfinite)
     if not isinstance(data, dict):
         raise ValueError("malformed status")
     return data
@@ -69,6 +84,11 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     p1, p2, p4 = gate.get("p1"), gate.get("p2"), gate.get("p4")
     if not isinstance(p1, dict) or not isinstance(p2, dict) or not isinstance(p4, dict):
         raise ValueError("missing phase record")
+    if (p1.get("status") != "IN_PROGRESS"
+        or p1.get("implementation_complete_candidate") is not False
+        or p1.get("high_approved_candidate") is not False
+        or p4.get("owner_go") is not False):
+        raise ValueError("P1 cannot claim final implementation or owner GO")
     if p2.get("status") != "LOCKED":
         # No dashboard should falsely display VERIFIED in this unfinished P1 build.
         raise ValueError("P2 gate no longer matches P1-only dashboard")
@@ -76,7 +96,7 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     if type(done) is not int or type(total) is not int or total != 30 or not 0 <= done <= total:
         raise ValueError("invalid implementation metrics")
     phase = gate.get("current_phase")
-    if phase not in ("P1_IMPLEMENTATION", "P0_DESIGN_AWAITING_OWNER_GO"):
+    if phase != "P1_IMPLEMENTATION":
         raise ValueError("unsupported dashboard phase")
     tasks = queue.get("tasks")
     if (queue.get("phase") != "P1_IMPLEMENTATION_ONLY"
@@ -89,6 +109,8 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     for task in tasks:
         if not isinstance(task, dict) or not isinstance(task.get("status"), str) or not _STATE_KEY.fullmatch(task["status"]):
             raise ValueError("untrusted task status")
+        if task.get("runtime_authorization") != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES":
+            raise ValueError("unlocked runtime task in P1")
         statuses.append(task["status"])
     # P1 code authoring READY is deliberately not runtime/execution READY.
     # Treat any inconsistency as an unavailable dashboard, never grant access.

@@ -87,6 +87,19 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             PlanSpec.parse_json(json.dumps(obj))
 
+    def test_credential_variants_and_git_metadata_rejected(self):
+        for path in (".env.local", "src/.env.production", "src/.envrc",
+                     ".gitmodules", "src/.gitattributes"):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                safe_path(path)
+
+    def test_invalid_repository_parts_rejected(self):
+        for repo in ("../other", "hibi89/..", "hibi89/repo.", "hibi89/repo.lock"):
+            obj = sample()
+            obj["blueprint"]["repo"] = repo
+            with self.subTest(repo=repo), self.assertRaises(ValueError):
+                PlanSpec.parse_json(json.dumps(obj))
+
     def test_stale_baseline_sha_rejected(self):
         obj = sample()
         obj["tasks"][0]["source_sha"] = "b" * 40

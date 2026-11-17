@@ -22,6 +22,9 @@ def safe_path(path: str) -> str:
         raise ValueError("unsafe path segment")
     if any(p.casefold() in _FORBIDDEN_PARTS or p.casefold().split(".")[0] in _RESERVED for p in parts):
         raise ValueError("protected path")
+    # Block credential variants and Git metadata even under nested paths.
+    if any(segment.casefold().startswith((".env.", ".envrc", ".gitmodules", ".gitattributes")) for segment in parts):
+        raise ValueError("protected configuration path")
     return path
 
 @dataclass(frozen=True)

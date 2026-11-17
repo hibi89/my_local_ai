@@ -115,6 +115,32 @@ class StatusUiTests(unittest.TestCase):
             evidence.to_public_dict()["synthetic_total"],
         )
 
+    def test_owner_go_and_runtime_unlock_claims_fail_closed(self):
+        from tempfile import TemporaryDirectory
+        for mutate in (
+            lambda gate, queue: gate["p4"].__setitem__("owner_go", True),
+            lambda gate, queue: gate["p1"].__setitem__("implementation_complete_candidate", True),
+            lambda gate, queue: gate["p1"].__setitem__("high_approved_candidate", True),
+            lambda gate, queue: queue["tasks"][0].__setitem__("runtime_authorization", "APPROVED"),
+        ):
+            with TemporaryDirectory() as temp:
+                root = Path(temp)
+                gate = json.loads((ROOT/"WORK_PHASE_GATES.json").read_text(encoding="utf-8"))
+                queue = json.loads((ROOT/"INSTANT_TASK_QUEUE.json").read_text(encoding="utf-8"))
+                mutate(gate, queue)
+                (root/"WORK_PHASE_GATES.json").write_text(json.dumps(gate), encoding="utf-8")
+                (root/"INSTANT_TASK_QUEUE.json").write_text(json.dumps(queue), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    load_snapshot(root)
+
+    def test_duplicate_gate_json_keys_fail_closed(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root/"WORK_PHASE_GATES.json").write_text('{"program":"my_local_ai","program":"other"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate"):
+                load_snapshot(root)
+
     def test_invalid_status_file_fails_closed(self):
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as temp:

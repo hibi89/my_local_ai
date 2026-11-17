@@ -50,8 +50,10 @@ class PlanSpec:
             raise ValueError("blueprint schema")
         if not isinstance(obj["plan_id"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{3,64}", obj["plan_id"]):
             raise ValueError("plan id")
-        if not isinstance(bp["repo"], str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", bp["repo"]):
+        if not isinstance(bp["repo"], str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}", bp["repo"]):
             raise ValueError("repo")
+        if any(segment in (".", "..") or segment.endswith((".", ".lock")) for segment in bp["repo"].split("/")):
+            raise ValueError("unsafe repository name")
         if not isinstance(bp["branch"], str) or not re.fullmatch(r"[A-Za-z0-9_./-]{1,128}", bp["branch"]):
             raise ValueError("branch")
         if (".." in bp["branch"] or "//" in bp["branch"] or bp["branch"].startswith(("/", "-", "."))

@@ -103,6 +103,19 @@ class DraftActionHashTests(unittest.TestCase):
         self.assertFalse(first.may_create_pr)
         self.assertFalse(first.may_merge)
 
+    def test_action_fingerprint_binds_paths_source_and_review_ref(self):
+        baseline=prepare_draft_action_intent(draft_fixture()).action_sha256
+        changed_paths=prepare_draft_action_intent(
+            draft_fixture(change_paths=("src/another.py",))
+        ).action_sha256
+        self.assertNotEqual(baseline,changed_paths)
+        self.assertNotEqual(baseline,prepare_draft_action_intent(
+            replace(draft_fixture(),source_sha="f"*40)
+        ).action_sha256)
+        self.assertNotEqual(baseline,prepare_draft_action_intent(
+            replace(draft_fixture(),target_local_ref="refs/heads/mla/review/DIFF-025")
+        ).action_sha256)
+
     def test_forged_remote_success_and_invalid_candidates_fail_shut(self):
         for changes in (
             {"draft_pr_created":True},
@@ -110,6 +123,10 @@ class DraftActionHashTests(unittest.TestCase):
             {"remote_push_allowed":True},
             {"candidate_sha":"bad"},
             {"changed_file_count":0},
+            {"change_paths_sha256":"bad"},
+            {"target_local_ref":"refs/heads/main"},
+            {"source_sha":"bad"},
+            {"base_branch":"../main"},
         ):
             with self.subTest(changes=changes),self.assertRaises(ValueError):
                 prepare_draft_action_intent(replace(draft_fixture(),**changes))

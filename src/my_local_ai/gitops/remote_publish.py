@@ -12,6 +12,10 @@ from my_local_ai.contracts.approval import OwnerGrant,authorize_claim
 from my_local_ai.gitops.remote_preview import RemotePreview
 
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
+_DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+_REF = re.compile(r"refs/heads/mla/review/[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
+_REPO = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\Z")
+_BASE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}\Z")
 
 
 @dataclass(frozen=True)
@@ -89,17 +93,31 @@ def prepare_draft_action_intent(draft: DraftPRPreview) -> DraftActionIntent:
         or draft.target_branch_modified
         or type(draft.changed_file_count) is not int
         or not 1 <= draft.changed_file_count <= 16
+        or not isinstance(draft.repository, str)
+        or not _REPO.fullmatch(draft.repository)
         or not isinstance(draft.base_branch, str)
+        or not _BASE.fullmatch(draft.base_branch)
+        or ".." in draft.base_branch or "//" in draft.base_branch
+        or any(part.startswith(".") or part.endswith(".") for part in draft.base_branch.split("/"))
+        or not isinstance(draft.target_local_ref, str)
+        or not _REF.fullmatch(draft.target_local_ref)
+        or not isinstance(draft.source_sha, str)
+        or not _SHA.fullmatch(draft.source_sha)
+        or not isinstance(draft.change_paths_sha256, str)
+        or not _DIGEST.fullmatch(draft.change_paths_sha256)
         or not isinstance(draft.expected_base_sha, str)
         or not _SHA.fullmatch(draft.expected_base_sha)
         or not isinstance(draft.candidate_sha, str)
-        or not _SHA.fullmatch(draft.candidate_sha)):
+        or not _SHA.fullmatch(draft.candidate_sha)
+        or draft.candidate_sha in (draft.source_sha, draft.expected_base_sha)):
         raise ValueError("untrusted remote action preflight")
     payload=_json.dumps({
         "operation":"DRAFT_PR_ONLY","repository":draft.repository,
         "base":draft.base_branch,"base_sha":draft.expected_base_sha,
-        "candidate_sha":draft.candidate_sha,
+        "source_sha":draft.source_sha,"candidate_sha":draft.candidate_sha,
+        "target_local_ref":draft.target_local_ref,
         "changed_file_count":draft.changed_file_count,
+        "change_paths_sha256":draft.change_paths_sha256,
     },sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("ascii")
     digest=_sha256(b"mla-draft-pr/v1|"+payload).hexdigest()
     return DraftActionIntent(
