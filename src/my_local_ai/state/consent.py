@@ -188,3 +188,124 @@ def require_protected_owner_identity(inspection: OwnerConsentInspection,
     if not isinstance(inspection,OwnerConsentInspection):
         raise ValueError("invalid owner consent inspection")
     raise PermissionError("OWNER_OS_PROTECTED_SIGNER_NOT_ATTESTED")
+
+
+
+# SWU-008: genuine Windows current-user DPAPI read -> existing MAC/ledger
+# verifier, never a protected-owner OS-principal or execution attestation.
+# No registry creation, key provisioning, signature minting or privilege
+# changes. This works only with an independently provisioned existing value.
+def _read_existing_current_user_dpapi_key() -> bytearray:
+    """Read an existing DPAPI-encrypted LOCAL_PLAN HMAC key without exporting it.
+
+    The fixed owner registry key is a *location*, not an ACL/security boundary.
+    Same-user untrusted host processes may also access HKCU/DPAPI. A native
+    protected owner service must still prove separate process identity and
+    authority before issuing grants or starting any worker.
+    """
+    import os
+    if os.name != "nt":
+        raise PermissionError("OWNER_DPAPI_WINDOWS_REQUIRED")
+    try:
+        import winreg
+        import ctypes
+        from ctypes import wintypes
+
+        # No guest-selected path, environment, external keystore or network.
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\MyLocalAI\OwnerKeys",
+            0, winreg.KEY_READ,
+        ) as registry:
+            sealed, kind = winreg.QueryValueEx(
+                registry, "LocalPlanHmacCurrentUser",
+            )
+        if (kind != winreg.REG_BINARY or type(sealed) is not bytes
+            or not 32 <= len(sealed) <= 8192):
+            raise ValueError("invalid sealed key")
+
+        class _DataBlob(ctypes.Structure):
+            _fields_ = [
+                ("cbData", wintypes.DWORD),
+                ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
+            ]
+
+        encrypted = (ctypes.c_ubyte * len(sealed)).from_buffer_copy(sealed)
+        input_blob = _DataBlob(len(sealed), encrypted)
+        output_blob = _DataBlob()
+        crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+        crypt32.CryptUnprotectData.argtypes = [
+            ctypes.POINTER(_DataBlob), ctypes.c_void_p,
+            ctypes.POINTER(_DataBlob), ctypes.c_void_p,
+            ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(_DataBlob),
+        ]
+        crypt32.CryptUnprotectData.restype = wintypes.BOOL
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel32.LocalFree.restype = ctypes.c_void_p
+        try:
+            if not crypt32.CryptUnprotectData(
+                ctypes.byref(input_blob), None, None, None, None,
+                0x1, ctypes.byref(output_blob),  # CRYPTPROTECT_UI_FORBIDDEN
+            ):
+                raise ValueError("DPAPI unprotect denied")
+            if (output_blob.cbData != 32 or not output_blob.pbData):
+                raise ValueError("unexpected key size")
+            # Native DPAPI buffer is zeroed before LocalFree; Python's one
+            # unavoidable key copy is zeroed immediately after MAC use.
+            return bytearray(ctypes.string_at(output_blob.pbData, 32))
+        finally:
+            if output_blob.pbData:
+                if 0 < output_blob.cbData <= 8192:
+                    ctypes.memset(output_blob.pbData, 0, output_blob.cbData)
+                kernel32.LocalFree(ctypes.cast(
+                    output_blob.pbData, ctypes.c_void_p,
+                ))
+            ctypes.memset(encrypted, 0, len(sealed))
+    except (OSError, ValueError, TypeError, AttributeError):
+        raise PermissionError("OWNER_DPAPI_KEY_NOT_AVAILABLE") from None
+
+
+def inspect_owner_local_plan_windows_dpapi(
+    raw_grant_json: str, *, owned_state: str | Path,
+    expected_plan_sha256: str, expected_source_sha: str,
+    now_seconds: int,
+) -> OwnerConsentInspection:
+    """Real DPAPI key decrypt -> live SQLite grant MAC check (advisory only).
+
+    Success means current Windows logon credentials could decrypt the
+    pre-provisioned key and its grant MAC matches a live LOCAL_PLAN row.
+    It DOES NOT prove a separate protected Windows principal, an owner-signed
+    action-specific GO, independently issued F18, or any executable right.
+    """
+    # Validate structural inputs before touching the Windows credential store.
+    import re
+    if (not isinstance(raw_grant_json, str)
+        or len(raw_grant_json.encode("utf-8")) > 8192
+        or not isinstance(expected_plan_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", expected_plan_sha256) is None
+        or not isinstance(expected_source_sha, str)
+        or re.fullmatch(r"[0-9a-f]{40}", expected_source_sha) is None
+        or type(now_seconds) is not int or now_seconds <= 0):
+        raise ValueError("invalid DPAPI owner grant inspection scope")
+    key = _read_existing_current_user_dpapi_key()
+    try:
+        result = inspect_owner_local_plan_consent(
+            raw_grant_json, owned_state=owned_state,
+            expected_plan_sha256=expected_plan_sha256,
+            expected_source_sha=expected_source_sha,
+            now_seconds=now_seconds,
+            protected_key_reader=lambda grant_id, scope: (
+                bytes(key) if scope == "LOCAL_PLAN" else None
+            ),
+        )
+        if (not isinstance(result, OwnerConsentInspection)
+            or result.can_issue_owner_grant or result.can_start_worker
+            or result.can_change_os or result.can_publish_remote
+            or result.protected_owner_principal_verified
+            or result.independent_f18_verified):
+            raise PermissionError("OWNER_PROTECTED_PRINCIPAL_NOT_ATTESTED")
+        return result
+    finally:
+        for i in range(len(key)):
+            key[i] = 0
