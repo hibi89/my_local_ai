@@ -108,7 +108,7 @@ class CrashResumeContractTests(unittest.TestCase):
         self.write("INSERT INTO reviews(review_id,run_id,candidate_sha,result) VALUES(?,?,?,?)",
                    ("REVIEW-002","RUN-002",CANDIDATE,"TRUSTED_PASS"))
         self.write("INSERT INTO integrations(integration_id,review_id,local_ref,integrated_sha) VALUES(?,?,?,?)",
-                   ("INTEGRATE-002","REVIEW-002","refs/heads/local-test",CANDIDATE))
+                   ("INTEGRATE-002","REVIEW-002","refs/heads/mla/isolated/TASK-017",CANDIDATE))
         with self.assertRaises(ReconcileHold):
             self.run_reconcile()
         result=self.run_reconcile(protected_ref_sha=CANDIDATE)
@@ -205,6 +205,100 @@ class SyntheticLeaseTransactionTests(unittest.TestCase):
         self.db.execute("PRAGMA application_id=12345")
         with self.assertRaises(LeaseHold):
             self.issue()
+
+
+class RestartReconcileSecurityTests(CrashResumeContractTests):
+    def test_guest_claimed_verified_without_integration_is_rejected(self):
+        self.write(
+            "UPDATE tasks SET state='VERIFIED' WHERE plan_id=? AND task_id=?",
+            ("PLAN-017","TASK-017"),
+        )
+        with self.assertRaises(ReconcileHold) as x:
+            self.run_reconcile()
+        self.assertEqual(x.exception.code,"UNTRUSTED_VERIFIED")
+
+    def test_orphan_run_without_lease_is_not_auto_resumed(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state) "
+            "VALUES(?,?,?,?,?,?)",
+            ("RUN-ORPHAN","PLAN-017","TASK-017",SRC,1,"CODING"),
+        )
+        out=self.run_reconcile()
+        self.assertEqual(out.status,"HOLD_ORPHAN_RUN_REQUIRES_FENCE")
+        self.assertFalse(out.new_lease_allowed)
+
+    def test_revoked_plan_never_returns_approved_state(self):
+        self.write("UPDATE plans SET state='STOPPED' WHERE plan_id=?",("PLAN-017",))
+        out=self.run_reconcile()
+        self.assertEqual(out.status,"HOLD_PLAN_NOT_APPROVED")
+        self.assertFalse(out.executable)
+
+    def test_fake_trusted_review_status_or_sha_cannot_preserve_ref(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,"
+            "state,candidate_sha) VALUES(?,?,?,?,?,?,?)",
+            ("RUN-OLD","PLAN-017","TASK-017",SRC,1,"REVIEW_PENDING",CANDIDATE),
+        )
+        self.write(
+            "INSERT INTO reviews(review_id,run_id,candidate_sha,result)"
+            "VALUES(?,?,?,?)",
+            ("REVIEW-OLD","RUN-OLD",CANDIDATE,"UNTRUSTED"),
+        )
+        self.write(
+            "INSERT INTO integrations(integration_id,review_id,local_ref,integrated_sha)"
+            "VALUES(?,?,?,?)",
+            ("INTEGRATE-OLD","REVIEW-OLD",
+             "refs/heads/mla/isolated/TASK-017",CANDIDATE),
+        )
+        with self.assertRaises(ReconcileHold) as x:
+            self.run_reconcile(protected_ref_sha=CANDIDATE)
+        self.assertEqual(x.exception.code,"UNTRUSTED_VERIFIED")
+        self.write("UPDATE reviews SET result='TRUSTED_PASS', candidate_sha=?",
+                   ("f"*40,))
+        with self.assertRaises(ReconcileHold):
+            self.run_reconcile(protected_ref_sha=CANDIDATE)
+
+    def test_active_lease_and_integration_conflict(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,"
+            "state,candidate_sha) VALUES(?,?,?,?,?,?,?)",
+            ("RUN-OLD","PLAN-017","TASK-017",SRC,1,"REVIEW_PENDING",CANDIDATE),
+        )
+        self.write(
+            "INSERT INTO leases(plan_id,task_id,generation,run_id) VALUES(?,?,?,?)",
+            ("PLAN-017","TASK-017",1,"RUN-OLD"),
+        )
+        self.write(
+            "INSERT INTO reviews(review_id,run_id,candidate_sha,result)"
+            "VALUES(?,?,?,?)",
+            ("REVIEW-OLD","RUN-OLD",CANDIDATE,"TRUSTED_PASS"),
+        )
+        self.write(
+            "INSERT INTO integrations(integration_id,review_id,local_ref,integrated_sha)"
+            "VALUES(?,?,?,?)",
+            ("INTEGRATE-OLD","REVIEW-OLD",
+             "refs/heads/mla/isolated/TASK-017",CANDIDATE),
+        )
+        with self.assertRaises(ReconcileHold) as x:
+            self.run_reconcile(protected_ref_sha=CANDIDATE)
+        self.assertEqual(x.exception.code,"INCOMPLETE_TRUST_EVIDENCE")
+
+    def test_duplicate_run_epochs_fail_closed_even_if_schema_allows(self):
+        self.write(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state)"
+            "VALUES(?,?,?,?,?,?)",
+            ("RUN-ONE","PLAN-017","TASK-017",SRC,1,"REVIEW_PENDING"),
+        )
+        # Unique(plan,task,baseline,epoch) enforces duplicates at SQL boundary.
+        self.db.execute("PRAGMA query_only=OFF")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state)"
+                "VALUES(?,?,?,?,?,?)",
+                ("RUN-TWO","PLAN-017","TASK-017",SRC,1,"REVIEW_PENDING"),
+            )
+        self.db.rollback()
+        self.db.execute("PRAGMA query_only=ON")
 
 
 if __name__=="__main__":

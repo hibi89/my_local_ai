@@ -73,22 +73,30 @@ def read_reconcile_state(
                           (plan_id,task_id)).fetchall()
         if len(rows)>1:
             raise ReconcileHold("BAD_STATE")
-        if rows:
-            epoch,run_id=rows[0]
-            runs = db.execute("SELECT baseline_sha,lease_epoch,state,candidate_sha FROM runs WHERE run_id=? AND plan_id=? AND task_id=?",
-                              (run_id,plan_id,task_id)).fetchall()
-            if (len(runs)!=1 or not check_lease_fence(
-                expected_run_id=run_id,expected_epoch=epoch,
-                observed_run_id=run_id,observed_epoch=runs[0][1],
-            ) or runs[0][0]!=trusted_source_sha):
-                raise ReconcileHold("STALE_LEASE")
-            if runs[0][2] not in ("REVIEW_PENDING","INTERRUPTED","HOLD","CODING","REPAIR_ONCE"):
+
+        # Scan all current/task history before deciding whether interrupted
+        # work can safely be retried. A DB 'TRUSTED_PASS' string is NOT F18.
+        historical = db.execute(
+            "SELECT run_id,baseline_sha,lease_epoch,state,candidate_sha FROM runs "
+            "WHERE plan_id=? AND task_id=? ORDER BY lease_epoch",
+            (plan_id,task_id),
+        ).fetchall()
+        epochs: set[int] = set()
+        run_index = {}
+        for run_id,source,epoch,state,candidate_sha in historical:
+            if (not isinstance(run_id,str) or not _ID.fullmatch(run_id)
+                or not isinstance(source,str) or source!=trusted_source_sha
+                or type(epoch) is not int or epoch<=0 or epoch in epochs
+                or state not in ("REVIEW_PENDING","INTERRUPTED","HOLD",
+                                 "CODING","REPAIR_ONCE","VERIFIED")
+                or (candidate_sha is not None and (
+                    not isinstance(candidate_sha,str) or not _SHA40.fullmatch(candidate_sha)))):
                 raise ReconcileHold("BAD_STATE")
-            # No reactivation after crash without protected grant and new lease.
-            return ReconcileDecision(task_id,"HOLD_INTERRUPTED_LEASE")
-        # Read prior integrations strictly for cross-resource inconsistency.
+            epochs.add(epoch)
+            run_index[run_id]=(source,epoch,state,candidate_sha)
         integrated = db.execute(
-            "SELECT i.integrated_sha FROM integrations i "
+            "SELECT i.integrated_sha,i.local_ref,rv.result,rv.candidate_sha,"
+            "r.run_id,r.baseline_sha,r.candidate_sha FROM integrations i "
             "JOIN reviews rv ON rv.review_id=i.review_id "
             "JOIN runs r ON r.run_id=rv.run_id "
             "WHERE r.plan_id=? AND r.task_id=?",
@@ -96,16 +104,46 @@ def read_reconcile_state(
         ).fetchall()
         if len(integrated)>1:
             raise ReconcileHold("BAD_STATE")
-        if integrated:
-            previously_integrated=integrated[0][0]
-            if not isinstance(previously_integrated,str) or not _SHA40.fullmatch(previously_integrated):
+        if rows:
+            epoch,run_id=rows[0]
+            info=run_index.get(run_id)
+            if (not info or not check_lease_fence(
+                expected_run_id=run_id,expected_epoch=epoch,
+                observed_run_id=run_id,observed_epoch=info[1],
+            )):
+                raise ReconcileHold("STALE_LEASE")
+            if info[2] not in ("REVIEW_PENDING","INTERRUPTED","HOLD","CODING","REPAIR_ONCE"):
                 raise ReconcileHold("BAD_STATE")
-            if protected_ref_sha!=previously_integrated:
+            # A completed integration and an active coding lease cannot be
+            # reconciled without a separate protected DB/Git transaction log.
+            if integrated:
+                raise ReconcileHold("INCOMPLETE_TRUST_EVIDENCE")
+            if tasks[0][1] == "VERIFIED":
+                raise ReconcileHold("UNTRUSTED_VERIFIED")
+            return ReconcileDecision(task_id,"HOLD_INTERRUPTED_LEASE")
+        if integrated:
+            integrated_sha,local_ref,review_status,review_sha,run_id,run_source,run_sha=integrated[0]
+            if (not isinstance(integrated_sha,str) or not _SHA40.fullmatch(integrated_sha)
+                or not isinstance(local_ref,str)
+                or not local_ref.startswith("refs/heads/mla/isolated/")
+                or not isinstance(run_source,str) or run_source != trusted_source_sha
+                or review_status != "TRUSTED_PASS"
+                or integrated_sha != review_sha or integrated_sha != run_sha
+                or run_id not in run_index):
+                raise ReconcileHold("UNTRUSTED_VERIFIED")
+            if protected_ref_sha!=integrated_sha:
                 raise ReconcileHold("REF_MISMATCH")
             return ReconcileDecision(task_id,"PRESERVE_PREVIOUS_REF_AWAIT_F18")
         if protected_ref_sha is not None:
-            # Ref exists without this task's matching durable integration.
             raise ReconcileHold("REF_MISMATCH")
+        if tasks[0][1] == "VERIFIED":
+            raise ReconcileHold("UNTRUSTED_VERIFIED")
+        if historical:
+            # Crash between run creation and lease insertion, or a stale run
+            # whose lease disappeared, cannot be silently restarted.
+            return ReconcileDecision(task_id,"HOLD_ORPHAN_RUN_REQUIRES_FENCE")
+        if plans[0][2] != "APPROVED":
+            return ReconcileDecision(task_id,"HOLD_PLAN_NOT_APPROVED")
         return ReconcileDecision(task_id,"HOLD_NO_ACTIVE_LEASE")
     except sqlite3.Error:
         raise ReconcileHold("BAD_STATE") from None
