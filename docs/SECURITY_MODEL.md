@@ -48,3 +48,8 @@
 - `MLA-009` 라이브 consent checker에 현재 SQLite main DB 파일 정체성 pin 및 WAL/SHM sidecar 검사 추가. 파일 교체와 구 DB WAL 접근이 재사용 가능한 승인으로 연결되지 않도록 실패 닫기. 실제 OS ACL/재시작 동작은 P2 검증 전 미보증.
 - 계획 단위 `LOCAL_PLAN` scope 이외 고위험 승인(REMOTE_PR/OS_CHANGE/PAID_API/CUSTOMER_DATA/PRODUCTION/NETWORK_EGRESS)은 **action-bound protected signer** 개발 전 상태로 보류. 일괄 재사용 가능한 plan 서명 하나로 해당 승인 성공 금지.
 - `MLA-003` 게스트-자체 VERIFIED 선행 상태 위조, forged lease/receipt schema 삽입, claimed APPROVED 자기 인증을 합성 테스트에서 거부. F18 실제 독립 reviewer 코드·OS 경계는 MLA-015/P2 대기. 수용 증거 과장 금지.
+
+## 2026-11-17 MLA-029 Windows F18 test harness (P1 source only)
+
+- `tests/windows/test_trust_boundary_real.py` stores explicit source/candidate/plan SHA, coder/reviewer/owner signer principal split, sandbox, network egress and signer readback-denial preconditions. **Even all asserted booleans cannot create a TrustedReceipt; real OS evidence and protected issuer are mandatory**. Two actual Windows tests have unconditional `skip` until P2 gate/owner-controlled test runner exists.
+- User hardware/Windows Sandbox feature probe, protected signer, 24-hour long-run and independent F18: `NOT_RUN`. No admin/OS policy modifications performed, no host fallback. `MLA-029` implementation-only source candidate and `BLOCKED_DEPENDENCY` runtime remain.
