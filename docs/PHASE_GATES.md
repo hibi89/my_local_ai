@@ -24,4 +24,4 @@
 ## V1.1 선택형 ProviderPort 범위 잠금
 2026-11-17 설계 개선에 따라 Hydrogen/다른 무료 모델의 **탈부착형 병렬 구현 워커** 설계가 추가되었다. **기존 P1 28 작업/필수 REQ-01~30, 공식 검증 P2 8 작업, 구현률 분모 30, P2 LOCKED, Codex·Astra 후행 검수 불변.**
 
-확장 작업은 \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\` 별도 보관: 명시적 High 설계 동기화·작업 범위 승인 이후 mock/ProviderPort 구현을 별도로 착수할 수 있으나 원래 필수 P1 READY를 중단시키거나 확장 실적을 기존 구현 분자로 합산하지 않는다. 실제 외부 Hydrogen API 호출·데이터 송신·유료/권한은 추가 사용자 GO 및 비용·프라이버시·quota gate 없이 불허. 실 Hydrogen과 Windows/F18/24h 전수 검증은 적절한 P2·후행 승인까지 NOT_RUN 유지.
+확장 작업은 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json` 별도 보관: 명시적 High 설계 동기화·작업 범위 승인 이후 mock/ProviderPort 구현을 별도로 착수할 수 있으나 원래 필수 P1 READY를 중단시키거나 확장 실적을 기존 구현 분자로 합산하지 않는다. 실제 외부 Hydrogen API 호출·데이터 송신·유료/권한은 추가 사용자 GO 및 비용·프라이버시·quota gate 없이 불허. 실 Hydrogen과 Windows/F18/24h 전수 검증은 적절한 P2·후행 승인까지 NOT_RUN 유지.
