@@ -328,3 +328,11 @@
 - **P1 official REQ implementation:** still **5/30 = 16.67%** (newly completed 5 SWUs span partial REQs; no per-REQ independent acceptance). **P2 official verification UNASSESSED/LOCKED**, owner runtime GO false, protected reviewer F18 HOLD, real Windows/Ollama/browser/24h/real Git ops NOT_RUN.
 - **Mandatory CI:** GitHub Actions [44068198463](https://github.com/hibi89/my_local_ai/actions/runs/44068198463) at exact `ecf9f491980a30d50f7539e12a00c30f64bcce0e` **success**: 173 unit, 118 synthetic integration, 194 synthetic security, 485/485 PASS, syntax checks PASS. **New code paths targeted local run: NOT_RUN** (repository checkout not available in scratch environment). P2 full security/Windows/browser E2E not executed.
 - **Next real source-only READY:** MLA-SWU-016, MLA-SWU-024, MLA-SWU-039 (**3 only**, source-safe DAG constrained). Existing `docs/FINAL_BLUEPRINT.md`, `WORK_PHASE_GATES.json`, P2 task statuses, original 28 legacy task histories and runtime gates unchanged.
+
+---
+
+## 2026-11-17 KST — P1 SWU source wave 02 (actual GitHub commits)
+- Source SHA 1: `f4c27902b8fc9461339dfa5f1f6fe69f60fc707f` — owned SQLite lease epoch CAS and 39-SWU/30-REQ exact-SHA source inventory evaluator; mandatory Actions [44069476577](https://github.com/hibi89/my_local_ai/actions/runs/44069476577) success.
+- Source SHA 2: `4843d5ea94fd898b537265e8c58b45cb48e100af` — protected, `--no-checkout` linked-worktree creation path with post-readback; OS_CHANGE v1 owner signer intentionally denies, so no Git command or Windows creation was executed. Mandatory Actions [44069722095](https://github.com/hibi89/my_local_ai/actions/runs/44069722095) success.
+- P1 code candidates **26/39 (66.67%)**; source-only SWU-016/024/039 added. Existing formal accepted P1 **5/30 (16.67%)** unchanged; P2 **LOCKED/UNASSESSED**. No independently attested source ancestry, live SQLite CAS race, Windows worktree, F18, Qwen or browser test was executed.
+- Next code READY `MLA-SWU-018, MLA-SWU-019, MLA-SWU-026`; serialize worktree.py edits (018/019), 026 uses state/reconcile.py and sqlite_store.py. Protected signer, real OS runner, provenance and user GO remain HOLD. Frozen blueprint and WORK_PHASE_GATES.json unchanged.

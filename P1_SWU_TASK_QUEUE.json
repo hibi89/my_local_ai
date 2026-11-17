@@ -20,20 +20,20 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 23,
-  "source_incomplete_swu_count": 16,
+  "source_complete_swu_count": 26,
+  "source_incomplete_swu_count": 13,
   "status_counts": {
     "BLOCKED_PROVENANCE": 1,
-    "SOURCE_COMPLETE_P2_PENDING": 23,
+    "SOURCE_COMPLETE_P2_PENDING": 26,
     "BLOCKED_TRUST": 4,
     "READY": 3,
-    "PENDING_CODE_DEPENDENCY": 7,
+    "PENDING_CODE_DEPENDENCY": 4,
     "BLOCKED_APPROVAL": 1
   },
   "first_ready": [
-    "MLA-SWU-016",
-    "MLA-SWU-024",
-    "MLA-SWU-039"
+    "MLA-SWU-018",
+    "MLA-SWU-019",
+    "MLA-SWU-026"
   ],
   "operational_ready": [],
   "owner_go": false,
@@ -1103,8 +1103,8 @@
       ],
       "caller_to_callee": "protected source>pinned git worktree create",
       "observable_outcome": "isolated checkout without changing main",
-      "missing_function": "only preview and metadata audit",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_RUNTIME_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-017",
         "MLA-SWU-003"
@@ -1133,8 +1133,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-014": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "P1 actual caller-to-callee source wave; prior inherited attempts preserved",
       "evidence_sha_by_legacy": {
         "MLA-014": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
       },
@@ -1158,7 +1158,13 @@
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
       ],
-      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE",
+      "original_missing_function": "only preview and metadata audit",
+      "actual_source_implemented": true,
+      "latest_code_sha": "4843d5ea94fd898b537265e8c58b45cb48e100af",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
+      "runtime_gap": "V1_OS_CHANGE_OWNER_SIGNER_ALWAYS_DENIES; protected runner and real Git creation NOT_RUN"
     },
     {
       "id": "MLA-SWU-017",
@@ -1244,7 +1250,7 @@
       "caller_to_callee": "fresh worktree snapshot>protected cleanup",
       "observable_outcome": "only owned clean tree removed",
       "missing_function": "cleanup preview only, no Git cleanup",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-016"
       ],
@@ -1296,7 +1302,8 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     },
     {
       "id": "MLA-SWU-019",
@@ -1314,7 +1321,7 @@
       "caller_to_callee": "protected Git read>inventory snapshot>audit",
       "observable_outcome": "fresh actual tracked and dirty inventory",
       "missing_function": "caller-provided snapshot only",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-016",
         "MLA-SWU-017"
@@ -1368,7 +1375,8 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     },
     {
       "id": "MLA-SWU-020",
@@ -1683,8 +1691,8 @@
       ],
       "caller_to_callee": "lease proposal>SQLite CAS epoch>receipt",
       "observable_outcome": "stale duplicate workers fenced",
-      "missing_function": "in-memory intent but no durable CAS",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_RUNTIME_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-011",
         "MLA-SWU-009"
@@ -1714,8 +1722,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-017": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "P1 actual caller-to-callee source wave; prior inherited attempts preserved",
       "evidence_sha_by_legacy": {
         "MLA-017": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
       },
@@ -1738,7 +1746,13 @@
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
       ],
-      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE",
+      "original_missing_function": "in-memory intent but no durable CAS",
+      "actual_source_implemented": true,
+      "latest_code_sha": "f4c27902b8fc9461339dfa5f1f6fe69f60fc707f",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
+      "runtime_gap": "PROTECTED_OWNER_KEY_AND_LOCAL_DB_RUNTIME_NOT_RUN; no coder execute grant"
     },
     {
       "id": "MLA-SWU-025",
@@ -1830,7 +1844,7 @@
       "caller_to_callee": "startup reconcile>durable checkpoint",
       "observable_outcome": "safe recovery without replay",
       "missing_function": "read-only decision only, no protected transaction",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-024",
         "MLA-SWU-025"
@@ -1883,7 +1897,8 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     },
     {
       "id": "MLA-SWU-027",
@@ -2792,8 +2807,8 @@
       ],
       "caller_to_callee": "protected evidence>REQ map>phase candidate",
       "observable_outcome": "immutable 30-REQ candidate decision",
-      "missing_function": "static phase JSON only",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_RUNTIME_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-002",
         "MLA-SWU-003",
@@ -2825,8 +2840,8 @@
         "MLA-006": 1,
         "MLA-019": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "attempts_used": 2,
+      "attempts_note": "P1 actual caller-to-callee source wave; prior inherited attempts preserved",
       "evidence_sha_by_legacy": {
         "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
         "MLA-019": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
@@ -2855,7 +2870,13 @@
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
       ],
-      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE",
+      "original_missing_function": "static phase JSON only",
+      "actual_source_implemented": true,
+      "latest_code_sha": "f4c27902b8fc9461339dfa5f1f6fe69f60fc707f",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
+      "runtime_gap": "EXACT_GIT_ANCESTRY_INDEPENDENT_ATTESTATION_AND_HIGH_ACCEPTANCE_NOT_RUN"
     }
   ],
   "legacy_mapping": [
@@ -4686,26 +4707,27 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+    "source_sha": "4843d5ea94fd898b537265e8c58b45cb48e100af",
     "source_commits": [
-      "909f763b0c2d3ce7b0264cdaa08509828cbdd0dc",
-      "ecf9f491980a30d50f7539e12a00c30f64bcce0e"
+      "f4c27902b8fc9461339dfa5f1f6fe69f60fc707f",
+      "4843d5ea94fd898b537265e8c58b45cb48e100af"
     ],
     "swus": [
-      "MLA-SWU-002",
-      "MLA-SWU-011",
-      "MLA-SWU-023",
-      "MLA-SWU-032",
-      "MLA-SWU-034"
+      "MLA-SWU-016",
+      "MLA-SWU-024",
+      "MLA-SWU-039"
     ],
-    "mandatory_actions_run": 44068198463,
-    "unit_tests_pass": 173,
-    "synthetic_integration_pass": 118,
-    "synthetic_security_pass": 194,
-    "new_functions_targeted_runtime_test": "NOT_RUN",
+    "mandatory_actions_runs": [
+      44069476577,
+      44069722095
+    ],
+    "mandatory_ci": "SUCCESS_AT_SOURCE_SHAS",
+    "targeted_new_worktree_runtime": "NOT_RUN_OS_CHANGE_OWNER_SIGNER_HOLD",
+    "targeted_owned_sqlite_race_and_recovery": "NOT_RUN_P2",
+    "exact_sha_candidate_source": "CODE_ONLY_NOT_INDEPENDENT_ATTESTATION",
     "owner_windows": "NOT_RUN",
     "protected_f18": "SECURITY_HOLD",
     "p2": "LOCKED"
   },
-  "next_wave_exception_reason": "Exactly 3 independent source READY after this wave; other SWUs await code predecessors, source rights, protected owner signer or F18. Do not create unsafe READY to reach four."
+  "next_wave_exception_reason": "Only source-code dependencies unlocked: MLA-SWU-018, MLA-SWU-019, MLA-SWU-026. Worktree 018/019 share one source file; serialize. Protected OS_SIGNER/F18/provenance remain HOLD."
 }
