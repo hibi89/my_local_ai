@@ -74,6 +74,8 @@ def _parser() -> argparse.ArgumentParser:
     queue_sub.add_parser("next", help="P1 code-only READY IDs, never operational grants")
     start = queue_sub.add_parser("start", help="Non-executing owner HOLD; never starts a worker")
     start.add_argument("--task-id", required=True)
+    start.add_argument("--plan-file", type=Path)
+    start.add_argument("--state-db", type=Path)
     evidence = subs.add_parser("evidence", help="Redacted synthetic evidence, stdout only")
     evidence_sub = evidence.add_subparsers(dest="evidence_action")
     evidence_sub.add_parser("export", help="Print a sanitized evidence manifest to stdout")
@@ -81,8 +83,12 @@ def _parser() -> argparse.ArgumentParser:
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
+    stop.add_argument("--plan-file", type=Path)
+    stop.add_argument("--state-db", type=Path)
     resume = subs.add_parser("resume", help="Safe HOLD notice; never self-resumes")
     resume.add_argument("--task-id", required=True)
+    resume.add_argument("--plan-file", type=Path)
+    resume.add_argument("--state-db", type=Path)
     return parser
 
 def _status() -> dict:
@@ -287,6 +293,131 @@ def _control_hold(task_id: str, action: str) -> dict:
     }
 
 
+
+
+def _request_local_controller_action(
+    *, action: str, task_id: str, plan_file: Path, state_db: Path,
+) -> dict:
+    """CLI -> native Controller -> MLA-owned SQLite request/HOLD.
+
+    A stop may hold an idle task; an active lease is NEVER silently cancelled.
+    Start/resume remain held requests, not an execution authority. All paths,
+    plan identity, DB identity, and current task states are checked locally.
+    """
+    import hashlib
+    import re
+    from .state.sqlite_store import _write_owned_transaction
+
+    if action not in ("start", "stop", "resume"):
+        raise ValueError("invalid action")
+    if not isinstance(task_id, str) or re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}", task_id,
+    ) is None:
+        raise ValueError("invalid action task")
+    _status()
+    spec = PlanSpec.parse_json(_read_bounded_regular(plan_file).decode("utf-8"))
+    if spec.repo != "hibi89/my_local_ai" or task_id not in {
+        task.task_id for task in spec.tasks
+    }:
+        raise ValueError("plan not owned or task absent")
+    controller = Controller(spec)  # Native MLA authority, never an EAI adapter.
+    plan_task_ids = {item.task_id for item in spec.tasks}
+
+    def persist(db):
+        plan = db.execute(
+            "SELECT plan_sha,blueprint_sha,state FROM plans WHERE plan_id=?",
+            (spec.plan_id,),
+        ).fetchone()
+        if (plan is None or plan[0] != spec.digest
+            or plan[1] != spec.blueprint_sha
+            or plan[2] not in ("AWAITING_OWNER","APPROVED","HOLD","STOPPED")):
+            raise ValueError("stale or missing Controller plan")
+        rows = db.execute(
+            "SELECT task_id,source_sha,state FROM tasks WHERE plan_id=?",
+            (spec.plan_id,),
+        ).fetchall()
+        if len(rows) != len(plan_task_ids):
+            raise ValueError("incomplete Controller task ledger")
+        states = {}
+        for tid, source_sha, state in rows:
+            if (tid not in plan_task_ids or tid in states
+                or source_sha != spec.blueprint_sha):
+                raise ValueError("task/source drift")
+            states[tid] = state
+        # Controller is consulted against the ACTUAL local task ledger. No
+        # untrusted VERIFIED is forwarded as independently verified evidence.
+        active = db.execute(
+            "SELECT task_id FROM leases WHERE plan_id=?", (spec.plan_id,),
+        ).fetchall()
+        active_ids = tuple(row[0] for row in active)
+        if any(tid not in plan_task_ids for tid in active_ids):
+            raise ValueError("untrusted lease ledger")
+        decision = controller.propose(
+            states, independently_verified=(), active_leases=active_ids,
+        )
+        if decision.execution_allowed or decision.owner_go or decision.verified:
+            raise ValueError("unexpected Controller authority")
+        current = states[task_id]
+        if current == "VERIFIED":
+            raise ValueError("cannot alter independently verified task")
+        # Do not claim an active worker was stopped. Protected lease
+        # cancellation and process signaling require separate signed GO.
+        changed = False
+        if (action == "stop" and task_id not in active_ids
+            and current in {
+                "QUEUED","READY","AWAITING_OWNER","BLOCKED_DEPENDENCY",
+                "HOLD","INTERRUPTED",
+            } and current != "HOLD"):
+            update = db.execute(
+                "UPDATE tasks SET state='HOLD' WHERE plan_id=? "
+                "AND task_id=? AND source_sha=? AND state=?",
+                (spec.plan_id,task_id,spec.blueprint_sha,current),
+            )
+            if update.rowcount != 1:
+                raise ValueError("stale Controller task")
+            changed = True
+        identity = hashlib.sha256(
+            ("mla-action-request/v1|" + spec.digest + "|" +
+             task_id + "|" + action).encode("ascii")
+        ).hexdigest()
+        summary = action.upper() + "_UNTRUSTED_REQUEST_" + identity
+        row = db.execute(
+            "SELECT event_id FROM events WHERE plan_id=? "
+            "AND event_kind='OWNER_ACTION_REQUEST_HELD' "
+            "AND safe_summary=? ORDER BY event_id DESC LIMIT 1",
+            (spec.plan_id, summary),
+        ).fetchone()
+        if row is None:
+            cur = db.execute(
+                "INSERT INTO events(plan_id,event_kind,safe_summary) "
+                "VALUES(?,'OWNER_ACTION_REQUEST_HELD',?)",
+                (spec.plan_id, summary),
+            )
+            event_id = cur.lastrowid
+        else:
+            event_id = row[0]
+        return {
+            "status": "HOLD",
+            "action": action.upper(),
+            "task_id": task_id,
+            "plan_sha256": spec.digest,
+            "source_sha": spec.blueprint_sha,
+            "event_id": event_id,
+            "controller_consulted": True,
+            "action_request_recorded": True,
+            "task_state_changed": changed,
+            "active_lease_preserved": task_id in active_ids,
+            "worker_stopped": False,
+            "execution_allowed": False,
+            "owner_go_verified": False,
+            "independent_f18_verified": False,
+            "reason": "PROTECTED_OWNER_SIGNER_AND_F18_REQUIRED",
+            "p2": "LOCKED",
+        }
+
+    return _write_owned_transaction(state_db, persist)
+
+
 def _request_plan_approval(path: Path) -> dict:
     """Show digest for a future protected owner signer; no key and no approval."""
     spec = PlanSpec.parse_json(_read_bounded_regular(path).decode("utf-8"))
@@ -405,11 +536,17 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":
-            payload = _control_hold(args.task_id, "start")
+            payload = (_request_local_controller_action(action="start", task_id=args.task_id,
+                       plan_file=args.plan_file, state_db=args.state_db)
+                       if args.plan_file is not None and args.state_db is not None
+                       else _control_hold(args.task_id, "start"))
             print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
             return 2
         elif args.command in ("stop","resume"):
-            payload = _control_hold(args.task_id, args.command)
+            payload = (_request_local_controller_action(action=args.command, task_id=args.task_id,
+                       plan_file=args.plan_file, state_db=args.state_db)
+                       if args.plan_file is not None and args.state_db is not None
+                       else _control_hold(args.task_id, args.command))
             print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
             return 2
         else:
