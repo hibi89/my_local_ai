@@ -20,11 +20,11 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 35,
-  "source_incomplete_swu_count": 4,
+  "source_complete_swu_count": 37,
+  "source_incomplete_swu_count": 2,
   "status_counts": {
-    "SOURCE_COMPLETE_P2_PENDING": 35,
-    "BLOCKED_TRUST": 4
+    "SOURCE_COMPLETE_P2_PENDING": 37,
+    "BLOCKED_TRUST": 2
   },
   "first_ready": [],
   "operational_ready": [],
@@ -1350,7 +1350,7 @@
       "caller_to_callee": "trusted controller>isolated runner>untrusted candidate",
       "observable_outcome": "isolated coder result",
       "missing_function": "Windows isolated OS runner not implemented",
-      "code_status": "BLOCKED_TRUST",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-014",
         "MLA-SWU-008"
@@ -1419,7 +1419,7 @@
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
       "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch. Additional source 09064c611c9460cbe3d81d66b16f2466e7f9cabf: native Windows read-only isolation capability observer and no-args CLI diagnostic; reports OS feature/API hints but never OS attestation, security policy, or runtime rights. Owner-device execution NOT_RUN.\n2026-11-18 @ 08c4ceb7cd7e841c90806272c0190efb9cc9cb60: One-call Windows host + process token read-only diagnostic, still no protected signer, sandbox launch, host-egress attestation or independent F18.",
-      "runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
+      "runtime_gap": "Owner/independent F18, untrusted generation and tests execution, OS-wide network no-egress, and protected Git CAS remain HOLD/NOT_VERIFIED; zero-VM Pure Player static-only scope is source implemented.",
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN. | GitHub Actions 44139329888 SUCCESS Python compile, synthetic unit/integration/F18 contract; targeted owner Windows probe NOT_RUN; no OS config, host guest, F18 or egress proof.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -1462,7 +1462,14 @@
           "nonprogress_failure": false
         }
       ],
-      "legacy_attempts_used_are_not_necessarily_failures": true
+      "legacy_attempts_used_are_not_necessarily_failures": true,
+      "zero_vm_legacy_code_status": "BLOCKED_TRUST",
+      "zero_vm_original_runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
+      "actual_source_implemented": true,
+      "latest_code_sha": "f53e33af1a3b4bdd527fdc45e6c6c9e817c06162",
+      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
+      "zero_vm_design_resolution": "Zero-VM host-Qwen public/synthetic generation -> bounded untrusted text -> CPU Pure Player AST; original arbitrary OpenCode runtime intentionally HOLD",
+      "source_dependency_review": "Zero-VM host-Qwen public/synthetic generation -> bounded untrusted text -> CPU Pure Player AST; original arbitrary OpenCode runtime intentionally HOLD; original DAG/REQ/allowed paths retained, runtime authorization stays HOLD."
     },
     {
       "id": "MLA-SWU-016",
@@ -2952,7 +2959,7 @@
       "caller_to_callee": "protected sandbox>deny public network",
       "observable_outcome": "guest/reviewer no egress",
       "missing_function": "no host-attested network isolation",
-      "code_status": "BLOCKED_TRUST",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-015",
         "MLA-SWU-021"
@@ -3020,7 +3027,7 @@
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
-      "runtime_gap": "Host-attested network egress denial remains unimplemented and NOT_RUN; Windows Sandbox feature/ACL/DACL, actual guest network probe, independent reviewers across OS principals, and post-run evidence not tested. WSB profile is not proof. High review required.",
+      "runtime_gap": "Owner/independent F18, untrusted generation and tests execution, OS-wide network no-egress, and protected Git CAS remain HOLD/NOT_VERIFIED; zero-VM Pure Player static-only scope is source implemented.",
       "partial_source_description": "Network disabled and protected WSB options retained, plus immutable readonly host source/import mapping, restricted C:\\MLA_Disposable\\RUN\\input naming, no host-writeable guest mapped folder. Config XML and manifest hashes are exact but only source policy claims.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -3034,7 +3041,14 @@
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [],
-      "legacy_attempts_used_are_not_necessarily_failures": true
+      "legacy_attempts_used_are_not_necessarily_failures": true,
+      "zero_vm_legacy_code_status": "BLOCKED_TRUST",
+      "zero_vm_original_runtime_gap": "Host-attested network egress denial remains unimplemented and NOT_RUN; Windows Sandbox feature/ACL/DACL, actual guest network probe, independent reviewers across OS principals, and post-run evidence not tested. WSB profile is not proof. High review required.",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ffb5b6e794d3990f6d231439d1de582b8f87b937",
+      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
+      "zero_vm_design_resolution": "Pure typed operator allowlist denies any dynamic network/shell capability. Old Windows Sandbox/AppContainer APIs removed and OpenCode injected runtime permanently denied; OS-wide no-egress is not attested",
+      "source_dependency_review": "Pure typed operator allowlist denies any dynamic network/shell capability. Old Windows Sandbox/AppContainer APIs removed and OpenCode injected runtime permanently denied; OS-wide no-egress is not attested; original DAG/REQ/allowed paths retained, runtime authorization stays HOLD."
     },
     {
       "id": "MLA-SWU-032",
@@ -5891,30 +5905,31 @@
     "design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
     "reviewed_source_sha": "e09b72c9b4cf1ad1ed23312662c655b70446d455",
     "previous_source_candidates": 35,
-    "current_source_candidates": 35,
+    "current_source_candidates": 37,
     "demoted": [
       "MLA-SWU-038"
     ],
     "incomplete": [
       "MLA-SWU-008",
-      "MLA-SWU-015",
-      "MLA-SWU-021",
-      "MLA-SWU-031"
+      "MLA-SWU-021"
     ],
     "code_only_rework_candidate": [],
     "trust_hold": [
       "MLA-SWU-008",
-      "MLA-SWU-015",
-      "MLA-SWU-021",
-      "MLA-SWU-031"
+      "MLA-SWU-021"
     ],
     "note": "first_ready stays empty until CPAA verifies exact source/allowed paths; original 2+2, REQ and DAG retained. No VM or container fallback.",
     "repaired_source": [
-      "MLA-SWU-038"
+      "MLA-SWU-038",
+      "MLA-SWU-015",
+      "MLA-SWU-031"
     ],
     "source_commits": [
       "2509904c772b4151797a05d4a077d4151af1dfeb",
-      "930174209e5085c3acd7e3f23880b27e476f2181"
+      "930174209e5085c3acd7e3f23880b27e476f2181",
+      "6e6f3d2adc679407f25aabf9ba29a850d64f72f2",
+      "f53e33af1a3b4bdd527fdc45e6c6c9e817c06162",
+      "ffb5b6e794d3990f6d231439d1de582b8f87b937"
     ]
   }
 }

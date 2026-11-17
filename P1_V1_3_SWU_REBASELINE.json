@@ -329,12 +329,12 @@
       "percent": 89.09
     },
     "current": {
-      "mla": 35,
+      "mla": 37,
       "code_shield": 15,
-      "completed": 50,
+      "completed": 52,
       "total": 55,
-      "percent": 90.91,
-      "remaining": 5
+      "percent": 94.55,
+      "remaining": 3
     },
     "demoted_due_design": [
       "MLA-SWU-038",
@@ -356,19 +356,24 @@
     "historical_snapshots_preserved": true,
     "notes": "The former 49/55 remains historical; two completed candidate source surfaces still expose prohibited Sandbox fallback. This reconciliation is NOT functional source completion.",
     "source_wave": {
-      "source_sha": "930174209e5085c3acd7e3f23880b27e476f2181",
-      "prior_wave_sha": "2509904c772b4151797a05d4a077d4151af1dfeb",
+      "source_sha": "ffb5b6e794d3990f6d231439d1de582b8f87b937",
       "swus_completed": [
-        "MLA-SWU-038",
-        "CS-SWU-007",
-        "CS-SWU-014"
+        "MLA-SWU-015",
+        "MLA-SWU-031"
       ],
-      "windows_semgrep_not_run": true,
-      "independent_f18": "NOT_VERIFIED",
-      "p2": "LOCKED",
+      "runtime_executor_removed": true,
+      "windows_os_no_egress": "NOT_RUN",
+      "trust_owner": "HOLD",
+      "f18": "NOT_VERIFIED",
       "ci_runs": [
-        "44152457880",
-        "44153119018"
+        "44156852708",
+        "44157145064",
+        "44157411342"
+      ],
+      "source_commits": [
+        "6e6f3d2adc679407f25aabf9ba29a850d64f72f2",
+        "f53e33af1a3b4bdd527fdc45e6c6c9e817c06162",
+        "ffb5b6e794d3990f6d231439d1de582b8f87b937"
       ]
     }
   }
