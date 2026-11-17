@@ -49,3 +49,18 @@
 - 개발 브랜치 `dev/instant-implementation-v1`의 P1/P2 큐를 먼저 수정한 커밋 `51f4885a44540890996943bc058621d747325c50`을 참조하여 설계 브랜치 큐에도 검증 이관 ID만 동기화함. P1 `MLA-019/021/025`→P2 `MLA-V007`, CLI-only `MLA-006` 비대상.
 - **이 설계 브랜치의 과거 `P0/0 구현` 문장은 개발 현황이 아니다.** dev SHA `51f4885...` 시점 구현률 **4/30=13.33%**; 실제 재개 전에 GitHub에서 최신 HEAD·소스·큐 확인.
 - `ㄱ` 다음 READY: dev 큐에서 `MLA-012` loopback Ollama provider 구현 시작. P1 BE/FE 코드 작성, 문법/type·필수 CI·국소 safety 확인만. 전체 browser/Playwright, CI 수동 반복 대기, 실 Win11/24h는 P2. P2 LOCKED/검증률 UNASSESSED/F18 HOLD. 원본 EAI/AX/main·사용자 데이터·유료/remote 손대지 않음.
+
+---
+
+## 2026-11-17 KST — High V1.2 Experience Learning Engine 확정설계 인수인계 (10항)
+1. **목표/기술:** MLA의 자체 Controller 및 로컬 Qwen/OpenCode 기반 개발 자동화를 **경험 기반 적응형 시스템**으로 확장한다. 개발 오류/수정/독립 테스트/복구의 실제 own-source 기록을 분석해 스킬·작업 분할·도구/테스트 우선순위를 선택한다. Python3.11·SQLite/FTS5(optional)·SKILL.md·버전 규칙, EAI AdvisorPort/Hydrogen provider/AX 기술 출처/AXNODE optional export 유지.
+2. **완료 변경:** `docs/EXPERIENCE_LEARNING_ENGINE.md` 신설(3안 비교, BE/FE/API/DB, 데이터·신뢰/권리, 상황 판단/재현 가능한 A/B, EXP-AC-01..10), `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json` 신설(EXT-EXP-01..07), `docs/FINAL_BLUEPRINT.md I`/ARCHITECTURE/REQUIREMENTS/INTEGRATION_CONTRACT/SECURITY_MODEL/ACCEPTANCE_MATRIX/PHASE_GATES/AGENTS/INSTANT_RUNBOOK/STATUS에 설계 연결. **제품 코드 자체 변경/실행 없음**.
+3. **검증:** GitHub 문서/큐 커밋과 readback만. 실제 Python·전체 CI·실 Windows/Ollama/OpenCode/Hydrogen/Sol Max API·모델 가중치·브라우저/Playwright·실 프로젝트 자동 학습·A/B·F18 분리 실행 **NOT_RUN**. 이전 P1 소스 성공을 이번 신규 기능 PASS로 소급하지 않는다.
+4. **단계:** 기존 P1 필수 REQ-01..30/28 구현작업 및 P2 8검증/LOCKED, F18 CRITICAL HOLD, P1 browser E2E DEFERRED_TO_P2 불변. EXP 확장은 `DESIGN_ONLY_NOT_READY`·원래 구현완료율/공식검증률 수치 상승 0. dev 현재 실적은 정확 HEAD/STATUS 확인 후 보고.
+5. **오류/대안:** (A) 다수 hardcode rules는 조합 폭발, (B) Sol Max 답변 수천 건 수집/모델 학습은 증거/권리·공급자 약관 위험. (C) **자기 개발 사례+독립 테스트 증거→권리·안전 필터→read-only 검색→승인된 skill/version** 선택. 모델 self PASS/추론/테스트 위조는 신뢰하지 않음; 오류·환각/부정례 격리, no memory fallback.
+6. **repo/branch/SHA:** `hibi89/my_local_ai@design/final-blueprint-v1`. 최초 변경 전 design HEAD `d0fb706a1b4d9f5d108f561f37c837f065c600b4`, 같은 시점 dev `dev/instant-implementation-v1@51f4885a44540890996943bc058621d747325c50`. 이 인수인계 커밋 뒤 최종 HEAD는 GitHub에서 재조회. EAI/AXNODE/AX Dev Factory/main/dev 소스 미수정.
+7. **Production/환경:** MLA 로컬 프로그램, Vercel/Production N/A. 경험 수집/실 Windows/실모델/24h 모두 NOT_RUN. LLM 외부 호출/유료/비공개 자료 전송/모델 training 신규 승인 없음.
+8. **원본·권리/백업:** 공용 GitHub에는 공개 가능 설계·합성 metadata만; 고객 코드·키/토큰/.env·프롬프트·모델 output 원문, private SQLite/로그·사용자 폴더 경로를 올리지 않음. 원본 Git 이력/기존 기능·DB 원본 보존. 소스 이식은 라이선스/NOTICE/provenance 확인 뒤 별도 실시.
+9. **다음 READY/GO:** Instant는 현재 dev의 원래 `MLA-012` 등 본선 P1 구현을 계속. EXP-01..07은 High가 충돌 없는 경로/REQ/허용 범위/의존성을 현재 dev SHA와 검토하고 확장 구현 범위 GO를 받은 뒤 별도 시작. owner 실제 데이터 수집·새 provider·API/billing·AI 모델 학습/소스 송신/원격 push/권한·Production 작업에는 각각 명시적 승인 필요. P2·브라우저/Windows/보안 독립 검수는 100% 구현 후보+High 게이트 후.
+10. **기준:** 2026-11-17 KST. 최종설계 V1.2 확장 **DESIGN_ONLY**, 코드/실사용/공식 수용 미검증. 최종설계 브랜치 SHA를 재조회하고 dev STATUS/HANDOFF의 실제 최신 실적을 우선한다.
+
