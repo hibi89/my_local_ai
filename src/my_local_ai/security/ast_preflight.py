@@ -6,6 +6,8 @@ This scanner cannot establish filesystem/Git freshness, OS isolation or F18.
 from __future__ import annotations
 
 import ast
+import os
+import stat
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -249,3 +251,63 @@ def scan_python_sources(
         context.fingerprint_sha256, tuple(digests), tuple(findings),
         outcome, reason,
     )
+
+def _read_scoped_python_file(path: Path) -> bytes:
+    """Bounded lstat/open/fstat/readback of an untrusted file; never imports it."""
+    try:
+        before = path.lstat()
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+            or getattr(before, "st_file_attributes", 0) &
+               getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            or not 1 <= before.st_size <= _MAX_SINGLE_BYTES):
+            raise CodeShieldHold("UNSAFE_PATH")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+        fd = os.open(path, flags)
+        with os.fdopen(fd, "rb") as handle:
+            opened = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+                or (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino)
+                or opened.st_size != before.st_size):
+                raise CodeShieldHold("STALE_EVIDENCE")
+            data = handle.read(_MAX_SINGLE_BYTES + 1)
+            current = os.fstat(handle.fileno())
+        after = path.lstat()
+        first = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+        if (len(data) != before.st_size
+            or first != (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns)
+            or first != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)):
+            raise CodeShieldHold("STALE_EVIDENCE")
+        return data
+    except (OSError, ValueError, OverflowError):
+        raise CodeShieldHold("UNSAFE_PATH") from None
+
+
+def scan_scoped_python_sources(
+    context: CodeShieldContext, *, worktree: str | Path,
+    original_checkout: str | Path, changed_paths: tuple[str, ...],
+) -> ASTPreflight:
+    """Read actual scoped files and parse them without executing untrusted code.
+
+    This is the non-executing changed-path->AST caller link for CS-SWU-003.
+    Caller still needs a protected Git reader to establish genuine changed paths
+    and candidate SHA. A static ALLOW here is never a trust or runtime grant.
+    """
+    scope = preflight_changed_paths(
+        context, worktree=worktree, original_checkout=original_checkout,
+        changed_paths=changed_paths,
+    )
+    if (scope.git_diff_verified or scope.may_write or scope.may_execute
+        or any(not path.endswith(".py") for path in changed_paths)):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    root = Path(worktree)
+    content = {name: _read_scoped_python_file(root / name) for name in changed_paths}
+    result = scan_python_sources(context, content)
+    if (result.git_diff_verified or result.may_execute or result.may_promote):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    # Detect a changed file between the first read and AST conclusion.
+    for name, digest in result.file_digests:
+        if sha256(_read_scoped_python_file(root / name)).hexdigest() != digest:
+            raise CodeShieldHold("STALE_EVIDENCE")
+    if len(result.file_digests) != len(changed_paths):
+        raise CodeShieldHold("STALE_EVIDENCE")
+    return result
