@@ -44,3 +44,11 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 - 새 ProviderPort는 기본 OFF/네트워크 DENY/비용 0. 실제 API·비공개 코드·고객 자료 전송, SDK 계정 활성화·유료 결제·GitHub PR/main·권한·Production은 별도 사용자 GO. mock만 설계·안전 구현 후보 가능.
 - 여러 워커의 동시 코딩은 다른 READY, disjoint `allowed_paths`, exact source/plan SHA, worktree·lease·F18 독립 trust verifier를 지켜야 하며, 모델 셀프 PASS를 VERIFIED로 간주 금지.
 - 원래 `INSTANT_TASK_QUEUE.json` 28개/REQ-01~30/P1 구현률 분모 30 및 `WORK_PHASE_GATES.json` P2 LOCKED를 **절대 임의 변경하지 않는다**. 확장은 별도 설계/선택형 큐로 추적. 현재 작업중인 dev Instant 소스·STATUS·큐는 설계 브랜치 파일로 덮어쓰지 않는다.
+
+---
+
+## 2026-11-17 High V1.2 — Experience Learning Engine 정책(설계 전용)
+- 새 사용자 확정 설계: `docs/FINAL_BLUEPRINT.md I` 및 `docs/EXPERIENCE_LEARNING_ENGINE.md`. 규칙을 수천 개 고정하지 말고 **사용자 소유의 실제 개발·독립 검사·실패·복구 데이터**로부터 재사용 가능한 skill/추천을 만드는 `경험 기반 적응형 Controller`. Qwen 가중치 학습이나 다른 AI의 비공개 reasoning 복제는 아님.
+- 경험/문서/모델 답변은 모두 **비권한 입력**. 독립 F18 trusted verifier/owner GO/allowed_paths/계획·소스 SHA/기존 보안 정책은 학습으로 덮어쓰기 불가. 외부 Sol Max 응답 대량 수집·대체 모델 훈련용 데이터/신호·무단 외부송신·비밀/GitHub 공개 저장 금지.
+- 새 선택형 `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json` (EXT-EXP-01..07)은 **설계만**. 기본 P1 30 REQ/28작업, P2 8작업/LOCKED, Hydrogen 확장, 브라우저 P2 이관 및 F18 HOLD 불변. 기존 dev가 진행 중이므로 이 파일을 포함한 설계 브랜치의 구형 큐/STATUS/HANDOFF를 dev에 통째로 병합하지 않는다.
+- 사용자 별도 확장 구현 범위 승인, exact dev HEAD·충돌/라이선스 검사 전 새 READY로 실행하지 않는다. 실행 데이터·Windows/모델·독립 수용은 모두 NOT_RUN.
