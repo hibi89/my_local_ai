@@ -468,3 +468,16 @@ Owner clarified: normal P1 feature work remains 2+2; **do not escalate merely fo
 - Tool/validation: GitHub blob source readback + feature head PASS. Python syntax and local smoke **NOT_RUN** (no checkout-backed Python runner); actual Windows Semgrep CLI, OS no-egress, independent F18, CI, P2 **NOT_RUN/LOCKED**. Read-only request or clean untrusted JSON is *never* a scanner PASS / authority.
 - 2+2: one meaningful coding improvement with evidence, **0 new nonprogress failures**, no isolation/escalation. Next independent source-only READY `CS-SWU-012/014` (trusted owner-scope/Controller denial contracts). They **cannot** perform protected actions or enable F18/host execution in P1; real owner-action grant remains unissued. Codex GPT-6.1 Sol Max conditional only if 4 evidenced failures or actual indispensable deadlock.
 - No main/dev merge; no Windows policy/firewall/AV changes; no install, network, secrets, customer data, remote execution or Production. New final branch SHA must be read back.
+
+---
+
+## CodeShield P1 owner-scan and Controller hard-stop source round — 2026-11-18 KST
+
+- Scope: hibi89/my_local_ai branch feature/code-shield-lightweight-v1 only. Starting SHA 500e45e5c58e08a5c96c2694547170c5974a1c9d.
+- CS-SWU-012 PARTIAL: defender_status.py (4e40fa741cc3c471208f675d8c3fda761fea8a2e) now prepares an immutable bounded file digest/allowed-scope/consent-reference request, with regular-file lstat/fstat guards and redacted output. It never invokes Start-MpScan or validates actual owner GO; trusted grant + real scanning adapter remain missing.
+- CS-SWU-014 PARTIAL: controller/codeshield.py (6bfc1cc90fed41076f063a34a130998e5b1327f9) and orchestrator.py (d1d5ce135cf1e1a8f27e9c08380615b00755a46f) now implement staged source/scanner/owner/OS/F18/Git CAS fail-closed denial. No scanner PASS can enable host execution, F18 signing, original write, Git promotion or remote publication; independently protected execution gateway not implemented.
+- Progress: CodeShield 13/16 = 81.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED unchanged. Historical MLA source candidates 35/39 = 89.74%; formal accepted P1 REQ 5/30 = 16.67% unchanged. Three remaining CodeShield SWUs 007/012/014 remain partial/high-risk HOLD, not complete.
+- Checks: GitHub source file readback and static deny-marker inspection PASS. Full Python syntax/test NOT_RUN (matching GitHub files unavailable in isolated local Python container); Windows/Defender native scan/OS network egress/F18/CI/P2 NOT_RUN, official verification UNASSESSED, P2 LOCKED. Actual isolated scanner and F18 must not be implied.
+- No Windows ACL/firewall/CFA/Defender configuration changes, paid services, secret/client data transfers, guest execution, main/dev merge or Production alteration.
+- 2+2: two meaningful code improvements, nonprogress failures added 0; no Codex GPT-6.1 Sol Max escalation because independent safety work remains. Early exception only actual indispensable deadlock/no safe redesign, per latest owner policy.
+- Queue commit 40a47bfe4785426dcf1dd9c10d2ba3bd1613d237. Next independent safe source task CS-SWU-007: protected Windows Semgrep broker design and non-executing integration; actual owner/OS runtime execution remains HOLD.
