@@ -1,0 +1,22 @@
+name: synthetic-python-checks
+on:
+  push:
+    branches: [dev/instant-implementation-v1]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile syntax
+        run: python -m compileall -q src scripts tests
+      - name: Synthetic unit tests
+        run: PYTHONPATH=src python -m unittest discover -s tests/unit -p 'test_*.py' -v
