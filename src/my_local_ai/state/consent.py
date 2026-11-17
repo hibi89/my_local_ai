@@ -129,6 +129,18 @@ class OwnerConsentInspection:
     can_change_os: bool = False
     can_publish_remote: bool = False
 
+    def __post_init__(self) -> None:
+        # A parsed grant or local HMAC check can never fabricate the OS,
+        # signer, F18 or publication authority of a protected owner service.
+        if (type(self.signature_matches_and_live) is not bool
+            or self.status != "LOCAL_PLAN_SIGNATURE_CHECKED_OS_PROTECTION_UNVERIFIED"
+            or any(getattr(self, field) is not False for field in (
+                "protected_owner_principal_verified",
+                "independent_f18_verified", "can_issue_owner_grant",
+                "can_start_worker", "can_change_os", "can_publish_remote",
+            ))):
+            raise ValueError("UNTRUSTED_OWNER_CONSENT_INSPECTION")
+
 
 def inspect_owner_local_plan_consent(
     raw_grant_json: str, *, owned_state: str | Path,
@@ -251,9 +263,16 @@ def _read_existing_current_user_dpapi_key() -> bytearray:
                 raise ValueError("DPAPI unprotect denied")
             if (output_blob.cbData != 32 or not output_blob.pbData):
                 raise ValueError("unexpected key size")
-            # Native DPAPI buffer is zeroed before LocalFree; Python's one
-            # unavoidable key copy is zeroed immediately after MAC use.
-            return bytearray(ctypes.string_at(output_blob.pbData, 32))
+            # Move the key directly into a mutable bytearray, avoiding an
+            # extra immutable Python bytes object at the native copy boundary.
+            # The existing HMAC API still makes an ephemeral Python bytes
+            # copy; that memory cannot be guaranteed zeroed by Python.
+            candidate = bytearray(32)
+            ctypes.memmove(
+                (ctypes.c_ubyte * 32).from_buffer(candidate),
+                output_blob.pbData, 32,
+            )
+            return candidate
         finally:
             if output_blob.pbData:
                 if 0 < output_blob.cbData <= 8192:
