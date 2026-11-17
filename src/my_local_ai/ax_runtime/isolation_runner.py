@@ -1386,5 +1386,187 @@ def run_protected_coder(transport: OfflineCoderTransport, proposal: UntrustedHos
         raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE") from None
 
 
+
+# MLA-SWU-015/031 zero-VM candidate processing: independent of all legacy
+# Windows Sandbox/AppContainer previews and their unverified OS trust claims.
+# This is a fixed-operator data path, NOT an arbitrary-code execution sandbox.
+from my_local_ai.security.codeshield_contracts import (
+    CodeShieldContext as _PureScopeContext,
+    CodeShieldHold as _PureScopeHold,
+)
+import ast as _pure_ast
+import json as _pure_json
+
+_PURE_MAX_FILE = 65536
+_PURE_MAX_TOTAL = 131072
+_PURE_OPERATORS = frozenset({"PLAN_SCOPE_REVIEW", "STATIC_AST_REVIEW"})
+
+
+@dataclass(frozen=True)
+class PurePlayerCandidate:
+    context_sha256: str
+    candidate_git_sha: str
+    source_git_sha: str
+    plan_sha256: str
+    operator_id: str
+    files: tuple[tuple[str, str], ...]
+    payload_sha256: str
+    stage: str = "UNTRUSTED_NONEXECUTING_CANDIDATE"
+    source_execution_allowed: bool = False
+    generated_tests_execution_allowed: bool = False
+    owner_approval_verified: bool = False
+    independent_f18_verified: bool = False
+    git_promotion_allowed: bool = False
+    network_egress_attested: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.stage != "UNTRUSTED_NONEXECUTING_CANDIDATE"
+            or self.operator_id not in _PURE_OPERATORS
+            or any(getattr(self, name) is not False for name in (
+                "source_execution_allowed",
+                "generated_tests_execution_allowed",
+                "owner_approval_verified", "independent_f18_verified",
+                "git_promotion_allowed", "network_egress_attested",
+            ))):
+            raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+
+
+def prepare_pure_player_candidate(
+    context: _PureScopeContext, *,
+    operator_id: str, proposed_files: dict[str, str] | None = None,
+) -> PurePlayerCandidate:
+    """Validate scoped Qwen text without VM/container, import, exec or writes.
+
+    Only two in-process immutable operators exist. A model cannot provide a
+    callback, command, module, network target or arbitrary tool identifier.
+    The caller/Controller must independently validate plan and source scope.
+    """
+    if (not isinstance(context, _PureScopeContext)
+        or type(operator_id) is not str or operator_id not in _PURE_OPERATORS):
+        raise _PureScopeHold("UNTRUSTED_DECISION")
+    if operator_id == "PLAN_SCOPE_REVIEW":
+        if proposed_files is not None:
+            raise _PureScopeHold("UNTRUSTED_DECISION")
+        checked = ()
+    else:
+        if (type(proposed_files) is not dict
+            or not 1 <= len(proposed_files) <= 16):
+            raise _PureScopeHold("UNSAFE_PATH")
+        checked_items = []
+        limit = 0
+        seen = set()
+        for name, content in proposed_files.items():
+            if (type(name) is not str or type(content) is not str
+                or "\x00" in content or name.casefold() in seen):
+                raise _PureScopeHold("UNSAFE_PATH")
+            # Reuse the existing typed/relative path guard; no aliases.
+            from my_local_ai.security.codeshield_contracts import checked_relative_path
+            clean = checked_relative_path(name)
+            if clean != name or name not in context.allowed_paths:
+                raise _PureScopeHold("UNSAFE_PATH")
+            seen.add(name.casefold())
+            try:
+                size = len(content.encode("utf-8"))
+            except UnicodeError:
+                raise _PureScopeHold("UNTRUSTED_DECISION") from None
+            if size > _PURE_MAX_FILE:
+                raise _PureScopeHold("UNSAFE_PATH")
+            limit += size
+            if limit > _PURE_MAX_TOTAL:
+                raise _PureScopeHold("UNSAFE_PATH")
+            checked_items.append((name, content))
+        checked = tuple(sorted(checked_items))
+        if not checked:
+            raise _PureScopeHold("UNSAFE_PATH")
+    canonical = _pure_json.dumps(
+        {"context": context.fingerprint_sha256,
+         "candidate": context.candidate_git_sha,
+         "plan": context.plan_sha256,
+         "source": context.source_git_sha,
+         "operation": operator_id, "files": checked},
+        sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+    ).encode("utf-8")
+    return PurePlayerCandidate(
+        context.fingerprint_sha256, context.candidate_git_sha,
+        context.source_git_sha, context.plan_sha256,
+        operator_id, checked, sha256(canonical).hexdigest(),
+    )
+
+
+def run_pure_player_nonexecuting_candidate(
+    context: _PureScopeContext, candidate: PurePlayerCandidate,
+) -> dict[str, object]:
+    """Fixed CPU syntax/AST inspection; generated code can NEVER run.
+
+    'network_egress_allowed=False' means the exposed operator has no network
+    call, NOT that the entire host has kernel-enforced no-egress isolation.
+    """
+    if (not isinstance(candidate, PurePlayerCandidate)
+        or not isinstance(context, _PureScopeContext)
+        or any(getattr(candidate, flag) is not False for flag in (
+            "source_execution_allowed", "generated_tests_execution_allowed",
+            "owner_approval_verified", "independent_f18_verified",
+            "git_promotion_allowed", "network_egress_attested",
+        ))):
+        raise _PureScopeHold("UNTRUSTED_DECISION")
+    rebuilt = prepare_pure_player_candidate(
+        context, operator_id=candidate.operator_id,
+        proposed_files=(dict(candidate.files)
+                        if candidate.operator_id == "STATIC_AST_REVIEW" else None),
+    )
+    if candidate != rebuilt:
+        raise _PureScopeHold("STALE_EVIDENCE")
+    syntax = "NOT_APPLICABLE"
+    inspected = 0
+    if candidate.operator_id == "STATIC_AST_REVIEW":
+        syntax = "SYNTAX_SHAPE_ONLY"
+        for name, source in candidate.files:
+            # Non-Python files require separate fixed scanners, never import.
+            if name.casefold().endswith(".py"):
+                try:
+                    parsed = _pure_ast.parse(source, filename="<candidate>")
+                except (SyntaxError, ValueError, MemoryError, RecursionError):
+                    syntax = "PYTHON_SYNTAX_HOLD"
+                    break
+                for inspected_node in _pure_ast.walk(parsed):
+                    inspected += 1
+                    if inspected > 12000:
+                        syntax = "AST_RESOURCE_HOLD"
+                        break
+                if syntax == "AST_RESOURCE_HOLD":
+                    break
+            else:
+                syntax = "NON_PYTHON_NEEDS_SEPARATE_STATIC_SCAN_HOLD"
+                break
+    return {
+        "stage": "PURE_PLAYER_NONEXECUTING_HOLD",
+        "operator_id": candidate.operator_id,
+        "payload_sha256": candidate.payload_sha256,
+        "file_count": len(candidate.files),
+        "syntax": syntax,
+        "context_sha256": candidate.context_sha256,
+        "candidate_git_sha": candidate.candidate_git_sha,
+        "fixed_operator_invoked": True,
+        "model_output_trusted": False,
+        "generated_code_executed": False,
+        "generated_tests_executed": False,
+        "network_egress_allowed": False,
+        "host_network_isolation_attested": False,
+        "owner_go_verified": False,
+        "independent_f18_verified": False,
+        "git_promotion_allowed": False,
+        "p2": "LOCKED",
+    }
+
+
+def deny_pure_player_network_operation(operation_id: str) -> None:
+    """One mandatory no-egress policy surface: no dynamic network/tool ops."""
+    if type(operation_id) is not str or operation_id not in _PURE_OPERATORS:
+        raise _PureScopeHold("UNTRUSTED_EXECUTION_DENIED")
+    # Even allowlisted operations cannot become an OS or network grant.
+    return None
+
+
+
 if __name__ == "__main__":
     raise SystemExit(_capabilities_read_only_main())

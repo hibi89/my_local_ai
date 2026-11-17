@@ -202,6 +202,10 @@ def build_pure_player_nonexecuting_card(
         or result.get("independent_f18_verified") is not False
         or result.get("git_promotion_allowed") is not False
         or result.get("network_egress_allowed") is not False
+        or not isinstance(result.get("pure_candidate"), dict)
+        or result["pure_candidate"].get("generated_code_executed") is not False
+        or result["pure_candidate"].get("host_network_isolation_attested") is not False
+        or result["pure_candidate"].get("network_egress_allowed") is not False
         or result.get("p2") != "LOCKED"):
         raise ValueError("unsafe Pure Player application response")
     return result

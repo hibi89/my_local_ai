@@ -168,6 +168,47 @@ class ControllerCodeShieldDispatchTests(unittest.TestCase):
                 )
             ast.assert_not_called()
 
+
+    def test_actual_pure_player_candidate_is_bounded_cpu_only(self):
+        raw, plan, ctx, _ = make_fixture()
+        result = build_pure_player_nonexecuting_card(
+            plan_json=raw, context=ctx, protected_states={TASK: "READY"},
+            operator_id="STATIC_AST_REVIEW",
+            candidate_python_sources={"src/sample.py": "x = 1\n"},
+        )
+        candidate = result["pure_candidate"]
+        self.assertEqual(candidate["file_count"], 1)
+        self.assertEqual(candidate["syntax"], "SYNTAX_SHAPE_ONLY")
+        self.assertEqual(candidate["stage"], "PURE_PLAYER_NONEXECUTING_HOLD")
+        self.assertFalse(candidate["generated_code_executed"])
+        self.assertFalse(candidate["host_network_isolation_attested"])
+        self.assertFalse(result["execution_allowed"])
+
+    def test_host_network_and_forged_candidate_rejected_before_operator(self):
+        from my_local_ai.ax_runtime.isolation_runner import (
+            deny_pure_player_network_operation, prepare_pure_player_candidate,
+            run_pure_player_nonexecuting_candidate,
+        )
+        raw, plan, ctx, _ = make_fixture()
+        with self.assertRaises(CodeShieldHold):
+            deny_pure_player_network_operation("HTTP_POST")
+        with self.assertRaises(CodeShieldHold):
+            prepare_pure_player_candidate(
+                ctx, operator_id="STATIC_AST_REVIEW",
+                proposed_files={"../.env": "leak"},
+            )
+        candidate = prepare_pure_player_candidate(
+            ctx, operator_id="STATIC_AST_REVIEW",
+            proposed_files={"src/sample.py": "x = 1"},
+        )
+        for forged in (
+            replace(candidate, payload_sha256="f"*64),
+            replace(candidate, network_egress_attested=True),
+            replace(candidate, git_promotion_allowed=True),
+        ):
+            with self.subTest(forged=forged.payload_sha256), self.assertRaises(CodeShieldHold):
+                run_pure_player_nonexecuting_candidate(ctx, forged)
+
     def test_controller_exports_no_banned_sandbox_preview_port(self):
         import my_local_ai.controller.codeshield as controller
         import my_local_ai.orchestrator as orchestration

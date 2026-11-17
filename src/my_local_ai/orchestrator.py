@@ -603,6 +603,25 @@ def inspect_pure_player_nonexecuting_cycle(
         or denial["f18_independently_verified"] is not False
         or denial["can_promote_git"] is not False):
         raise ValueError("Pure Player Controller authority mismatch")
+    # Actual MLA-SWU-015/031 fixed CPU operator, after Controller scope check.
+    from my_local_ai.ax_runtime.isolation_runner import (
+        prepare_pure_player_candidate, run_pure_player_nonexecuting_candidate,
+        deny_pure_player_network_operation,
+    )
+    deny_pure_player_network_operation(operator_id)
+    pure_candidate = prepare_pure_player_candidate(
+        context, operator_id=operator_id,
+        proposed_files=(candidate_python_sources
+                        if operator_id == "STATIC_AST_REVIEW" else None),
+    )
+    pure_result = run_pure_player_nonexecuting_candidate(
+        context, pure_candidate,
+    )
+    if (pure_result["generated_code_executed"] is not False
+        or pure_result["network_egress_allowed"] is not False
+        or pure_result["host_network_isolation_attested"] is not False
+        or pure_result["git_promotion_allowed"] is not False):
+        raise ValueError("invalid fixed Pure Player evaluation")
     static = None
     if operator_id == "STATIC_AST_REVIEW":
         static = preview_codeshield_static(
@@ -621,6 +640,7 @@ def inspect_pure_player_nonexecuting_cycle(
         "candidate_git_sha": context.candidate_git_sha,
         "controller_dispatch": denial,
         "static_review": static,
+        "pure_candidate": pure_result,
         "typed_operator_executed": True,
         "model_code_executed": False,
         "owner_go_verified": False,
