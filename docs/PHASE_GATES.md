@@ -15,6 +15,14 @@
 4. 위 조건과 사용자 승인 설계의 정확 SHA를 확인하기 전에는 `WORK_PHASE_GATES.json`의 P2 LOCKED를 해제하거나 verification task를 READY로 바꾸지 않는다. 파일에 수동으로 100%만 적는 것은 게이트 통과가 아니다.
 5. P2에서는 전체 CI/보안/실 Windows 11·Qwen/Ollama/OpenCode/검증기/24시간 테스트를 묶어 시행하고 결함을 고친다. P3 Codex Sol Max·Astra Max 실제 독립 검수와 P4 High 최종 인수/사용자 GO는 P2 이후에 각각 별도 판정한다.
 6. 공식 검증완료율의 **승인 가중치가 없으면 UNASSESSED**. 구현완료율은 완료된 코드 REQ/30과 그 SHA를 함께 보고하고, 검증률·출시/운영 허가와 혼동하지 않는다.
+### 브라우저·Playwright 후행 강제 규칙 (2026-11-17 사용자 확정)
+1. P1 구현 담당 Instant/Codex/로컬 Qwen/선택형 Hydrogen은 **백엔드와 프론트엔드 모두** 작성한다. 브라우저 실행·Playwright E2E·클릭 순회·스크린샷 비교·다중 해상도 및 접근성/반응형 전체 검사·반복 재시도 루프는 기본 `DEFERRED_TO_P2`.
+2. P1 필수 최소 검사: 문법/타입, 필요한 최소 빌드, 변경 범위 국소 스모크. **기존 필수 GitHub CI/브랜치 보호는 유지**하고 전체 CI 수동 대기만 생략한다. 인증·인가·권한·비밀·원본/DB 손실·외부 전송·F18 고위험은 즉시 검사한다.
+3. 실제 브라우저가 구현 필수 상태 확인 또는 고위험 변경의 안전 확인에 불가결하면 최소 핵심 시나리오만 수행, 사유/범위/정확 SHA/결과를 기록한다. 예외 검사도 P2 전수 브라우저 검증을 대체하지 않는다.
+4. FE 기능이 코드로 구현됐더라도 브라우저를 돌리지 않았다면 `IMPLEMENTED_UNVERIFIED` + `BROWSER_NOT_RUN`. 전체 검증률에 허위 PASS를 적지 않는다. 코드/HTTP 확인만으로 브라우저 PASS 주장 금지.
+5. P2는 P1 구현 후보 100%·High·정확 SHA 게이트 후 웹 UI 대상 실제 브라우저/Playwright 핵심 E2E·Console/Network·키보드/a11y·반응형·보안을 일괄 수행하고 결함 수정 후 영향 범위를 재검증한다. CLI-only 비대상은 근거와 함께 `NOT_APPLICABLE`, 웹 UI 미실행은 `NOT_RUN`.
+6. 공식 P1 30 REQ·28 작업/P2 8 검증·후행 독립 감사·`WORK_PHASE_GATES.json` LOCKED 상태는 불변이다.
+
 ### 모든 담당자 필독
 **High**: P0 설계/큐·P1 인수 Gate·P4 최종 책임. **Instant**: P1 구현 코드(전체 CI 수동 대기 금지)·국소 안전검사. **Codex Sol Max**: P2 완료 후 동일 SHA 독립 코드/보안 감사. **Astra Max**: 같은 SHA UX/a11y 감사. 새 채팅/자동 에이전트/모바일 `ㄱ` 모두 AGENTS 최상단→WORK_PHASE_GATES→현재 단계 큐를 먼저 확인한다.
 
