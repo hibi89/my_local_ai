@@ -61,3 +61,88 @@ def make_remote_preview(proposal: RemoteProposal, *,
     # not enough: REMOTE_PR is blocked until separate owner GO and P4 release.
     return RemotePreview(proposal.repository,proposal.task_id,proposal.intended_ref,
                          proposal.baseline_sha,proposal.candidate_sha)
+
+
+# Read-only policy comparison for a future draft PR. This code never contacts
+# GitHub: branch protection and head SHA must later be re-fetched by a
+# protected owner caller immediately before an explicitly approved operation.
+from my_local_ai.contracts.task import safe_path as _safe_path
+
+_BASE_BRANCH = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}\Z")
+
+
+@dataclass(frozen=True)
+class DraftTargetSnapshot:
+    repository: str
+    base_branch: str
+    expected_base_sha: str
+    observed_base_sha: str
+    protection_required: bool
+    protection_observed: bool
+    change_paths: tuple[str, ...]
+    ignored_or_untracked_paths: tuple[str, ...] = ()
+    config_filters_unknown: bool = False
+
+
+@dataclass(frozen=True)
+class DraftPRPreview:
+    repository: str
+    base_branch: str
+    expected_base_sha: str
+    source_sha: str
+    candidate_sha: str
+    changed_file_count: int
+    target_local_ref: str
+    state: str = "READ_ONLY_DRAFT_PR_SIMULATION_OWNER_GO_REQUIRED"
+    remote_observed_live: bool = False
+    owner_action_grant_verified: bool = False
+    draft_pr_created: bool = False
+    remote_push_allowed: bool = False
+    target_branch_modified: bool = False
+
+
+def preview_protected_draft(
+    proposal: RemoteProposal, snapshot: DraftTargetSnapshot, *,
+    exact_owner_grant_verified: bool = False,
+) -> DraftPRPreview:
+    """Validate metadata only and redact sensitive filenames from output."""
+    reviewed = make_remote_preview(
+        proposal, exact_owner_grant_verified=exact_owner_grant_verified,
+    )
+    if not isinstance(snapshot, DraftTargetSnapshot):
+        raise RemotePreviewHold("target policy missing")
+    if (not isinstance(snapshot.repository, str)
+        or snapshot.repository != reviewed.repository
+        or not isinstance(snapshot.base_branch, str)
+        or not _BASE_BRANCH.fullmatch(snapshot.base_branch)
+        or ".." in snapshot.base_branch
+        or "//" in snapshot.base_branch
+        or snapshot.base_branch.endswith((".lock", ".", "/"))
+        or not isinstance(snapshot.expected_base_sha, str)
+        or not _SHA.fullmatch(snapshot.expected_base_sha)
+        or snapshot.observed_base_sha != snapshot.expected_base_sha
+        or snapshot.protection_required is not True
+        or snapshot.protection_observed is not True
+        or snapshot.config_filters_unknown is not False):
+        raise RemotePreviewHold("protected draft target is not pinned")
+    paths = snapshot.change_paths
+    if (not isinstance(paths, tuple) or not 1 <= len(paths) <= 16
+        or not isinstance(snapshot.ignored_or_untracked_paths, tuple)
+        or snapshot.ignored_or_untracked_paths):
+        raise RemotePreviewHold("unsafe draft change inventory")
+    seen: set[str] = set()
+    for p in paths:
+        try:
+            checked = _safe_path(p)
+        except ValueError:
+            raise RemotePreviewHold("unsafe draft filename") from None
+        if checked.casefold() in seen:
+            raise RemotePreviewHold("duplicate draft change")
+        seen.add(checked.casefold())
+    # Important: this metadata is a caller-provided CLAIM, not a live
+    # GitHub protection readback or a data classification attestation.
+    return DraftPRPreview(
+        reviewed.repository, snapshot.base_branch,
+        snapshot.expected_base_sha, reviewed.source_sha,
+        reviewed.candidate_sha, len(paths), reviewed.intended_ref,
+    )
