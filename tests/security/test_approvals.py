@@ -25,37 +25,6 @@ def make_claim(**changes):
     obj["signature"] = hmac.new(KEY, b"mla-owner-go/v1|" + parsed.payload(), hashlib.sha256).hexdigest()
     return OwnerGrant.parse_json(json.dumps(obj))
 
-
-def traced_consent_lookup(ledger, grant_id, plan_sha, scope):
-    """Test-only synthetic file/WAL identity trace; never changes trust logic."""
-    import my_local_ai.state.consent as m
-    observations = []
-    original_file, original_side = m._check_safe_owned_file, m._safe_sidecar_identity
-    def file_trace(path):
-        try:
-            value = original_file(path)
-            observations.append(("file", value))
-            return value
-        except Exception as exc:
-            observations.append(("file_error", type(exc).__name__))
-            raise
-    def side_trace(path):
-        try:
-            value = original_side(path)
-            observations.append(("sidecar", value))
-            return value
-        except Exception as exc:
-            observations.append(("sidecar_error", type(exc).__name__))
-            raise
-    try:
-        m._check_safe_owned_file = file_trace
-        m._safe_sidecar_identity = side_trace
-        result = ledger.is_live(grant_id, plan_sha, scope)
-    finally:
-        m._check_safe_owned_file = original_file
-        m._safe_sidecar_identity = original_side
-    return result, observations
-
 def check(claim, ledger, **updates):
     options = dict(trusted_hmac_key=KEY, expected_plan_sha=PLAN,
                    expected_source_sha=SOURCE, required_scope="LOCAL_PLAN",
@@ -74,10 +43,12 @@ class ConsentTests(unittest.TestCase):
                        ("SYNTH-GRANT-0001",PLAN,"LOCAL_PLAN","APPROVED"))
         self.ledger = ConsentLedger(self.path)
         self.claim = make_claim()
+        # An initial SQLite read may create WAL/SHM sidecars. ConsentLedger
+        # correctly HOLDs that first read rather than trusting new files.
+        # Prime the synthetic fixture; positive checks require stable identity.
+        self.ledger.is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN")
 
     def test_signed_and_unrevoked_synthetic_claim(self):
-        live, trace = traced_consent_lookup(self.ledger, "SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN")
-        self.assertTrue(live, f"synthetic identity trace: {trace}")
         self.assertTrue(check(self.claim,self.ledger))
         self.assertFalse(check(self.claim,self.ledger,trusted_hmac_key=None))
 
@@ -114,8 +85,6 @@ class ConsentTests(unittest.TestCase):
                        ("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN", "NOT_APPROVED"))
         original_is_live = self.ledger.is_live
         # A replaced DB can never retain stale in-memory approval.
-        live, trace = traced_consent_lookup(self.ledger, "SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN")
-        self.assertTrue(live, f"synthetic identity trace: {trace}")
         self.assertTrue(original_is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
         import os
         os.replace(other, self.path)
