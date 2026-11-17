@@ -72,4 +72,4 @@
 | HYD-AC-09 | remote API·비용·권한·GitHub PR/고객 자료 각각 별도 GO | denied-policy tests, redacted ledger | NOT_RUN |
 | HYD-AC-10 | Provider OFF 이후 기존 30 REQ/원래 기능 보존 | exact-SHA regression tests (P2 후행) | NOT_RUN |
 
-작업 ID·의존성·허용 파일/상태는 \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\`, 상세 수용 정의는 \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`. 선택형 확장을 필수 범위로 재편하면 새로운 승인된 REQ/가중치/acceptance 버전을 만든 뒤에만 분모 변경; 기존 수치 소급 변경 금지.
+작업 ID·의존성·허용 파일/상태는 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`, 상세 수용 정의는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. 선택형 확장을 필수 범위로 재편하면 새로운 승인된 REQ/가중치/acceptance 버전을 만든 뒤에만 분모 변경; 기존 수치 소급 변경 금지.
