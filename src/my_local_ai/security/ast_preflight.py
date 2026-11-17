@@ -278,6 +278,8 @@ def _read_scoped_python_file(path: Path) -> bytes:
             or first != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)):
             raise CodeShieldHold("STALE_EVIDENCE")
         return data
+    except CodeShieldHold:
+        raise
     except (OSError, ValueError, OverflowError):
         raise CodeShieldHold("UNSAFE_PATH") from None
 
