@@ -20,11 +20,10 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 34,
-  "source_incomplete_swu_count": 5,
+  "source_complete_swu_count": 35,
+  "source_incomplete_swu_count": 4,
   "status_counts": {
-    "BLOCKED_PROVENANCE": 1,
-    "SOURCE_COMPLETE_P2_PENDING": 34,
+    "SOURCE_COMPLETE_P2_PENDING": 35,
     "BLOCKED_TRUST": 4
   },
   "first_ready": [],
@@ -52,8 +51,8 @@
       ],
       "caller_to_callee": "audit_sources.main>audit_manifest>source manifest",
       "observable_outcome": "pinned source rights decision",
-      "missing_function": "external EAI/AX license unresolved",
-      "code_status": "BLOCKED_PROVENANCE",
+      "missing_function": "NONE_P1_SOURCE_AUDIT_CODE_IMPLEMENTED_PUBLIC_RIGHTS_STILL_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [],
       "complexity": {
         "S": 0,
@@ -79,8 +78,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-001": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "One post-policy P1 actual read-only audit source implementation, no upstream code copied.",
       "evidence_sha_by_legacy": {
         "MLA-001": "aa626dc11c96135439d369cdf211ac9055e17550"
       },
@@ -99,7 +98,14 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "external EAI/AX license unresolved",
+      "actual_source_implemented": true,
+      "latest_code_sha": "33fb36e80eb8d1689b611491d859049d500a3047",
+      "source_completed_from": "ACTUAL_READ_ONLY_PUBLIC_PINNED_SOURCE_AUDIT",
+      "source_safety": "MANDATORY_GITHUB_ACTIONS_44082730630_44082973608_PASS; synthetic forged tree/branch drift/unavailable/NOTICE cases fail closed; live CLI on Windows NOT_RUN",
+      "runtime_gap": "GitHub pinned historical commit/tree does not determine copyright ownership or third-party rights. Current EAI feature branch has diverged from pinned commit; source imports remain zero, license reuse BLOCKED_PROVENANCE. Independent rights review/owner GO required.",
+      "source_dependency_review": "Offline + optional public GitHub immutable commit/tree/current branch checks can be written without clearance. Rights decision is reliably BLOCKED until separate review; no runtime source migration grant."
     },
     {
       "id": "MLA-SWU-002",
@@ -2277,8 +2283,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "One meaningful source attempt: strict Windows Sandbox no-network and no-share WSB config generator, exact policy audit and default execution HOLD. Actual host network enforcement not implemented or attested; remains BLOCKED_TRUST.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -2301,7 +2307,14 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "partial_source_implemented": true,
+      "partial_source_sha": "67f0de110d34a77c4d040cdad3915a51349e6bbe",
+      "partial_source_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "partial_source_safety": "MANDATORY_GITHUB_ACTIONS_44083456680_44083565677_PASS; mutated WSB policy/guest launch denial synthetic security tests PASS",
+      "runtime_gap": "Windows Sandbox CLI cannot return guest program stdout, so an independently protected no-network result broker is required. No actual OS sandbox launch, network probe, coder/reviewer invocation, signed F18 output, or owner OS_CHANGE GO. Remains BLOCKED_TRUST."
     },
     {
       "id": "MLA-SWU-032",
@@ -4769,34 +4782,34 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "ea974b586b374a9f5a996777f62f4b4f91bd7f8f",
+    "source_sha": "f0fdc7bf504802c78e6ab2b584798b600e171da4",
     "source_commits": [
-      "c080c7e816f9494d626c940bf9dd6a41f2bd1af8",
-      "636fb1317eb3278b1edb059263d65b7a20871df0",
-      "b4e49d79cf8c1b8b01e4f5db5ff5bc15b4900857",
-      "d89935921853fd7d20c6e7c6bf40ddae6dabd3ca",
-      "ea974b586b374a9f5a996777f62f4b4f91bd7f8f"
+      "be7984e8d4cd2fa744570dac04f5569e0f1dced1",
+      "33fb36e80eb8d1689b611491d859049d500a3047",
+      "67f0de110d34a77c4d040cdad3915a51349e6bbe",
+      "f0fdc7bf504802c78e6ab2b584798b600e171da4"
     ],
-    "swus": [
-      "MLA-SWU-027",
-      "MLA-SWU-038",
-      "MLA-SWU-029"
+    "swus_source_candidates": [
+      "MLA-SWU-001"
+    ],
+    "swus_partial_source_hold": [
+      "MLA-SWU-031"
     ],
     "mandatory_actions_runs": [
-      44077269094,
-      44077424278,
-      44077596361,
-      44077661541,
-      44077847221
+      44082730630,
+      44082973608,
+      44083456680,
+      44083565677
     ],
-    "mandatory_ci": "PASS_AT_ALL_SOURCE_SHAS",
-    "immediate_safety": "DEFAULT_OS_CHANGE_AND_REMOTE_PR_DENY_BEFORE_CALLBACK; CONTROLLER_SQLITE_HOLD_NO_LEASE_NO_F18_GITHUB_ACTIONS_PASS",
-    "local_git_write": "NOT_RUN_V1_OS_CHANGE_DENY",
-    "remote_publish": "NOT_RUN_V1_REMOTE_PR_DENY",
-    "real_coder_and_f18": "SECURITY_HOLD",
+    "mandatory_ci": "PASS_AT_SOURCE_SHAS",
+    "live_public_github_tree": "READ_ONLY_CONNECTOR_CONFIRMED_PINNED_SHA_UNTRUNCATED; NEW_SCRIPT_LIVE_CLI_NOT_RUN",
+    "live_source_rights": "BLOCKED_PROVENANCE_NO_SOURCE_COPY",
+    "windows_sandbox_egress": "CONFIG_ONLY_NOT_HOST_ATTESTED",
+    "windows_sandbox_runner": "NOT_RUN_NO_OWNER_OS_CHANGE_GO",
+    "independent_f18": "SECURITY_HOLD",
     "real_windows": "NOT_RUN",
     "p2": "LOCKED",
     "owner_go": false
   },
-  "next_wave_exception_reason": "Remaining 5 source SWUs: 001 external rights/provenance, 008 owner OS-protected action signer, 015 separate OS isolated coder, 021 independent OS F18 reviewer, 031 network egress denial. No fake signer, host fallback, license clearance or P2 GO. High trust boundary/owner OS environment review required."
+  "next_wave_exception_reason": "Four high-risk trust SWUs remain: 008 protected owner signer, 015 isolated coder with secure offline host↔guest broker, 021 independent F18 reviewer/issuer, 031 actual host-attested egress denial. SWU-031 source-only no-network XML is partial, not network enforcement. Need High architecture decision and user OS/security permissions approval before any execution; no workaround that mints fake F18."
 }
