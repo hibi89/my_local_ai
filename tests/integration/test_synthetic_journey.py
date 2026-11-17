@@ -84,5 +84,83 @@ class SyntheticJourneyTests(unittest.TestCase):
             preview_plan(plan_json="{bad json",protected_states=self.states)
 
 
+from dataclasses import replace
+from tempfile import TemporaryDirectory
+from my_local_ai.orchestrator import preview_local_code_request
+from my_local_ai.app import safe_code_request_card
+
+
+class SyntheticControllerWorkerJourneyTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)
+        self.original=self.root/"original"
+        self.worktree=self.root/"disposable"
+        self.original.mkdir()
+        self.worktree.mkdir()
+        self.states={"TASK-019-A":"READY","TASK-019-B":"READY"}
+
+    def worker(self, **changes):
+        params=dict(plan_json=plan(),protected_states=self.states,
+                    task_id="TASK-019-A",disposable_worktree=self.worktree,
+                    original_checkout=self.original)
+        params.update(changes)
+        return preview_local_code_request(**params)
+
+    def test_full_native_controller_to_local_code_request_is_nonexecuting(self):
+        result=self.worker()
+        card=safe_code_request_card(result)
+        self.assertEqual(card["task_id"],"TASK-019-A")
+        self.assertEqual(card["provider"],"LOCAL_QWEN_OPENCODE")
+        self.assertEqual(card["allowed_file_count"],1)
+        self.assertEqual(card["stage"],"CODE_REQUEST_PREPARED_ONLY")
+        self.assertEqual(card["review_status"],"F18_HOLD")
+        self.assertFalse(card["execution_allowed"])
+        self.assertFalse(card["network_allowed"])
+        self.assertFalse((self.worktree/"src/synthetic.py").exists())
+
+    def test_no_model_prompt_or_allowed_paths_in_public_payload(self):
+        preview=self.worker()
+        raw=json.dumps(safe_code_request_card(preview))
+        self.assertNotIn("SENSITIVE_CODING_PROMPT_CANARY",raw)
+        self.assertNotIn("src/synthetic.py",raw)
+        self.assertNotIn("OPENCODE_CONFIG_CONTENT",raw)
+        self.assertNotIn("SYNTHETIC NONEXECUTING REQUEST",raw)
+
+    def test_unverified_dependency_or_active_lease_is_not_worker_candidate(self):
+        with self.assertRaises(ValueError):
+            self.worker(task_id="TASK-019-B")
+        with self.assertRaises(ValueError):
+            self.worker(active_leases={"TASK-019-A"})
+        self.states["TASK-019-A"]="VERIFIED"
+        with self.assertRaises(ValueError):
+            self.worker()
+
+    def test_advisor_cannot_force_task_without_dag(self):
+        injected='{"version":1,"hints":[{"task_id":"TASK-019-B","rank":0}]}'
+        with self.assertRaises(ValueError):
+            self.worker(task_id="TASK-019-B",advisory_json=injected)
+
+    def test_bad_or_non_isolated_worktree_refused(self):
+        with self.assertRaises(Exception):
+            self.worker(disposable_worktree=self.original)
+        with self.assertRaises(Exception):
+            self.worker(disposable_worktree=self.root/"missing")
+        self.assertEqual(list(self.original.iterdir()),[])
+
+    def test_claimed_owner_go_cannot_modify_worker_card(self):
+        original=self.worker()
+        for tampered in (
+            replace(original,owner_signed_go=True),
+            replace(original,may_execute=True),
+            replace(original,code_worker_executed=True),
+            replace(original,real_isolation_verified=True),
+            replace(original,candidate_verified=True),
+        ):
+            with self.subTest(tampered=tampered),self.assertRaises(ValueError):
+                safe_code_request_card(tampered)
+
+
 if __name__=="__main__":
     unittest.main()

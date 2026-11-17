@@ -76,3 +76,77 @@ def redact_preview(preview: PlanningPreview) -> dict:
         "can_publish_remote":False,
         "p2_locked":True,
     }
+
+
+# Non-executing controller -> local OpenCode code-request composition.
+# It deliberately never calls run_in_sandbox, invokes a model or verifies F18.
+from dataclasses import replace as _replace
+from hashlib import sha256 as _sha256
+from pathlib import Path as _Path
+from my_local_ai.ax_runtime.opencode_worker import prepare_opencode_run, WorkerHold
+
+
+@dataclass(frozen=True)
+class ControllerCodePreview:
+    task_id: str
+    plan_sha256: str
+    baseline_sha: str
+    provider: str
+    allowed_file_count: int
+    prepared_request_sha256: str
+    stage: str = "CODE_REQUEST_PREPARED_ONLY"
+    owner_signed_go: bool = False
+    real_isolation_verified: bool = False
+    candidate_verified: bool = False
+    code_worker_executed: bool = False
+    may_execute: bool = False
+    may_write_git: bool = False
+
+
+def preview_local_code_request(
+    *, plan_json: str, protected_states: dict[str, str], task_id: str,
+    disposable_worktree: str | _Path, original_checkout: str | _Path,
+    active_leases: Iterable[str] = (), advisory_json: str | None = None,
+) -> ControllerCodePreview:
+    """Validate a Controller-ready task, then prepare a local-only request.
+
+    Code candidate is a *shape* only and deliberately not handed to a
+    process. Never pass original goal/prompt, customer content, or secrets
+    into the simulated worker. Actual protected owner signer, OS sandbox
+    and independent reviewer must later authorize a real invocation.
+    """
+    if not isinstance(task_id, str):
+        raise ValueError("task ID must be a string")
+    plan = PlanSpec.parse_json(plan_json)
+    proposed = Controller(plan).propose(
+        protected_states, independently_verified=(),
+        active_leases=active_leases, advisory_json=advisory_json,
+    )
+    if (proposed.execution_allowed or proposed.owner_go or proposed.verified
+        or task_id not in {item.task_id for item in proposed.decisions}):
+        raise ValueError("task not eligible as safe Controller code candidate")
+    task = next(item for item in plan.tasks if item.task_id == task_id)
+    # A transient locally recomputed plan digest is used for format
+    # validation only. This does NOT approve the underlying PlanSpec.
+    pinned_task = _replace(task, plan_sha=plan.digest)
+    prompt = "SYNTHETIC NONEXECUTING REQUEST FOR " + task.task_id
+    prepared = prepare_opencode_run(
+        pinned_task, plan_sha256=plan.digest, source_sha=task.source_sha,
+        disposable_worktree=str(disposable_worktree),
+        original_checkout=str(original_checkout),
+        prompt=prompt,
+    )
+    if (prepared.untrusted is not True or prepared.task_id != task_id
+        or prepared.source_sha != plan.blueprint_sha
+        or prepared.plan_sha256 != plan.digest
+        or not set(prepared.allowed_paths).issubset(task.allowed_paths)):
+        raise ValueError("prepared worker request mismatch")
+    # Hash the request schema locally. No command, source, prompt or
+    # environment values are published into the status interface.
+    identity = (prepared.task_id + "|" + prepared.plan_sha256
+                + "|" + prepared.source_sha + "|"
+                + ",".join(prepared.allowed_paths)).encode("ascii")
+    return ControllerCodePreview(
+        task_id, plan.digest, task.source_sha, "LOCAL_QWEN_OPENCODE",
+        len(prepared.allowed_paths), _sha256(identity).hexdigest(),
+    )
