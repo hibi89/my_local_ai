@@ -308,3 +308,13 @@
 - **MLA-013 and MLA-018:** previous code already exists; their remaining barriers are independent OS F18/sandbox/effective host Git CAS + owner signer, **not new P1 source TODOs**. Removed from repeated hardening READY. Their operational `status/blockers` remain intact.
 - **Progress:** 5/30 (16.67%) REQ unchanged pending per-REQ acceptance; `IMPLEMENTED_UNVERIFIED` != `VERIFIED`. P2 LOCKED, verified UNASSESSED, owner GO false; provenance/F18/signer HOLD.
 - **Next five P1 code-ready gaps for one-pass triage:** MLA-012/016/017/020/022 (separate source paths). Inspect actual missing features before editing; if source already sufficient, remove from P1 READY and retain P2/run blockers without rehardening.
+
+
+---
+
+## 2026-11-17 KST SWU reestimate, source unchanged
+- Audited source HEAD `bc28dfee99fecd16180d8a16c54a0adb95420658`, policy `OWNER-SWU-HIGH-20261117` blob `f7005d73...`. 28 original task groups /30 REQ mapped to **39 High-sized P1 source SWUs**; **18 existing code candidates**, **21 gaps/blockers** (not formal REQ completion). 5 original test-only tasks mapped to P2.
+- **New first READY:** MLA-SWU-002, MLA-SWU-011, MLA-SWU-023, MLA-SWU-032, MLA-SWU-034. Exact allowed source paths and status are in `P1_SWU_TASK_QUEUE.json`. P1 task runner must not treat legacy `INSTANT_TASK_QUEUE.json.first_ready` as current ready; old CLI/guard preserved unmodified.
+- `src/`, `tests/`, frozen blueprint, Git history, phase gates untouched; this rescoping produces **0 new REQ source-acceptance change**. Recorded formal P1 remains **5/30 (16.67%)**, P2 verification `UNASSESSED/LOCKED`, owner GO false, real model/Windows/F18/browser NOT_RUN. Existing mandatory CI and narrow immediate safety apply.
+- Original IDs/evidence/attempts and safety/full dependencies retained in `legacy_mapping`. New ids cannot reset attempts. P1 only BE/FE real code, P2 entire test harness, full regression/real hardware/security reviews. No paid/external/remote or customer original operation.
+- Next `ㄱ`: implement five independent READY code gaps without preview-only hardening or P2 test code. After actual source commit, update SWU status/SHA and legacy mapping; preserve 30-REQ denominator until individually accepted.

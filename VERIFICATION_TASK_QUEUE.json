@@ -46,6 +46,10 @@
       "verification_status": "NOT_RUN",
       "blockers": [
         "P1 implementation candidate / High gate"
+      ],
+      "legacy_test_harness_migrated_from": [
+        "MLA-004",
+        "MLA-025"
       ]
     },
     {
@@ -81,6 +85,9 @@
       "blockers": [
         "P1 gate",
         "trusted verifier"
+      ],
+      "legacy_test_harness_migrated_from": [
+        "MLA-030"
       ]
     },
     {
@@ -114,6 +121,9 @@
       "verification_status": "NOT_RUN",
       "blockers": [
         "owner host"
+      ],
+      "legacy_test_harness_migrated_from": [
+        "MLA-005"
       ]
     },
     {
@@ -148,6 +158,9 @@
       "blockers": [
         "owner Windows Sandbox",
         "independent reviewer"
+      ],
+      "legacy_test_harness_migrated_from": [
+        "MLA-029"
       ]
     },
     {
@@ -270,6 +283,9 @@
         "Browser Console error and Network request/response inspection; no external data egress",
         "Host/Origin/CSRF/access control browser negative scenarios with separate P1 narrow safety check still mandatory",
         "Retest affected UI paths after P2 defects; record browser/version/OS/sha evidence and PASS/FAIL/SKIP/NOT_RUN"
+      ],
+      "legacy_test_harness_migrated_from": [
+        "MLA-025"
       ]
     },
     {
@@ -360,5 +376,15 @@
       "phase": "POST_P2",
       "verification_status": "NOT_RUN"
     }
-  ]
+  ],
+  "p1_swu_source_queue": "P1_SWU_TASK_QUEUE.json",
+  "deferred_legacy_p1_test_only": [
+    "MLA-004",
+    "MLA-005",
+    "MLA-025",
+    "MLA-029",
+    "MLA-030"
+  ],
+  "p1_test_harness_is_not_swu": true,
+  "swu_reestimate_gate_state": "P2_LOCKED"
 }

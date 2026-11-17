@@ -79,3 +79,41 @@
 | HYD-AC-10 | Provider OFF 이후 기존 30 REQ/원래 기능 보존 | exact-SHA regression tests (P2 후행) | NOT_RUN |
 
 작업 ID·의존성·허용 파일/상태는 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`, 상세 수용 정의는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. 선택형 확장을 필수 범위로 재편하면 새로운 승인된 REQ/가중치/acceptance 버전을 만든 뒤에만 분모 변경; 기존 수치 소급 변경 금지.
+
+
+## 2026-11-17 P1 SWU source mapping only (not P2 acceptance)
+
+| REQ | SWU code owners | P2 verifiers |
+|---|---|---|
+| REQ-01 | MLA-SWU-001 | MLA-V002, MLA-V008 |
+| REQ-02 | MLA-SWU-001, MLA-SWU-002, MLA-SWU-039 | MLA-V001, MLA-V008 |
+| REQ-03 | MLA-SWU-003, MLA-SWU-007 | MLA-V008 acceptance sweep |
+| REQ-04 | MLA-SWU-004 | MLA-V001 |
+| REQ-05 | MLA-SWU-005, MLA-SWU-006, MLA-SWU-038 | MLA-V008 acceptance sweep |
+| REQ-06 | MLA-SWU-005, MLA-SWU-006 | MLA-V008 acceptance sweep |
+| REQ-07 | MLA-SWU-007, MLA-SWU-008, MLA-SWU-029, MLA-SWU-036 | MLA-V005 |
+| REQ-08 | MLA-SWU-009 | MLA-V005 |
+| REQ-09 | MLA-SWU-012, MLA-SWU-015, MLA-SWU-038 | MLA-V003 |
+| REQ-10 | MLA-SWU-013 | MLA-V003 |
+| REQ-11 | MLA-SWU-014, MLA-SWU-015 | MLA-V002, MLA-V003 |
+| REQ-12 | MLA-SWU-016, MLA-SWU-018, MLA-SWU-019 | MLA-V004 |
+| REQ-13 | MLA-SWU-017, MLA-SWU-019 | MLA-V002 |
+| REQ-14 | MLA-SWU-020, MLA-SWU-021 | MLA-V004 |
+| REQ-15 | MLA-SWU-020, MLA-SWU-021, MLA-SWU-027 | MLA-V002, MLA-V004 |
+| REQ-16 | MLA-SWU-022, MLA-SWU-023 | MLA-V005 |
+| REQ-17 | MLA-SWU-009, MLA-SWU-023, MLA-SWU-038 | MLA-V005 |
+| REQ-18 | MLA-SWU-010, MLA-SWU-011, MLA-SWU-025 | MLA-V005 |
+| REQ-19 | MLA-SWU-025, MLA-SWU-026 | MLA-V005, MLA-V006 |
+| REQ-20 | MLA-SWU-011, MLA-SWU-024, MLA-SWU-026 | MLA-V005, MLA-V006 |
+| REQ-21 | MLA-SWU-027 | MLA-V004, MLA-V005 |
+| REQ-22 | MLA-SWU-028, MLA-SWU-029 | MLA-V008 acceptance sweep |
+| REQ-23 | MLA-SWU-013, MLA-SWU-030, MLA-SWU-031 | MLA-V002 |
+| REQ-24 | MLA-SWU-014, MLA-SWU-015, MLA-SWU-030, MLA-SWU-031 | MLA-V002, MLA-V004 |
+| REQ-25 | MLA-SWU-012, MLA-SWU-032, MLA-SWU-034 | MLA-V003, MLA-V006 |
+| REQ-26 | MLA-SWU-032, MLA-SWU-033 | MLA-V006 |
+| REQ-27 | MLA-SWU-034 | MLA-V003, MLA-V006 |
+| REQ-28 | MLA-SWU-035, MLA-SWU-036 | MLA-V007 |
+| REQ-29 | MLA-SWU-037 | MLA-V007 |
+| REQ-30 | MLA-SWU-039 | MLA-V001, MLA-V002, MLA-V008 |
+
+Original REQ acceptance criteria remain authoritative. Existing 5/30 implementation count unchanged without fresh per-REQ acceptance.

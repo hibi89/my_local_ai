@@ -1,3 +1,15 @@
+> **[OWNER SWU REESTIMATE · 2026-11-17 · ACTIVE P1]** Read `P1_SWU_TASK_QUEUE.json` and `docs/SWU_REESTIMATION_20261117.md` first. **28 legacy tasks → 39 High-sized P1 source SWUs; 18 existing source candidates, 5 first READY.** `INSTANT_TASK_QUEUE.json.tasks/first_ready` exists only for old CLI/guard and evidence history. `ㄱ` executes new `P1_SWU_TASK_QUEUE.json.first_ready` instead. All test/fixture/full CI/browser/E2E/F18/real model validation belongs P2 (old mandatory CI and immediate high-risk safety checks remain). Product code, final blueprint, 30-REQ denominator, trust/owner/remote hold and P2 lock unchanged.
+
+## SWU source-only actual implementation queue
+
+- **AUTHORITATIVE P1:** `P1_SWU_TASK_QUEUE.json` → `first_ready` = MLA-SWU-002, MLA-SWU-011, MLA-SWU-023, MLA-SWU-032, MLA-SWU-034. Old `INSTANT_TASK_QUEUE.json.first_ready` is legacy compatibility only, NOT active implementation dispatch.
+- Web Sol High-sized 1 SWU = one actual caller→callee code path + outcome and failure; 1 coding attempt target, 2 default max, 3 only High+owner approved exceptional, 2 nonimproving failures HOLD and continue other ready. Batch 4–6 disjoint sources per `ㄱ`.
+- Do not redo 18 source-complete candidates or count source-evidence SHA/test-only work as REQ acceptance. Complete SWU after actual source edit with exact SHA and accepted local safety checks; P2 remains NOT_RUN.
+- New test harness/full CI/browser/Win11/Qwen/F18 exhaustive verification is P2 `VERIFICATION_TASK_QUEUE.json`. **Keep existing mandatory CI and immediate auth/secret/rights/original/DB/F18 risk checks.** Never unlock owner runtime, remote writes, original checkout or verified status from queue JSON.
+- 28 old task IDs, SHA and attempts remain in new `legacy_mapping` and existing old queue, which is not deleted. Consult `docs/SWU_REESTIMATION_20261117.md` for original task↔SWU↔REQ mapping.
+
+---
+
 > **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
 
 > **[PRODUCT IDENTITY LOCK · OWNER CLARIFICATION · 2026-11-17]** `my_local_ai`는 **EAI의 후속 버전/확장판/완성판이 아니다.** EAI는 선택적으로 재사용할 알고리즘·CPU 분석·도구의 **기술 제공원**일 뿐이다. `my_local_ai`의 고유 목적은 **로컬 모델로 소프트웨어 구현을 지속 자동화하는 개인용 개발 시스템**이며, 정책·스케줄·실행/검증 게이트·진척 기준은 `my_local_ai`가 자체 소유한다. 원본 EAI ADR-0002(Qwen INPUT-only)는 EAI 원본의 아키텍처 지침이지 `my_local_ai`의 코딩 워커 사용 제한이 아니다. EAI 전체 13개 목표·자체 모델 연구의 100% 완료는 `my_local_ai`의 필수 조건이 아니다. 자세한 내용 `docs/PRODUCT_IDENTITY.md`. **P1 구현 우선/P2 검증 잠금 정책은 그대로 유지.**

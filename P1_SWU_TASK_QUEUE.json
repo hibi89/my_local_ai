@@ -1,0 +1,4663 @@
+{
+  "version": 1,
+  "program": "my_local_ai",
+  "policy_id": "OWNER-SWU-HIGH-20261117",
+  "policy_blob_sha": "f7005d7375bde3088af73ae1386c01c914a3cfd4",
+  "repo": "hibi89/my_local_ai",
+  "branch": "dev/instant-implementation-v1",
+  "reestimate_source_sha": "bc28dfee99fecd16180d8a16c54a0adb95420658",
+  "stage": "P1_FUNCTION_CODE_ONLY",
+  "legacy_queue": "INSTANT_TASK_QUEUE.json",
+  "request_target": [
+    4,
+    6
+  ],
+  "one_swu_attempt_goal": 1,
+  "default_max_attempts": 2,
+  "max3_requires_prior_high_and_owner_go": true,
+  "nonimproving_two_failures_hold": true,
+  "swu_count": 39,
+  "legacy_task_count": 28,
+  "req_count": 30,
+  "legacy_accepted_req_count": 5,
+  "source_complete_swu_count": 18,
+  "source_incomplete_swu_count": 21,
+  "status_counts": {
+    "BLOCKED_PROVENANCE": 1,
+    "READY": 5,
+    "SOURCE_COMPLETE_P2_PENDING": 18,
+    "BLOCKED_TRUST": 4,
+    "BACKLOG_READY": 2,
+    "PENDING_CODE_DEPENDENCY": 8,
+    "BLOCKED_APPROVAL": 1
+  },
+  "first_ready": [
+    "MLA-SWU-002",
+    "MLA-SWU-011",
+    "MLA-SWU-023",
+    "MLA-SWU-032",
+    "MLA-SWU-034"
+  ],
+  "operational_ready": [],
+  "owner_go": false,
+  "f18": "SECURITY_HOLD",
+  "provenance": "BLOCKED_PROVENANCE",
+  "p2": "LOCKED",
+  "verified_rate": "UNASSESSED",
+  "source_code_untouched_by_reestimate": true,
+  "legacy_compatibility_note": "INSTANT_TASK_QUEUE.json retains 28 entries for existing CLI/guard only; all new ㄱ tasks use P1_SWU_TASK_QUEUE.json.first_ready",
+  "tasks": [
+    {
+      "id": "MLA-SWU-001",
+      "title": "Provenance manifest and license audit",
+      "req_ids": [
+        "REQ-01",
+        "REQ-02"
+      ],
+      "supersedes": [
+        "MLA-001"
+      ],
+      "allowed_paths": [
+        "scripts/audit_sources.py"
+      ],
+      "caller_to_callee": "audit_sources.main>audit_manifest>source manifest",
+      "observable_outcome": "pinned source rights decision",
+      "missing_function": "external EAI/AX license unresolved",
+      "code_status": "BLOCKED_PROVENANCE",
+      "code_depends_on": [],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 1,
+        "U": 2,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "scripts/audit_sources.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-001": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-001": "aa626dc11c96135439d369cdf211ac9055e17550"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: audit_sources.main>audit_manifest>source manifest => pinned source rights decision; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V001",
+        "MLA-V002",
+        "MLA-V008"
+      ],
+      "original_runtime_dependencies": [],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-002",
+      "title": "REQ source evidence CLI",
+      "req_ids": [
+        "REQ-02"
+      ],
+      "supersedes": [
+        "MLA-001",
+        "MLA-006"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "caller_to_callee": "mla evidence>REQ inventory>redacted rows",
+      "observable_outcome": "per-REQ source coverage visible",
+      "missing_function": "no REQ live coverage CLI",
+      "code_status": "READY",
+      "code_depends_on": [
+        "MLA-SWU-003",
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-001": 0,
+        "MLA-006": 1
+      },
+      "attempts_used": 1,
+      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "evidence_sha_by_legacy": {
+        "MLA-001": "aa626dc11c96135439d369cdf211ac9055e17550",
+        "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: mla evidence>REQ inventory>redacted rows => per-REQ source coverage visible; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V001",
+        "MLA-V008"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-003",
+      "title": "Immutable plan SHA and DAG",
+      "req_ids": [
+        "REQ-03"
+      ],
+      "supersedes": [
+        "MLA-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/contracts/plan.py"
+      ],
+      "caller_to_callee": "PlanSpec.parse_json>digest/DAG",
+      "observable_outcome": "reject invalid plan SHA",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 0,
+        "U": 0,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/contracts/plan.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-002": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-002": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: PlanSpec.parse_json>digest/DAG => reject invalid plan SHA; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [],
+      "original_runtime_dependencies": [],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-004",
+      "title": "TaskSpec and safe paths",
+      "req_ids": [
+        "REQ-04"
+      ],
+      "supersedes": [
+        "MLA-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/contracts/task.py"
+      ],
+      "caller_to_callee": "TaskSpec.parse>safe_path/budget",
+      "observable_outcome": "bounded validated task",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 0,
+        "U": 0,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/contracts/task.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-002": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-002": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: TaskSpec.parse>safe_path/budget => bounded validated task; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V001"
+      ],
+      "original_runtime_dependencies": [],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-005",
+      "title": "Native Controller decision",
+      "req_ids": [
+        "REQ-05",
+        "REQ-06"
+      ],
+      "supersedes": [
+        "MLA-008",
+        "MLA-019"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/controller/decision.py"
+      ],
+      "caller_to_callee": "Controller.propose>QueuePolicy",
+      "observable_outcome": "native scheduling without EAI",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-003",
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/controller/decision.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-008": 0,
+        "MLA-019": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-008": "920b6675083277448be7c20e0f3fa341d1df60ae",
+        "MLA-019": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: Controller.propose>QueuePolicy => native scheduling without EAI; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-006",
+      "title": "Optional EAI advisory ranking",
+      "req_ids": [
+        "REQ-05",
+        "REQ-06"
+      ],
+      "supersedes": [
+        "MLA-008",
+        "MLA-028"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/advisors/eai.py"
+      ],
+      "caller_to_callee": "inspect_optional_eai>pinned hints",
+      "observable_outcome": "priority hints only",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-005"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/advisors/eai.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-008": 0,
+        "MLA-028": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-008": "920b6675083277448be7c20e0f3fa341d1df60ae",
+        "MLA-028": "920b6675083277448be7c20e0f3fa341d1df60ae"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: inspect_optional_eai>pinned hints => priority hints only; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-008",
+        "MLA-015"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-007",
+      "title": "Signed owner-claim validation",
+      "req_ids": [
+        "REQ-03",
+        "REQ-07"
+      ],
+      "supersedes": [
+        "MLA-009",
+        "MLA-024"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/contracts/approval.py",
+        "src/my_local_ai/state/consent.py"
+      ],
+      "caller_to_callee": "authorize_claim>scope expiry revocation",
+      "observable_outcome": "reject invalid owner claim",
+      "missing_function": "NONE for claim guard; protected signer separate",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-003"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/contracts/approval.py",
+        "src/my_local_ai/state/consent.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-009": 0,
+        "MLA-024": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985",
+        "MLA-024": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: authorize_claim>scope expiry revocation => reject invalid owner claim; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-023"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-008",
+      "title": "Protected owner signer adapter",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "supersedes": [
+        "MLA-009"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/consent.py"
+      ],
+      "caller_to_callee": "trusted owner store>protected signature>current grant",
+      "observable_outcome": "protected signer usable by Controller",
+      "missing_function": "owner key and protected OS identity missing",
+      "code_status": "BLOCKED_TRUST",
+      "code_depends_on": [
+        "MLA-SWU-007"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/state/consent.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-009": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: trusted owner store>protected signature>current grant => protected signer usable by Controller; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-009",
+      "title": "DAG READY and independent HOLD",
+      "req_ids": [
+        "REQ-08",
+        "REQ-17"
+      ],
+      "supersedes": [
+        "MLA-010",
+        "MLA-016"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/queue.py"
+      ],
+      "caller_to_callee": "QueuePolicy.propose_ready>verified deps",
+      "observable_outcome": "unblocked READY with blocked child HOLD",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 0,
+        "U": 0,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/queue.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-010": 0,
+        "MLA-016": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-010": "675a7c772866709d626bf5e1001b454e98647f9d",
+        "MLA-016": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: QueuePolicy.propose_ready>verified deps => unblocked READY with blocked child HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-010",
+        "MLA-015"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-010",
+      "title": "Owned SQLite bootstrap",
+      "req_ids": [
+        "REQ-18"
+      ],
+      "supersedes": [
+        "MLA-007"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/sqlite_store.py",
+        "src/my_local_ai/state/migrations.py"
+      ],
+      "caller_to_callee": "initialize_state>WAL/schema/backup",
+      "observable_outcome": "owned SQLite initialized or rejected",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 1,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/state/sqlite_store.py",
+        "src/my_local_ai/state/migrations.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-007": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-007": "675a7c772866709d626bf5e1001b454e98647f9d"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: initialize_state>WAL/schema/backup => owned SQLite initialized or rejected; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-011",
+      "title": "Durable task run event writer",
+      "req_ids": [
+        "REQ-18",
+        "REQ-20"
+      ],
+      "supersedes": [
+        "MLA-007",
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "caller_to_callee": "protected run writer>SQLite tasks/runs/events",
+      "observable_outcome": "durable task event commit",
+      "missing_function": "schema exists but no state writer",
+      "code_status": "READY",
+      "code_depends_on": [
+        "MLA-SWU-010"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 1,
+        "U": 0,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-007": 0,
+        "MLA-017": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-007": "675a7c772866709d626bf5e1001b454e98647f9d",
+        "MLA-017": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: protected run writer>SQLite tasks/runs/events => durable task event commit; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-012",
+      "title": "Model lock and budget",
+      "req_ids": [
+        "REQ-09",
+        "REQ-25"
+      ],
+      "supersedes": [
+        "MLA-011"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/worker_lock.py",
+        "src/my_local_ai/ax_runtime/budgets.py"
+      ],
+      "caller_to_callee": "OneModelLock+BudgetGuard>bounded call",
+      "observable_outcome": "one-model resource guard",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/worker_lock.py",
+        "src/my_local_ai/ax_runtime/budgets.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-011": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-011": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: OneModelLock+BudgetGuard>bounded call => one-model resource guard; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V003",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-010"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-013",
+      "title": "Ollama loopback Qwen transport",
+      "req_ids": [
+        "REQ-10",
+        "REQ-23"
+      ],
+      "supersedes": [
+        "MLA-012"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/ollama_provider.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py"
+      ],
+      "caller_to_callee": "OllamaProvider.generate>loopback HTTP",
+      "observable_outcome": "untrusted local model output or HOLD",
+      "missing_function": "NONE; real Qwen P2 NOT_RUN",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-012"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 1,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/ollama_provider.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-012": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-012": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: OllamaProvider.generate>loopback HTTP => untrusted local model output or HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V003"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-005",
+        "MLA-011"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-014",
+      "title": "OpenCode bounded request envelope",
+      "req_ids": [
+        "REQ-11",
+        "REQ-24"
+      ],
+      "supersedes": [
+        "MLA-013"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py"
+      ],
+      "caller_to_callee": "prepare_opencode_run>fixed argv and config",
+      "observable_outcome": "bounded no-shell coder request",
+      "missing_function": "NONE for request contract; actual OS isolation separate",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-004",
+        "MLA-SWU-013"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-013": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: prepare_opencode_run>fixed argv and config => bounded no-shell coder request; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V003",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-012"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-015",
+      "title": "Isolated OpenCode host runner",
+      "req_ids": [
+        "REQ-09",
+        "REQ-11",
+        "REQ-24"
+      ],
+      "supersedes": [
+        "MLA-003",
+        "MLA-013"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "caller_to_callee": "trusted controller>isolated runner>untrusted candidate",
+      "observable_outcome": "isolated coder result",
+      "missing_function": "Windows isolated OS runner not implemented",
+      "code_status": "BLOCKED_TRUST",
+      "code_depends_on": [
+        "MLA-SWU-014",
+        "MLA-SWU-008"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [],
+      "planned_new_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-003": 0,
+        "MLA-013": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+        "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: trusted controller>isolated runner>untrusted candidate => isolated coder result; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V003",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-012"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-016",
+      "title": "Disposable Git worktree create",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "supersedes": [
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "caller_to_callee": "protected source>pinned git worktree create",
+      "observable_outcome": "isolated checkout without changing main",
+      "missing_function": "only preview and metadata audit",
+      "code_status": "BACKLOG_READY",
+      "code_depends_on": [
+        "MLA-SWU-017",
+        "MLA-SWU-003"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-014": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-014": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: protected source>pinned git worktree create => isolated checkout without changing main; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-017",
+      "title": "Filesystem path alias guard",
+      "req_ids": [
+        "REQ-13"
+      ],
+      "supersedes": [
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/path_guard.py"
+      ],
+      "caller_to_callee": "preflight_paths>alias and path checks",
+      "observable_outcome": "unsafe checkout path denied",
+      "missing_function": "NONE; OS attack P2 NOT_RUN",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/path_guard.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-014": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-014": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: preflight_paths>alias and path checks => unsafe checkout path denied; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-018",
+      "title": "Disposable worktree cleanup",
+      "req_ids": [
+        "REQ-12"
+      ],
+      "supersedes": [
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "caller_to_callee": "fresh worktree snapshot>protected cleanup",
+      "observable_outcome": "only owned clean tree removed",
+      "missing_function": "cleanup preview only, no Git cleanup",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-016"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-014": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-014": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: fresh worktree snapshot>protected cleanup => only owned clean tree removed; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-019",
+      "title": "Actual Git HEAD and index readback",
+      "req_ids": [
+        "REQ-12",
+        "REQ-13"
+      ],
+      "supersedes": [
+        "MLA-014"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "caller_to_callee": "protected Git read>inventory snapshot>audit",
+      "observable_outcome": "fresh actual tracked and dirty inventory",
+      "missing_function": "caller-provided snapshot only",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-016",
+        "MLA-SWU-017"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/worktree.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-014": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-014": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: protected Git read>inventory snapshot>audit => fresh actual tracked and dirty inventory; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-020",
+      "title": "Pinned reviewer argv policy",
+      "req_ids": [
+        "REQ-14",
+        "REQ-15"
+      ],
+      "supersedes": [
+        "MLA-003",
+        "MLA-015"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/review/trusted_runner.py",
+        "src/my_local_ai/review/receipt_guard.py"
+      ],
+      "caller_to_callee": "reviewer policy>fixed check request",
+      "observable_outcome": "approved argv and request bounded",
+      "missing_function": "NONE for pre-execution policy",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-003",
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/review/trusted_runner.py",
+        "src/my_local_ai/review/receipt_guard.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-003": 0,
+        "MLA-015": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+        "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: reviewer policy>fixed check request => approved argv and request bounded; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-003",
+        "MLA-004",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-021",
+      "title": "Protected independent F18 reviewer",
+      "req_ids": [
+        "REQ-14",
+        "REQ-15"
+      ],
+      "supersedes": [
+        "MLA-003",
+        "MLA-015"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/review/protected_reviewer.py"
+      ],
+      "caller_to_callee": "independent principal>fixed tests>trusted receipt",
+      "observable_outcome": "guest-unforgeable signed review result",
+      "missing_function": "no separated OS reviewer or protected issuer",
+      "code_status": "BLOCKED_TRUST",
+      "code_depends_on": [
+        "MLA-SWU-020",
+        "MLA-SWU-008"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [],
+      "planned_new_paths": [
+        "src/my_local_ai/review/protected_reviewer.py"
+      ],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-003": 0,
+        "MLA-015": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+        "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: independent principal>fixed tests>trusted receipt => guest-unforgeable signed review result; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-003",
+        "MLA-004",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-022",
+      "title": "One improved repair proposal",
+      "req_ids": [
+        "REQ-16"
+      ],
+      "supersedes": [
+        "MLA-016"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py"
+      ],
+      "caller_to_callee": "plan_improved_repair>bounded strategy",
+      "observable_outcome": "one repair intent or HOLD",
+      "missing_function": "NONE for proposal, durable transition separate",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-009"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 0,
+        "U": 0,
+        "total": 0
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-016": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-016": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: plan_improved_repair>bounded strategy => one repair intent or HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-010",
+        "MLA-015"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-023",
+      "title": "Retry HOLD queue state transition",
+      "req_ids": [
+        "REQ-16",
+        "REQ-17"
+      ],
+      "supersedes": [
+        "MLA-010",
+        "MLA-016"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py",
+        "src/my_local_ai/ax_runtime/queue.py"
+      ],
+      "caller_to_callee": "review failure>repair policy>next READY",
+      "observable_outcome": "persist retry/HOLD decision path",
+      "missing_function": "only pure retry proposal, no queue transition",
+      "code_status": "READY",
+      "code_depends_on": [
+        "MLA-SWU-009",
+        "MLA-SWU-022"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 1,
+        "U": 0,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py",
+        "src/my_local_ai/ax_runtime/queue.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-010": 0,
+        "MLA-016": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-010": "675a7c772866709d626bf5e1001b454e98647f9d",
+        "MLA-016": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: review failure>repair policy>next READY => persist retry/HOLD decision path; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-010",
+        "MLA-015"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-024",
+      "title": "Durable lease epoch CAS",
+      "req_ids": [
+        "REQ-20"
+      ],
+      "supersedes": [
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/leases.py",
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "caller_to_callee": "lease proposal>SQLite CAS epoch>receipt",
+      "observable_outcome": "stale duplicate workers fenced",
+      "missing_function": "in-memory intent but no durable CAS",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-011",
+        "MLA-SWU-009"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 1,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/leases.py",
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-017": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-017": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: lease proposal>SQLite CAS epoch>receipt => stale duplicate workers fenced; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-025",
+      "title": "Read-only crash state reconcile",
+      "req_ids": [
+        "REQ-18",
+        "REQ-19"
+      ],
+      "supersedes": [
+        "MLA-007",
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/reconcile.py"
+      ],
+      "caller_to_callee": "read_reconcile_state>SQLite read-only readback",
+      "observable_outcome": "contradictory DB ref state HOLD",
+      "missing_function": "NONE for safe read-only decision",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-010"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 1,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/state/reconcile.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-007": 0,
+        "MLA-017": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-007": "675a7c772866709d626bf5e1001b454e98647f9d",
+        "MLA-017": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: read_reconcile_state>SQLite read-only readback => contradictory DB ref state HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-026",
+      "title": "Durable crash checkpoint recovery",
+      "req_ids": [
+        "REQ-19",
+        "REQ-20"
+      ],
+      "supersedes": [
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/reconcile.py",
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "caller_to_callee": "startup reconcile>durable checkpoint",
+      "observable_outcome": "safe recovery without replay",
+      "missing_function": "read-only decision only, no protected transaction",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-024",
+        "MLA-SWU-025"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 1,
+        "I": 0,
+        "D": 1,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/state/reconcile.py",
+        "src/my_local_ai/state/sqlite_store.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-017": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-017": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: startup reconcile>durable checkpoint => safe recovery without replay; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-027",
+      "title": "Verified isolated Git local CAS",
+      "req_ids": [
+        "REQ-15",
+        "REQ-21"
+      ],
+      "supersedes": [
+        "MLA-015",
+        "MLA-018"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/local_integration.py"
+      ],
+      "caller_to_callee": "trusted F18+readback>isolated ref CAS",
+      "observable_outcome": "only independently verified ref promoted",
+      "missing_function": "synthetic memory CAS only",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-019",
+        "MLA-SWU-021",
+        "MLA-SWU-024"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/local_integration.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-015": 0,
+        "MLA-018": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd",
+        "MLA-018": "9933c4f591a70b64dbc397735f521bd0900cd3a8"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: trusted F18+readback>isolated ref CAS => only independently verified ref promoted; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004",
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-003",
+        "MLA-004",
+        "MLA-014",
+        "MLA-015",
+        "MLA-017"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-028",
+      "title": "Read-only remote draft preview",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "supersedes": [
+        "MLA-023"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/remote_preview.py"
+      ],
+      "caller_to_callee": "draft preview>scope inventory>redacted card",
+      "observable_outcome": "owner sees remote intent no push",
+      "missing_function": "NONE",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-003"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/remote_preview.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-023": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-023": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: draft preview>scope inventory>redacted card => owner sees remote intent no push; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [],
+      "original_runtime_dependencies": [
+        "MLA-009",
+        "MLA-018"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-029",
+      "title": "Separate GO draft PR publisher",
+      "req_ids": [
+        "REQ-07",
+        "REQ-22"
+      ],
+      "supersedes": [
+        "MLA-009",
+        "MLA-024"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/gitops/remote_publish.py"
+      ],
+      "caller_to_callee": "separate owner grant>draft GitHub PR",
+      "observable_outcome": "approved draft only, never main merge",
+      "missing_function": "only intent, remote action unavailable",
+      "code_status": "BLOCKED_APPROVAL",
+      "code_depends_on": [
+        "MLA-SWU-008",
+        "MLA-SWU-027",
+        "MLA-SWU-028"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/remote_publish.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-009": 0,
+        "MLA-024": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985",
+        "MLA-024": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: separate owner grant>draft GitHub PR => approved draft only, never main merge; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007",
+        "MLA-023"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-030",
+      "title": "Secret-safe worker config",
+      "req_ids": [
+        "REQ-23",
+        "REQ-24"
+      ],
+      "supersedes": [
+        "MLA-003",
+        "MLA-012",
+        "MLA-013"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py"
+      ],
+      "caller_to_callee": "fixed env and output constraints>guest",
+      "observable_outcome": "no secret env and self-verified receipts",
+      "missing_function": "NONE for policy, actual OS egress separate",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-014"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-003": 0,
+        "MLA-012": 0,
+        "MLA-013": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+        "MLA-012": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+        "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: fixed env and output constraints>guest => no secret env and self-verified receipts; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-005",
+        "MLA-011",
+        "MLA-012"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-031",
+      "title": "Protected OS network egress denial",
+      "req_ids": [
+        "REQ-23",
+        "REQ-24"
+      ],
+      "supersedes": [
+        "MLA-003",
+        "MLA-013"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "caller_to_callee": "protected sandbox>deny public network",
+      "observable_outcome": "guest/reviewer no egress",
+      "missing_function": "no host-attested network isolation",
+      "code_status": "BLOCKED_TRUST",
+      "code_depends_on": [
+        "MLA-SWU-015",
+        "MLA-SWU-021"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 2,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [],
+      "planned_new_paths": [
+        "src/my_local_ai/ax_runtime/isolation_runner.py"
+      ],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-003": 0,
+        "MLA-013": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+        "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: protected sandbox>deny public network => guest/reviewer no egress; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V002",
+        "MLA-V004"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-012"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "NO_AUTH_BYPASS",
+        "NO_UNAPPROVED_ORIGINAL_WRITE",
+        "KEEP_MANDATORY_CI",
+        "F18_OWNER_HOLD"
+      ]
+    },
+    {
+      "id": "MLA-SWU-032",
+      "title": "Owner-local resource sampler",
+      "req_ids": [
+        "REQ-25",
+        "REQ-26"
+      ],
+      "supersedes": [
+        "MLA-011",
+        "MLA-022"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ops/resource_monitor.py"
+      ],
+      "caller_to_callee": "bounded sampler>ResourceReading>limits",
+      "observable_outcome": "local RAM CPU thermal VRAM or NOT_AVAILABLE",
+      "missing_function": "only injected synthetic sample; no platform read",
+      "code_status": "READY",
+      "code_depends_on": [
+        "MLA-SWU-012"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 0,
+        "D": 0,
+        "U": 1,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ops/resource_monitor.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "Single caller-visible source result; no test-harness workload",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-011": 0,
+        "MLA-022": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-011": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+        "MLA-022": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: bounded sampler>ResourceReading>limits => local RAM CPU thermal VRAM or NOT_AVAILABLE; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V003",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-010",
+        "MLA-017",
+        "MLA-019",
+        "MLA-020"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-033",
+      "title": "Supervisor pause and checkpoint",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "supersedes": [
+        "MLA-022"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ops/supervisor.py"
+      ],
+      "caller_to_callee": "resource state>supervisor>durable pause",
+      "observable_outcome": "safe unattended checkpoint/HOLD",
+      "missing_function": "pure assessment, no durable state",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-032",
+        "MLA-SWU-026"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 1,
+        "U": 1,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ops/supervisor.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-022": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-022": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: resource state>supervisor>durable pause => safe unattended checkpoint/HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-017",
+        "MLA-019",
+        "MLA-020"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-034",
+      "title": "Local benchmark observed metrics",
+      "req_ids": [
+        "REQ-25",
+        "REQ-27"
+      ],
+      "supersedes": [
+        "MLA-011",
+        "MLA-020"
+      ],
+      "allowed_paths": [
+        "scripts/benchmark_real_local.py"
+      ],
+      "caller_to_callee": "local generation>observation>redacted metrics",
+      "observable_outcome": "bounded model throughput fields not fabricated",
+      "missing_function": "tokens RAM observation discarded; real run P2",
+      "code_status": "READY",
+      "code_depends_on": [
+        "MLA-SWU-012",
+        "MLA-SWU-013"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 1,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "scripts/benchmark_real_local.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-011": 0,
+        "MLA-020": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-011": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+        "MLA-020": "675a7c772866709d626bf5e1001b454e98647f9d"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: local generation>observation>redacted metrics => bounded model throughput fields not fabricated; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V003",
+        "MLA-V006"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-010",
+        "MLA-005",
+        "MLA-012"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-035",
+      "title": "Read-only CLI status and plan",
+      "req_ids": [
+        "REQ-28"
+      ],
+      "supersedes": [
+        "MLA-006"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "caller_to_callee": "mla main>plan/queue/status>redacted JSON",
+      "observable_outcome": "safe user read-only CLI response",
+      "missing_function": "NONE for read-only CLI",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-003",
+        "MLA-SWU-004",
+        "MLA-SWU-009"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 1
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-006": 1
+      },
+      "attempts_used": 1,
+      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "evidence_sha_by_legacy": {
+        "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: mla main>plan/queue/status>redacted JSON => safe user read-only CLI response; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V007"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-036",
+      "title": "CLI action request to Controller",
+      "req_ids": [
+        "REQ-07",
+        "REQ-28"
+      ],
+      "supersedes": [
+        "MLA-006",
+        "MLA-009"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "caller_to_callee": "mla start stop>typed owner Controller request",
+      "observable_outcome": "CLI request routed but not self-approved",
+      "missing_function": "stub HOLD does not route protected action",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-008",
+        "MLA-SWU-023",
+        "MLA-SWU-024"
+      ],
+      "complexity": {
+        "S": 0,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 1,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-006": 1,
+        "MLA-009": 0
+      },
+      "attempts_used": 1,
+      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "evidence_sha_by_legacy": {
+        "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
+        "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: mla start stop>typed owner Controller request => CLI request routed but not self-approved; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V005",
+        "MLA-V007"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-037",
+      "title": "Local read-only status dashboard",
+      "req_ids": [
+        "REQ-29"
+      ],
+      "supersedes": [
+        "MLA-021"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/ui/local_dashboard.py"
+      ],
+      "caller_to_callee": "load_snapshot>LocalStatusServer>HTML GET",
+      "observable_outcome": "loopback status board",
+      "missing_function": "NONE; real browser P2",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "code_depends_on": [
+        "MLA-SWU-010"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/ui/local_dashboard.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-021": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-021": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: load_snapshot>LocalStatusServer>HTML GET => loopback status board; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V007"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-006",
+        "MLA-007"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-038",
+      "title": "Controller coding-review state loop",
+      "req_ids": [
+        "REQ-05",
+        "REQ-09",
+        "REQ-17"
+      ],
+      "supersedes": [
+        "MLA-008",
+        "MLA-010",
+        "MLA-019"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/orchestrator.py",
+        "src/my_local_ai/app.py"
+      ],
+      "caller_to_callee": "Controller>coder>F18>task state",
+      "observable_outcome": "safe one-cycle result and HOLD",
+      "missing_function": "preview/handoff only, no state transition",
+      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_depends_on": [
+        "MLA-SWU-011",
+        "MLA-SWU-015",
+        "MLA-SWU-021",
+        "MLA-SWU-023",
+        "MLA-SWU-027"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 3
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/orchestrator.py",
+        "src/my_local_ai/app.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-008": 0,
+        "MLA-010": 0,
+        "MLA-019": 0
+      },
+      "attempts_used": 0,
+      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "evidence_sha_by_legacy": {
+        "MLA-008": "920b6675083277448be7c20e0f3fa341d1df60ae",
+        "MLA-010": "675a7c772866709d626bf5e1001b454e98647f9d",
+        "MLA-019": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: Controller>coder>F18>task state => safe one-cycle result and HOLD; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V003",
+        "MLA-V005"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-007",
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    },
+    {
+      "id": "MLA-SWU-039",
+      "title": "Exact-SHA P1 candidate evaluation",
+      "req_ids": [
+        "REQ-02",
+        "REQ-30"
+      ],
+      "supersedes": [
+        "MLA-006",
+        "MLA-019"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/app.py",
+        "src/my_local_ai/ui/status_view.py"
+      ],
+      "caller_to_callee": "protected evidence>REQ map>phase candidate",
+      "observable_outcome": "immutable 30-REQ candidate decision",
+      "missing_function": "static phase JSON only",
+      "code_status": "BACKLOG_READY",
+      "code_depends_on": [
+        "MLA-SWU-002",
+        "MLA-SWU-003",
+        "MLA-SWU-004"
+      ],
+      "complexity": {
+        "S": 1,
+        "C": 0,
+        "I": 1,
+        "D": 0,
+        "U": 0,
+        "total": 2
+      },
+      "existing_source_paths": [
+        "src/my_local_ai/app.py",
+        "src/my_local_ai/ui/status_view.py"
+      ],
+      "planned_new_paths": [],
+      "sizing_basis": "WEB_GPT6_SOL_HIGH_ONE_MEANINGFUL_SOURCE_IMPLEMENTATION_ROUND",
+      "sizing_rationale": "One existing local interface integration with safe failure handling",
+      "attempt_policy": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "inherited_attempts_by_legacy": {
+        "MLA-006": 1,
+        "MLA-019": 0
+      },
+      "attempts_used": 1,
+      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "evidence_sha_by_legacy": {
+        "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
+        "MLA-019": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea"
+      },
+      "p1_acceptance": "Actual entry/callee/outcome: protected evidence>REQ map>phase candidate => immutable 30-REQ candidate decision; on missing/stale/unsafe inputs return bounded HOLD or error; record changed paths and exact source SHA",
+      "p2_deferred": [
+        "MLA-V001",
+        "MLA-V002",
+        "MLA-V008"
+      ],
+      "original_runtime_dependencies": [
+        "MLA-002",
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "operational_ready": false,
+      "owner_go": false,
+      "real_model_test": "NOT_RUN",
+      "p2_status": "DEFERRED_TO_P2",
+      "immediate_safety": [
+        "MINIMUM_LOCAL_SYNTAX_SMOKE",
+        "KEEP_MANDATORY_CI"
+      ]
+    }
+  ],
+  "legacy_mapping": [
+    {
+      "legacy_task_id": "MLA-001",
+      "req_ids": [
+        "REQ-01",
+        "REQ-02"
+      ],
+      "existing_source_paths": [
+        "scripts/audit_sources.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-001",
+        "MLA-SWU-002"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "BLOCKED_PROVENANCE",
+      "legacy_runtime_status": "BLOCKED_PROVENANCE",
+      "original_dependencies": [],
+      "safety_blockers": [
+        "Root LICENSE/third-party notices not yet verified; no source copied"
+      ],
+      "evidence_sha": "aa626dc11c96135439d369cdf211ac9055e17550",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-001",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 1,
+          "U": 2,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-002",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "audit_sources.main>audit_manifest>source manifest",
+        "mla evidence>REQ inventory>redacted rows"
+      ],
+      "missing_functions": [
+        "external EAI/AX license unresolved",
+        "no REQ live coverage CLI"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-002",
+      "req_ids": [
+        "REQ-03",
+        "REQ-04"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/contracts/__init__.py",
+        "src/my_local_ai/contracts/plan.py",
+        "src/my_local_ai/contracts/task.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-003",
+        "MLA-SWU-004"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [],
+      "safety_blockers": [],
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-003",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-004",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        }
+      ],
+      "source_call_paths": [
+        "PlanSpec.parse_json>digest/DAG",
+        "TaskSpec.parse>safe_path/budget"
+      ],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-003",
+      "req_ids": [
+        "REQ-15",
+        "REQ-23",
+        "REQ-24"
+      ],
+      "existing_source_paths": [],
+      "source_swu_ids": [
+        "MLA-SWU-015",
+        "MLA-SWU-020",
+        "MLA-SWU-021",
+        "MLA-SWU-030",
+        "MLA-SWU-031"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "PARTIAL_IMPLEMENTED_F18_SECURITY_HOLD",
+      "original_dependencies": [],
+      "safety_blockers": [
+        "F18 independent reviewer and Windows OS trust boundary remain NOT_RUN; synthetic forgery/replay/DAG checks expanded. No promotion authority."
+      ],
+      "evidence_sha": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-015",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-020",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-021",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-030",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-031",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "trusted controller>isolated runner>untrusted candidate",
+        "reviewer policy>fixed check request",
+        "independent principal>fixed tests>trusted receipt",
+        "fixed env and output constraints>guest",
+        "protected sandbox>deny public network"
+      ],
+      "missing_functions": [
+        "Windows isolated OS runner not implemented",
+        "no separated OS reviewer or protected issuer",
+        "no host-attested network isolation"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-004",
+      "req_ids": [
+        "REQ-30"
+      ],
+      "existing_source_paths": [],
+      "source_swu_ids": [],
+      "p2_verification_tasks": [
+        "MLA-V001"
+      ],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [],
+      "safety_blockers": [],
+      "evidence_sha": "1ee35c878465fba2d5adfacfec97c1eaec5444d4",
+      "previous_coding_attempts": 0,
+      "swu_scores": [],
+      "source_call_paths": [],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-005",
+      "req_ids": [
+        "REQ-25",
+        "REQ-27"
+      ],
+      "existing_source_paths": [
+        "scripts/benchmark_synthetic.py"
+      ],
+      "source_swu_ids": [],
+      "p2_verification_tasks": [
+        "MLA-V003"
+      ],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [],
+      "safety_blockers": [],
+      "evidence_sha": "6c74b6910894e0a744bbf0e36ebd3384b207be58",
+      "previous_coding_attempts": 0,
+      "swu_scores": [],
+      "source_call_paths": [],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-006",
+      "req_ids": [
+        "REQ-28"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/__main__.py",
+        "src/my_local_ai/cli.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-002",
+        "MLA-SWU-035",
+        "MLA-SWU-036",
+        "MLA-SWU-039"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-002"
+      ],
+      "safety_blockers": [
+        "CLI queue next, synthetic evidence and stop/resume explicit HOLD. Protected owner runtime actions remain NOT_RUN."
+      ],
+      "evidence_sha": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
+      "previous_coding_attempts": 1,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-002",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-035",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-036",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-039",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "mla evidence>REQ inventory>redacted rows",
+        "mla main>plan/queue/status>redacted JSON",
+        "mla start stop>typed owner Controller request",
+        "protected evidence>REQ map>phase candidate"
+      ],
+      "missing_functions": [
+        "no REQ live coverage CLI",
+        "stub HOLD does not route protected action",
+        "static phase JSON only"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-007",
+      "req_ids": [
+        "REQ-18"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/state/sqlite_store.py",
+        "src/my_local_ai/state/migrations.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-010",
+        "MLA-SWU-011",
+        "MLA-SWU-025"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-002"
+      ],
+      "safety_blockers": [],
+      "evidence_sha": "675a7c772866709d626bf5e1001b454e98647f9d",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-010",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 1,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-011",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-025",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "initialize_state>WAL/schema/backup",
+        "protected run writer>SQLite tasks/runs/events",
+        "read_reconcile_state>SQLite read-only readback"
+      ],
+      "missing_functions": [
+        "schema exists but no state writer"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-008",
+      "req_ids": [
+        "REQ-05",
+        "REQ-06"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/controller/decision.py",
+        "src/my_local_ai/advisors/eai.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-005",
+        "MLA-SWU-006",
+        "MLA-SWU-038"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-001",
+        "MLA-002"
+      ],
+      "safety_blockers": [
+        "Controller disjoint code batch with path, time and call limits. Actual model execution and independent owner/F18 trust still HOLD."
+      ],
+      "evidence_sha": "920b6675083277448be7c20e0f3fa341d1df60ae",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-005",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-006",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-038",
+          "S": 1,
+          "C": 1,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "Controller.propose>QueuePolicy",
+        "inspect_optional_eai>pinned hints",
+        "Controller>coder>F18>task state"
+      ],
+      "missing_functions": [
+        "preview/handoff only, no state transition"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-009",
+      "req_ids": [
+        "REQ-07"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/contracts/approval.py",
+        "src/my_local_ai/state/consent.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-007",
+        "MLA-SWU-008",
+        "MLA-SWU-029",
+        "MLA-SWU-036"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "PARTIAL_IMPLEMENTED_TRUST_ROOT_HOLD",
+      "original_dependencies": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "safety_blockers": [
+        "Protected owner signer/OS principal and live operational grant issuance NOT_RUN. Only LOCAL_PLAN reusable synthetic scope; high-risk action scopes fail closed."
+      ],
+      "evidence_sha": "d0cc3a6005de3b084d2954699440cdcfff23f985",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-007",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-008",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-029",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-036",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "authorize_claim>scope expiry revocation",
+        "trusted owner store>protected signature>current grant",
+        "separate owner grant>draft GitHub PR",
+        "mla start stop>typed owner Controller request"
+      ],
+      "missing_functions": [
+        "owner key and protected OS identity missing",
+        "only intent, remote action unavailable",
+        "stub HOLD does not route protected action"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-010",
+      "req_ids": [
+        "REQ-08",
+        "REQ-17"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/queue.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-009",
+        "MLA-SWU-023",
+        "MLA-SWU-038"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "safety_blockers": [],
+      "evidence_sha": "675a7c772866709d626bf5e1001b454e98647f9d",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-009",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-023",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-038",
+          "S": 1,
+          "C": 1,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "QueuePolicy.propose_ready>verified deps",
+        "review failure>repair policy>next READY",
+        "Controller>coder>F18>task state"
+      ],
+      "missing_functions": [
+        "only pure retry proposal, no queue transition",
+        "preview/handoff only, no state transition"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-011",
+      "req_ids": [
+        "REQ-09",
+        "REQ-25"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/worker_lock.py",
+        "src/my_local_ai/ax_runtime/budgets.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-012",
+        "MLA-SWU-032",
+        "MLA-SWU-034"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-010"
+      ],
+      "safety_blockers": [
+        "Real OpenCode/Qwen worker integration, Windows lock/ACL P2 evidence pending"
+      ],
+      "evidence_sha": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-012",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-032",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 0,
+          "U": 1,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-034",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "OneModelLock+BudgetGuard>bounded call",
+        "bounded sampler>ResourceReading>limits",
+        "local generation>observation>redacted metrics"
+      ],
+      "missing_functions": [
+        "only injected synthetic sample; no platform read",
+        "tokens RAM observation discarded; real run P2"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-012",
+      "req_ids": [
+        "REQ-10",
+        "REQ-23"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/ollama_provider.py",
+        "src/my_local_ai/ax_runtime/provider_policy.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-013",
+        "MLA-SWU-030"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "READY_CODE_ONLY",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-005",
+        "MLA-011"
+      ],
+      "safety_blockers": [
+        "Owner Windows/Qwen and true OS egress/F18 isolation NOT_RUN; caller consent integration MLA-013 pending"
+      ],
+      "evidence_sha": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-013",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-030",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "OllamaProvider.generate>loopback HTTP",
+        "fixed env and output constraints>guest"
+      ],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-013",
+      "req_ids": [
+        "REQ-11",
+        "REQ-24"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/opencode_worker.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-014",
+        "MLA-SWU-015",
+        "MLA-SWU-030",
+        "MLA-SWU-031"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-012"
+      ],
+      "safety_blockers": [
+        "Validated trusted task/model/worktree recomputation and provider hard-deny config; real OpenCode OS sandbox and effective config/runtime NOT_RUN."
+      ],
+      "evidence_sha": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-014",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-015",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-030",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-031",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "prepare_opencode_run>fixed argv and config",
+        "trusted controller>isolated runner>untrusted candidate",
+        "fixed env and output constraints>guest",
+        "protected sandbox>deny public network"
+      ],
+      "missing_functions": [
+        "Windows isolated OS runner not implemented",
+        "no host-attested network isolation"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-014",
+      "req_ids": [
+        "REQ-12",
+        "REQ-13"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/worktree.py",
+        "src/my_local_ai/gitops/path_guard.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-016",
+        "MLA-SWU-017",
+        "MLA-SWU-018",
+        "MLA-SWU-019"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-001",
+        "MLA-002",
+        "MLA-003"
+      ],
+      "safety_blockers": [
+        "Git inventory and .git linkage integrity code tested synthetically; actual protected OS Git worktree creation, hooks/filter discovery and Windows FS attacks remain NOT_RUN."
+      ],
+      "evidence_sha": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-016",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-017",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-018",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-019",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "protected source>pinned git worktree create",
+        "preflight_paths>alias and path checks",
+        "fresh worktree snapshot>protected cleanup",
+        "protected Git read>inventory snapshot>audit"
+      ],
+      "missing_functions": [
+        "only preview and metadata audit",
+        "cleanup preview only, no Git cleanup",
+        "caller-provided snapshot only"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-015",
+      "req_ids": [
+        "REQ-14",
+        "REQ-15"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/review/trusted_runner.py",
+        "src/my_local_ai/review/receipt_guard.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-020",
+        "MLA-SWU-021",
+        "MLA-SWU-027"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-003",
+        "MLA-004",
+        "MLA-014"
+      ],
+      "safety_blockers": [
+        "Fixed review policy and source/plan/candidate SHA + positive lease re-attestation; actual separately protected Windows issuer/reviewer and independent F18 PASS remain NOT_RUN."
+      ],
+      "evidence_sha": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-020",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-021",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-027",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "reviewer policy>fixed check request",
+        "independent principal>fixed tests>trusted receipt",
+        "trusted F18+readback>isolated ref CAS"
+      ],
+      "missing_functions": [
+        "no separated OS reviewer or protected issuer",
+        "synthetic memory CAS only"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-016",
+      "req_ids": [
+        "REQ-16",
+        "REQ-17"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ax_runtime/recovery.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-009",
+        "MLA-SWU-022",
+        "MLA-SWU-023"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "READY_CODE_ONLY",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-010",
+        "MLA-015"
+      ],
+      "safety_blockers": [
+        "Improved retry strategy must differ from prior, source/lease pinned; actual protected runtime retry NOT_RUN."
+      ],
+      "evidence_sha": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-009",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-022",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 0,
+          "U": 0,
+          "total": 0
+        },
+        {
+          "id": "MLA-SWU-023",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "QueuePolicy.propose_ready>verified deps",
+        "plan_improved_repair>bounded strategy",
+        "review failure>repair policy>next READY"
+      ],
+      "missing_functions": [
+        "only pure retry proposal, no queue transition"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-017",
+      "req_ids": [
+        "REQ-19",
+        "REQ-20"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/state/reconcile.py",
+        "src/my_local_ai/ax_runtime/leases.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-011",
+        "MLA-SWU-024",
+        "MLA-SWU-025",
+        "MLA-SWU-026"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "READY_CODE_ONLY",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "safety_blockers": [
+        "Orphan run, duplicate/stale epoch and contradictory DB/Git review/integration records fail closed in synthetic tests; real OS protected recovery/physical Git CAS and crash tests NOT_RUN."
+      ],
+      "evidence_sha": "1bf6a17ec5623815c11b125fbfde0c4f6cf162af",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-011",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-024",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 1,
+          "U": 1,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-025",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-026",
+          "S": 0,
+          "C": 1,
+          "I": 0,
+          "D": 1,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "protected run writer>SQLite tasks/runs/events",
+        "lease proposal>SQLite CAS epoch>receipt",
+        "read_reconcile_state>SQLite read-only readback",
+        "startup reconcile>durable checkpoint"
+      ],
+      "missing_functions": [
+        "schema exists but no state writer",
+        "in-memory intent but no durable CAS",
+        "read-only decision only, no protected transaction"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-018",
+      "req_ids": [
+        "REQ-21"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/local_integration.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-027"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-014",
+        "MLA-015",
+        "MLA-017"
+      ],
+      "safety_blockers": [
+        "Synthetic atomic CAS state machine + immutable original/main; real protected Git CAS and F18 signer NOT_RUN."
+      ],
+      "evidence_sha": "9933c4f591a70b64dbc397735f521bd0900cd3a8",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-027",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "trusted F18+readback>isolated ref CAS"
+      ],
+      "missing_functions": [
+        "synthetic memory CAS only"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-019",
+      "req_ids": [
+        "REQ-05",
+        "REQ-09",
+        "REQ-17",
+        "REQ-28"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/app.py",
+        "src/my_local_ai/orchestrator.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-005",
+        "MLA-SWU-038",
+        "MLA-SWU-039"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "safety_blockers": [
+        "Controller→Qwen/OpenCode prepared request→redacted FE card; real sandbox execution, owner go and F18 NOT_RUN."
+      ],
+      "evidence_sha": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-005",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-038",
+          "S": 1,
+          "C": 1,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 3
+        },
+        {
+          "id": "MLA-SWU-039",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "Controller.propose>QueuePolicy",
+        "Controller>coder>F18>task state",
+        "protected evidence>REQ map>phase candidate"
+      ],
+      "missing_functions": [
+        "preview/handoff only, no state transition",
+        "static phase JSON only"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-020",
+      "req_ids": [
+        "REQ-25",
+        "REQ-27"
+      ],
+      "existing_source_paths": [
+        "scripts/benchmark_real_local.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-034"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "READY_CODE_ONLY",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-005",
+        "MLA-012"
+      ],
+      "safety_blockers": [
+        "Mock-only P1 benchmark tests now PASS in 44015752835; owner Windows/Qwen real benchmark/metrics remain P2 NOT_RUN."
+      ],
+      "evidence_sha": "675a7c772866709d626bf5e1001b454e98647f9d",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-034",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 1,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "local generation>observation>redacted metrics"
+      ],
+      "missing_functions": [
+        "tokens RAM observation discarded; real run P2"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-021",
+      "req_ids": [
+        "REQ-29"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ui/status_view.py",
+        "src/my_local_ai/ui/local_dashboard.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-037"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "IMPLEMENTED_UNVERIFIED",
+      "original_dependencies": [
+        "MLA-006",
+        "MLA-007"
+      ],
+      "safety_blockers": [
+        "Local evidence.json + read-only FE page, redacted synthetic status. Real browser/P2/Windows NOT_RUN."
+      ],
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-037",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "load_snapshot>LocalStatusServer>HTML GET"
+      ],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-022",
+      "req_ids": [
+        "REQ-26"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/ops/supervisor.py",
+        "src/my_local_ai/ops/resource_monitor.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-032",
+        "MLA-SWU-033"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "READY_CODE_ONLY",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-017",
+        "MLA-019",
+        "MLA-020"
+      ],
+      "safety_blockers": [
+        "Synthetic time-window resource anomalies and thermal spike HOLD; actual Windows telemetry/24h NOT_RUN."
+      ],
+      "evidence_sha": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-032",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 0,
+          "U": 1,
+          "total": 1
+        },
+        {
+          "id": "MLA-SWU-033",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 1,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "bounded sampler>ResourceReading>limits",
+        "resource state>supervisor>durable pause"
+      ],
+      "missing_functions": [
+        "only injected synthetic sample; no platform read",
+        "pure assessment, no durable state"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-023",
+      "req_ids": [
+        "REQ-22"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/remote_preview.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-028"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-009",
+        "MLA-018"
+      ],
+      "safety_blockers": [
+        "Strict protected draft target SHA and changed file metadata; live GitHub protection, remote actions and owner go NOT_RUN."
+      ],
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-028",
+          "S": 0,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 1
+        }
+      ],
+      "source_call_paths": [
+        "draft preview>scope inventory>redacted card"
+      ],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-024",
+      "req_ids": [
+        "REQ-22",
+        "REQ-07"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/gitops/remote_publish.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-007",
+        "MLA-SWU-029"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-023"
+      ],
+      "safety_blockers": [
+        "One-action draft PR approval digest binds protected base SHA/candidate; signer/remote action still HOLD."
+      ],
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-007",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 0,
+          "total": 2
+        },
+        {
+          "id": "MLA-SWU-029",
+          "S": 0,
+          "C": 0,
+          "I": 0,
+          "D": 2,
+          "U": 1,
+          "total": 3
+        }
+      ],
+      "source_call_paths": [
+        "authorize_claim>scope expiry revocation",
+        "separate owner grant>draft GitHub PR"
+      ],
+      "missing_functions": [
+        "only intent, remote action unavailable"
+      ]
+    },
+    {
+      "legacy_task_id": "MLA-025",
+      "req_ids": [
+        "REQ-30"
+      ],
+      "existing_source_paths": [],
+      "source_swu_ids": [],
+      "p2_verification_tasks": [
+        "MLA-V001",
+        "MLA-V007"
+      ],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-019",
+        "MLA-021",
+        "MLA-022",
+        "MLA-029"
+      ],
+      "safety_blockers": [
+        "P1 browser/Windows test code authored; actual browser and owner real device verification NOT_RUN"
+      ],
+      "evidence_sha": "d15485dab9bde0e430cafdad85fca53a1c6dc7ea",
+      "previous_coding_attempts": 0,
+      "swu_scores": [],
+      "source_call_paths": [],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-028",
+      "req_ids": [
+        "REQ-05",
+        "REQ-14"
+      ],
+      "existing_source_paths": [
+        "src/my_local_ai/advisors/eai.py"
+      ],
+      "source_swu_ids": [
+        "MLA-SWU-006"
+      ],
+      "p2_verification_tasks": [],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-008",
+        "MLA-015"
+      ],
+      "safety_blockers": [
+        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+      ],
+      "evidence_sha": "920b6675083277448be7c20e0f3fa341d1df60ae",
+      "previous_coding_attempts": 0,
+      "swu_scores": [
+        {
+          "id": "MLA-SWU-006",
+          "S": 1,
+          "C": 0,
+          "I": 1,
+          "D": 0,
+          "U": 0,
+          "total": 2
+        }
+      ],
+      "source_call_paths": [
+        "inspect_optional_eai>pinned hints"
+      ],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-029",
+      "req_ids": [
+        "REQ-15",
+        "REQ-26"
+      ],
+      "existing_source_paths": [],
+      "source_swu_ids": [],
+      "p2_verification_tasks": [
+        "MLA-V004"
+      ],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-015",
+        "MLA-019"
+      ],
+      "safety_blockers": [
+        "Code-only source & synthetic contracts; F18, original, remote operation and real owner Windows remain HOLD"
+      ],
+      "evidence_sha": "8f565feb0e694da6dede00932e2b76e6197bacb0",
+      "previous_coding_attempts": 0,
+      "swu_scores": [],
+      "source_call_paths": [],
+      "missing_functions": []
+    },
+    {
+      "legacy_task_id": "MLA-030",
+      "req_ids": [
+        "REQ-13",
+        "REQ-23",
+        "REQ-24"
+      ],
+      "existing_source_paths": [],
+      "source_swu_ids": [],
+      "p2_verification_tasks": [
+        "MLA-V002"
+      ],
+      "legacy_code_status": "IMPLEMENTED_UNVERIFIED",
+      "legacy_runtime_status": "BLOCKED_DEPENDENCY",
+      "original_dependencies": [
+        "MLA-004",
+        "MLA-014",
+        "MLA-015"
+      ],
+      "safety_blockers": [
+        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+      ],
+      "evidence_sha": "8f565feb0e694da6dede00932e2b76e6197bacb0",
+      "previous_coding_attempts": 0,
+      "swu_scores": [],
+      "source_call_paths": [],
+      "missing_functions": []
+    }
+  ],
+  "req_mapping": [
+    {
+      "req_id": "REQ-01",
+      "swu_ids": [
+        "MLA-SWU-001"
+      ],
+      "p2_ids": [
+        "MLA-V002",
+        "MLA-V008"
+      ]
+    },
+    {
+      "req_id": "REQ-02",
+      "swu_ids": [
+        "MLA-SWU-001",
+        "MLA-SWU-002",
+        "MLA-SWU-039"
+      ],
+      "p2_ids": [
+        "MLA-V001",
+        "MLA-V008"
+      ]
+    },
+    {
+      "req_id": "REQ-03",
+      "swu_ids": [
+        "MLA-SWU-003",
+        "MLA-SWU-007"
+      ],
+      "p2_ids": []
+    },
+    {
+      "req_id": "REQ-04",
+      "swu_ids": [
+        "MLA-SWU-004"
+      ],
+      "p2_ids": [
+        "MLA-V001"
+      ]
+    },
+    {
+      "req_id": "REQ-05",
+      "swu_ids": [
+        "MLA-SWU-005",
+        "MLA-SWU-006",
+        "MLA-SWU-038"
+      ],
+      "p2_ids": []
+    },
+    {
+      "req_id": "REQ-06",
+      "swu_ids": [
+        "MLA-SWU-005",
+        "MLA-SWU-006"
+      ],
+      "p2_ids": []
+    },
+    {
+      "req_id": "REQ-07",
+      "swu_ids": [
+        "MLA-SWU-007",
+        "MLA-SWU-008",
+        "MLA-SWU-029",
+        "MLA-SWU-036"
+      ],
+      "p2_ids": [
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-08",
+      "swu_ids": [
+        "MLA-SWU-009"
+      ],
+      "p2_ids": [
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-09",
+      "swu_ids": [
+        "MLA-SWU-012",
+        "MLA-SWU-015",
+        "MLA-SWU-038"
+      ],
+      "p2_ids": [
+        "MLA-V003"
+      ]
+    },
+    {
+      "req_id": "REQ-10",
+      "swu_ids": [
+        "MLA-SWU-013"
+      ],
+      "p2_ids": [
+        "MLA-V003"
+      ]
+    },
+    {
+      "req_id": "REQ-11",
+      "swu_ids": [
+        "MLA-SWU-014",
+        "MLA-SWU-015"
+      ],
+      "p2_ids": [
+        "MLA-V002",
+        "MLA-V003"
+      ]
+    },
+    {
+      "req_id": "REQ-12",
+      "swu_ids": [
+        "MLA-SWU-016",
+        "MLA-SWU-018",
+        "MLA-SWU-019"
+      ],
+      "p2_ids": [
+        "MLA-V004"
+      ]
+    },
+    {
+      "req_id": "REQ-13",
+      "swu_ids": [
+        "MLA-SWU-017",
+        "MLA-SWU-019"
+      ],
+      "p2_ids": [
+        "MLA-V002"
+      ]
+    },
+    {
+      "req_id": "REQ-14",
+      "swu_ids": [
+        "MLA-SWU-020",
+        "MLA-SWU-021"
+      ],
+      "p2_ids": [
+        "MLA-V004"
+      ]
+    },
+    {
+      "req_id": "REQ-15",
+      "swu_ids": [
+        "MLA-SWU-020",
+        "MLA-SWU-021",
+        "MLA-SWU-027"
+      ],
+      "p2_ids": [
+        "MLA-V002",
+        "MLA-V004"
+      ]
+    },
+    {
+      "req_id": "REQ-16",
+      "swu_ids": [
+        "MLA-SWU-022",
+        "MLA-SWU-023"
+      ],
+      "p2_ids": [
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-17",
+      "swu_ids": [
+        "MLA-SWU-009",
+        "MLA-SWU-023",
+        "MLA-SWU-038"
+      ],
+      "p2_ids": [
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-18",
+      "swu_ids": [
+        "MLA-SWU-010",
+        "MLA-SWU-011",
+        "MLA-SWU-025"
+      ],
+      "p2_ids": [
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-19",
+      "swu_ids": [
+        "MLA-SWU-025",
+        "MLA-SWU-026"
+      ],
+      "p2_ids": [
+        "MLA-V005",
+        "MLA-V006"
+      ]
+    },
+    {
+      "req_id": "REQ-20",
+      "swu_ids": [
+        "MLA-SWU-011",
+        "MLA-SWU-024",
+        "MLA-SWU-026"
+      ],
+      "p2_ids": [
+        "MLA-V005",
+        "MLA-V006"
+      ]
+    },
+    {
+      "req_id": "REQ-21",
+      "swu_ids": [
+        "MLA-SWU-027"
+      ],
+      "p2_ids": [
+        "MLA-V004",
+        "MLA-V005"
+      ]
+    },
+    {
+      "req_id": "REQ-22",
+      "swu_ids": [
+        "MLA-SWU-028",
+        "MLA-SWU-029"
+      ],
+      "p2_ids": []
+    },
+    {
+      "req_id": "REQ-23",
+      "swu_ids": [
+        "MLA-SWU-013",
+        "MLA-SWU-030",
+        "MLA-SWU-031"
+      ],
+      "p2_ids": [
+        "MLA-V002"
+      ]
+    },
+    {
+      "req_id": "REQ-24",
+      "swu_ids": [
+        "MLA-SWU-014",
+        "MLA-SWU-015",
+        "MLA-SWU-030",
+        "MLA-SWU-031"
+      ],
+      "p2_ids": [
+        "MLA-V002",
+        "MLA-V004"
+      ]
+    },
+    {
+      "req_id": "REQ-25",
+      "swu_ids": [
+        "MLA-SWU-012",
+        "MLA-SWU-032",
+        "MLA-SWU-034"
+      ],
+      "p2_ids": [
+        "MLA-V003",
+        "MLA-V006"
+      ]
+    },
+    {
+      "req_id": "REQ-26",
+      "swu_ids": [
+        "MLA-SWU-032",
+        "MLA-SWU-033"
+      ],
+      "p2_ids": [
+        "MLA-V006"
+      ]
+    },
+    {
+      "req_id": "REQ-27",
+      "swu_ids": [
+        "MLA-SWU-034"
+      ],
+      "p2_ids": [
+        "MLA-V003",
+        "MLA-V006"
+      ]
+    },
+    {
+      "req_id": "REQ-28",
+      "swu_ids": [
+        "MLA-SWU-035",
+        "MLA-SWU-036"
+      ],
+      "p2_ids": [
+        "MLA-V007"
+      ]
+    },
+    {
+      "req_id": "REQ-29",
+      "swu_ids": [
+        "MLA-SWU-037"
+      ],
+      "p2_ids": [
+        "MLA-V007"
+      ]
+    },
+    {
+      "req_id": "REQ-30",
+      "swu_ids": [
+        "MLA-SWU-039"
+      ],
+      "p2_ids": [
+        "MLA-V001",
+        "MLA-V002",
+        "MLA-V008"
+      ]
+    }
+  ]
+}
