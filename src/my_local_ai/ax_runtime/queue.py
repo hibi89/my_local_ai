@@ -35,7 +35,7 @@ class QueuePolicy:
         if (not isinstance(plan_sha, str) or not _SHA256.fullmatch(plan_sha)
             or not 1 <= len(values) <= 512):
             raise ValueError("bounded tasks and SHA256 plan digest required")
-        if any(not isinstance(task, TaskSpec) or task.plan_sha != plan_sha for task in values):
+        if any(not isinstance(task, TaskSpec) or task.plan_sha not in (None, plan_sha) for task in values):
             raise ValueError("task plan SHA mismatch or invalid task")
         self._tasks = {t.task_id: t for t in values}
         if len(self._tasks) != len(values):
