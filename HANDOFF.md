@@ -42,3 +42,10 @@
 5. **실행 증거/차단:** 이번 변경으로 Python/CI/브라우저/Windows/실 Qwen/Hydrogen/24h/독립감사 테스트 **NOT_RUN**. 외부 송신/권한/결제/remote PR/main·Production 변경 없음. 실제 dev 구현률은 dev HEAD·코드·큐 확인 후 별도 보고.
 6. **다음 READY:** 설계 브랜치 최신 SHA/AGENTS/FINAL_BLUEPRINT→dev HEAD·진행 중 수정 경로 비교→설계 문서만 안전 동기화. 기존 P1 구현 계속, P1 구현 100% 후보+High 인수 후 P2 브라우저/Playwright 전체 검증.
 7. **기준:** 2026-11-17 KST; `hibi89/my_local_ai@design/final-blueprint-v1`. 최신 commit SHA는 GitHub 재조회. 기존 dev 이력은 보존하고 이 인수인계가 과거 수치나 Code PASS를 소급 갱신하지 않는다.
+
+---
+
+## 2026-11-17 KST — 브라우저 검증 P2 이관 설계 기록
+- 개발 브랜치 `dev/instant-implementation-v1`의 P1/P2 큐를 먼저 수정한 커밋 `51f4885a44540890996943bc058621d747325c50`을 참조하여 설계 브랜치 큐에도 검증 이관 ID만 동기화함. P1 `MLA-019/021/025`→P2 `MLA-V007`, CLI-only `MLA-006` 비대상.
+- **이 설계 브랜치의 과거 `P0/0 구현` 문장은 개발 현황이 아니다.** dev SHA `51f4885...` 시점 구현률 **4/30=13.33%**; 실제 재개 전에 GitHub에서 최신 HEAD·소스·큐 확인.
+- `ㄱ` 다음 READY: dev 큐에서 `MLA-012` loopback Ollama provider 구현 시작. P1 BE/FE 코드 작성, 문법/type·필수 CI·국소 safety 확인만. 전체 browser/Playwright, CI 수동 반복 대기, 실 Win11/24h는 P2. P2 LOCKED/검증률 UNASSESSED/F18 HOLD. 원본 EAI/AX/main·사용자 데이터·유료/remote 손대지 않음.

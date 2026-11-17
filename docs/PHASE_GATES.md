@@ -33,3 +33,9 @@
 2026-11-17 설계 개선에 따라 Hydrogen/다른 무료 모델의 **탈부착형 병렬 구현 워커** 설계가 추가되었다. **기존 P1 28 작업/필수 REQ-01~30, 공식 검증 P2 8 작업, 구현률 분모 30, P2 LOCKED, Codex·Astra 후행 검수 불변.**
 
 확장 작업은 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json` 별도 보관: 명시적 High 설계 동기화·작업 범위 승인 이후 mock/ProviderPort 구현을 별도로 착수할 수 있으나 원래 필수 P1 READY를 중단시키거나 확장 실적을 기존 구현 분자로 합산하지 않는다. 실제 외부 Hydrogen API 호출·데이터 송신·유료/권한은 추가 사용자 GO 및 비용·프라이버시·quota gate 없이 불허. 실 Hydrogen과 Windows/F18/24h 전수 검증은 적절한 P2·후행 승인까지 NOT_RUN 유지.
+
+### 브라우저 검증 큐 이관 — 2026-11-17 사용자 재확정
+- `INSTANT_TASK_QUEUE.json`의 `MLA-019`(통합), `MLA-021`(FE 상태 보드), `MLA-025`(E2E 하네스)에서는 기능·소스·단위/HTTP 안전 스모크/시나리오 **작성까지만** P1 구현으로 계산한다.
+- 실제 브라우저 클릭/폼, Playwright, 스크린샷 시각 비교, 반응형·키보드/a11y, Console/Network·UI 회귀 실행은 잠긴 `VERIFICATION_TASK_QUEUE.json#MLA-V007`에서만 P2 수행한다. `MLA-006` CLI-only는 브라우저 비대상.
+- 인증·권한·비밀·외부전송·원본/DB 손실·F18 즉시 위험검사와 기존 필수 CI는 P1에서도 유지. 고위험 확인에 브라우저가 불가결하면 최소 예외 검사만 SHA·사유 기록.
+- **설계 브랜치의 `owner_design_approval=P0`, `code_completed_req=0`는 설계 브랜치 역사적 상태이며 실제 dev 진척을 덮지 않는다.** 운영 진척은 dev `STATUS.md`/작업큐에서 확인. dev의 현재 기록 4/30=13.33% (최신 HEAD 재검토 필수).

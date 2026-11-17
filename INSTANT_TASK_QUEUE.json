@@ -36,7 +36,11 @@
     "FULL_CI_MANUAL_RUN_AND_WAIT",
     "FULL_INTEGRATION_AND_REGRESSION",
     "REAL_OWNER_WINDOWS_MODEL_AND_24H",
-    "INDEPENDENT_Codex_Astra_AUDIT"
+    "INDEPENDENT_Codex_Astra_AUDIT",
+    "BROWSER_PLAYWRIGHT_E2E_AND_CLICK_FLOWS",
+    "SCREENSHOT_VISUAL_DIFF_AND_MULTI_RESOLUTION_RESPONSIVE",
+    "REAL_BROWSER_KEYBOARD_A11Y_AND_CONSOLE_NETWORK",
+    "FULL_END_TO_END_REGRESSION"
   ],
   "tasks": [
     {
@@ -173,7 +177,10 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "browser_verification_policy": "NOT_APPLICABLE_CLI_ONLY",
+      "p2_browser_task": "MLA-V001",
+      "p1_local_scope": "CLI read-only only: browser not applicable; CLI parser/unit smoke in P1; P2 regression by MLA-V001"
     },
     {
       "task_id": "MLA-007",
@@ -505,7 +512,10 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "browser_verification_policy": "DEFERRED_TO_P2",
+      "p2_browser_task": "MLA-V007",
+      "p1_local_scope": "Controller/FE interface binding and synthetic journey: author integration test fixtures in P1; actual browser end-to-end and multi-page journeys in P2 when UI applicable"
     },
     {
       "task_id": "MLA-020",
@@ -546,7 +556,7 @@
         "src/my_local_ai/ui/local_dashboard.py",
         "tests/unit/test_status_ui.py"
       ],
-      "acceptance": "Readable local HOLD/READY, consent, stop/status; CSRF/Host and keyboard accessibility; no raw secrets",
+      "acceptance": "P1 CODE ONLY: implement readable local HOLD/READY/consent and read-only stop/status representation, safe Host/Origin/CSRF boundary + semantic/keyboard markup; verify syntax/unit/HTTP smoke and immediate security only. Real browser/Playwright click/visual/a11y/responsive/Console/Network acceptance moves to P2 MLA-V007; BROWSER_NOT_RUN is not BLOCKER for P1 source candidate.",
       "safety_checks": "LOCALHOST_SECURE;NO_SECRET",
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
@@ -554,7 +564,10 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "browser_verification_policy": "BROWSER_NOT_RUN",
+      "p2_browser_task": "MLA-V007",
+      "p1_local_scope": "Author status-board HTML/FE, API/HTTP contract, static keyboard/accessibility semantics, Host/Origin safety unit tests and local HTTP smoke in P1; defer real browser click/flow, Playwright, visual snapshots, multi-resolution responsive, keyboard/a11y runtime and Console/Network to P2"
     },
     {
       "task_id": "MLA-022",
@@ -645,7 +658,7 @@
         "tests/windows/test_windows_acceptance.py",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "Author full CI/Windows/E2E verification test harness and acceptance evidence schema; execution of whole regression belongs to P2",
+      "acceptance": "P1 AUTHOR ONLY: write CI/Windows/E2E and browser/Playwright scenario harness plus exact-SHA evidence schema. Never run the complete browser/Playwright or full E2E/regression in P1; these execute in P2 MLA-V007 after 100%-candidate+High gate. Keep mandatory CI and narrow high-risk immediate safety checks.",
       "safety_checks": "EXACT_SHA;REAL_HOST_DISTINCT",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
@@ -653,7 +666,10 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "browser_verification_policy": "DEFERRED_TO_P2",
+      "p2_browser_task": "MLA-V007",
+      "p1_local_scope": "P1 writes test scenarios/fixtures and evidence format; must NOT run Playwright or full E2E/Windows/system-wide regression until P2 exact SHA+High gate"
     },
     {
       "task_id": "MLA-028",
@@ -737,5 +753,7 @@
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
     }
-  ]
+  ],
+  "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
+  "p2_browser_verification_task": "MLA-V007"
 }
