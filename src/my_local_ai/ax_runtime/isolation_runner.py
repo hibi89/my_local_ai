@@ -959,3 +959,82 @@ def generate_and_stage_public_synthetic_coder_input(
     return write_disposable_sandbox_manifest(
         plan, profile=profile, proposed_files=proposal,
     )
+
+
+def recheck_disposable_sandbox_manifest(
+    staged: StagedUntrustedSandboxInput, *,
+    plan: SandboxReadOnlyPatchImport,
+    profile: WindowsNoEgressProfile,
+    proposed_files: UntrustedHostQwenFiles,
+) -> StagedUntrustedSandboxInput:
+    """Reopen the staged *public/synthetic* guest input before broker use.
+
+    This is a real read-only filesystem integrity check, not OS identity
+    attestation, a DACL grant or Sandbox execution. It rejects stale, edited,
+    extra, linked or replaced scratch files and preserves deny-only flags.
+    """
+    if _os.name != "nt" or not isinstance(staged, StagedUntrustedSandboxInput):
+        raise WindowsIsolationHold("WINDOWS_HOST_ISOLATION_NOT_ATTESTED")
+    audit_sandbox_readonly_patch_import(
+        plan, profile=profile, proposed_files=proposed_files,
+    )
+    if (staged.state != "PUBLIC_SYNTHETIC_SCRATCH_WRITTEN_UNTRUSTED"
+        or any(getattr(staged, flag) is not False for flag in (
+            "protected_owner_principal_verified", "scratch_acl_attested",
+            "sandbox_started", "network_egress_attested",
+            "independent_f18_verified", "original_modified",
+            "can_execute", "may_promote",
+        ))
+        or (staged.task_id, staged.run_id, staged.source_sha,
+            staged.plan_sha256, staged.manifest_sha256, staged.manifest_size)
+        != (plan.task_id, plan.run_id, plan.source_sha,
+            plan.plan_sha256, plan.manifest_sha256, len(plan.manifest_bytes))
+        or len(plan.manifest_bytes) > 196608
+        or sha256(b"mla-model-import/v1|" + plan.manifest_bytes).hexdigest()
+            != plan.manifest_sha256):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    pinned_folder = str(
+        _PureWindowsPath(r"C:\MLA_Disposable") / plan.run_id / "input"
+    )
+    if plan.host_scratch_input_dir != pinned_folder:
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    directory = Path(pinned_folder)
+    target = directory / "manifest.json"
+    try:
+        start_dirs = _pinned_existing_stage_dir(directory)
+        # Only this one file may be present. Avoid unbounded listing.
+        with _os.scandir(directory) as entries:
+            first = next(entries, None)
+            extra = next(entries, None)
+            if first is None or first.name != "manifest.json" or extra is not None:
+                raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        before = target.lstat()
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+            or getattr(before, "st_file_attributes", 0) & _REPARSE
+            or before.st_size != staged.manifest_size):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        flags = (_os.O_RDONLY | getattr(_os, "O_BINARY", 0)
+                 | getattr(_os, "O_NOFOLLOW", 0))
+        fd = _os.open(target, flags)
+        with _os.fdopen(fd, "rb") as stream:
+            handle_before = _os.fstat(stream.fileno())
+            raw = stream.read(196609)
+            handle_after = _os.fstat(stream.fileno())
+        after = target.lstat()
+        identity = (before.st_dev, before.st_ino,
+                    before.st_size, before.st_mtime_ns)
+        if (raw != plan.manifest_bytes
+            or (handle_before.st_dev, handle_before.st_ino,
+                handle_before.st_size, handle_before.st_mtime_ns) != identity
+            or (handle_after.st_dev, handle_after.st_ino,
+                handle_after.st_size, handle_after.st_mtime_ns) != identity
+            or (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+               != identity
+            or _pinned_existing_stage_dir(directory) != start_dirs):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    except WindowsIsolationHold:
+        raise
+    except (OSError, OverflowError, ValueError):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
+    # Re-read exact bytes; never promote a caller-supplied status to GO.
+    return staged
