@@ -1,0 +1,295 @@
+{
+  "version": 1,
+  "program": "my_local_ai",
+  "document": "docs/DETACHABLE_MULTI_MODEL_WORKERS.md",
+  "design_status": "HIGH_DESIGN_ONLY",
+  "activation": "OPTIONAL_POST_BASELINE_SCOPE_GO",
+  "phase": "P1_EXTENSION_OPTIONAL_DESIGN",
+  "base_implementation_req_total": 30,
+  "base_implementation_task_count": 28,
+  "baseline_queue": "INSTANT_TASK_QUEUE.json",
+  "baseline_verification_queue": "VERIFICATION_TASK_QUEUE.json",
+  "official_progress_denominator_unchanged": true,
+  "model_api_call_approved": false,
+  "external_data_transfer_approved": false,
+  "billing_approved": false,
+  "default_remote_enabled": false,
+  "max_spend_usd": 0,
+  "implementation_evidence": "NOT_RUN",
+  "test_evidence": "NOT_RUN",
+  "current_dev_branch": "dev/instant-implementation-v1",
+  "tasks": [
+    {
+      "task_id": "EXT-HYD-01",
+      "req_ids": [
+        "EXT-01"
+      ],
+      "depends_on": [
+        "MLA-002",
+        "MLA-011"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/providers/base.py",
+        "src/my_local_ai/providers/registry.py",
+        "tests/unit/test_provider_contracts.py"
+      ],
+      "acceptance": [
+        "Define immutable WorkerRequestV1/WorkerResponseV1 and capabilities schema; reject wrong SHA/approval/paths/nonce",
+        "Local Qwen adapter remains functional if remote plugin absent; mock-only tests"
+      ],
+      "safety_checks": [
+        "NO_NETWORK",
+        "NO_CREDENTIAL",
+        "NO_SOURCE_MUTATION",
+        "EXISTING_P1_GATE"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGNED_BLOCKED_DEPENDENCY_AND_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Extension implementation scope not separately activated",
+        "MLA-011 and exact approved design SHA must be checked"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-02",
+      "req_ids": [
+        "EXT-02"
+      ],
+      "depends_on": [
+        "EXT-HYD-01",
+        "MLA-009",
+        "MLA-020"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/providers/policy.py",
+        "tests/security/test_provider_policy.py",
+        "tests/unit/test_provider_quota.py"
+      ],
+      "acceptance": [
+        "Default remote OFF, tier UNKNOWN/cost unverifiable fails closed, 0 USD budget, user off revokes new dispatch",
+        "Rate-limit, 429/401/403, missing key, paid-only, exhausted quota hold without auto billing"
+      ],
+      "safety_checks": [
+        "NO_LIVE_API",
+        "NO_BILLING",
+        "ZERO_DOLLAR_POLICY",
+        "NO_OWNER_GO_BYPASS"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGNED_BLOCKED_DEPENDENCY_AND_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Provider budget/tier access real eligibility unverified"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-03",
+      "req_ids": [
+        "EXT-03"
+      ],
+      "depends_on": [
+        "EXT-HYD-01",
+        "MLA-010",
+        "MLA-014",
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/controller/provider_scheduler.py",
+        "src/my_local_ai/ax_runtime/worker_lease.py",
+        "tests/integration/test_parallel_worktrees.py"
+      ],
+      "acceptance": [
+        "Two disjoint READY candidates isolated in separate worktrees and distinct source/plan leases",
+        "Overlapping allowed_paths, shared lockfiles/schema/API contracts or dependency hazards prohibit parallel dispatch",
+        "Local Qwen one resident model; remote max concurrency 1 only after approval"
+      ],
+      "safety_checks": [
+        "WORKTREE_ISOLATION",
+        "EXACT_SHA",
+        "FENCING",
+        "NO_REMOTE_PUSH",
+        "F18_HOLD"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGNED_BLOCKED_DEPENDENCY_AND_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Trusted reviewer F18 unresolved, actual runner not implemented"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-04",
+      "req_ids": [
+        "EXT-04"
+      ],
+      "depends_on": [
+        "EXT-HYD-01",
+        "EXT-HYD-02"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/providers/hydrogen.py",
+        "src/my_local_ai/providers/mock_hydrogen.py",
+        "tests/unit/test_hydrogen_mock.py"
+      ],
+      "acceptance": [
+        "Implement only OFF-by-default mock/injected transport adapter; never direct model shell/GitHub privileges",
+        "Response schema limits, redaction and candidate diff validation; zero network in default smoke",
+        "Google official SDK version/model exact live compatibility unknown until owner-approved later probe"
+      ],
+      "safety_checks": [
+        "NO_REAL_API_CALL",
+        "NO_SECRETS_IN_GIT",
+        "NO_CUSTOMER_BYTES",
+        "NO_REMOTE_AUTO_ON"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGNED_BLOCKED_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Live API/egress approval separate from design"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-05",
+      "req_ids": [
+        "EXT-05"
+      ],
+      "depends_on": [
+        "EXT-HYD-02",
+        "EXT-HYD-03",
+        "EXT-HYD-04",
+        "MLA-017"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/state/provider_recovery.py",
+        "src/my_local_ai/state/provider_migrations.py",
+        "tests/integration/test_provider_fallback.py"
+      ],
+      "acceptance": [
+        "Quota/timeout/off retains immutable checkpoint, invalidates lease, no duplicate code application",
+        "Recover same task at new epoch with Qwen only after source/diff review; no automatic browser Instant injection",
+        "SQLite migrations backup/APP_ID and fail closed on unknown databases"
+      ],
+      "safety_checks": [
+        "IDEMPOTENCY",
+        "ROLLBACK",
+        "NO_DESTRUCTIVE_MIGRATION",
+        "F18_HOLD"
+      ],
+      "risk": "CRITICAL",
+      "status": "DESIGNED_BLOCKED_DEPENDENCY_AND_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Actual SQLite schema and restore tested later"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-06",
+      "req_ids": [
+        "EXT-06"
+      ],
+      "depends_on": [
+        "EXT-HYD-02",
+        "MLA-006",
+        "MLA-021"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ui/provider_status.py",
+        "src/my_local_ai/cli.py",
+        "tests/unit/test_provider_cli_status.py"
+      ],
+      "acceptance": [
+        "Read-only provider status, cost tier UNKNOWN, eligibility, quota holds, fallback and reason codes",
+        "No API key display, remote enabling must require distinct owner consent, no auto new API calls"
+      ],
+      "safety_checks": [
+        "NO_SECRET_OUTPUT",
+        "NO_IMPLICIT_ENABLE",
+        "NO_PRIVATE_LOGS"
+      ],
+      "risk": "MEDIUM",
+      "status": "DESIGNED_BLOCKED_DEPENDENCY_AND_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "May conflict with concurrent Instant edits to cli.py; stage isolated branch and sync only after exact SHA"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-07",
+      "req_ids": [
+        "EXT-07"
+      ],
+      "depends_on": [
+        "EXT-HYD-01",
+        "EXT-HYD-02",
+        "EXT-HYD-03",
+        "EXT-HYD-05"
+      ],
+      "allowed_paths": [
+        "tests/security/test_provider_exfiltration.py",
+        "tests/security/test_provider_fake_receipt.py",
+        "tests/integration/test_provider_circuit_breaker.py",
+        "docs/PROVIDER_ACCEPTANCE_EVIDENCE.md"
+      ],
+      "acceptance": [
+        "Run synthetic tests HYD-AC-01..07,09,10 on exact SHA; record PASS/FAIL/NOT_RUN",
+        "P2 full acceptance only after approved extension and unchanged original P2 phase gate",
+        "No fake receipt makes VERIFIED; no customer/private prompt egress"
+      ],
+      "safety_checks": [
+        "STRICT_P1_P2_SPLIT",
+        "F18_FAIL_CLOSED",
+        "NO_EXTERNAL_CALL",
+        "NO_FALSE_PASS"
+      ],
+      "risk": "HIGH",
+      "status": "DESIGNED_BLOCKED_SCOPE_GO",
+      "evidence_sha": null,
+      "blockers": [
+        "Full P2 remains LOCKED until original P1 candidate + High gate"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "task_id": "EXT-HYD-08",
+      "req_ids": [
+        "EXT-08"
+      ],
+      "depends_on": [
+        "EXT-HYD-04",
+        "EXT-HYD-07"
+      ],
+      "allowed_paths": [
+        "docs/PROVIDER_ACCEPTANCE_EVIDENCE.md",
+        "docs/PROVIDER_DEPLOYMENT_APPROVAL.md"
+      ],
+      "acceptance": [
+        "Separate explicit GO for specific Google account/model/tier, external public/synthetic input scope, repo, rate/cost and rollback",
+        "Only then perform isolated live smoke and 12 synthetic tasks; never auto merge or expose credentials",
+        "Check model ID/SDK/tool-calling limitations and actual free tier quota; if uncertain keep OFF"
+      ],
+      "safety_checks": [
+        "OWNER_REMOTE_GO",
+        "OWNER_EXTERNAL_EGRESS_GO",
+        "NO_BILLING",
+        "NO_CUSTOMER_DATA",
+        "NO_REMOTE_PR_WITHOUT_GO"
+      ],
+      "risk": "CRITICAL",
+      "status": "BLOCKED_EXPLICIT_OWNER_LIVE_API_APPROVAL",
+      "evidence_sha": null,
+      "blockers": [
+        "No live API access/approval",
+        "Account free quota, rates, ToS and data policy unverified"
+      ],
+      "verification_status": "NOT_RUN"
+    }
+  ]
+}
