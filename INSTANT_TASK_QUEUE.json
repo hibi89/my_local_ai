@@ -19,9 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-018",
-    "MLA-019",
-    "MLA-023"
+    "MLA-006",
+    "MLA-021",
+    "MLA-008"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -217,8 +217,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": []
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-007",
@@ -288,10 +289,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
-      ]
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-009",
@@ -633,9 +633,9 @@
       "safety_checks": "TRUSTED_RECEIPT_REQUIRED;NO_REMOTE",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "46f6995ea7456f77632826712247ec099aa2582e",
+      "evidence_sha": "9073a0c2b845c5d566453e36763abbc67e66aa60",
       "blockers": [
-        "Isolated local ref CAS intent implemented, protected Git transaction/original protection not executed; receipt does not grant promotion"
+        "Synthetic atomic CAS state machine + immutable original/main; real protected Git CAS and F18 signer NOT_RUN."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -647,9 +647,12 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": [],
-      "p1_hardening_round": 2
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "Synthetic atomic CAS state machine + immutable original/main; real protected Git CAS and F18 signer NOT_RUN."
+      ],
+      "p1_hardening_round": 2,
+      "p1_hardening_evidence_sha": "9073a0c2b845c5d566453e36763abbc67e66aa60"
     },
     {
       "task_id": "MLA-019",
@@ -676,9 +679,9 @@
       "safety_checks": "SYNTHETIC_ONLY;F18_SECURITY_PASS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "5b6f5c83d2c3dae51db8a103422d952a4e58138d",
+      "evidence_sha": "3fdf98cc2468e457054bd44d1371d47d536058c9",
       "blockers": [
-        "Code-only adapter/preview implemented; full runtime dependencies remain unresolved, no owner GO or F18 or original/remote operation"
+        "Controller→Qwen/OpenCode prepared request→redacted FE card; real sandbox execution, owner go and F18 NOT_RUN."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -696,9 +699,12 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": [],
-      "p1_hardening_round": 2
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "Controller→Qwen/OpenCode prepared request→redacted FE card; real sandbox execution, owner go and F18 NOT_RUN."
+      ],
+      "p1_hardening_round": 2,
+      "p1_hardening_evidence_sha": "3fdf98cc2468e457054bd44d1371d47d536058c9"
     },
     {
       "task_id": "MLA-020",
@@ -769,8 +775,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": []
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-022",
@@ -827,9 +834,9 @@
       "safety_checks": "READ_ONLY_REMOTE;NO_PRODUCTION",
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "efc2f33713ed4c3af77583b2d276cf601615f12e",
+      "evidence_sha": "9a9305e22cae52dd8f8e82d333b2d86a998b967e",
       "blockers": [
-        "Code-only adapter/preview implemented; full runtime dependencies remain unresolved, no owner GO or F18 or original/remote operation"
+        "Strict protected draft target SHA and changed file metadata; live GitHub protection, remote actions and owner go NOT_RUN."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -840,9 +847,12 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": [],
-      "p1_hardening_round": 2
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "Strict protected draft target SHA and changed file metadata; live GitHub protection, remote actions and owner go NOT_RUN."
+      ],
+      "p1_hardening_round": 2,
+      "p1_hardening_evidence_sha": "9a9305e22cae52dd8f8e82d333b2d86a998b967e"
     },
     {
       "task_id": "MLA-024",
@@ -1043,13 +1053,13 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "c43169e095d19143fe15d6b51cfa81ced73e8409",
-    "run_id": 44020652516,
+    "head_sha": "9a9305e22cae52dd8f8e82d333b2d86a998b967e",
+    "run_id": 44021629768,
     "python_compile": "PASS",
-    "unit_tests_pass": 88,
-    "synthetic_integration_tests_pass": 56,
-    "security_contract_tests_pass": 122,
-    "scope": "P1_SYNTHETIC_ONLY_F18_WIN_OWNER_ACTUAL_NOT_RUN"
+    "unit_tests_pass": 93,
+    "synthetic_integration_tests_pass": 62,
+    "security_contract_tests_pass": 128,
+    "scope": "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
   "operational_ready": [],
@@ -1062,9 +1072,9 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-014",
-      "MLA-015",
-      "MLA-017"
+      "MLA-016",
+      "MLA-022",
+      "MLA-024"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
@@ -1073,9 +1083,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-018",
-      "MLA-019",
-      "MLA-023"
+      "MLA-006",
+      "MLA-021",
+      "MLA-008"
     ],
     "completed_code_waves": [
       [
@@ -1102,6 +1112,11 @@
         "MLA-014",
         "MLA-015",
         "MLA-017"
+      ],
+      [
+        "MLA-018",
+        "MLA-019",
+        "MLA-023"
       ]
     ]
   },

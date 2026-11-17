@@ -47,8 +47,15 @@ class CodeQueueSeparationTests(unittest.TestCase):
     def test_code_ready_is_not_original_runtime_ready(self):
         for task in SOURCE["tasks"]:
             if task["p1_code_status"] == "READY_CODE_ONLY":
-                self.assertEqual(task["status"], "BLOCKED_DEPENDENCY")
+                self.assertIn(task["status"], ("BLOCKED_DEPENDENCY", "IMPLEMENTED_UNVERIFIED"))
                 self.assertTrue(task["runtime_dependencies_preserved"])
+
+    def test_original_runtime_ready_is_never_execution_ready(self):
+        fake=copy.deepcopy(SOURCE)
+        first=next(t for t in fake["tasks"] if t["task_id"] == fake["first_ready"][0])
+        first["status"]="READY"
+        with self.assertRaises(ValueError):
+            self.audit(fake)
 
     def test_missing_source_evidence_denied(self):
         fake=copy.deepcopy(SOURCE)

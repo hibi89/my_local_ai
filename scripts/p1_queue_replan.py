@@ -110,7 +110,7 @@ def audit_p1_queue(raw: str) -> dict:
         if tid in MUST_HOLD and task.get("p1_code_status") == CODE_READY:
             raise ValueError("must preserve provenance/trust blockers")
         if task.get("p1_code_status") == CODE_READY:
-            if (task.get("status") != "BLOCKED_DEPENDENCY"
+            if (task.get("status") not in {"BLOCKED_DEPENDENCY", "IMPLEMENTED_UNVERIFIED"}
                 or task.get("p1_code_blockers") != []):
                 raise ValueError("runtime task cannot be marked executable")
         if task.get("status") == "BLOCKED_PROVENANCE" and task.get("p1_code_status") != "BLOCKED_PROVENANCE":

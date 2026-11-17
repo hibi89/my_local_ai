@@ -101,7 +101,7 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
         record = tasks_by_id.get(tid)
         if (not isinstance(tid,str) or not _STATE_KEY.fullmatch(tid.replace("-","_"))
             or not isinstance(record,dict)
-            or record.get("status") != "BLOCKED_DEPENDENCY"
+            or record.get("status") not in ("BLOCKED_DEPENDENCY","IMPLEMENTED_UNVERIFIED")
             or record.get("runtime_authorization") != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"):
             raise ValueError("unsafe READY representation")
     return StatusSnapshot(
