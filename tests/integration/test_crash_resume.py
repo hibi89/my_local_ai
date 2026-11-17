@@ -131,9 +131,9 @@ from my_local_ai.contracts.approval import OwnerGrant
 from my_local_ai.ax_runtime.leases import claim_synthetic_lease
 
 
-class SyntheticLeaseTransactionTests(CrashResumeContractTests):
+class SyntheticLeaseTransactionTests(unittest.TestCase):
     def setUp(self):
-        super().setUp()
+        CrashResumeContractTests.setUp(self)
         self.db.execute("PRAGMA query_only=OFF")
         self.db.execute("UPDATE tasks SET state='READY' WHERE plan_id='PLAN-017'")
         self.db.execute(
