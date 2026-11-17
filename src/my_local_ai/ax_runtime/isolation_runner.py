@@ -329,3 +329,195 @@ def require_host_isolated_coder_runner(transport: OfflineCoderTransport,
     if not isinstance(transport,OfflineCoderTransport):
         raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
     raise WindowsIsolationHold("OWNER_SIGNER_NOT_AVAILABLE")
+
+
+# Host-Qwen inference is a DATA-ONLY source path. Ollama runs on the host
+# loopback with no code-execution tools; guest Windows Sandbox stays offline.
+# The model's returned source is always untrusted and never written here.
+from my_local_ai.ax_runtime.provider_policy import (
+    LoopbackEndpoint as _LoopbackEndpoint, require_qwen_model as _require_qwen_model,
+    ProviderHold as _ProviderHold,
+)
+
+
+@dataclass(frozen=True)
+class HostQwenGenerationRequest:
+    task_id: str
+    run_id: str
+    source_sha: str
+    plan_sha256: str
+    transport_sha256: str
+    model: str
+    endpoint: str
+    prompt_sha256: str
+    request_sha256: str
+    request_body: bytes
+    state: str = "HOST_ONLY_INFERENCE_NOT_EXECUTED"
+    host_inference_executed: bool = False
+    guest_sandbox_executed: bool = False
+    owner_source_writable: bool = False
+    model_output_trusted: bool = False
+    may_promote: bool = False
+
+
+@dataclass(frozen=True)
+class UntrustedHostQwenFiles:
+    task_id: str
+    run_id: str
+    source_sha: str
+    plan_sha256: str
+    request_sha256: str
+    files: tuple[tuple[str, str], ...]
+    files_sha256: str
+    state: str = "UNTRUSTED_HOST_MODEL_OUTPUT_F18_REQUIRED"
+    files_applied_to_original: bool = False
+    guest_executed: bool = False
+    independent_f18_verified: bool = False
+    can_publish: bool = False
+
+
+def _strict_json(raw: bytes, *, limit: int) -> object:
+    if not isinstance(raw, bytes) or not raw or len(raw) > limit:
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    def pairs_unique(pairs):
+        out = {}
+        for k, v in pairs:
+            if k in out:
+                raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+            out[k] = v
+        return out
+    try:
+        return _json.loads(
+            raw.decode("utf-8"), object_pairs_hook=pairs_unique,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite")),
+        )
+    except (UnicodeError, ValueError, TypeError, RecursionError):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
+
+
+def prepare_host_qwen_generation(
+    transport: OfflineCoderTransport, *,
+    coding_request: str, classification: str = "PUBLIC_SYNTHETIC_ONLY",
+    model: str = "qwen3:4b-instruct",
+    endpoint_url: str = "http://127.0.0.1:11434",
+) -> HostQwenGenerationRequest:
+    """Create a bounded host-only Ollama /api/generate JSON request, no I/O.
+
+    No task secret, original source, customer data, private repo content or
+    credentials may be supplied in PUBLIC_SYNTHETIC_ONLY mode. The trusted
+    owner must approve real private project use with a separate classification
+    and OS boundary; this function intentionally rejects that scope.
+    """
+    if (not isinstance(transport, OfflineCoderTransport)
+        or transport.state != "HOST_OFFLINE_MODEL_BROKER_UNAVAILABLE"
+        or transport.model_executed or transport.sandbox_started
+        or transport.network_egress_attested or transport.output_trusted
+        or transport.may_write_owner_checkout or transport.may_issue_review_receipt
+        or not isinstance(coding_request, str)
+        or not coding_request.strip() or "\x00" in coding_request
+        or len(coding_request.encode("utf-8")) > 8192
+        or classification != "PUBLIC_SYNTHETIC_ONLY"):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    try:
+        selected = _require_qwen_model(model)
+        endpoint = _LoopbackEndpoint.parse(endpoint_url)
+    except _ProviderHold:
+        raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED") from None
+    # Restrict this source path to a canonical IPv4 loopback URL. No proxy,
+    # credentials, cloud host, DNS name, path suffix or remote provider.
+    if endpoint.host != "127.0.0.1" or endpoint_url != (
+        "http://127.0.0.1:" + str(endpoint.port)
+    ):
+        raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED")
+    if selected != "qwen3:4b-instruct":
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    schema_hint = (
+        'Return only JSON {"version":1,"files":['
+        '{"path":"allowed/relative.py","content":"complete UTF-8 source"}'
+        ']}. Use only these exact allowed paths: ' +
+        ", ".join(transport.allowed_paths) +
+        ". Do not request tools, shell, network or new file paths. Task: "
+    )
+    prompt = schema_hint + coding_request
+    body = _json.dumps({
+        "model":selected,"prompt":prompt,"stream":False,
+        "format":"json",
+        "options":{"temperature":0,"num_predict":2048,"num_ctx":4096},
+        "keep_alive":"0",
+    },ensure_ascii=True,sort_keys=True,separators=(",",":")).encode("utf-8")
+    if len(body)>14000:
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    body_hash=sha256(
+        b"mla-host-qwen-request/v1|"+transport.request_sha256.encode("ascii")
+        + b"|" + body
+    ).hexdigest()
+    return HostQwenGenerationRequest(
+        transport.task_id,transport.run_id,transport.source_sha,
+        transport.plan_sha256,transport.request_sha256,selected,endpoint_url,
+        sha256(prompt.encode("utf-8")).hexdigest(),body_hash,body,
+    )
+
+
+def decode_untrusted_host_qwen_files(
+    raw_ollama_response: bytes,
+    request: HostQwenGenerationRequest,
+    transport: OfflineCoderTransport,
+) -> UntrustedHostQwenFiles:
+    """Parse a host inference result into *untrusted* file changes, no writes.
+
+    This parse does NOT assert the HTTP call occurred, whose principal ran,
+    that the file contents are safe, or that guest/independent review ran.
+    """
+    if (not isinstance(request,HostQwenGenerationRequest)
+        or not isinstance(transport,OfflineCoderTransport)
+        or request.state != "HOST_ONLY_INFERENCE_NOT_EXECUTED"
+        or request.host_inference_executed or request.guest_sandbox_executed
+        or request.owner_source_writable or request.model_output_trusted
+        or request.may_promote or request.task_id != transport.task_id
+        or request.run_id != transport.run_id
+        or request.source_sha != transport.source_sha
+        or request.plan_sha256 != transport.plan_sha256
+        or request.transport_sha256 != transport.request_sha256):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    response=_strict_json(raw_ollama_response,limit=262144)
+    if (not isinstance(response,dict)
+        or response.get("model") != request.model
+        or response.get("done") is not True
+        or not isinstance(response.get("response"),str)
+        or len(response["response"].encode("utf-8")) > 131072
+        or "tool_calls" in response or "message" in response):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    fileset=_strict_json(response["response"].encode("utf-8"),limit=131072)
+    if (not isinstance(fileset,dict) or set(fileset)!={"version","files"}
+        or type(fileset["version"]) is not int or fileset["version"]!=1
+        or not isinstance(fileset["files"],list)
+        or not 1<=len(fileset["files"])<=len(transport.allowed_paths)):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    files=[]
+    seen=set()
+    size=0
+    for entry in fileset["files"]:
+        if not isinstance(entry,dict) or set(entry)!={"path","content"}:
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        try:
+            path=_safe_path(entry["path"])
+        except (ValueError,TypeError):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
+        if (path not in transport.allowed_paths or path.casefold() in seen
+            or not isinstance(entry["content"],str)
+            or "\x00" in entry["content"]):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        seen.add(path.casefold())
+        size += len(entry["content"].encode("utf-8"))
+        if size > 131072:
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        files.append((path,entry["content"]))
+    files.sort(key=lambda item:item[0])
+    canonical=_json.dumps(
+        files,ensure_ascii=True,sort_keys=True,separators=(",",":")
+    ).encode("utf-8")
+    return UntrustedHostQwenFiles(
+        request.task_id,request.run_id,request.source_sha,
+        request.plan_sha256,request.request_sha256,tuple(files),
+        sha256(b"mla-untrusted-host-files/v1|"+canonical).hexdigest(),
+    )
