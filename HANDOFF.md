@@ -59,3 +59,18 @@
 8. **원본·비밀·복구:** 고객자료/.env/키/모델 가중치 업로드 없음. owner HMAC 키의 실제 저장/발급 절대 GitHub 금지, 소스는 별도 OS protected trust root 전까지 HOLD. HMAC test key는 공개 합성 fixture 뿐이며 운영 키가 아님. main/원본 불변.
 9. **다음 READY:** `MLA-012` Ollama loopback-only connector/local coder availability and failure HOLD; 계획된 MLA-013 OpenCode runner, provider 사전 승인/비밀/경계 확인. Hydra 확장 8개는 선택형·범위 GO 전 구현 큐에 자동 편입 금지.
 10. **갱신:** 2026-11-17 KST. 설계 HEAD `0de11f63...`, dev 코드 `75d441ed163b3d91b271653c5e3fc5dae40ece96`, 실 PASS 근거 Actions `44008410953` synthetic. P2 검증·현장/보안/브라우저/독립 감사가 완료됐다고 주장하지 말 것.
+
+---
+
+# My Local AI — 2026-11-17 KST 모바일 `ㄱ` 다음 채팅 인수인계 (최신)
+
+1. **임무/범위 고정:** `hibi89/my_local_ai`의 P1 BE/FE 실제 구현만 수행. 제품은 독립 로컬 자율개발 Controller + 로컬 Ollama/Qwen/OpenCode + optional EAI advisor. Hydrogen provider는 V1.1 설계 확장/별도 `EXT-HYD-01..08` 큐로 기본 OFF, 외부 API·데이터 송신 별도 승인.
+2. **변경 완료:** 브라우저/Playwright/시각/a11y·반응형·Console/Network 검증을 P1 `MLA-019/021/025`에서 P2 `MLA-V007`로 큐 수준 명시 이관. P1에서는 FE/BE 코드·화면·API·테스트 fixture 및 syntax/type/국소 smoke 작성 유지. CLI-only는 브라우저 비대상.
+3. **검증:** 최신 코드 고정 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`; Actions `44008410953` Python 3.11 syntax PASS, 54 unit PASS, 13 synthetic security PASS. 실제 Playwright/브라우저·Win11/Ollama/OpenCode/24h/F18 독립 reviewer 전수 `NOT_RUN`. 이 문서/큐만 변경한 SHA의 CI 실행은 별도 확인.
+4. **완료·진척:** 구현완료율 **4/30 = 13.33%** (REQ-04/08/18/29 코드 구현 후보), P1 코드 작업 8/28 `IMPLEMENTED_UNVERIFIED`. 공식 검증완료율 `UNASSESSED`; P2 `LOCKED`. `MLA-001` provenance/라이선스 차단; `MLA-003` F18 신뢰 경계 HOLD; `MLA-009` protected signer 미구현.
+5. **실패/차단/대안:** EAI·AX 고정 SHA 원본 루트 LICENSE 미확인→원본 코드 복사 없이 자체 구현 계속. F18 코딩 모델의 위조 PASS/영수증 신뢰 금지; 사용자 PC 보안 경계 미실증→중요 원본 자동 승격 HOLD. GitHub Actions 합성 테스트는 OS·브라우저 P2 증거 아님.
+6. **repo/branch/SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`; 가장 최근 제품 소스 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`. 최신 HEAD는 GitHub에서 재조회. 설계 브랜치 `design/final-blueprint-v1` 기준 `0de11f63c3ae795e1ed9ec1ec016ac38b864e1d4`(새 커밋 존재 시 재조회). main·EAI·AX 원본 불변.
+7. **Production/환경:** 로컬 개인용 대상, 배포/Production 미적용. 테스트는 GitHub Actions 합성 환경만 실제 PASS. 사용자 Windows11 GTX1050Ti/16GB Windows 실기기 없음, 유료 결제·외부 전송·키 업로드 없음.
+8. **백업/권한:** Git 이력 원본 보존, .env/키/고객자료/모델 가중치 public repo 업로드 금지. 모델/Hydrogen/remote PR/OS startup/상용/고객 원본 파괴·Production 별도 GO. 원본 EAI/AX source read-only.
+9. **다음 READY/완료기준:** 다음 `ㄱ`은 최신 HEAD→`AGENTS.md`→`HANDOFF.md`→`STATUS.md`→`REQUIREMENTS.md`/Final Blueprint→P1 큐/실제 코드 확인 후 `MLA-012` 로컬 Ollama loopback provider부터 실제 구현; 가능한 독립 READY 묶음. 변경 SHA·문법/국소 보안 체크 근거, REQ 분자 엄격 산정. 전체 CI 수동 대기·실브라우저 검사 반복 금지.
+10. **갱신:** 2026-11-17 KST, 브라우저 검증 이관은 설계·큐 **작업 분류 수정**, 코드 기능 진척 0. P2 브라우저 `MLA-V007`는 High 100% 후보 승인+정확 SHA 게이트 전 `BLOCKED_BY_P1_GATE`. 최신 기준 HEAD와 실제 CI는 다음 채팅에서 확인.

@@ -44,3 +44,5 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 - 새 ProviderPort는 기본 OFF/네트워크 DENY/비용 0. 실제 API·비공개 코드·고객 자료 전송, SDK 계정 활성화·유료 결제·GitHub PR/main·권한·Production은 별도 사용자 GO. mock만 설계·안전 구현 후보 가능.
 - 여러 워커의 동시 코딩은 다른 READY, disjoint `allowed_paths`, exact source/plan SHA, worktree·lease·F18 독립 trust verifier를 지켜야 하며, 모델 셀프 PASS를 VERIFIED로 간주 금지.
 - 원래 `INSTANT_TASK_QUEUE.json` 28개/REQ-01~30/P1 구현률 분모 30 및 `WORK_PHASE_GATES.json` P2 LOCKED를 **절대 임의 변경하지 않는다**. 확장은 별도 설계/선택형 큐로 추적. 현재 작업중인 dev Instant 소스·STATUS·큐는 설계 브랜치 파일로 덮어쓰지 않는다.
+
+- **모바일 P1 구현·브라우저 후행 실천(2026-11-17 추가 확정):** `INSTANT_TASK_QUEUE.json`의 `MLA-019/021/025`는 브라우저 검증이 P1 수용조건에 포함되지 않으며 `VERIFICATION_TASK_QUEUE.json` `MLA-V007`에서 P1 100% 후보·High·정확 SHA 후 실행한다. P1 FE/BE·테스트 하네스 작성은 필수, 국소 syntax/type/smoke와 고위험 즉시 안전검사는 유지. CLI-only 대상 브라우저 `NOT_APPLICABLE`. P1 FE 작성 완료 시 `IMPLEMENTED_UNVERIFIED + BROWSER_NOT_RUN`을 기록하고 임의 PASS를 내지 않는다. `ㄱ`은 최신 READY 실제 구현을 재개하라는 뜻이다.

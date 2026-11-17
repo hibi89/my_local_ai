@@ -33,3 +33,13 @@
 2026-11-17 설계 개선에 따라 Hydrogen/다른 무료 모델의 **탈부착형 병렬 구현 워커** 설계가 추가되었다. **기존 P1 28 작업/필수 REQ-01~30, 공식 검증 P2 8 작업, 구현률 분모 30, P2 LOCKED, Codex·Astra 후행 검수 불변.**
 
 확장 작업은 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json` 별도 보관: 명시적 High 설계 동기화·작업 범위 승인 이후 mock/ProviderPort 구현을 별도로 착수할 수 있으나 원래 필수 P1 READY를 중단시키거나 확장 실적을 기존 구현 분자로 합산하지 않는다. 실제 외부 Hydrogen API 호출·데이터 송신·유료/권한은 추가 사용자 GO 및 비용·프라이버시·quota gate 없이 불허. 실 Hydrogen과 Windows/F18/24h 전수 검증은 적절한 P2·후행 승인까지 NOT_RUN 유지.
+
+### 2026-11-17 — P1 브라우저 테스트 이관 확정 (작업 큐 직접 연결)
+
+- P1 `MLA-019`: Controller·FE 연결/통합 코드, synthetic fixture 작성만. **실 브라우저 E2E와 GUI 사용자 동선 검사 = `MLA-V007` (P2).**
+- P1 `MLA-021`: FE/HTTP 상태판, 의미론적 접근성 코드, Host·Origin·CSRF 안전 방어, 문법·단위·국소 HTTP 스모크까지 구현. **Playwright/브라우저 실제 클릭·스크린샷/화면 디자인·반응형·키보드/a11y 전수·Console/Network = `MLA-V007` (P2).** `BROWSER_NOT_RUN`을 P1 미완성 근거로 사용하지 않는다.
+- P1 `MLA-025`: E2E/브라우저 시나리오 테스트 코드·fixture·증거 스키마를 **작성만** 하며 브라우저·회귀·실기기 전체 실행은 P2 `MLA-V007`, `MLA-V001` 및 해당 검증 항목으로 이관.
+- P1 `MLA-006`: CLI 전용 명령의 브라우저는 `NOT_APPLICABLE`. 보드 관련 UI를 테스트할 때만 `MLA-V007` 적용.
+- P2 `MLA-V007`: 기존 구현된 UI/버튼·폼만 실제 확인하고 없는 통제 기능의 성공을 주장하지 않는다. PASS/FAIL/SKIP/NOT_RUN/NOT_APPLICABLE 각각 근거/정확 SHA 기록.
+- 예외: P1 인증·권한·비밀·외부전송·원본/DB 손실·F18 등 즉시 위험검사와 기존 필수 CI는 중단/우회 금지. 위험 확인에 브라우저가 필수라면 **최소 한정 시나리오만** 실행하고 사유와 SHA를 남긴다.
+- **변경 없음:** P1 28개/30 REQ 구현 분모, 코드 구현완료율 4/30(13.33%), P2 8개 잠금, Hydrogen 별도 선택형 기본 OFF, REAL-USE HOLD.

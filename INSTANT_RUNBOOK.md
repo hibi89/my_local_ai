@@ -47,3 +47,9 @@
 2026-11-17 High 설계 브랜치에 Hydrogen ProviderPort, 병렬 격리 워커, 무료 한도·유료 전환 시 자동 OFF/fallback 구조를 추가했다. 상세 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 확장 큐 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`.
 
 **기존 MLA-001..030 / P1 28 작업·필수 30 REQ·P2 LOCKED는 그대로.** 이 문서 변경만으로 신규 READY를 자동 할당하거나 구현/검증 진척에 산입하지 않는다. 확장 mock/contract 코드의 허용 경로/의존성은 High가 실제 dev HEAD를 보고 따로 승인. 실제 Hydrogen API·비공개/고객 자료 송신·유료·키·GitHub 원격 쓰기는 owner 별도 GO까지 차단. OFF 이후 Qwen 기본경로 유지와 F18 독립 검증 경계를 보존한다.
+
+### 새 채팅/모바일 `ㄱ` 실행 기준 — 브라우저 후행 재확인
+1. 우선 최신 HEAD/AGENTS/HANDOFF/STATUS/REQ/Final Blueprint/queue 확인. P1 READY `MLA-012` 로컬 Ollama loopback guard부터 독립 READY 묶음 실행. 브라우저 테스트 대기/반복으로 P1 중단하지 말 것.
+2. P1 수행자는 BE/FE 기능과 API 연결·검증 하네스까지 구현. 실 브라우저/Playwright·스크린샷/반응형/접근성·Console/Network 전수 검증은 `VERIFICATION_TASK_QUEUE.json#MLA-V007`의 P2로 이관. `BROWSER_NOT_RUN/DEFERRED_TO_P2` 기록.
+3. 구체 연결: `MLA-019, MLA-021, MLA-025` → `MLA-V007`; CLI-only `MLA-006`은 브라우저 비대상. 전체 CI 수동 재실행/대기는 P1 후행, 기존 필수 CI는 유지.
+4. 단, 인증·보안·비밀·권한·데이터 손실·F18 즉시 검사는 무조건 유지. 실제 불가피한 최소 브라우저 예외는 SHA·범위를 기록. 모델/게스트 self-PASS는 검증 증거가 아니다.

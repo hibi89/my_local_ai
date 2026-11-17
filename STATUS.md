@@ -54,3 +54,13 @@
 - 코드 최신 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`, GitHub Actions 합성 실행 `44008410953`: Python 3.11 syntax PASS, **54 unit PASS, 13 synthetic security PASS, FAIL 0**. 이 범위는 P2 전체 CI/Windows/실모델/실 F18/24h 검증이 아님.
 - P1 소스 구현 작성 후보 MLA-002/004/005/006/007/010/011/021 = **8/28 작업**. MLA-001 `BLOCKED_PROVENANCE`; MLA-003 `PARTIAL_F18_SECURITY_HOLD`; MLA-009 `PARTIAL_TRUST_ROOT_HOLD`.
 - 다음 READY `MLA-012` 로컬 Ollama provider. 네트워크 기본 OFF / loopback-only / Qwen 모델 auto-download 없음. Extension `EXT-HYD-01..08`은 High 별도 설계 큐·기본 OFF, 외부 API 호출/데이터 전송/결제/원격 승인 없음, 30 REQ 분모에서 제외. P2 LOCKED, F18 CRITICAL HOLD, 실제 Windows NOT_RUN.
+
+---
+
+## 2026-11-17 KST 최신 실행 지침 — P1 브라우저 검증 P2로 명시적 이전
+
+- **이전 상태/코드 SHA 보존:** P1 구현완료율 **4/30 = 13.33%**, 코드 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`, 합성 GitHub Actions `44008410953` 54 unit + 13 security PASS. 위 수치는 브라우저/실 Windows 검증 근거가 아니다.
+- **이번 변경:** `INSTANT_TASK_QUEUE.json` `MLA-019/021/025`의 브라우저/Playwright E2E·시각·키보드/a11y·반응형·Console/Network 전수 검증을 `VERIFICATION_TASK_QUEUE.json` `MLA-V007` P2에 연결. `MLA-006` CLI-only 브라우저 비대상. 실 브라우저 테스트 실행은 `NOT_RUN`.
+- P1은 실제 BE/FE 소스·HTML/API·test fixture·구현 수용코드까지 작성하고 Python 문법/type·최소 빌드·국소 합성 HTTP smoke·보안 즉시검사만 실행. 기존 GitHub 필수 CI/branch protection 유지. 보안 고위험 시 최소 브라우저 예외 가능(근거 기록).
+- **다음 `ㄱ`:** `MLA-012` localhost-only Ollama provider 구현, 다른 독립 READY는 실제 큐에서 확인 후 묶음 실행. 사용자 PC 작업 금지, EAI/AX 원본 수정 금지. 비인가 Hydrogen/결제/외부전송 금지. SHA·실제 완료 REQ/30 백분율·NOT_RUN/SECURITY_HOLD·다음 READY 보고.
+- **P2:** `WORK_PHASE_GATES.json` `LOCKED`, 공식 검증완료율 `UNASSESSED`, F18 실기기 분리 `SECURITY_HOLD`, Windows/Ollama/OpenCode/24h `NOT_RUN`. 브라우저 관련 편의 검증을 P1 진행 차단으로 사용하지 않는다.

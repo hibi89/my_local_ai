@@ -236,7 +236,7 @@
         "docs/UI_UX.md",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "P2 ONLY after exact P1 candidate+High gate: execute actual supported browser/Playwright E2E for optional local dashboard (status/approve/HOLD, buttons/forms), keyboard/a11y/responsive and Console/Network, Host/CSRF/security; document exact SHA, browser/runtime, PASS/FAIL/SKIP/NOT_RUN and reverify affected flows after fixes. CLI-only path: document NOT_APPLICABLE; do not convert unavailable browser or P1 code/HTTP evidence to browser PASS. Keep mandatory CI and P1 high-risk immediate safety checks.",
+      "acceptance": "P2 ONLY: after P1 implementation-100 candidate + High approval of exact SHA, execute all deferred real-browser/Playwright E2E, click/form (only if actually implemented), focus/keyboard/a11y, visual screenshots, responsive/mobile, Console/Network, Host/Origin/CSRF for optional local dashboard; record exact SHA/runtime and PASS/FAIL/SKIP/NOT_RUN, fix/retest. UI not implemented or CLI-only: document NOT_APPLICABLE for truly absent browser targets, not fabricated browser PASS. Keep mandatory CI and P1 immediate security smoke, which do not count as P2 browser PASS.",
       "safety_checks": [
         "NO_EXTERNAL_UI",
         "NO_RAW_SECRETS",
@@ -251,7 +251,25 @@
       "evidence_sha": null,
       "verification_status": "NOT_RUN",
       "blockers": [
-        "UI/CLI runtime"
+        "P1 100% source candidate + High exact-SHA gate",
+        "browser-available P2 test environment",
+        "F18 high-risk isolation still independently required"
+      ],
+      "p1_deferred_from": [
+        "MLA-019",
+        "MLA-021",
+        "MLA-025"
+      ],
+      "browser_test_status": "NOT_RUN",
+      "browser_verification_items": [
+        "Real browser/Playwright opening loopback-only status board with exact deployed/tested SHA",
+        "Existing status/HOLD/READY, implementation progress, owner GO (read-only) views, no secrets",
+        "Existing interactions only: every implemented button/form/keyboard flow, or mark NOT_APPLICABLE (no fabricated approval controls)",
+        "Keyboard navigation, focus visibility, accessible names, semantic landmarks, a11y audit",
+        "Mobile/tablet/desktop responsive layouts and screenshot/visual comparison",
+        "Browser Console error and Network request/response inspection; no external data egress",
+        "Host/Origin/CSRF/access control browser negative scenarios with separate P1 narrow safety check still mandatory",
+        "Retest affected UI paths after P2 defects; record browser/version/OS/sha evidence and PASS/FAIL/SKIP/NOT_RUN"
       ]
     },
     {
