@@ -18,7 +18,11 @@
   "code_completed_req": 5,
   "official_verification": "UNASSESSED",
   "task_count": 28,
-  "first_ready": [],
+  "first_ready": [
+    "MLA-017",
+    "MLA-028",
+    "MLA-030"
+  ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
   "allowed_before_P1_candidate": [
@@ -60,7 +64,12 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-002",
@@ -83,7 +92,12 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2",
+      "p1_code_depends_on": [],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-003",
@@ -108,7 +122,12 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-004",
@@ -130,7 +149,12 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2",
+      "p1_code_depends_on": [],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-005",
@@ -152,7 +176,12 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2",
+      "p1_code_depends_on": [],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-006",
@@ -178,7 +207,14 @@
       "verification_status": "NOT_RUN",
       "browser_verification_policy": "NOT_APPLICABLE_CLI_ONLY",
       "p2_browser_task": "MLA-V001",
-      "p1_local_scope": "CLI read-only only: browser not applicable; CLI parser/unit smoke in P1; P2 regression by MLA-V001"
+      "p1_local_scope": "CLI read-only only: browser not applicable; CLI parser/unit smoke in P1; P2 regression by MLA-V001",
+      "p1_code_depends_on": [
+        "MLA-002"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-007",
@@ -201,7 +237,14 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-002"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-008",
@@ -235,7 +278,16 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-002"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
+      ]
     },
     {
       "task_id": "MLA-009",
@@ -261,7 +313,15 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "SYNTHETIC_ONLY"
+      "verification_status": "SYNTHETIC_ONLY",
+      "p1_code_depends_on": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-010",
@@ -285,7 +345,15 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-002",
+        "MLA-007"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-011",
@@ -311,7 +379,14 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "P1_SYNTHETIC_ONLY"
+      "verification_status": "P1_SYNTHETIC_ONLY",
+      "p1_code_depends_on": [
+        "MLA-010"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-012",
@@ -338,7 +413,15 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-005",
+        "MLA-011"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-013",
@@ -363,7 +446,14 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-012"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-014",
@@ -391,7 +481,16 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-002"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
+      ]
     },
     {
       "task_id": "MLA-015",
@@ -419,7 +518,17 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-004",
+        "MLA-014"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
+      ]
     },
     {
       "task_id": "MLA-016",
@@ -445,7 +554,17 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-010",
+        "MLA-015"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
+      ]
     },
     {
       "task_id": "MLA-017",
@@ -471,7 +590,16 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-007",
+        "MLA-010",
+        "MLA-014"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-018",
@@ -495,7 +623,16 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-014",
+        "MLA-015",
+        "MLA-017"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-019",
@@ -529,7 +666,19 @@
       "verification_status": "NOT_RUN",
       "browser_verification_policy": "DEFERRED_TO_P2",
       "p2_browser_task": "MLA-V007",
-      "p1_local_scope": "Controller/FE interface binding and synthetic journey: author integration test fixtures in P1; actual browser end-to-end and multi-page journeys in P2 when UI applicable"
+      "p1_local_scope": "Controller/FE interface binding and synthetic journey: author integration test fixtures in P1; actual browser end-to-end and multi-page journeys in P2 when UI applicable",
+      "p1_code_depends_on": [
+        "MLA-006",
+        "MLA-008",
+        "MLA-010",
+        "MLA-013",
+        "MLA-016",
+        "MLA-018"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-020",
@@ -556,7 +705,15 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-005",
+        "MLA-012"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-021",
@@ -585,7 +742,15 @@
       "verification_status": "P1_SYNTHETIC_HTTP_ONLY_BROWSER_NOT_RUN",
       "browser_verification_policy": "BROWSER_NOT_RUN",
       "p2_browser_task": "MLA-V007",
-      "p1_local_scope": "Author status-board HTML/FE, API/HTTP contract, static keyboard/accessibility semantics, Host/Origin safety unit tests and local HTTP smoke in P1; defer real browser click/flow, Playwright, visual snapshots, multi-resolution responsive, keyboard/a11y runtime and Console/Network to P2"
+      "p1_local_scope": "Author status-board HTML/FE, API/HTTP contract, static keyboard/accessibility semantics, Host/Origin safety unit tests and local HTTP smoke in P1; defer real browser click/flow, Playwright, visual snapshots, multi-resolution responsive, keyboard/a11y runtime and Console/Network to P2",
+      "p1_code_depends_on": [
+        "MLA-006",
+        "MLA-007"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-022",
@@ -610,7 +775,16 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-017",
+        "MLA-019",
+        "MLA-020"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-023",
@@ -633,7 +807,15 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-009",
+        "MLA-018"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-024",
@@ -658,7 +840,16 @@
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-023"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": [
+        "actual remote publish approval remains separate"
+      ]
     },
     {
       "task_id": "MLA-025",
@@ -687,7 +878,17 @@
       "verification_status": "NOT_RUN",
       "browser_verification_policy": "DEFERRED_TO_P2",
       "p2_browser_task": "MLA-V007",
-      "p1_local_scope": "P1 writes test scenarios/fixtures and evidence format; must NOT run Playwright or full E2E/Windows/system-wide regression until P2 exact SHA+High gate"
+      "p1_local_scope": "P1 writes test scenarios/fixtures and evidence format; must NOT run Playwright or full E2E/Windows/system-wide regression until P2 exact SHA+High gate",
+      "p1_code_depends_on": [
+        "MLA-019",
+        "MLA-021",
+        "MLA-022",
+        "MLA-029"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-028",
@@ -717,7 +918,14 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-008"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-029",
@@ -742,7 +950,15 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-015",
+        "MLA-019"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-030",
@@ -769,7 +985,16 @@
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "p1_code_depends_on": [
+        "MLA-004",
+        "MLA-014",
+        "MLA-015"
+      ],
+      "runtime_dependencies_preserved": true,
+      "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": []
     }
   ],
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
@@ -782,5 +1007,27 @@
     "benchmark_mock_tests_pass": 8,
     "security_contract_tests_pass": 61,
     "scope": "SYNTHETIC_P1_ONLY_NOT_P2_VERIFICATION"
+  },
+  "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
+  "operational_ready": [],
+  "p1_implementation_replan": {
+    "version": 1,
+    "kind": "CODE_DEPENDENCIES_DISTINCT_FROM_RUNTIME_AND_PROVENANCE_GATES",
+    "first_wave": [
+      "MLA-017",
+      "MLA-028",
+      "MLA-030"
+    ],
+    "planned_next_wave": [
+      "MLA-018",
+      "MLA-019",
+      "MLA-022"
+    ],
+    "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
+    "protected_owner_signer": "HOLD",
+    "independent_f18": "HOLD",
+    "git_promotion": "HOLD",
+    "p2": "LOCKED",
+    "code_req_denominator": 30
   }
 }

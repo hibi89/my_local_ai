@@ -1,0 +1,33 @@
+# My Local AI P1 Implementation Replan — 2026-11-17 KST
+
+## Decision
+The former queue used a single dependency edge for (1) safe source authoring and (2) actual operating authority. This starved P1 READY after partial code was written. We now track **two separate dependency graphs** without changing the original 28 tasks, 30 REQs, design or actual security acceptance:
+
+- `depends_on` plus `status` are **unchanged runtime/full-acceptance prerequisites**. The existing F18, owner GO, source rights, Windows isolated executor, original SHA/CAS, paid/network/offsite data gates and P2 remain on HOLD. No executable work order comes from this JSON.
+- `p1_code_depends_on` + `p1_code_status` + `first_ready` schedule **code-only implementation** with synthetic data, no dangerous run/host command. `first_ready` only includes `READY_CODE_ONLY` tasks; runtime status stays `BLOCKED_DEPENDENCY`. Finished code returns `IMPLEMENTED_UNVERIFIED`, never `VERIFIED`.
+- Source reuse: `MLA-001 BLOCKED_PROVENANCE` and imports list unchanged. Own clean-room modules are allowed to be authored and unit-tested as separate code work, not credited as license clearance.
+
+## Competing solutions considered
+| Plan | Throughput | Cost | Safety & upkeep | Decision |
+|---|---|---|---|---|
+| A: require original full-acceptance/F18 for every P1 source module | idle queue; serial bottlenecks | free but slow | strongest apparent check, wrongly couples coding and operation | reject |
+| B: remove blockers/set all tasks executable | fast but unsafe | uncontrolled | violates F18, consent, source rights, protection | reject |
+| **C: dual code-only and runtime DAG with explicit HOLD** | parallel source BE/FE/security tests | free | separate source scheduler and operations; no gate bypass | **adopt** |
+
+## Batch and dependency map
+| Wave | P1 code tasks | Preconditions | P1 acceptance boundary | Execution restrictions |
+|---|---|---|---|---|
+| 1 | MLA-017, MLA-028, MLA-030 | existing 007/010/014/008/004/015 code evidence | lease/reconciliation, optional EAI adapter, security scenarios on synthetic data | no protected DB writes/owner originals, external EAI import, real shell |
+| 2 | MLA-018, MLA-019, MLA-022 | prior code evidence + 013/016/020/006 | integration CAS contract; controller orchestration; supervisor/resource monitoring | Git local ref must remain unchanged, no unattended run/production |
+| 3 | MLA-023, MLA-025, MLA-029, MLA-024 | 018,019,022 output | remote preview, E2E fixtures, reviewer Windows harness, publish gate | no remote push/PR, no browser run before P2, no owner OS policy changes |
+
+**Safety still to implement** before real owner use: Windows sandbox + protected owner signer; accurate Git worktree creation with ignored/hooks/filter controls; independent reviewer executable and receipt issuance; Git CAS integration; trusted restart/lease state. Tests in CI are synthetic code-level checks, not OS proof.
+
+## Mechanism
+1. Run `python scripts/p1_queue_replan.py`: verify 28 task IDs, exact 30 REQ denominator, dual dependencies and the presence of source evidence, all 28 runtime authorization fields set HOLD, original provenance/F18 blockers intact, P2 locked and code-only READY consistent.
+2. One or more `p1_code_status=READY_CODE_ONLY` tasks may produce owned-source files within `allowed_paths`; write synthetic tests, syntax and immediate security checks. Their original task `status` stays as-blocked until *all* full acceptance conditions are separately met.
+3. Commit code and attach SHA to task evidence, then re-evaluate for next batch. Record exact tested SHA, names and PASS/FAIL/SKIP/NOT_RUN. Never infer % from task count or partial code.
+4. Owner/High must explicitly assess rights, independent F18, Windows trust-root, user consent and final scope to remove full-acceptance blockers. `WORK_PHASE_GATES.json` P2 only unlocks at evidenced 30/30 implementation + High SHA.
+
+## Current baseline
+P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly authored partial modules must **not** be counted until source/function acceptance fully met. Official verification UNASSESSED. P2 LOCKED. GitHub dev branch only, no original/Production edits.
