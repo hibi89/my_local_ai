@@ -112,3 +112,61 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
         code_ready_task_ids=tuple(ids),
         owner_real_use_go=p4.get("owner_go") is True,
     )
+
+
+@dataclass(frozen=True)
+class SyntheticEvidenceSnapshot:
+    source_sha: str
+    run_id: int
+    unit_tests: int
+    mock_integration_tests: int
+    security_tests: int
+    status: str = "REPORTED_P1_SYNTHETIC_CI_NOT_INDEPENDENTLY_ATTESTED"
+    real_windows: str = "NOT_RUN"
+    f18: str = "SECURITY_HOLD"
+    p2: str = "LOCKED"
+    owner_go: bool = False
+
+    def to_public_dict(self) -> dict:
+        return {
+            "source_sha":self.source_sha,
+            "run_id":self.run_id,
+            "synthetic_unit_pass":self.unit_tests,
+            "synthetic_integration_pass":self.mock_integration_tests,
+            "synthetic_security_pass":self.security_tests,
+            "synthetic_total":sum((
+                self.unit_tests,self.mock_integration_tests,self.security_tests,
+            )),
+            "status":self.status,
+            "real_windows":self.real_windows,
+            "f18":self.f18,
+            "p2":self.p2,
+            "owner_go":self.owner_go,
+            "execution_allowed":False,
+        }
+
+
+def load_synthetic_evidence(project_root: str | Path) -> SyntheticEvidenceSnapshot:
+    """Read bounded redacted CI metadata; *not* an independent verifier."""
+    root=Path(project_root).absolute()
+    load_snapshot(root)  # ensure P1/P2/owner gates remain consistent
+    queue=_read_limited(root/"INSTANT_TASK_QUEUE.json")
+    record=queue.get("last_p1_local_ci")
+    if not isinstance(record,dict):
+        raise ValueError("missing P1 evidence")
+    sha,run_id=record.get("head_sha"),record.get("run_id")
+    if (not isinstance(sha,str) or not re.fullmatch(r"[0-9a-f]{40}",sha)
+        or type(run_id) is not int or run_id<=0
+        or record.get("python_compile")!="PASS"):
+        raise ValueError("untrusted synthetic CI evidence")
+    keys=("unit_tests_pass","synthetic_integration_tests_pass","security_contract_tests_pass")
+    counts=[record.get(k) for k in keys]
+    if any(type(n) is not int or not 0<=n<=100000 for n in counts):
+        raise ValueError("bad synthetic count")
+    if record.get("scope") not in (
+        "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18",
+        "P1_SYNTHETIC_ONLY_F18_WIN_OWNER_ACTUAL_NOT_RUN",
+        "P1_ONLY_SYNTHETIC_NO_BROWSER_NO_REAL_MODEL_NO_WINDOWS_F18",
+    ):
+        raise ValueError("unsupported P1 evidence origin")
+    return SyntheticEvidenceSnapshot(sha,run_id,*counts)

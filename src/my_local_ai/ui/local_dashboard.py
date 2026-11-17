@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 
-from .status_view import StatusSnapshot, load_snapshot
+from .status_view import StatusSnapshot, SyntheticEvidenceSnapshot, load_snapshot, load_synthetic_evidence
 
 def host_allowed(host: str | None, port: int) -> bool:
     if not isinstance(host, str):
@@ -22,10 +22,15 @@ def origin_allowed(origin: str | None, port: int) -> bool:
         return True
     return origin in (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
 
-def render_html(snapshot: StatusSnapshot) -> bytes:
+def render_html(snapshot: StatusSnapshot, evidence: SyntheticEvidenceSnapshot | None = None) -> bytes:
     state = snapshot.to_public_dict()
     percent = state["implementation_percent"]
     code_ready_names = ", ".join(escape(name) for name in state["p1_code_ready_ids"]) or "없음"
+    synthetic_note = (
+        f"마지막 합성 CI 보고: {evidence.run_id} / "
+        f"{evidence.unit_tests + evidence.mock_integration_tests + evidence.security_tests}개 검사"
+        if evidence is not None else "합성 CI 보고: 조회 화면에서 확인"
+    )
     text = f"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -62,6 +67,8 @@ a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
 <p>공식 검증률: <strong>UNASSESSED</strong></p>
 <p>Hydrogen 원격 워커: <strong>OFF (미승인)</strong></p>
 <p>브라우저 전수 테스트: <strong>DEFERRED_TO_P2</strong></p>
+<p>합성 테스트 근거: <strong>{escape(synthetic_note)}</strong></p>
+<p><a href="/evidence.json">합성 CI 요약 JSON</a> · <code>python -m my_local_ai queue next</code></p>
 <p>작업 시작·중지·승인 변경: <strong>이 읽기 전용 화면에서는 불가</strong></p></section>
 </main><footer><small>로컬 전용. 고객 파일·비밀·모델 출력 미표시.</small></footer>
 </body></html>"""
@@ -95,7 +102,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             or not origin_allowed(self.headers.get("Origin"), port)
             or self.headers.get("Sec-Fetch-Site", "none") not in ("none", "same-origin")):
             return self._respond(403, b"forbidden", "text/plain; charset=utf-8")
-        if self.path not in ("/", "/status.json"):
+        if self.path not in ("/", "/status.json", "/evidence.json"):
             return self._respond(404, b"not found", "text/plain; charset=utf-8")
         try:
             snapshot = load_snapshot(self.server.project_root)
@@ -104,7 +111,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if self.path == "/status.json":
             body = json.dumps(snapshot.to_public_dict(), sort_keys=True).encode("ascii")
             return self._respond(200, body, "application/json; charset=utf-8")
-        return self._respond(200, render_html(snapshot), "text/html; charset=utf-8")
+        try:
+            evidence = load_synthetic_evidence(self.server.project_root)
+        except (ValueError, OSError, TypeError, KeyError):
+            return self._respond(503, b"evidence unavailable", "text/plain; charset=utf-8")
+        if self.path == "/evidence.json":
+            body=json.dumps(evidence.to_public_dict(), sort_keys=True).encode("ascii")
+            return self._respond(200,body,"application/json; charset=utf-8")
+        return self._respond(200,render_html(snapshot,evidence),"text/html; charset=utf-8")
 
     def do_GET(self) -> None:
         self._serve_read()

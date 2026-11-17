@@ -6,7 +6,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from my_local_ai.ui.status_view import load_snapshot, StatusSnapshot
+from my_local_ai.ui.status_view import load_snapshot, load_synthetic_evidence, StatusSnapshot
 from my_local_ai.ui.local_dashboard import LocalStatusServer, host_allowed, origin_allowed, render_html
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -77,6 +77,43 @@ class StatusUiTests(unittest.TestCase):
             finally:
                 server.shutdown()
                 thread.join(timeout=2)
+
+    def test_evidence_endpoint_is_redacted_and_not_owner_proof(self):
+        evidence=load_synthetic_evidence(ROOT).to_public_dict()
+        self.assertEqual(evidence["status"],
+                         "REPORTED_P1_SYNTHETIC_CI_NOT_INDEPENDENTLY_ATTESTED")
+        self.assertEqual(evidence["f18"],"SECURITY_HOLD")
+        self.assertEqual(evidence["real_windows"],"NOT_RUN")
+        self.assertFalse(evidence["execution_allowed"])
+        with LocalStatusServer(ROOT,0) as server:
+            thread=threading.Thread(target=server.serve_forever,daemon=True)
+            thread.start()
+            base=f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                with urlopen(base+"/evidence.json",timeout=2) as response:
+                    self.assertEqual(response.status,200)
+                    self.assertEqual(response.headers["Cache-Control"],"no-store, max-age=0")
+                    body=json.loads(response.read())
+                    self.assertEqual(body,evidence)
+                    self.assertFalse(body["owner_go"])
+                with urlopen(base+"/",timeout=2) as response:
+                    html=response.read().decode("utf-8")
+                    self.assertIn("/evidence.json",html)
+                    self.assertIn("합성 CI 보고",html)
+                    self.assertNotIn("<script",html)
+            finally:
+                server.shutdown()
+                thread.join(timeout=2)
+
+    def test_evidence_metadata_never_claims_windows_or_real_audit(self):
+        evidence=load_synthetic_evidence(ROOT)
+        self.assertEqual(evidence.p2,"LOCKED")
+        self.assertFalse(evidence.owner_go)
+        self.assertTrue(evidence.run_id>0)
+        self.assertEqual(
+            evidence.unit_tests + evidence.mock_integration_tests + evidence.security_tests,
+            evidence.to_public_dict()["synthetic_total"],
+        )
 
     def test_invalid_status_file_fails_closed(self):
         from tempfile import TemporaryDirectory
