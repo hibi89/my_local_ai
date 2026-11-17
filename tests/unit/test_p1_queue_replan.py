@@ -60,9 +60,9 @@ class CodeQueueSeparationTests(unittest.TestCase):
 
     def test_code_ready_deps_stay_subset_original(self):
         fake=copy.deepcopy(SOURCE)
-        for item in fake["tasks"]:
-            if item["task_id"] == SOURCE["first_ready"][0]:
-                item["p1_code_depends_on"]=["MLA-001"]
+        target=next(t for t in fake["tasks"] if t["task_id"] == SOURCE["first_ready"][0])
+        invalid=next(t["task_id"] for t in fake["tasks"] if t["task_id"] != target["task_id"] and t["task_id"] not in target["depends_on"])
+        target["p1_code_depends_on"]=[invalid]
         with self.assertRaises(ValueError):
             self.audit(fake)
 
