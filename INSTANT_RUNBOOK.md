@@ -47,3 +47,12 @@
 2026-11-17 High 설계 브랜치에 Hydrogen ProviderPort, 병렬 격리 워커, 무료 한도·유료 전환 시 자동 OFF/fallback 구조를 추가했다. 상세 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 확장 큐 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`.
 
 **기존 MLA-001..030 / P1 28 작업·필수 30 REQ·P2 LOCKED는 그대로.** 이 문서 변경만으로 신규 READY를 자동 할당하거나 구현/검증 진척에 산입하지 않는다. 확장 mock/contract 코드의 허용 경로/의존성은 High가 실제 dev HEAD를 보고 따로 승인. 실제 Hydrogen API·비공개/고객 자료 송신·유료·키·GitHub 원격 쓰기는 owner 별도 GO까지 차단. OFF 이후 Qwen 기본경로 유지와 F18 독립 검증 경계를 보존한다.
+
+---
+
+## P1 구현자에게: Experience Learning Engine V1.2 읽기전용 설계 알림
+사용자는 MLA가 개발 경험에서 전략을 개선하도록 `Experience Learning Engine` 설계를 확정했다. 참조 `docs/EXPERIENCE_LEARNING_ENGINE.md`, `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`, `docs/FINAL_BLUEPRINT.md I`.
+
+**현재 작업 우선순위는 기존 P1 본선 READY.** 새 `EXT-EXP-01..07`을 P1 30 REQ 분모에 더하거나 임의로 READY로 전환하지 않는다. 외부 Sol Max 답변을 수천 건 모으지 않고, 나중에 적법한 자기 소스/합성 fixture·실제 독립 테스트 증거로 경험을 만든다. 모델 답변의 PASS/GO는 신뢰 증거가 아니며 F18 차단 유지. 브라우저/Playwright E2E P2 이관, 안전 국소검사와 기존 CI 보호 유지.
+
+확장 착수 전 High가 현재 dev HEAD/기존 경로·과제/owner 범위/권리를 확인해 충돌 없는 별도 작업 지시를 내려야 한다. 이번 문서 반영만으로 사용자의 PC/실제 API/브라우저/학습 데이터 수집을 시작하지 않는다.
