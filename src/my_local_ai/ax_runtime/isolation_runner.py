@@ -644,3 +644,100 @@ def audit_sandbox_readonly_patch_import(
     if plan != expected:
         raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
     return "EXACT_READ_ONLY_GUEST_IMPORT_HOST_ACL_AND_EGRESS_NOT_ATTESTED"
+
+
+# This host-only inference call uses the local Ollama service without OpenCode
+# tools or guest networking. It is ONLY for explicitly public/synthetic text.
+# Never send customer/private source or credentials to an external provider.
+from http.client import HTTPConnection as _HTTPConnection
+from my_local_ai.ax_runtime.budgets import (
+    BudgetGuard as _BudgetGuard, BudgetExceeded as _BudgetExceeded,
+)
+
+
+def infer_host_qwen_public_synthetic(
+    request: HostQwenGenerationRequest,
+    transport: OfflineCoderTransport, *,
+    budget: _BudgetGuard,
+) -> UntrustedHostQwenFiles:
+    """One local-only Ollama generation -> bounded untrusted files.
+
+    This function performs a loopback model *inference*, not a worker process,
+    tool call, Git action, network-enabled guest launch, or owner file write.
+    Real protected/private task prompts remain gated by a separate owner
+    approval and cannot use this PUBLIC_SYNTHETIC_ONLY source interface.
+    """
+    if (not isinstance(request,HostQwenGenerationRequest)
+        or not isinstance(transport,OfflineCoderTransport)
+        or not isinstance(budget,_BudgetGuard)
+        or request.state != "HOST_ONLY_INFERENCE_NOT_EXECUTED"
+        or request.host_inference_executed or request.guest_sandbox_executed
+        or request.owner_source_writable or request.model_output_trusted
+        or request.may_promote
+        or request.task_id != transport.task_id
+        or request.run_id != transport.run_id
+        or request.source_sha != transport.source_sha
+        or request.plan_sha256 != transport.plan_sha256
+        or request.transport_sha256 != transport.request_sha256
+        or request.model != "qwen3:4b-instruct"
+        or request.endpoint != "http://127.0.0.1:11434"
+        or not isinstance(request.request_body,bytes)
+        or not 0 < len(request.request_body) <= 14000
+        or request.request_sha256 != sha256(
+            b"mla-host-qwen-request/v1|"
+            +transport.request_sha256.encode("ascii")
+            +b"|"+request.request_body
+        ).hexdigest()):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    # Parse and bind all generated HTTP inputs to a fixed no-tool request.
+    body = _strict_json(request.request_body,limit=14000)
+    if (not isinstance(body,dict)
+        or set(body) != {"model","prompt","stream","format","options","keep_alive"}
+        or body["model"] != "qwen3:4b-instruct"
+        or not isinstance(body["prompt"],str)
+        or not body["prompt"].startswith(
+            'Return only JSON {"version":1,"files":['
+        )
+        or sha256(body["prompt"].encode("utf-8")).hexdigest()
+        != request.prompt_sha256
+        or body["stream"] is not False or body["format"] != "json"
+        or body["keep_alive"] != "0"
+        or body["options"] != {
+            "temperature":0,"num_predict":2048,"num_ctx":4096
+        }):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    try:
+        budget.reserve_call()
+    except _BudgetExceeded:
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE") from None
+    connection = None
+    try:
+        # HTTPConnection does not consult proxy environment variables,
+        # resolve remote domains, redirect, follow tool calls, or use cloud.
+        connection = _HTTPConnection("127.0.0.1",11434,timeout=20)
+        connection.request(
+            "POST","/api/generate",body=request.request_body,
+            headers={"Content-Type":"application/json",
+                     "Accept":"application/json","Connection":"close"},
+        )
+        response=connection.getresponse()
+        if (response.status != 200
+            or not response.getheader("Content-Type","").lower().startswith(
+                "application/json"
+            )):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        raw=response.read(262145)
+        if len(raw)>262144:
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    except (OSError,TimeoutError,ValueError):
+        raise WindowsIsolationHold("NETWORK_EGRESS_UNVERIFIED") from None
+    finally:
+        if connection is not None:
+            connection.close()
+    try:
+        budget.check(output_bytes=len(raw))
+    except _BudgetExceeded:
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
+    # This response is still model-supplied untrusted code. A real candidate
+    # must run in an isolated guest and pass *separate* trusted F18 review.
+    return decode_untrusted_host_qwen_files(raw,request,transport)
