@@ -15,13 +15,11 @@
     "REQ-32"
   ],
   "total_code_req": 30,
-  "code_completed_req": 3,
+  "code_completed_req": 4,
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-009",
-    "MLA-011",
-    "MLA-021"
+    "MLA-012"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -249,12 +247,14 @@
       "acceptance": "Separate immutable owner GO for plan/remote/OS/paid/customer actions; explicit revocation, wrong SHA denies",
       "safety_checks": "OWNER_GO_PER_SCOPE;NO_PRIVILEGE_ESCALATION",
       "risk": "CRITICAL",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "PARTIAL_IMPLEMENTED_TRUST_ROOT_HOLD",
+      "evidence_sha": "57038a6a91cd890518f6a7253a49c1e882a7aafc",
+      "blockers": [
+        "Owner-signer protected OS identity and live approval issuance not implemented; cryptographic checker and synthetic ledger only"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "SYNTHETIC_ONLY"
     },
     {
       "task_id": "MLA-010",
@@ -297,12 +297,14 @@
       "acceptance": "Exactly one model residency, bounded budgets/timeout, stale lock recovery fail closed",
       "safety_checks": "ONE_MODEL;RAM_BUDGET;FENCING",
       "risk": "HIGH",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "75d441ed163b3d91b271653c5e3fc5dae40ece96",
+      "blockers": [
+        "Real OpenCode/Qwen worker integration, Windows lock/ACL P2 evidence pending"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "P1_SYNTHETIC_ONLY"
     },
     {
       "task_id": "MLA-012",
@@ -322,7 +324,7 @@
       "acceptance": "Local Ollama loopback allowlist, deny DNS rebinding/nonlocal URLs, missing model HOLD, no secret env leakage",
       "safety_checks": "LOOPBACK_ONLY;NO_CLOUD;NO_DOWNLOAD",
       "risk": "HIGH",
-      "status": "BLOCKED_DEPENDENCY",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
@@ -551,12 +553,14 @@
       "acceptance": "Readable local HOLD/READY, consent, stop/status; CSRF/Host and keyboard accessibility; no raw secrets",
       "safety_checks": "LOCALHOST_SECURE;NO_SECRET",
       "risk": "MEDIUM",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "75d441ed163b3d91b271653c5e3fc5dae40ece96",
+      "blockers": [
+        "Browser/Playwright/a11y full acceptance deferred to P2; stop control read-only until safe executor"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "P1_SYNTHETIC_HTTP_ONLY_BROWSER_NOT_RUN"
     },
     {
       "task_id": "MLA-022",

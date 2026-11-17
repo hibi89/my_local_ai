@@ -41,3 +41,16 @@
 - **합성 GitHub Actions 증거:** `44004810339` at code SHA `4bdff24db9d2a0a3ab37036225df1ff0aa6fe846`: Python3.11 syntax PASS, unit **41 PASS**, security contract **5 PASS**, FAIL 0. 이는 P2 전체 검증·실 Windows·실 Ollama/Qwen/OpenCode·24h 증거가 아님.
 - P1 task 작성 완료 후보: MLA-002/004/005/006/007/010 **6/28**, MLA-003 `PARTIAL_F18_SECURITY_HOLD`, MLA-001 `BLOCKED_PROVENANCE`. 다음 READY: MLA-009, MLA-011, MLA-021.
 - P2 공식 검증완료율 UNASSESSED, P2 LOCKED, F18 HOLD, Windows/실모델/24h NOT_RUN, 사용자 실운용 GO 없음. 원본 EAI·AX Dev Factory/main 무변경.
+
+---
+
+## P1 2026-11-17 KST 구현 6차 결과 — High V1.1 설계 동기화 후
+
+- **구현완료율 4/30 = 13.33%** (코드 구현 후보만, 기존 REQ-04/08/18 + 이번 REQ-29 읽기전용 로컬 FE 상태 보드). P2 검증완료율 `UNASSESSED`; `IMPLEMENTED_UNVERIFIED` ≠ 검증 완료.
+- 설계 동기화 SHA `1e6f0b17c838a70243a72caaa0a694c8a78ab7af`: High design SHA `0de11f63c3ae795e1ed9ec1ec016ac38b864e1d4`에서 Hydrogen OFF-by-default ProviderPort + browser E2E `DEFERRED_TO_P2` 관련 **12문서만 선별 반영**. dev STATUS/HANDOFF/큐/게이트/실제 소스 보존; `docs/SECURITY_MODEL.md`의 신규 Hydrogen 위험 단락은 별도 append.
+- MLA-009: plan/source SHA, scope/TTL/HMAC 합성 검증 및 현재 consent DB 상태/철회 확인 코드 작성. **실제 사용자 grant 발급·OS 보호 서명자·Windows 권한 분리 미구현**으로 REQ-07 완료에 산입하지 않음.
+- MLA-011: Windows/POSIX OS 파일 잠금·원자적 첫 epoch 초기화·펜싱 카운터·호출/시간/RAM/context/file/disk 예산 코드 작성. **실제 Qwen/OpenCode 실행기에 아직 통합되지 않아 REQ-09 완료에 산입하지 않음.**
+- MLA-021: `status_view.py`, `local_dashboard.py` 및 tests; loopback `127.0.0.1` 전용, GET 조회만 허용, Host/Origin/FETCH_SITE/헤더 가드, HTML 정적 접근성, 소유자 승인 미부여·중지 제어 미연결 표시. 상태/작업 수와 구현 진척 redacted; 고객자료/키/원본 출력 없음. **REQ-29 P1 코드 후보로 산입**, 실제 브라우저/UX/a11y 전수 `NOT_RUN`(P2).
+- 코드 최신 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`, GitHub Actions 합성 실행 `44008410953`: Python 3.11 syntax PASS, **54 unit PASS, 13 synthetic security PASS, FAIL 0**. 이 범위는 P2 전체 CI/Windows/실모델/실 F18/24h 검증이 아님.
+- P1 소스 구현 작성 후보 MLA-002/004/005/006/007/010/011/021 = **8/28 작업**. MLA-001 `BLOCKED_PROVENANCE`; MLA-003 `PARTIAL_F18_SECURITY_HOLD`; MLA-009 `PARTIAL_TRUST_ROOT_HOLD`.
+- 다음 READY `MLA-012` 로컬 Ollama provider. 네트워크 기본 OFF / loopback-only / Qwen 모델 auto-download 없음. Extension `EXT-HYD-01..08`은 High 별도 설계 큐·기본 OFF, 외부 API 호출/데이터 전송/결제/원격 승인 없음, 30 REQ 분모에서 제외. P2 LOCKED, F18 CRITICAL HOLD, 실제 Windows NOT_RUN.

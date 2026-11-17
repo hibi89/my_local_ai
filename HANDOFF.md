@@ -44,3 +44,18 @@
 8. **보안·복구:** 원격 publish/OS startup/유료/고객원본 사용 없음. 미검증 코드 자동 승격 금지, SQLite 임시 데이터 기반 테스트뿐. P2 LOCKED/검증률 UNASSESSED.
 9. **다음 READY:** MLA-009 owner GO/consent revocation, MLA-011 1 model lock/resource fencing, MLA-021 로컬 상태 보드. MLA-010 pure scheduler 실제 dispatch/검증 연동은 MLA-019 등 후행.
 10. **갱신 기준:** 2026-11-17 KST, `44004810339` synthetic scope, F18 실제 OS 검증 NOT_RUN. 위 P0 및 구현 3.33% 스냅샷보다 최신 실행 이력을 우선.
+
+---
+
+## 2026-11-17 KST 최신 P1 인수인계 — 구현 13.33%, 브랜치 보존
+
+1. **목표/설계:** My Local AI 자체 Controller + AX-유래 로컬 Qwen 기본 워커, 선택형 EAI advisor, 별도 Hydrogen OFF-by-default provider lane (High V1.1). P1 REQ-01~30/28 원자 작업; EXT-HYD-01..08은 별도 선택형 설계이며 필수 분모 불변.
+2. **실제 변경:** High SHA `0de11f63c3ae795e1ed9ec1ec016ac38b864e1d4`에서 12개 관련 설계 문서만 dev에 동기화; STATUS/HANDOFF/queue/gates/source 이력 덮어쓰기 금지. MLA-009 별도 owner claim 검증·live revocation check, MLA-011 모델 OS lock/fencing·budget, MLA-021 redacted loopback read-only dashboard와 HTTP synthetic smoke 구현. 핵심 코드 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`.
+3. **테스트 명령/증거:** Python3.11 `compileall`, `PYTHONPATH=src python -m unittest discover -s tests/unit -p 'test_*.py' -v`, 별도 `tests/security` 동일. GitHub Actions `44008410953` SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96` **54 unit PASS + 13 synthetic security PASS**, syntax PASS/0 FAIL. Browser/Playwright `DEFERRED_TO_P2`, 실 Windows/실 Qwen/OpenCode/24h/F18 독립 OS reviewer `NOT_RUN`.
+4. **구현상태/차단:** REQ-04/08/18/29 코드 구현 후보 **4/30=13.33%**. REQ-07는 보호된 실제 owner signer 미연결, REQ-09는 모델 executor 통합 미완 → 둘 다 분자 제외. P1 작성 후보 task **8/28**. MLA-001 provenance 권리 보류, MLA-003 F18 security HOLD, MLA-009 partial signer HOLD. P2/공식 검증률 `LOCKED/UNASSESSED`, 실운용/출시 HOLD.
+5. **실패·개선:** source/plan approval 자체 선언, 타인 grant/철회/만료/다른 scope·SHA는 합성 부정 테스트 차단. OS lock 초기화 동시 시작 경합 위험을 수정하여 잠금 획득 *후* epoch 0→1 기록. 실제 Windows 파일 잠금, signer ACL 검증은 P2 보류. UI no-CORS; GET only, GET/HEAD Host+Origin 검증, POST/OPTIONS 405.
+6. **GitHub:** `hibi89/my_local_ai@dev/instant-implementation-v1` 작업 코드 SHA `75d441ed163b3d91b271653c5e3fc5dae40ece96`, 본 상태/인수 기록 커밋 이후 HEAD는 재조회. `main` / 원본 EAI / AX 변경 없음.
+7. **Production/환경:** public GitHub 소스/합성 Actions만, Windows11 GTX1050Ti 실실행/실기기/유료서비스/Production 미적용. read-only server는 코드상 존재하나 자동 실행/OS 등록 없음.
+8. **원본·비밀·복구:** 고객자료/.env/키/모델 가중치 업로드 없음. owner HMAC 키의 실제 저장/발급 절대 GitHub 금지, 소스는 별도 OS protected trust root 전까지 HOLD. HMAC test key는 공개 합성 fixture 뿐이며 운영 키가 아님. main/원본 불변.
+9. **다음 READY:** `MLA-012` Ollama loopback-only connector/local coder availability and failure HOLD; 계획된 MLA-013 OpenCode runner, provider 사전 승인/비밀/경계 확인. Hydra 확장 8개는 선택형·범위 GO 전 구현 큐에 자동 편입 금지.
+10. **갱신:** 2026-11-17 KST. 설계 HEAD `0de11f63...`, dev 코드 `75d441ed163b3d91b271653c5e3fc5dae40ece96`, 실 PASS 근거 Actions `44008410953` synthetic. P2 검증·현장/보안/브라우저/독립 감사가 완료됐다고 주장하지 말 것.
