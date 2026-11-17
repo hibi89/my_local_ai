@@ -39,6 +39,12 @@
 | REQ-31 | 독립 감사/High 인수: Codex 보안·Astra UX 실제 검수/최종 결함 해결 | 정확 SHA 합성+연동 증거 | MLA-026 | NOT_RUN |
 | REQ-32 | 실사용/출시 승인: REAL-USE HOLD, 제품 출시/권한/원격 쓰기 별도 사용자 GO | 정확 SHA 합성+연동 증거 | MLA-027 | NOT_RUN |
 
+## P1/P2 브라우저 수용조건 분리 — 2026-11-17
+- `REQ-29` FE 최소 상태판 및 `REQ-30` 검증 하네스 구현: P1은 실제 기능 코드·연결/테스트 하네스, 문법/타입/최소 빌드·국소 스모크만 구현 증거로 인정; 반복 브라우저/Playwright 검증은 `DEFERRED_TO_P2`.
+- `MLA-V007` P2에서 웹 상태판이 실제 존재할 때 브라우저/Playwright 핵심 흐름(상태·승인·HOLD·진척, 버튼/폼), 키보드·접근성·반응형, Console/Network, Host/CSRF를 실제 실행하여 PASS/FAIL/NOT_RUN을 남긴다. CLI-only면 `NOT_APPLICABLE` 증거를, 실제 브라우저가 없으면 `NOT_RUN`을 기록한다.
+- 고위험 인증·권한·데이터 손실·비밀·F18 등은 P1에서 즉시 필요한 안전 검사 예외. 꼭 브라우저가 필요한 경우 좁은 시나리오만 실행하고 정확 SHA·이유/결과 기록한다. P1 국소 PASS는 P2 브라우저 PASS가 아니다.
+- 기존 P1 30 REQ·28작업/P2 8작업·P2 LOCKED 및 필수 CI/브랜치 보호 변경 없음.
+
 ## 게이트 정의
 - G0 설계: REQ + 코드 경로 + 승인된 계획 + rollback 확인. **지금 이 단계**.
 - G1 국소: syntax/type/단위 test 및 private leakage scan. 변경 파일 SHA·명령 기록; 구현 후보 전에 위험 변경 즉시 검사.
