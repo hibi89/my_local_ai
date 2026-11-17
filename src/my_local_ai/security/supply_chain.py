@@ -328,7 +328,9 @@ def scan_osv_offline(
                 findings += len(vulnerabilities)
                 if packages_seen > 20000 or findings > 100000:
                     return _emit(context, "osv", ScanStatus.ERROR, "OSV_RESULT_LIMIT")
-        if packages_seen == 0 or (process.returncode == 1) != (findings > 0):
+        # OSV V2 returns results=[] for a clean, successfully processed lockfile.
+        # Exit 128 is the documented no-packages status and was rejected above.
+        if (process.returncode == 1) != (findings > 0):
             return _emit(context, "osv", ScanStatus.ERROR, "OSV_INCOMPLETE_OR_EXIT_MISMATCH")
         if findings:
             return _emit(context, "osv", ScanStatus.FINDINGS,
