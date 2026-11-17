@@ -19,9 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-002",
-    "MLA-021",
-    "MLA-024"
+    "MLA-014",
+    "MLA-019",
+    "MLA-025"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -92,7 +92,7 @@
       "safety_checks": "NO_EXECUTION;NO_SECRET;PLAN_HASH",
       "risk": "HIGH",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "1ee35c878465fba2d5adfacfec97c1eaec5444d4",
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -100,9 +100,10 @@
       "p1_code_depends_on": [],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 1
+      "p1_hardening_round": 2,
+      "p1_hardening_evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
     },
     {
       "task_id": "MLA-003",
@@ -503,13 +504,14 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": [],
       "p1_hardening_round": 3,
       "p1_hardening_evidence_sha": "0195984c8d3d5cb2f200b73c462973a563227a18",
       "p1_runtime_deferred_reasons": [
         "Git inventory and .git linkage integrity code tested synthetically; actual protected OS Git worktree creation, hooks/filter discovery and Windows FS attacks remain NOT_RUN."
-      ]
+      ],
+      "p1_code_next_gap": "Author disposable worktree lifecycle and rollback protection port; no real unapproved Git operations"
     },
     {
       "task_id": "MLA-015",
@@ -709,10 +711,11 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": [],
       "p1_hardening_round": 4,
-      "p1_hardening_evidence_sha": "3fdf98cc2468e457054bd44d1371d47d536058c9"
+      "p1_hardening_evidence_sha": "3fdf98cc2468e457054bd44d1371d47d536058c9",
+      "p1_code_next_gap": "Connect P1 controller/coder/review state through typed fail-closed non-executing interfaces"
     },
     {
       "task_id": "MLA-020",
@@ -768,7 +771,7 @@
       "safety_checks": "LOCALHOST_SECURE;NO_SECRET",
       "risk": "MEDIUM",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "e4bab2da8720c23a2018fd73dd48269ea8f9db5e",
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "blockers": [
         "Local evidence.json + read-only FE page, redacted synthetic status. Real browser/P2/Windows NOT_RUN."
       ],
@@ -784,10 +787,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 4,
-      "p1_hardening_evidence_sha": "c1cda91504c137f6e57878bc9d7c949256ff3175"
+      "p1_hardening_round": 5,
+      "p1_hardening_evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
     },
     {
       "task_id": "MLA-022",
@@ -847,7 +850,7 @@
       "safety_checks": "READ_ONLY_REMOTE;NO_PRODUCTION",
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "8f565feb0e694da6dede00932e2b76e6197bacb0",
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "blockers": [
         "Strict protected draft target SHA and changed file metadata; live GitHub protection, remote actions and owner go NOT_RUN."
       ],
@@ -862,8 +865,8 @@
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
       "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 3,
-      "p1_hardening_evidence_sha": "9a9305e22cae52dd8f8e82d333b2d86a998b967e",
+      "p1_hardening_round": 4,
+      "p1_hardening_evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "p1_runtime_deferred_reasons": [
         "Strict protected draft target SHA and changed file metadata; live GitHub protection, remote actions and owner go NOT_RUN."
       ]
@@ -885,7 +888,7 @@
       "safety_checks": "OWNER_REMOTE_WRITE_GO;NO_MAIN_MERGE;NO_FORCE",
       "risk": "CRITICAL",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "1c4bddb9fdcd6a0a999f90cec48e24b6b025363b",
+      "evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "blockers": [
         "One-action draft PR approval digest binds protected base SHA/candidate; signer/remote action still HOLD."
       ],
@@ -897,10 +900,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
       "p1_code_blockers": [],
-      "p1_hardening_round": 2,
-      "p1_hardening_evidence_sha": "1c4bddb9fdcd6a0a999f90cec48e24b6b025363b",
+      "p1_hardening_round": 3,
+      "p1_hardening_evidence_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
       "p1_runtime_deferred_reasons": [
         "One-action draft PR approval digest binds protected base SHA/candidate; signer/remote action still HOLD."
       ]
@@ -943,9 +946,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": [],
-      "p1_hardening_round": 2
+      "p1_hardening_round": 2,
+      "p1_code_next_gap": "Complete exact-SHA P2 browser/Windows test harness code without executing P2"
     },
     {
       "task_id": "MLA-028",
@@ -1072,12 +1076,12 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "675a7c772866709d626bf5e1001b454e98647f9d",
-    "run_id": 44038497545,
+    "head_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+    "run_id": 44056170817,
     "python_compile": "PASS",
-    "unit_tests_pass": 162,
+    "unit_tests_pass": 166,
     "synthetic_integration_tests_pass": 108,
-    "security_contract_tests_pass": 190,
+    "security_contract_tests_pass": 191,
     "scope": "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
@@ -1091,9 +1095,9 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-011",
-      "MLA-012",
-      "MLA-013"
+      "MLA-014",
+      "MLA-019",
+      "MLA-025"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
@@ -1102,9 +1106,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-002",
-      "MLA-021",
-      "MLA-024"
+      "MLA-014",
+      "MLA-019",
+      "MLA-025"
     ],
     "completed_code_waves": [
       [
@@ -1202,6 +1206,11 @@
         "MLA-007",
         "MLA-010",
         "MLA-020"
+      ],
+      [
+        "MLA-002",
+        "MLA-021",
+        "MLA-024"
       ]
     ]
   },
@@ -1209,5 +1218,17 @@
     "tasks_with_code_evidence_sha": 28,
     "total_tasks": 28,
     "means": "SOURCE_PATH_TOUCH_ONLY_NOT_REQUIREMENTS_ACCEPTANCE"
+  },
+  "p1_recent_wave": {
+    "source_sha": "045c3959dca08a6f2c03ce7655c5c738db82bdd3",
+    "run_id": 44056170817,
+    "changed_task_ids": [
+      "MLA-002",
+      "MLA-021",
+      "MLA-023",
+      "MLA-024"
+    ],
+    "result": "P1_SYNTHETIC_PASS_465_NOT_F18_NOT_P2",
+    "req_completed_unchanged": 5
   }
 }

@@ -325,3 +325,18 @@
 8. **Original data/security:** Original EAI/AX and main untouched, no secrets, no force push, no OS security change. No paid/cloud access.
 9. **Next READY:** MLA-002 PlanSpec contract, MLA-021 local FE read-only board, MLA-024 offline PR policy; source-only mode. Before releasing anything High must determine the actual P1 REQ implementation scope in the audit, fix critical trust roots, and review exact SHA.
 10. **Date/evidence:** 2026-11-17 KST. Mandatory CI #44038497545. P2 verification UNASSESSED and locked.
+
+
+---
+
+## 2026-11-17 KST P1 source handoff — latest `045c3959dca0`
+1. **Goal:** implement My Local AI independent local developer Controller P1 source; blueprint unchanged, source-rights/owner GO/F18 preserved.
+2. **Changes:** `MLA-002` TaskSpec/PlanSpec hardening; `MLA-021` status/UI runtime HOLD consistency; `MLA-023` preview path digest; `MLA-024` draft action digest binds paths, source SHA, review ref. Files: contracts plan/task, status_view/local_dashboard, remote_preview/remote_publish + matching tests.
+3. **Tests:** GitHub Actions [44056170817](https://github.com/hibi89/my_local_ai/actions/runs/44056170817), exact source SHA `045c3959dca08a6f2c03ce7655c5c738db82bdd3`: compile PASS; 166 unit, 108 synthetic integration, 191 synthetic security PASS (465/465); Windows model, Playwright/browser, independent real F18, 24h NOT_RUN.
+4. **Status:** 5/30 REQ = 16.67% P1 evidence-based counter unchanged; P2 LOCKED, official verification UNASSESSED, operation HOLD. P1 source hardening is not High acceptance.
+5. **Risk:** no remote publisher runtime, no protected owner action signer or OS-isolated reviewer; a manifest SHA merely binds a caller-supplied metadata claim. Do not equate it with GitHub readback or permission.
+6. **Repo:** `hibi89/my_local_ai@dev/instant-implementation-v1`; source SHA `045c3959dca08a6f2c03ce7655c5c738db82bdd3`; docs/queue commit following this source SHA must be checked against GitHub HEAD.
+7. **Production:** none; no real GitHub PR, OS changes, paid calls or external data transmission. Synthetic Actions only.
+8. **Restore/security:** existing Git history and EAI/AX originals preserved; secrets and customer data never uploaded; runtime authorization must remain `HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES`.
+9. **Next READY:** `MLA-014` disposable worktree create/remove safe port, `MLA-019` typed fail-closed integration, `MLA-025` P2 harness source authoring. Verify current allowed paths/safety gates before touching; do not run actual privileged code/P2.
+10. **Time/scope:** 2026-11-17 KST; reference test source `045c3959dca08a6f2c03ce7655c5c738db82bdd3`, P1 synthetic GitHub Actions only. Final blueprint and runtime gates not edited.

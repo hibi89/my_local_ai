@@ -44,3 +44,7 @@
 - **Current source waves:** MLA-011/012/013 local lock, Ollama response parsing, OpenCode path bounds; MLA-007/010/020 SQLite path/inode, bounded DAG generators, benchmark input/output checks. Actual Windows/owner Qwen/Ollama not run.
 - **Next code-only READY:** MLA-002, MLA-021, MLA-024. MLA-024 remote publish and owner-GO blocker remains in original task `blockers` and `runtime_authorization=HOLD`; only source authoring is allowed.
 - **No phase, permission, P4 owner GO, real Git PR or paid service authorization changed.**
+
+
+### P1 2026-11-17 source-only update (no new REQ acceptance)
+At code SHA `045c3959dca08a6f2c03ce7655c5c738db82bdd3`, safety hardening for MLA-002/021/023/024 was committed and P1 synthetic Actions run `44056170817` passed 465/465 checks (166 unit, 108 synthetic integration, 191 security, syntax PASS). REQ-03/04/07/22/29 are not newly accepted by these tests. Provenance, action-specific protected signer, F18 OS isolation and P2 browser/Windows remain pending. P1 formal code counter stays **5/30**.

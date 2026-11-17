@@ -277,3 +277,12 @@
 - **Wave B (MLA-007/010/020):** source SHA `675a7c772866709d626bf5e1001b454e98647f9d`; state header no-follow/inode pin and '..' rejection, bounded DAG task/lease/verification iterators, mock benchmark strict clocks/hashes and remaining resource budget checks. Actions #44038497545 at exact SHA **460/460 PASS** (162 unit,108 synthetic integration,190 security), Python syntax PASS.
 - **Source acceptance bottleneck audit:** `docs/P1_REQ_SOURCE_EVIDENCE_AUDIT_20261117.md` maps all 30 P1 REQs to queue-recorded SHA, distinguishes provenance/trust-root/real device conditions. No per-REQ 100% claim; formal P1 complete count remains **5/30=16.67%**, official P2 verification UNASSESSED / LOCKED. Source task evidence 28/28 is not 30 accepted REQs.
 - **Next code-only READY:** MLA-002/021/024; remote 024 original user GO/P2 runtime blockers preserved unchanged and P1-only code authoring is separate. Frozen blueprint, actual Qwen/Windows/F18/real browser, original/main and customer data untouched.
+
+
+---
+
+## 2026-11-17 KST P1 SOURCE WAVE — MLA-002/021/023/024 (newest)
+- **Exact source SHA:** `045c3959dca08a6f2c03ce7655c5c738db82bdd3`; `dev/instant-implementation-v1`; GitHub Actions [#44056170817](https://github.com/hibi89/my_local_ai/actions/runs/44056170817) at that SHA. Python syntax PASS; **166 unit + 108 synthetic integration + 191 synthetic security = 465/465 PASS**. Not P2 evidence.
+- **Source changes:** PlanSpec repository components and TaskSpec credential variants hardened; dashboard rejects duplicate state JSON, inconsistent P1 final GO and unlocked runtime claims while displaying HOLD; read-only remote draft preview binds actual change path inventory digest and publisher action fingerprint includes source SHA, ref and path digest. Tests added for malicious inputs. No GitHub network publish code or live owner signer added.
+- **Progress:** **5/30 (16.67%) unchanged**, REQ source acceptance not expanded merely by tests; `IMPLEMENTED_UNVERIFIED`. Official verification `UNASSESSED`; P2 `LOCKED`, F18/owner-signer/provenance `HOLD`. Windows/Qwen/OpenCode actual, browser/Playwright, 24h: `NOT_RUN`.
+- **Queue:** finished code-hardening wave 002/021/024; next author-only READY 014 (safe disposable worktree lifecycle port), 019 (typed controller→worker/review guarded integration), 025 (exact-SHA P2 harness authoring). Existing runtime blocked dependencies, full design, original repos, main and production unchanged. 
