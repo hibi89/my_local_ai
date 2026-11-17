@@ -96,7 +96,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 def _v13_swu_progress() -> dict:
-    """P1 code inventory by FINAL_BLUEPRINT J/K, never an approval gate.
+    """P1 code inventory by FINAL_BLUEPRINT J/K/L, never an approval gate.
 
     The initial feature snapshot was 13 CodeShield candidates. New P1 code
     added on active dev is counted only when its queue entry and exact source
@@ -134,7 +134,8 @@ def _v13_swu_progress() -> dict:
             or not isinstance(item.get("id"), str)
             or item["id"] in ids
             or item.get("code_status") not in (
-                "SOURCE_COMPLETE_P2_PENDING", "BLOCKED_TRUST"
+                "SOURCE_COMPLETE_P2_PENDING", "BLOCKED_TRUST",
+                "REBASELINE_REWORK_REQUIRED"
             )):
             raise ValueError("inconsistent MLA SWU status")
         ids.add(item["id"])
@@ -162,6 +163,16 @@ def _v13_swu_progress() -> dict:
         ext_ids.add(item["id"])
         staged += item["source_candidate_on_feature"]
         integrated += item["integrated_into_dev"]
+    zero_vm = record.get("zero_vm_rebaseline")
+    if (not isinstance(zero_vm, dict)
+        or zero_vm.get("design_sha") != "05f51849c0efe7303bf57cb78dff576e441063f5"
+        or zero_vm.get("current", {}).get("mla") != active_count
+        or zero_vm.get("current", {}).get("code_shield") != integrated
+        or zero_vm.get("current", {}).get("completed") != active_count + integrated
+        or zero_vm.get("current", {}).get("total") != 55
+        or zero_vm.get("runtime_go") is not False
+        or zero_vm.get("p2") != "LOCKED"):
+        raise ValueError("stale zero-VM SWU rebaseline")
     if (ext_ids != {"CS-SWU-" + str(i).zfill(3) for i in range(1, 17)}
         or staged != record.get("code_shield_source_candidate_unmerged_at_rebaseline")
         or integrated != record.get("code_shield_source_candidates_integrated")
@@ -201,6 +212,9 @@ def _v13_swu_progress() -> dict:
         "codeshield_source_candidates_integrated_into_dev": integrated,
         "codeshield_feature_source_head_snapshot": record["code_shield_feature_head_at_rebaseline"],
         "integration": "SOURCE_MERGED_P1_UNVERIFIED",
+        "source_design_sha": zero_vm["design_sha"],
+        "remaining_source_swu": 55 - active_count - integrated,
+        "zero_vm_container_dependency": False,
         "source_sha_independently_attested": False,
         "high_p2_accepted": False,
         "p2": "LOCKED",

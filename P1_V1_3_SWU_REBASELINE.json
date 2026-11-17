@@ -222,14 +222,17 @@
         "REQ-CS-09",
         "REQ-CS-10"
       ],
-      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "code_status": "REBASELINE_REWORK_REQUIRED",
       "source_candidate_on_feature": false,
-      "integrated_into_dev": true,
+      "integrated_into_dev": false,
       "implementation_evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
       "allowed_paths": [
         "src/my_local_ai/controller/codeshield.py",
         "src/my_local_ai/orchestrator.py"
-      ]
+      ],
+      "zero_vm_pre_rebaseline_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "code_present_in_dev": true,
+      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5"
     },
     {
       "id": "CS-SWU-015",
@@ -271,7 +274,7 @@
   "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission.",
   "integration_scope": "OWNER_APPROVED_SELECTIVE_SOURCE_TRANSFER_ONLY",
   "integration_approved_by_owner": true,
-  "code_shield_source_candidates_integrated": 14,
+  "code_shield_source_candidates_integrated": 13,
   "active_dev_source_candidates_after_integration": 49,
   "unimplemented_required_swu_after_integration": 6,
   "source_candidate_implementation_percent_after_integration": 89.09,
@@ -310,5 +313,45 @@
     "owner_go": false,
     "f18_attested": false,
     "ci_run_id": 44141907584
+  },
+  "zero_vm_rebaseline": {
+    "schema": "mla-v1.3-zero-vm-swu-rebaseline/v1",
+    "date_kst": "2026-11-18",
+    "design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
+    "reviewed_source_sha": "e09b72c9b4cf1ad1ed23312662c655b70446d455",
+    "prior": {
+      "mla": 35,
+      "code_shield": 14,
+      "completed": 49,
+      "total": 55,
+      "percent": 89.09
+    },
+    "current": {
+      "mla": 34,
+      "code_shield": 13,
+      "completed": 47,
+      "total": 55,
+      "percent": 85.45,
+      "remaining": 8
+    },
+    "demoted_due_design": [
+      "MLA-SWU-038",
+      "CS-SWU-014"
+    ],
+    "partial_codex": [
+      "MLA-SWU-008",
+      "MLA-SWU-015",
+      "MLA-SWU-021",
+      "MLA-SWU-031",
+      "CS-SWU-007",
+      "CS-SWU-012"
+    ],
+    "p2": "LOCKED",
+    "verification": "UNASSESSED",
+    "runtime_go": false,
+    "independent_f18": "NOT_VERIFIED",
+    "current_design": "PURE_TYPED_PLAYER_NONEXECUTING_ZERO_VM_CONTAINER",
+    "historical_snapshots_preserved": true,
+    "notes": "The former 49/55 remains historical; two completed candidate source surfaces still expose prohibited Sandbox fallback. This reconciliation is NOT functional source completion."
   }
 }
