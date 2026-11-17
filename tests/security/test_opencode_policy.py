@@ -1,6 +1,7 @@
 """Synthetic security tests. No OpenCode binary, shell, model, network, or real sandbox."""
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import hmac
 import json
@@ -88,6 +89,9 @@ class OpenCodePolicyTests(unittest.TestCase):
             now_seconds=NOW, sandbox=sandbox,
             model_lock=OneModelLock(self.state),
             budget=BudgetGuard(ModelBudget(max_calls=1)),
+            trusted_task=task(),
+            trusted_original_checkout=str(self.original),
+            trusted_worktree=str(self.disposable),
         )
         params.update(kwargs)
         return run_in_sandbox(**params)
@@ -175,6 +179,55 @@ class OpenCodePolicyTests(unittest.TestCase):
         ):
             with self.subTest(bad=bad), self.assertRaises(WorkerHold):
                 self.dispatch(sandbox=FakeSandbox(bad))
+
+    def test_injected_prepared_argv_paths_config_or_worktree_cannot_run(self):
+        request = self.prepare()
+        malicious = (
+            replace(request, argv=request.argv + ("--auto",)),
+            replace(request, allowed_paths=request.allowed_paths + ("secret/key.txt",)),
+            replace(request, environment=request.environment + (("GITHUB_TOKEN", "canary"),)),
+            replace(request, task_id="TASK-OTHER"),
+            replace(request, worktree=str(self.original)),
+            replace(request, source_sha="f" * 40),
+            replace(request, plan_sha256="f" * 64),
+            replace(request, untrusted=False),
+        )
+        for forged in malicious:
+            sandbox = FakeSandbox()
+            with self.subTest(forgery=forged.task_id), self.assertRaises(WorkerHold) as ctx:
+                self.dispatch(prepared=forged, sandbox=sandbox)
+            self.assertEqual(ctx.exception.code, "BAD_CONTRACT")
+            self.assertEqual(sandbox.checked, 0)
+            self.assertEqual(sandbox.calls, 0)
+
+    def test_trusted_source_task_mismatch_denied(self):
+        sandbox = FakeSandbox()
+        with self.assertRaises(WorkerHold):
+            self.dispatch(sandbox=sandbox, trusted_task=task(["src/wrong.py"]))
+        self.assertEqual(sandbox.calls, 0)
+        with self.assertRaises(WorkerHold):
+            self.dispatch(sandbox=sandbox, trusted_worktree=str(self.original))
+        self.assertEqual(sandbox.calls, 0)
+
+    def test_missing_protected_task_or_worktree_fails_closed(self):
+        sandbox = FakeSandbox()
+        for missing in (
+            {"trusted_task": None},
+            {"trusted_original_checkout": None},
+            {"trusted_worktree": None},
+        ):
+            with self.subTest(missing=missing), self.assertRaises(WorkerHold):
+                self.dispatch(sandbox=sandbox, **missing)
+        self.assertEqual(sandbox.calls, 0)
+
+    def test_provider_policy_deny_cloud_and_allow_only_local(self):
+        request = self.prepare()
+        config = json.loads(dict(request.environment)["OPENCODE_CONFIG_CONTENT"])
+        self.assertEqual(config["policies"][:2], [
+            {"action": "provider.use", "resource": "*", "effect": "deny"},
+            {"action": "provider.use", "resource": "ollama", "effect": "allow"},
+        ])
+        self.assertNotIn("OPENAI_API_KEY", str(config))
 
     def test_tokens_never_in_prepare_environment(self):
         request = self.prepare(prompt="safe synthetic instruction")

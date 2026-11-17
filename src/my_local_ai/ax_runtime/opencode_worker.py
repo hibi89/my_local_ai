@@ -80,11 +80,17 @@ def _v2_config(model: str, allowed_paths: tuple[str, ...]) -> str:
         "model": "ollama/" + model,
         "permissions": permissions,
         "policies": [
-            {"action": "tool.use", "resource": action + ":*", "effect": "deny"}
-            for action in (
-                "shell", "execute", "external_directory", "webfetch",
-                "websearch", "subagent", "skill",
-            )
+            # Provider policy is a hard deny after permission evaluation.
+            # Only the explicitly selected local Ollama provider may run.
+            {"action": "provider.use", "resource": "*", "effect": "deny"},
+            {"action": "provider.use", "resource": "ollama", "effect": "allow"},
+            *(
+                {"action": "tool.use", "resource": action + ":*", "effect": "deny"}
+                for action in (
+                    "shell", "execute", "external_directory", "webfetch",
+                    "websearch", "subagent", "skill",
+                )
+            ),
         ],
         "mcp": {},
         "plugin": [],
@@ -158,6 +164,11 @@ def run_in_sandbox(
     trusted_hmac_key: bytes | None, live_consent_check: Callable[[str, str, str], bool] | None,
     now_seconds: int, sandbox: IsolatedOpenCodeRunner | None,
     model_lock: OneModelLock | None, budget: BudgetGuard | None,
+    trusted_task: TaskSpec | None = None,
+    trusted_original_checkout: str | None = None,
+    trusted_worktree: str | None = None,
+    trusted_model: str = "qwen3:4b-instruct",
+    trusted_ollama_endpoint: str = "http://127.0.0.1:11434",
 ) -> UntrustedCandidate:
     """Never run on the host; trusted caller must supply real OS sandbox port.
 
@@ -165,6 +176,26 @@ def run_in_sandbox(
     this function is deliberately HOLD by default. No model can create grants.
     """
     if not isinstance(prepared, PreparedOpenCodeRun) or prepared.untrusted is not True:
+        raise WorkerHold("BAD_CONTRACT")
+    # Reconstruct the exact worker request from trusted Controller inputs. A
+    # dataclass is not a capability: an untrusted worker could forge its argv,
+    # config, target worktree, task ID or allowed_paths after preparation.
+    if (not isinstance(trusted_task, TaskSpec)
+        or not isinstance(trusted_original_checkout, str)
+        or not isinstance(trusted_worktree, str)):
+        raise WorkerHold("BAD_CONTRACT")
+    try:
+        expected = prepare_opencode_run(
+            trusted_task, plan_sha256=trusted_task.plan_sha,
+            source_sha=trusted_task.source_sha,
+            disposable_worktree=trusted_worktree,
+            original_checkout=trusted_original_checkout,
+            prompt=prepared.prompt, model=trusted_model,
+            ollama_endpoint=trusted_ollama_endpoint,
+        )
+    except (WorkerHold, TypeError, ValueError):
+        raise WorkerHold("BAD_CONTRACT") from None
+    if prepared != expected:
         raise WorkerHold("BAD_CONTRACT")
     if not authorize_claim(
         owner_grant, trusted_hmac_key=trusted_hmac_key,
