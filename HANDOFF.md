@@ -309,3 +309,19 @@
 8. **Rights/data preservation:** final blueprint unchanged, EAI and Freelancer AX repo unchanged, no customer source/secret/weights/.env uploads, no destructive DB; all Git history preserved.
 9. **Next READY:** `MLA-011` model lock and bounded budget, `MLA-012` Ollama provider, `MLA-013` protected OpenCode preparation. P1 code-only; runtime source license, OS/F18 and owner-signer gates unchanged. Formal REQ score cannot increase without source-level acceptance criteria resolution by High.
 10. **Evidence:** KST 2026-11-17, exact code SHA `8f565feb0e694da6dede00932e2b76e6197bacb0` and Actions `44036759148`; Windows actual and independent reviewer `NOT_RUN`, official verified `UNASSESSED`.
+
+
+---
+
+## 2026-11-17 KST exact SHA handoff — mobile two-wave P1 implementation
+
+1. **Goal:** My Local AI native offline-first developer with optional EAI hints. Instant source work; High reviews accepted REQ scope; P2/P3/owner runtime remain locked.
+2. **Actual BE/FE source:** source `fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998` MLA-011/012/013 model lock fencing, resource budgets, Ollama JSON, OpenCode safe paths; `675a7c772866709d626bf5e1001b454e98647f9d` MLA-007/010/020 SQLite inode identity, bounded queues, offline model benchmark integrity. No real model/network.
+3. **Tests:** GitHub Actions #44038190408 @ fbea29 452/452 PASS; #44038497545 @ `675a7c772866709d626bf5e1001b454e98647f9d` 460/460 PASS (unit162, integration108, security190). Syntax PASS. Real Windows Sandbox, independent F18, 24h and browser NOT_RUN.
+4. **Progress:** 5/30 REQ =16.67% unchanged because evidence for each accepted REQ isn't established. 28/28 tasks have queue SHA pointers. Per-REQ source-to-evidence audit at `docs/P1_REQ_SOURCE_EVIDENCE_AUDIT_20261117.md`. Official verification UNASSESSED/P2 LOCKED, user operational GO false.
+5. **Risks:** MLA-001 original rights BLOCKED_PROVENANCE, MLA-003 F18 SECURITY_HOLD, MLA-009 OWNER_SIGNER TRUST_ROOT_HOLD. No reviewer receipts or model output as acceptance.
+6. **Repo/branch/tested SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, tested `675a7c772866709d626bf5e1001b454e98647f9d`. This documentation queue commit advances HEAD; fetch actual latest before next code. Final blueprint unchanged.
+7. **Production/env:** No Production, no real customer/Windows/real Git CAS or remote PR. GitHub Ubuntu Python synthetic only.
+8. **Original data/security:** Original EAI/AX and main untouched, no secrets, no force push, no OS security change. No paid/cloud access.
+9. **Next READY:** MLA-002 PlanSpec contract, MLA-021 local FE read-only board, MLA-024 offline PR policy; source-only mode. Before releasing anything High must determine the actual P1 REQ implementation scope in the audit, fix critical trust roots, and review exact SHA.
+10. **Date/evidence:** 2026-11-17 KST. Mandatory CI #44038497545. P2 verification UNASSESSED and locked.

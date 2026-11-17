@@ -266,3 +266,14 @@
 - **CI evidence:** `f0e93764...` Actions `44036300073` FAIL due test-only incorrect helper; fixed in `306a01ef...`, Actions `44036388713` **428/428 PASS** (149 unit, 105 integration, 174 security). `d34a2f9c...` Actions `44036680013` FAIL uncovered `credentials.json` sensitive name; fixed in `8f565feb0e694da6dede00932e2b76e6197bacb0`, Actions `44036759148` **444/444 PASS** (153 unit, 105 integration, 186 security), Python syntax PASS. No manual P2 suite launched.
 - **Progress:** P1 complete REQ **5/30=16.67% unchanged**, even though source/task evidence 28/28. Official verified rate `UNASSESSED`, P2 `LOCKED`, real owner Windows/F18/24h/browser/real model `NOT_RUN`. The source-provenance, owner signer, reviewer OS isolation and commercial/user operation gates remain HOLD; final blueprint unchanged.
 - **Next READY P1 SOURCE ONLY:** MLA-011 local model lock/budget; MLA-012 Ollama loopback provider; MLA-013 OpenCode sandbox planning. Keep full runtime depends_on/status and all original blockers untouched. No P2/Production/owner GO.
+
+
+---
+
+## 2026-11-17 P1 two-wave throughput recovery
+
+- **Project:** `hibi89/my_local_ai@dev/instant-implementation-v1`, start HEAD `9176fdaa61654ecd7e36b158458c136ba96072b6`.
+- **Wave A (MLA-011/012/013):** `b6111969f6ab52bb17a42ec0198a71b65a9e82f8` then corrected fixture `fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998`; existing zero-byte model lock file now HOLD instead of resetting generation, discrete budget count enforcement, strict duplicate Ollama JSON rejection, OpenCode lexical parent traversal rejection. GitHub Actions #44038190408 at `fbea29...` **452/452 PASS** (157/105/190). Intermediate code had one test keyword collision; resolved in follow-up.
+- **Wave B (MLA-007/010/020):** source SHA `675a7c772866709d626bf5e1001b454e98647f9d`; state header no-follow/inode pin and '..' rejection, bounded DAG task/lease/verification iterators, mock benchmark strict clocks/hashes and remaining resource budget checks. Actions #44038497545 at exact SHA **460/460 PASS** (162 unit,108 synthetic integration,190 security), Python syntax PASS.
+- **Source acceptance bottleneck audit:** `docs/P1_REQ_SOURCE_EVIDENCE_AUDIT_20261117.md` maps all 30 P1 REQs to queue-recorded SHA, distinguishes provenance/trust-root/real device conditions. No per-REQ 100% claim; formal P1 complete count remains **5/30=16.67%**, official P2 verification UNASSESSED / LOCKED. Source task evidence 28/28 is not 30 accepted REQs.
+- **Next code-only READY:** MLA-002/021/024; remote 024 original user GO/P2 runtime blockers preserved unchanged and P1-only code authoring is separate. Frozen blueprint, actual Qwen/Windows/F18/real browser, original/main and customer data untouched.

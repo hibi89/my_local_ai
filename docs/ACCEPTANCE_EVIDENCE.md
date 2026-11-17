@@ -113,3 +113,10 @@ At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory A
 - Actions `44036388713` @ source SHA `306a01ef634ea0aa5e8d6eb160e5b28673fb87bd`: 149 unit, 105 synthetic integration, 174 synthetic security = **428/428 PASS**.
 - Actions `44036759148` @ exact SHA `8f565feb0e694da6dede00932e2b76e6197bacb0`: 153 unit, 105 synthetic integration, 186 synthetic security = **444/444 PASS** + Python syntax PASS. Intermediate test error `f0e93764...` and uncovered `credentials.json` case `d34a2f9...` fixed before final PASS.
 - The Windows F18 P2 check preconditions are **source authored only**; actual OS isolation, owner principal/Windows Sandbox and real browser/24h verification `NOT_RUN`. Owner signer/HIGH trust & original rights HOLD. P1 REQs **5/30=16.67% unchanged**; official verified rate `UNASSESSED`, P2 `LOCKED`.
+
+
+## 2026-11-17 latest two source waves and REQ coverage audit
+
+- `fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998` Actions #44038190408 PASS **452/452** synthetic/unit/security.
+- `675a7c772866709d626bf5e1001b454e98647f9d` Actions #44038497545 PASS **460/460** (unit162, synthetic integration108, security190), Python3.11 syntax PASS. No real model, real Windows, F18 or browser.
+- `docs/P1_REQ_SOURCE_EVIDENCE_AUDIT_20261117.md` contains 30-REQ source pointer inventory, **not** 30 acceptance approvals. Formal P1 count **5/30** (16.67%), P2 UNASSESSED/LOCKED, owner GO false.
