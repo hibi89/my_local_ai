@@ -261,3 +261,19 @@
 8. **Preservation:** docs/FINAL_BLUEPRINT.md unchanged, source/CI history retained, no credentials/.env/customer data transmitted. No commercial launch, fees, owner permissions or original source changed.
 9. **Next READY:** `MLA-019` connect optional advice to orchestrator BE→FE, `MLA-021` status UI, `MLA-025` safe authored P2 acceptance source. Code-only authoring is not an actual executor authorization. Architectural F18 and owner signer must be escalated High before REQ completion claim.
 10. **KST / evidence:** 2026-11-17 KST; source exact SHA and Actions `44028400560` provide synthetic-only scope, full P2 NOT_RUN.
+
+
+---
+
+## 2026-11-17 KST — latest P1 6-task implementation/code handoff
+
+1. **Project identity/phase:** My Local AI independent local development Controller, EAI optional advisory data only. `hibi89/my_local_ai`, `dev/instant-implementation-v1`, P1 source implementation. P2 LOCKED, P3/P4 not started.
+2. **This session changes:** MLA-006 `cli.py` protected bounded plan/queue reads and new read-only `python -m my_local_ai plan preview --file <json>` with optional `--eai-file`; MLA-008+028 native Controller consumes exact plan/source SHA-pinned EAI envelope, rejects two conflicting advisors, falls back on errors, does not import original EAI; MLA-019 Controller→BE/FE and worker-card offline status; MLA-021 local FE EAI default OFF no authority; MLA-025 P2 owner scenario written, not executed. Code commits `920b6675...`, `da9174c3...`, `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`.
+3. **Tests:** GitHub Actions `44028708311` at exact CODE SHA `e4bab2da8720c23a2018fd73dd48269ea8f9db5e` successful: syntax PASS; 145 unit/82 synthetic integration/135 synthetic security **362/362 PASS**. Prior `44028400560` at `da9174c3...` **357/357 PASS**. Real Windows 11/Qwen/OpenCode model sandbox/independent F18/physical DB crash/real browser/24h **NOT_RUN**.
+4. **Implementation/verification:** **5/30 = 16.67%** code-complete REQ count unchanged, 28/28 task source path evidence present but not full acceptance; P2 official rate UNASSESSED, release and real use HOLD.
+5. **Blockers and precautions:** MLA-001 SOURCE_PROVENANCE BLOCKED, MLA-003 F18 OS SECURITY_HOLD, MLA-009 protected owner signer TRUST_ROOT_HOLD; do not equate P1 source tests to real runtime privileges. No external original code copied. Need High architecture review for practical REQ closeout before inventing percentage.
+6. **Git HEAD:** Last exact CI-tested CODE SHA `e4bab2da8720c23a2018fd73dd48269ea8f9db5e` on `dev/instant-implementation-v1`. Handoff+queue documentation commit HEAD is later; check newest HEAD and AGENTS first next time. Source and original Git history preserved.
+7. **Production/OS:** No Production URL, no real model or Git guest execution. GitHub Ubuntu Python3.11 synthetic CI only.
+8. **Data/backup/rights:** No secrets, customer originals, protected DB, Production, remote PR, payment, OS settings or original EAI/AX changed. Exact blueprint untouched.
+9. **Next READY:** MLA-016/017/018 protected recovery and Git isolated CAS **P1 CODE_ONLY** candidate. Their runtime status, original dependency edges and owner gates still HOLD. Prefer bundled source edits and immediate synthetic high-risk checks. P2 cannot start before High exact SHA signoff and protected F18.
+10. **KST/evidence:** 2026-11-17 KST; latest tested source `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`, Actions `44028708311`, official verified rate UNASSESSED.

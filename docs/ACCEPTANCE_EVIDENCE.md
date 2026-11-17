@@ -91,3 +91,10 @@ At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory A
 - `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5`: offline CLI `plan preview`, optional EAI pinned file, budgeted code candidate enumeration with no owner-go/model/Git executable.
 - Actions `44028400560` at exact source SHA `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5`: Python compile PASS; 144 unit, 78 synthetic integration, 135 security = **357/357 PASS**. True Windows/EAI original license/F18 owner signer/model hardware/browser/24h all NOT_RUN/HOLD.
 - Code REQs remain 5/30; P1 source evidence not formal verified. P2 LOCKED; approved rights and owner-protected OS operation not asserted.
+
+
+## 2026-11-17 P1 native EAI option across BE→FE (source only)
+
+- `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`: optional exact source Git SHA + plan SHA pinned envelope travels from Controller via `preview_plan` and `preview_local_code_request` to the read-only app/worker card. Frontend receives fixed safe status enums only, not raw EAI payload, user prompts, permissions or model commands. When the optional envelope is missing/invalid, default native Controller flow continues.
+- EAI source import/relicense not performed, actual remote AI/OS/Git/F18 and browser test NOT_RUN. P2 owner checklist includes an EAI pinned-fallback scenario, but no scenario has PASS evidence.
+- Mandatory synthetic CI `44028708311` at source SHA `e4bab2da8720c23a2018fd73dd48269ea8f9db5e`: compile PASS, unit 145, synthetic integration 82, synthetic security 135 = **362/362 PASS**. P1 code REQs 5/30 unchanged, verified rate UNASSESSED, P2 LOCKED, real-use HOLD.
