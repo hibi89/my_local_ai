@@ -66,6 +66,7 @@ a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
 <p>P2 전체 검증: <strong>LOCKED</strong></p>
 <p>공식 검증률: <strong>UNASSESSED</strong></p>
 <p>Hydrogen 원격 워커: <strong>OFF (미승인)</strong></p>
+<p>EAI 선택형 분석: <strong>기본 OFF · 승인 권한 없음</strong></p>
 <p>브라우저 전수 테스트: <strong>DEFERRED_TO_P2</strong></p>
 <p>합성 테스트 근거: <strong>{escape(synthetic_note)}</strong></p>
 <p><a href="/evidence.json">합성 CI 요약 JSON</a> · <code>python -m my_local_ai queue next</code></p>

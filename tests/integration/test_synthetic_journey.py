@@ -197,3 +197,96 @@ class SyntheticPublicMetadataForgeryTests(unittest.TestCase):
         ):
             with self.subTest(changed=changed), self.assertRaises(ValueError):
                 redact_preview(changed)
+
+
+
+class OptionalEaiNativeBeFeReadOnlyTests(unittest.TestCase):
+    @staticmethod
+    def fixture():
+        from my_local_ai.contracts.plan import PlanSpec
+        raw = json.loads(plan())
+        raw["tasks"][1]["depends_on"] = []
+        raw["tasks"][1]["allowed_paths"] = ["src/second-synthetic.py"]
+        data = json.dumps(raw)
+        return data, PlanSpec.parse_json(data)
+
+    @staticmethod
+    def envelope(spec, **override):
+        value = {
+            "version": 1,
+            "origin": "OPTIONAL_EAI_ADVISOR_DATA",
+            "source_git_sha": spec.blueprint_sha,
+            "plan_sha256": spec.digest,
+            "non_authoritative": True,
+            "hints": [
+                {"task_id": "TASK-019-B", "rank": 0},
+                {"task_id": "TASK-019-A", "rank": 5},
+            ],
+        }
+        value.update(override)
+        return json.dumps(value)
+
+    def test_eai_valid_ranking_reaches_fe_without_authority(self):
+        data, spec = self.fixture()
+        states = {"TASK-019-A": "READY", "TASK-019-B": "READY"}
+        public = build_read_only_app(
+            project_root=ROOT, plan_json=data, protected_states=states,
+            optional_eai_envelope_json=self.envelope(spec),
+        ).to_public_dict()
+        self.assertEqual(public["planning"]["candidate_task_ids"],
+                         ["TASK-019-B", "TASK-019-A"])
+        self.assertEqual(public["planning"]["advisory_status"],
+                         "OPTIONAL_HINTS_ACCEPTED")
+        self.assertFalse(public["execution_allowed"])
+        self.assertTrue(public["read_only"])
+        wire = json.dumps(public)
+        self.assertNotIn("SENSITIVE_CODING_PROMPT_CANARY", wire)
+        self.assertNotIn("second-synthetic.py", wire)
+        self.assertNotIn("non_authoritative", wire)
+
+    def test_eai_invalid_or_off_produces_native_fallback(self):
+        data, spec = self.fixture()
+        states = {"TASK-019-A": "READY", "TASK-019-B": "READY"}
+        disabled = preview_plan(plan_json=data, protected_states=states)
+        stale = preview_plan(
+            plan_json=data, protected_states=states,
+            optional_eai_envelope_json=self.envelope(spec, plan_sha256="f"*64),
+        )
+        self.assertEqual(disabled.advisory_status, "DISABLED")
+        self.assertEqual(stale.advisory_status, "INVALID_HINTS_IGNORED")
+        self.assertEqual(stale.candidate_task_ids, disabled.candidate_task_ids)
+        self.assertFalse(stale.can_write_git)
+        self.assertFalse(stale.f18_independently_verified)
+
+    def test_eai_rank_reaches_prepared_worker_card_without_execution(self):
+        data, spec = self.fixture()
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            original = base / "original"
+            guest = base / "guest"
+            original.mkdir()
+            guest.mkdir()
+            candidate = preview_local_code_request(
+                plan_json=data,
+                protected_states={"TASK-019-A":"READY","TASK-019-B":"READY"},
+                task_id="TASK-019-B",
+                original_checkout=original,
+                disposable_worktree=guest,
+                optional_eai_envelope_json=self.envelope(spec),
+            )
+            card = safe_code_request_card(candidate)
+            self.assertEqual(card["advisor_status"], "OPTIONAL_HINTS_ACCEPTED")
+            self.assertFalse(card["execution_allowed"])
+            self.assertEqual(card["review_status"], "F18_HOLD")
+            self.assertEqual(list(guest.iterdir()), [])
+
+    def test_forged_worker_advisor_status_cannot_be_rendered(self):
+        from my_local_ai.orchestrator import ControllerCodePreview
+        baseline = ControllerCodePreview(
+            "TASK-019-A", "b"*64, "a"*40,
+            "LOCAL_QWEN_OPENCODE", 1, "c"*64
+        )
+        with self.assertRaises(ValueError):
+            safe_code_request_card(
+                replace(baseline, advisory_status="<script>owner_go=true</script>")
+            )

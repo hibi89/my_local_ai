@@ -14,6 +14,7 @@ SCENARIOS=(
     ("P2-E2E-001","owner loads local app; no remote network"),
     ("P2-E2E-002","open plan with exact source SHA; P1 progress visible"),
     ("P2-E2E-003","optional EAI OFF does not change DAG and coding proposal"),
+    ("P2-E2E-011","optional EAI exact-plan hints fail closed and never gain runtime authority"),
     ("P2-E2E-004","owner GO scope shows separate local vs remote action"),
     ("P2-E2E-005","untrusted coder patch cannot touch original checkout"),
     ("P2-E2E-006","independent F18 review rejects forged self PASS"),

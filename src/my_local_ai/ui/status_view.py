@@ -41,6 +41,8 @@ class StatusSnapshot:
             "owner_real_use_go": self.owner_real_use_go,
             "operation_allowed": self.operation_allowed,
             "provider_remote": "OFF_NOT_APPROVED",
+            "optional_eai_default": "OFF",
+            "optional_eai_can_grant_authority": False,
             "browser_validation": "DEFERRED_TO_P2",
         }
 

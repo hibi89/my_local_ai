@@ -34,6 +34,7 @@ def build_read_only_app(
     independently_verified: Iterable[str] = (),
     active_leases: Iterable[str] = (),
     advisory_json: str | None = None,
+    optional_eai_envelope_json: str | None = None,
 ) -> AppReadOnlyState:
     snapshot=load_snapshot(project_root)
     if snapshot.operation_allowed or not snapshot.p2_locked:
@@ -42,6 +43,7 @@ def build_read_only_app(
         plan_json=plan_json,protected_states=protected_states,
         independently_verified=independently_verified,
         active_leases=active_leases,advisory_json=advisory_json,
+        optional_eai_envelope_json=optional_eai_envelope_json,
     )
     return AppReadOnlyState(snapshot,preview)
 
@@ -56,6 +58,8 @@ def safe_code_request_card(preview: object) -> dict:
         or preview.may_write_git or preview.code_worker_executed
         or preview.owner_signed_go or preview.real_isolation_verified
         or preview.candidate_verified or preview.provider != "LOCAL_QWEN_OPENCODE"
+        or preview.advisory_status not in
+            {"DISABLED", "OPTIONAL_HINTS_ACCEPTED", "INVALID_HINTS_IGNORED"}
         or type(preview.allowed_file_count) is not int
         or not 1 <= preview.allowed_file_count <= 16
         or not isinstance(preview.task_id,str) or
@@ -75,6 +79,7 @@ def safe_code_request_card(preview: object) -> dict:
         "baseline_sha": preview.baseline_sha,
         "prepared_request_sha256": preview.prepared_request_sha256,
         "stage": preview.stage,
+        "advisor_status": preview.advisory_status,
         "execution_allowed": False,
         "review_status": "F18_HOLD",
         "network_allowed": False,

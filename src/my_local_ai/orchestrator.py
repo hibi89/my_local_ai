@@ -37,6 +37,7 @@ def preview_plan(
     independently_verified: Iterable[str] = (),
     active_leases: Iterable[str] = (),
     advisory_json: str | None = None,
+    optional_eai_envelope_json: str | None = None,
 ) -> PlanningPreview:
     """No file writes, shell commands, HTTP, model, EAI engine, or owner GO.
 
@@ -48,6 +49,7 @@ def preview_plan(
     result=Controller(parsed).propose(
         protected_states,independently_verified=independently_verified,
         active_leases=active_leases,advisory_json=advisory_json,
+        optional_eai_envelope_json=optional_eai_envelope_json,
     )
     if result.execution_allowed or result.owner_go or result.verified:
         raise ValueError("untrusted planner privilege")
@@ -118,12 +120,14 @@ class ControllerCodePreview:
     code_worker_executed: bool = False
     may_execute: bool = False
     may_write_git: bool = False
+    advisory_status: str = "DISABLED"
 
 
 def preview_local_code_request(
     *, plan_json: str, protected_states: dict[str, str], task_id: str,
     disposable_worktree: str | _Path, original_checkout: str | _Path,
     active_leases: Iterable[str] = (), advisory_json: str | None = None,
+    optional_eai_envelope_json: str | None = None,
 ) -> ControllerCodePreview:
     """Validate a Controller-ready task, then prepare a local-only request.
 
@@ -138,6 +142,7 @@ def preview_local_code_request(
     proposed = Controller(plan).propose(
         protected_states, independently_verified=(),
         active_leases=active_leases, advisory_json=advisory_json,
+        optional_eai_envelope_json=optional_eai_envelope_json,
     )
     if (proposed.execution_allowed or proposed.owner_go or proposed.verified
         or task_id not in {item.task_id for item in proposed.decisions}):
@@ -166,4 +171,5 @@ def preview_local_code_request(
     return ControllerCodePreview(
         task_id, plan.digest, task.source_sha, "LOCAL_QWEN_OPENCODE",
         len(prepared.allowed_paths), _sha256(identity).hexdigest(),
+        advisory_status=proposed.advisory_status,
     )

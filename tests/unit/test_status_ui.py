@@ -152,3 +152,14 @@ class UiPhaseConsistencyTests(unittest.TestCase):
             qpath.write_text(json.dumps(queue), encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_snapshot(directory)
+
+
+
+class OptionalAdvisorStatusTests(unittest.TestCase):
+    def test_dashboard_discloses_eai_off_default_without_execution_claim(self):
+        result = load_snapshot(ROOT).to_public_dict()
+        self.assertEqual(result["optional_eai_default"], "OFF")
+        self.assertFalse(result["optional_eai_can_grant_authority"])
+        html = render_html(load_snapshot(ROOT)).decode("utf-8")
+        self.assertIn("EAI 선택형 분석", html)
+        self.assertIn("기본 OFF", html)
