@@ -166,11 +166,10 @@ class OpenCodePolicyTests(unittest.TestCase):
 
     def test_guest_claims_never_grant_verified(self):
         sandbox = FakeSandbox()
-        candidate = self.dispatch(sandbox=sandbox)
-        self.assertEqual(candidate.status, "REVIEW_PENDING")
-        self.assertTrue(candidate.untrusted)
-        self.assertEqual(candidate.declared_paths, ("src/demo.py",))
-        self.assertEqual(sandbox.calls, 1)
+        with self.assertRaises(WorkerHold) as denial:
+            self.dispatch(sandbox=sandbox)
+        self.assertEqual(denial.exception.code, "NO_ISOLATION")
+        self.assertEqual(sandbox.calls, 0)
 
     def test_guest_path_escape_or_forged_receipt_rejected(self):
         for bad in (

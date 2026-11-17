@@ -1,8 +1,8 @@
-"""Fail-closed OpenCode worker boundary for an approved disposable sandbox.
+"""Zero-VM bounded OpenCode request builder. Generated code execution DENIED.
 
-No subprocess is launched by this module. The only execution port is a trusted
-OS-isolated runner injected by the protected Controller after owner authorization.
-OpenCode permissions are defense-in-depth, NEVER a host isolation boundary.
+This module builds inert requests. A formerly injectable sandbox runner entry
+is permanently HOLD and cannot invoke any supplied object after owner consent.
+The native CPU Pure Player handles only generated *text* without code execution.
 """
 from __future__ import annotations
 
@@ -193,10 +193,10 @@ def run_in_sandbox(
     trusted_model: str = "qwen3:4b-instruct",
     trusted_ollama_endpoint: str = "http://127.0.0.1:11434",
 ) -> UntrustedCandidate:
-    """Never run on the host; trusted caller must supply real OS sandbox port.
+    """Deprecated execution entry: fail-closed for all V1.3 inputs.
 
-    Until protected owner signer and independent OS isolation are integrated,
-    this function is deliberately HOLD by default. No model can create grants.
+    Only approved fixed Pure Player operations may inspect generated text.
+    No owner claim, injected callable or sandbox object can run code.
     """
     if not isinstance(prepared, PreparedOpenCodeRun) or prepared.untrusted is not True:
         raise WorkerHold("BAD_CONTRACT")
@@ -227,47 +227,8 @@ def run_in_sandbox(
         now_seconds=now_seconds, trusted_live_consent_check=live_consent_check,
     ):
         raise WorkerHold("NO_OWNER_GO")
-    if sandbox is None or not callable(getattr(sandbox, "attest_worktree", None)) or not callable(getattr(sandbox, "invoke", None)):
-        raise WorkerHold("NO_ISOLATION")
-    try:
-        # The attestor MUST be independent of guest code, check exact git SHA,
-        # mounted scope, file identity, network egress, effective tool policy.
-        if sandbox.attest_worktree(prepared) is not True:
-            raise WorkerHold("NO_ISOLATION")
-    except WorkerHold:
-        raise
-    except Exception:
-        raise WorkerHold("NO_ISOLATION") from None
-    if not isinstance(model_lock, OneModelLock) or not isinstance(budget, BudgetGuard):
-        raise WorkerHold("NO_RESOURCE_GUARD")
-    try:
-        with model_lock:
-            budget.reserve_call()
-            raw = sandbox.invoke(prepared)
-    except (ModelLockBusy, ModelLockUnsafe, BudgetExceeded, OSError, TimeoutError):
-        raise WorkerHold("RESOURCE_LIMIT") from None
-    except Exception:
-        raise WorkerHold("SANDBOX_FAILURE") from None
-
-    # Everything returned by the guest remains untrusted, including PASS,
-    # receipts and an alleged list of changed paths. F18 verifies the real diff.
-    if not isinstance(raw, dict) or set(raw) != {"stdout", "exit_code", "declared_paths"}:
-        raise WorkerHold("UNTRUSTED_OUTPUT")
-    stdout, code, declared = raw["stdout"], raw["exit_code"], raw["declared_paths"]
-    if (type(code) is not int or code != 0 or not isinstance(stdout, str)
-        or not isinstance(declared, list) or len(declared) > len(prepared.allowed_paths)):
-        raise WorkerHold("UNTRUSTED_OUTPUT")
-    try:
-        payload = stdout.encode("utf-8")
-        reported = tuple(safe_path(v) for v in declared)
-    except (ValueError, TypeError, UnicodeError):
-        raise WorkerHold("UNTRUSTED_OUTPUT") from None
-    if (len(payload) > min(_MAX_OUTPUT, budget.limits.max_output_bytes)
-        or len(set(reported)) != len(reported)
-        or not set(reported).issubset(prepared.allowed_paths)):
-        raise WorkerHold("UNTRUSTED_OUTPUT")
-    try:
-        budget.check(output_bytes=len(payload), changed_files=len(reported))
-    except BudgetExceeded:
-        raise WorkerHold("RESOURCE_LIMIT") from None
-    return UntrustedCandidate(prepared.task_id, hashlib.sha256(payload).hexdigest(), reported)
+    # V1.3 owner-approved Zero-VM policy: absolutely no model-generated
+    # script, test or tool may be executed here. The previous injectable
+    # sandbox.invoke() path is not a trusted OS enforcement boundary.
+    # Approval to draft text is NOT approval to launch untrusted code.
+    raise WorkerHold("NO_ISOLATION")
