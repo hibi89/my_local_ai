@@ -52,7 +52,7 @@ EAI 독립 CPU Cognition/Intent/ResultSpec 및 bounded typed goals = REQ-05/06/1
 
 ## V1.1 선택형 확장 REQ-EXT-01~08 — 공식 기존 REQ-01~32 분모 불변
 
-2026-11-17 사용자 요청에 따라 최종설계의 **선택형 Hydrogen 병렬 개발 워커**를 구조에 반영했다. 이 항목은 원래 확정된 \`REQ-01~30\` P1 구현완료율 분자/분모와 \`REQ-31~32\` 후행 감사/GO, \`VERIFICATION_TASK_QUEUE.json\`의 8개 P2 게이트를 **변경·축소하지 않는다.** 신규 확장 구현을 필수로 재분류하려면 별도 전체 REQ 기준선/가중치/작업 큐와 사용자 GO가 필요하다. 이번 변경은 외부 API 호출·송신 승인이 아니다.
+2026-11-17 사용자 요청에 따라 최종설계의 **선택형 Hydrogen 병렬 개발 워커**를 구조에 반영했다. 이 항목은 원래 확정된 `REQ-01~30` P1 구현완료율 분자/분모와 `REQ-31~32` 후행 감사/GO, `VERIFICATION_TASK_QUEUE.json`의 8개 P2 게이트를 **변경·축소하지 않는다.** 신규 확장 구현을 필수로 재분류하려면 별도 전체 REQ 기준선/가중치/작업 큐와 사용자 GO가 필요하다. 이번 변경은 외부 API 호출·송신 승인이 아니다.
 
 | 확장 REQ | 설계 대상 | 수용 기준 | 추적 작업 | 상태 |
 |---|---|---|---|---|
@@ -65,4 +65,4 @@ EAI 독립 CPU Cognition/Intent/ResultSpec 및 bounded typed goals = REQ-05/06/1
 | EXT-07 | 합성/보안·F18 수용 검증 | HYD-AC-01~10, 모델 자기 PASS 차단, P2 별도 | EXT-HYD-07 | DESIGNED_NOT_IMPLEMENTED |
 | EXT-08 | 라이브 무료 tier 선택형 시험 | 해당 계정·model ID·ToS·허용 데이터 scope 별도 owner GO | EXT-HYD-08 | BLOCKED_OWNER_APPROVAL |
 
-**상세 구조:** \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`; **독립 작업 큐:** \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\`; **완료율:** 기존 30 필수 REQ에 미산입, 별도 선택형 설계 상태만 보고.
+**상세 구조:** `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`; **독립 작업 큐:** `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`; **완료율:** 기존 30 필수 REQ에 미산입, 별도 선택형 설계 상태만 보고.
