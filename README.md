@@ -30,3 +30,18 @@
 
 ## 절대 보안
 **이 저장소는 PUBLIC.** 고객 자료, 토큰, 개인 프롬프트, 원본 비공개 코드, 모델 파일, 로컬 SQLite/로그·백업, 비밀키 업로드 금지. 기존 EAI·AX 저장소/main·GitHub 권한·Vercel Production·결제/상용화·OS 보안 설정 변경 없음. 실제 원격 push, OS 자동시작, 실프로젝트 적용은 별도 사용자 GO.
+
+
+---
+
+## 2026-11-17 MLA V1.3 CodeShield 설계 (구현 전)
+
+MLA의 Windows 11 Pro·GTX1050Ti·RAM16GB용 기본 경량 보안 구조는 호스트 Ollama Qwen 모델 1개 + Git worktree/allowed_paths/SHA + Python AST + Ruff(S) + Semgrep CE (native Windows, 고정 로컬 규칙)이다. Gitleaks(비밀), OSV-Scanner(의존성, 오프라인 DB), Windows Defender(기존 OS 상태/대상 검사)는 변경 종류에 따라 순차 연결한다. 상주 PC Care, VM/Sandbox, 두 번째 AV/AI 모델 상시 실행은 기본 제외한다.
+
+**중요:** 소스 정적 검사 PASS는 AI 생성 프로그램/테스트/패키지 실행 또는 원본 Git 자동 승격 권한이 아니다. 실제 위험 실행에는 독립 OS 격리와 F18 reviewer/owner 승인 필요; 미구현·미검증=HOLD.
+
+- 전체 설계·기술 목록: [docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md](docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md)
+- 최신 최종설계: [docs/FINAL_BLUEPRINT.md](docs/FINAL_BLUEPRINT.md) J
+- CodeShield 작업 8개: [docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json](docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json) (현행 0/8, DESIGN_ONLY)
+- 작업 원칙: [AGENTS.md](AGENTS.md), [docs/PHASE_GATES.md](docs/PHASE_GATES.md)
+- 본 브랜치는 정확한 기존 dev HEAD를 바탕으로 구성한 구현 전용 작업 공간이다. 실사용 설치·Windows 보안 변경·P2 전체 검증은 NOT_RUN.

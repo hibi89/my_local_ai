@@ -43,3 +43,14 @@
 - P2 `MLA-V007`: 기존 구현된 UI/버튼·폼만 실제 확인하고 없는 통제 기능의 성공을 주장하지 않는다. PASS/FAIL/SKIP/NOT_RUN/NOT_APPLICABLE 각각 근거/정확 SHA 기록.
 - 예외: P1 인증·권한·비밀·외부전송·원본/DB 손실·F18 등 즉시 위험검사와 기존 필수 CI는 중단/우회 금지. 위험 확인에 브라우저가 필수라면 **최소 한정 시나리오만** 실행하고 사유와 SHA를 남긴다.
 - **변경 없음:** P1 28개/30 REQ 구현 분모, 코드 구현완료율 4/30(13.33%), P2 8개 잠금, Hydrogen 별도 선택형 기본 OFF, REAL-USE HOLD.
+
+
+---
+
+## V1.3 CodeShield source extension · 2026-11-17 KST
+
+- CodeShield 경량 기본 사전검수 변경은 사용자 요청으로 High 설계 승인. 8개 CS-01..08은 docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json 별도 소스 후보 큐의 0/8. 기존 39 source SWU(35 완료 후보/4 BLOCKED_TRUST), REQ-01..30(공식 5/30 수용), 28 legacy tasks, P2 8검증 LOCKED를 덮어쓰지 않는다.
+- 기본 비실행 작업은 VM 없이 허용: AST parse·안전 경로 검사·외부 플러그인 없는 pinned 정적 scanner. scanner가 찾지 못한 악성 코드도 있으므로 static PASS→무격리 실행은 **금지**.
+- AI 작성 코드/테스트/설치 hook/빌드 스크립트 실행은 별도의 OS isolation 실증 없으면 HOLD. 실제 F18 independently issued receipt/owner consent/lease/sha/CAS gate는 여전히 필수.
+- 변경된 최종설계 전수 인수에는 CodeShield 누락 판정을 함께 포함; CodeShield 0/8을 임의로 기존 분모에 더하거나 감소시켜 공식 100% 주장 금지. P2 실기기·Defender·AppContainer·RAM·VRAM·탐지율 검증은 추후 정확 SHA에서만 시행.
+- P1 실패는 최신 owner 2+2: 무진전 2회 격리/재설계·독립 진행, 추가 2회 개선 재시도, 누적 4회 무진전이면 Sol Max 일괄; 필수불가결/안전 blocker 즉시 owner 요청. 이전 실제 소스 구현 시도를 실패로 단정하지 않는다.

@@ -28,3 +28,11 @@ repo+branch+최신 HEAD→AGENTS→HANDOFF→STATUS→REQUIREMENTS+FINAL_BLUEPRI
 - 설계 브랜치 `design/final-blueprint-v1`의 Hydrogen 탈부착 워커 **설계 문서와 확장 큐**를 기준으로 한다. `dev/instant-implementation-v1`는 P1 소스를 구현 중이므로 기존 P1 큐·STATUS/HANDOFF·코드를 설계 브랜치의 구형 스냅샷으로 덮어쓰지 않는다.
 - dev 담당자는 최신 design HEAD의 `docs/FINAL_BLUEPRINT.md H`, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`을 참조하고, High가 정확 SHA·allowed_paths·의존성을 확인한 뒤에만 확장 작업을 시작한다. 문서 동기화 시 dev HEAD와 파일 충돌 점검.
 - Hydrogen은 별도의 API 개발 워커로서 **수동 웹 Instant 세션을 자동 구동한다고 가정하지 않는다**. 원격 API·외부 데이터/결제·PR/권한 변경은 계속 별도 GO.
+
+## 2026-11-17 V1.3 확정 브랜치 운영
+
+- design/final-blueprint-v1: High 승인 최종설계 V1.3, CodeShield 8-SWU source-only 설계 큐를 관리. 이전 V1.1 Hydrogen/V1.2 Experience 보존.
+- dev/instant-implementation-v1: 실제 BE/FE 소스·39-SWU 큐·상태/이력 정본. design 브랜치 전체 병합 금지. V1.3 문서/새 큐만 파일별로 선택 동기화.
+- feature/code-shield-lightweight-v1: dev 최신 정확 SHA 기준 CodeShield 경량 사전검수 전용 구현 브랜치. 시작 HEAD 증거는 별도 HANDOFF/STATUS에서 기록. 새 CodeShield 상태는 첫 코드 커밋 전 0/8.
+- experiment/local-model-benchmarks: 실기기 합성 벤치마크를 분리. 추후 review/codex-solmax-<sha>, review/astra-max-<sha>는 동일 구현 후보 SHA부터 별도 생성.
+- main 변경/merge, 새 repo, 원본 EAI/Freelancer 변경, Production 배포, Windows 보안 설정 변경, 고객 데이터 전송 금지. exact expected SHA non-force push, 기존 commit 이력 불변.
