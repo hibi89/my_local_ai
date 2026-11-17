@@ -231,11 +231,13 @@ def prepare_offline_coder_transport(
         or prepared.plan_sha256 != profile.plan_sha256
         or not isinstance(prepared.worktree,str)
         or not isinstance(prepared.argv,tuple)
-        or len(prepared.argv) != 10
-        or prepared.argv[:8] != ("opencode","run","--standalone","--archived",
-                                  "--agent","build","--model",prepared.argv[8])
-        or prepared.argv[9] != prepared.prompt
-        or not prepared.argv[8].startswith("ollama/qwen3:")
+        or len(prepared.argv) != 11
+        or prepared.argv[:7] != ("opencode","run","--standalone","--archived",
+                                  "--agent","build","--model")
+        or prepared.argv[8:10] != ("--format","json")
+        or prepared.argv[10] != prepared.prompt
+        or not isinstance(prepared.argv[7],str)
+        or not prepared.argv[7].startswith("ollama/qwen3:")
         or not isinstance(prepared.allowed_paths,tuple)
         or not 1 <= len(prepared.allowed_paths) <= 16
         or any(not isinstance(x,str) or _safe_path(x)!=x
