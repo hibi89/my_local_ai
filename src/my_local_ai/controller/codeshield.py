@@ -256,3 +256,145 @@ def audit_scoped_sources(
         outcome, tuple(statuses), tuple(sorted(set(reasons))),
         ast_report.file_digests,
     )
+
+
+# CS-SWU-014: Controller's hard-stop order, still P1 SOURCE ONLY.
+# This is never a trusted OS execution/signer/CAS implementation.
+_DISPATCH_STAGES = (
+    "SOURCE_PLAN_LEASE", "WORKTREE_SCOPE", "STATIC_SCANNERS",
+    "OWNER_ACTION_GRANT", "WINDOWS_NO_EGRESS_BROKER",
+    "INDEPENDENT_F18", "GIT_CAS_PROMOTION",
+)
+
+
+@dataclass(frozen=True)
+class ProtectedDispatchHold:
+    context_sha256: str
+    candidate_git_sha: str
+    action: ActionKind
+    outcome: RiskOutcome
+    stage_results: tuple[tuple[str, str], ...]
+    reason_codes: tuple[str, ...]
+    stage: str = "P1_CONTROLLER_DISPATCH_DENIED"
+    scanner_pass_authorizes_execution: bool = False
+    owner_consent_verified: bool = False
+    isolated_runtime_attested: bool = False
+    f18_independently_verified: bool = False
+    git_cas_verified: bool = False
+    may_launch_untrusted: bool = False
+    may_mutate_original: bool = False
+    may_promote_git: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.stage != "P1_CONTROLLER_DISPATCH_DENIED"
+            or not isinstance(self.action, ActionKind)
+            or not isinstance(self.outcome, RiskOutcome)
+            or len(self.stage_results) != len(_DISPATCH_STAGES)
+            or tuple(name for name, _ in self.stage_results) != _DISPATCH_STAGES
+            or any(state not in {"HOLD", "SOURCE_SHAPE_ONLY", "FAILED"}
+                   for _, state in self.stage_results)
+            or not isinstance(self.reason_codes, tuple)
+            or not self.reason_codes
+            or any(getattr(self, field) is not False for field in (
+                "scanner_pass_authorizes_execution", "owner_consent_verified",
+                "isolated_runtime_attested", "f18_independently_verified",
+                "git_cas_verified", "may_launch_untrusted",
+                "may_mutate_original", "may_promote_git",
+            ))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+    def to_redacted_dict(self) -> dict[str, object]:
+        return {
+            "stage": self.stage,
+            "context_sha256": self.context_sha256,
+            "candidate_git_sha": self.candidate_git_sha,
+            "action": self.action.value,
+            "outcome": self.outcome.value,
+            "checks": dict(self.stage_results),
+            "reason_codes": list(self.reason_codes),
+            "owner_consent_verified": False,
+            "isolated_runtime_attested": False,
+            "f18_independently_verified": False,
+            "git_cas_verified": False,
+            "execution_allowed": False,
+            "can_modify_original": False,
+            "can_promote_git": False,
+            "can_publish_remote": False,
+        }
+
+
+def preview_protected_dispatch_hold(
+    context: CodeShieldContext, *,
+    audit: LocalStaticAudit | None = None,
+    action: ActionKind = ActionKind.UNTRUSTED_EXECUTION,
+) -> ProtectedDispatchHold:
+    """Deterministic Controller stop before any runtime/owner/Git capability.
+
+    Matching an in-memory audit is a consistency check only, never a fresh
+    Git diff, signed owner consent, trusted F18 receipt or Windows OS proof.
+    Even an ALLOW_NON_EXECUTING static result cannot change this HOLD.
+    """
+    if (not isinstance(context, CodeShieldContext)
+        or not isinstance(action, ActionKind)):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    reasons = []
+    stages = {
+        "SOURCE_PLAN_LEASE": "SOURCE_SHAPE_ONLY",
+        "WORKTREE_SCOPE": "HOLD",
+        "STATIC_SCANNERS": "HOLD",
+        "OWNER_ACTION_GRANT": "HOLD",
+        "WINDOWS_NO_EGRESS_BROKER": "HOLD",
+        "INDEPENDENT_F18": "HOLD",
+        "GIT_CAS_PROMOTION": "HOLD",
+    }
+    if audit is None:
+        reasons.append("STATIC_AUDIT_MISSING")
+        outcome = RiskOutcome.UNKNOWN_HOLD
+    elif not isinstance(audit, LocalStaticAudit):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    elif (audit.context_sha256 != context.fingerprint_sha256
+          or audit.candidate_sha != context.candidate_git_sha):
+        reasons.append("CONTEXT_SOURCE_MISMATCH")
+        stages["STATIC_SCANNERS"] = "FAILED"
+        outcome = RiskOutcome.UNKNOWN_HOLD
+    elif (audit.execution_allowed or audit.owner_go_verified
+          or audit.independent_f18_verified or audit.git_promotion_allowed
+          or audit.stage != "UNTRUSTED_STATIC_REPORT_F18_AND_OWNER_HOLD"):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    else:
+        # Status tuples can be guest-authored. A 'PASS' here is source-shape
+        # only and MUST NOT set owner, F18, OS or Git permissions.
+        if (len(audit.status_by_scanner) > 8
+            or len({name for name, _ in audit.status_by_scanner})
+               != len(audit.status_by_scanner)
+            or not audit.status_by_scanner):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+        stages["WORKTREE_SCOPE"] = "SOURCE_SHAPE_ONLY"
+        if (audit.outcome == RiskOutcome.HOLD_HIGH_RISK):
+            reasons.append("SCANNER_HIGH_RISK_HOLD")
+            stages["STATIC_SCANNERS"] = "FAILED"
+            outcome = RiskOutcome.HOLD_HIGH_RISK
+        elif audit.outcome == RiskOutcome.UNKNOWN_HOLD:
+            reasons.append("SCANNER_UNKNOWN_HOLD")
+            outcome = RiskOutcome.UNKNOWN_HOLD
+        elif audit.outcome == RiskOutcome.REQUIRES_ISOLATION_HOLD:
+            reasons.append("ISOLATION_REQUIRED")
+            outcome = RiskOutcome.REQUIRES_ISOLATION_HOLD
+        else:
+            reasons.append("STATIC_PASS_NOT_EXECUTION_GRANT")
+            stages["STATIC_SCANNERS"] = "SOURCE_SHAPE_ONLY"
+            outcome = RiskOutcome.REQUIRES_ISOLATION_HOLD
+    if action == ActionKind.PROTECTED_MUTATION:
+        outcome = RiskOutcome.HOLD_HIGH_RISK
+        reasons.append("PROTECTED_ACTION_NO_GRANT")
+    elif action == ActionKind.UNTRUSTED_EXECUTION:
+        reasons.append("UNTRUSTED_EXECUTION_DENIED")
+    else:
+        reasons.append("STATIC_ONLY_NO_DISPATCH")
+    reasons.extend(("OWNER_ACTION_NOT_ATTESTED", "F18_OS_CAS_NOT_ATTESTED"))
+    return ProtectedDispatchHold(
+        context.fingerprint_sha256, context.candidate_git_sha,
+        action, outcome,
+        tuple((stage, stages[stage]) for stage in _DISPATCH_STAGES),
+        tuple(sorted(set(reasons))),
+    )
