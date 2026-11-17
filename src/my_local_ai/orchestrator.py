@@ -444,3 +444,38 @@ def preview_codeshield_scoped_static(
         or result.get("git_promotion_allowed") is not False):
         raise ValueError("untrusted CodeShield static audit result")
     return result
+
+
+# No runtime dispatcher is exported in P1. A caller attempting to advance
+# a static CodeShield result into owner/F18/OS/Git authority receives HOLD.
+from my_local_ai.controller.codeshield import (
+    LocalStaticAudit as _LocalStaticAudit,
+    preview_protected_dispatch_hold as _preview_protected_dispatch_hold,
+)
+
+
+def preview_codeshield_controller_dispatch_hold(
+    *, context: _CodeShieldContext,
+    audit: _LocalStaticAudit | None = None,
+    action: _ActionKind = _ActionKind.UNTRUSTED_EXECUTION,
+) -> dict[str, object]:
+    """Controller -> phase-ordered denial: never spawn, sign, merge or publish.
+
+    The returned dictionary contains no privileged grant. Neither owner
+    consent references nor model-reported scanner PASS are trusted evidence.
+    """
+    decision = _preview_protected_dispatch_hold(
+        context, audit=audit, action=action,
+    )
+    payload = decision.to_redacted_dict()
+    if (payload["stage"] != "P1_CONTROLLER_DISPATCH_DENIED"
+        or payload["owner_consent_verified"] is not False
+        or payload["isolated_runtime_attested"] is not False
+        or payload["f18_independently_verified"] is not False
+        or payload["git_cas_verified"] is not False
+        or payload["execution_allowed"] is not False
+        or payload["can_modify_original"] is not False
+        or payload["can_promote_git"] is not False
+        or payload["can_publish_remote"] is not False):
+        raise ValueError("unsafe CodeShield controller dispatch state")
+    return payload
