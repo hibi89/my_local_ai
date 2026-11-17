@@ -95,7 +95,7 @@ def read_only_decision_status(decision: CodeShieldDecision) -> dict[str, object]
 from pathlib import Path as _Path
 from my_local_ai.security.ast_preflight import scan_scoped_python_sources
 from my_local_ai.security.ruff_adapter import run_ruff_static
-from my_local_ai.security.semgrep_adapter import run_local_semgrep
+from my_local_ai.security.semgrep_adapter import run_local_semgrep, inspect_packaged_semgrep_rules
 from my_local_ai.security.supply_chain import scan_gitleaks_stdin
 from my_local_ai.security.codeshield_contracts import ScanStatus
 
@@ -202,6 +202,12 @@ def audit_scoped_sources(
             reasons.append(leaks.reason)
     else:
         statuses.append(("gitleaks", ScanStatus.NOT_RUN.value))
+    local_rules = inspect_packaged_semgrep_rules(context)
+    statuses.append(("semgrep_rules",
+                     "PIN_MATCH" if local_rules.state ==
+                     "LOCAL_RULES_PINNED_STATIC_ONLY" else "UNKNOWN_HOLD"))
+    if local_rules.state != "LOCAL_RULES_PINNED_STATIC_ONLY":
+        reasons.append("LOCAL_RULES_HOLD")
     # This intentionally never passes a self-asserted OS egress attestation.
     # The eventual protected runner must provide proof in its own trust root.
     if semgrep_binary is not None and local_semgrep_rules is not None:
