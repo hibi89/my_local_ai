@@ -245,3 +245,19 @@
 8. **Preservation:** original EAI/AX/main/F18 trust boundaries/owner credentials untouched; no secret/customer data/paid/cloud/network publishing, no actual execution, no owner DB writes or Git promotion. \`docs/FINAL_BLUEPRINT.md\` unchanged; runtime \`depends_on\`, REQ denominator, P2 lock retained.
 9. **Next READY:** P1 CODE_ONLY \`MLA-006\` CLI, \`MLA-008\` protected decision source, \`MLA-028\` optional EAI adapter. After source hardening, High should assess real remaining REQ gaps and F18 protected owner-signer OS design to prevent repeated path-hardening without REQ completion.
 10. **Basis:** 2026-11-17 KST, exact last code SHA and Actions \`44027273837\`; documentation commit SHA must be verified. No P2/independent reviewer verdict claimed.
+
+
+---
+
+## 2026-11-17 KST — latest fast P1 round (supersedes previous work queue)
+
+1. **Goal/phase:** My Local AI independent Qwen/OpenCode local development Controller; EAI advisory optional/data-only. P1 authoring source only, P2 LOCKED and F18/owner GO protected.
+2. **Code implemented:** `920b6675083277448be7c20e0f3fa341d1df60ae` — CLI plan-file aliases/size and queue-phase integrity; Controller pinned EAI envelope priority/fallback, original EAI excluded. `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5` — actual CLI read-only `plan preview --file`, optional `--eai-file`, explicit bounded authoring budgets and no backend execution.
+3. **Real executed evidence:** GitHub Actions `44028400560` @ code SHA `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5` PASS: Python3.11 compile, unit **144/144**, synthetic integration **78/78**, security **135/135**, total **357/357**. Windows 11/Qwen/OpenCode/F18 separated OS/24h/real browser/P3 reviewers **NOT_RUN**.
+4. **Progress:** P1 code REQ completed **5/30=16.67% unchanged**, P1 28/28 task code evidence exists but full REQ acceptance not proven; P2 official rate UNASSESSED and gate LOCKED. P4 owner GO false.
+5. **Safety blockers:** MLA-001 original code provenance BLOCKED_PROVENANCE; MLA-003 independent OS F18 SECURITY_HOLD; MLA-009 trusted owner signer TRUST_ROOT_HOLD. Native code is clean-room, optional EAI only a validated hint, no real user DB/remote PR/main/source writes.
+6. **Repo/branch/tested source SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, last tested source SHA `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5`; after this documentation commit HEAD advances, check new SHA.
+7. **Runtime:** no Production or public app deployment; only GitHub dev branch Python3.11 Ubuntu synthetic test. User Windows device work not required/done.
+8. **Preservation:** docs/FINAL_BLUEPRINT.md unchanged, source/CI history retained, no credentials/.env/customer data transmitted. No commercial launch, fees, owner permissions or original source changed.
+9. **Next READY:** `MLA-019` connect optional advice to orchestrator BE→FE, `MLA-021` status UI, `MLA-025` safe authored P2 acceptance source. Code-only authoring is not an actual executor authorization. Architectural F18 and owner signer must be escalated High before REQ completion claim.
+10. **KST / evidence:** 2026-11-17 KST; source exact SHA and Actions `44028400560` provide synthetic-only scope, full P2 NOT_RUN.

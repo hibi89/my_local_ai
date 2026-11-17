@@ -83,3 +83,11 @@ At code SHA \`fcdd0371eab25691a9c1e97f1575875f31c5b079\`, mandatory Actions \`44
 ## 2026-11-17 P1 3-wave accelerated source evidence (not P2)
 
 At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory Actions \`44027273837\` passed syntax, 133 unit, 77 synthetic integration, 135 synthetic security (**345/345 PASS**). Earlier source \`0e755c17...\` passed 335, \`1ee35c87...\` passed 341. MLA-010/011/012 source scheduler/lock/Ollama, MLA-002/004/013 contracts/OpenCode/safety CI, MLA-019/021/025 BE/FE redaction/queue consistency/P2 harness contract are code authoring only. All actual owner Windows, Qwen/OpenCode process, OS independent F18 reviewer, real 24h, Playwright/browser remain NOT_RUN. Code REQ 5/30 unchanged; official verification UNASSESSED, real use HOLD.
+
+
+## 2026-11-17 P1 MLA-006/008/028 source-only real implementation
+
+- `920b6675083277448be7c20e0f3fa341d1df60ae`: safe CLI reads/phase consistency + exact-SHA-bound optional EAI data path in native Controller. No copied EAI source.
+- `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5`: offline CLI `plan preview`, optional EAI pinned file, budgeted code candidate enumeration with no owner-go/model/Git executable.
+- Actions `44028400560` at exact source SHA `da9174c3d8ac795a52ec6473ee9cd9cad3c385a5`: Python compile PASS; 144 unit, 78 synthetic integration, 135 security = **357/357 PASS**. True Windows/EAI original license/F18 owner signer/model hardware/browser/24h all NOT_RUN/HOLD.
+- Code REQs remain 5/30; P1 source evidence not formal verified. P2 LOCKED; approved rights and owner-protected OS operation not asserted.
