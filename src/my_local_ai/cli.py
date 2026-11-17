@@ -98,10 +98,9 @@ def _parser() -> argparse.ArgumentParser:
 def _v13_swu_progress() -> dict:
     """P1 code inventory by FINAL_BLUEPRINT J/K, never an approval gate.
 
-    The 16 CodeShield SWUs are required in the design but are currently on
-    another branch. Their 13 source candidates MUST NOT increase the active
-    product branch's implementation numerator before a separately approved,
-    source-verified integration. This function performs no Git/network calls.
+    The initial feature snapshot was 13 CodeShield candidates. New P1 code
+    added on active dev is counted only when its queue entry and exact source
+    inventory agree; this local count never grants OS/F18/runtime authority.
     """
     record = _read_json(_ROOT / "P1_V1_3_SWU_REBASELINE.json")
     queue = _read_json(_ROOT / "P1_SWU_TASK_QUEUE.json")
@@ -156,8 +155,9 @@ def _v13_swu_progress() -> dict:
             or type(item.get("integrated_into_dev")) is not bool
             or item.get("integrated_into_dev") is not
                  (item.get("code_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED")
-            or item.get("source_candidate_on_feature") is not
-                 (item.get("code_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED")):
+            or type(item.get("source_candidate_on_feature")) is not bool
+            or (item.get("source_candidate_on_feature")
+                and item.get("integrated_into_dev") is not True)):
             raise ValueError("untrusted CodeShield integration evidence")
         ext_ids.add(item["id"])
         staged += item["source_candidate_on_feature"]
@@ -165,14 +165,14 @@ def _v13_swu_progress() -> dict:
     if (ext_ids != {"CS-SWU-" + str(i).zfill(3) for i in range(1, 17)}
         or staged != record.get("code_shield_source_candidate_unmerged_at_rebaseline")
         or integrated != record.get("code_shield_source_candidates_integrated")
-        or integrated > staged):
+        or integrated < staged or integrated > 16):
         raise ValueError("invalid CodeShield SWU crosswalk")
     # The source queue is the public P1 audit inventory, not a permission grant.
     shield = _read_json(_ROOT / "docs" / "OPTIONAL_CODESHIELD_TASK_QUEUE.json")
     swus = shield.get("p1_source_swu_tasks")
     if (shield.get("project") != "hibi89/my_local_ai"
         or shield.get("p1_source_swu_total") != 16
-        or shield.get("p1_source_swu_implemented") != staged
+        or shield.get("p1_source_swu_implemented") != integrated
         or shield.get("p2_status") != "LOCKED"
         or shield.get("owner_runtime_go") is not False
         or not isinstance(swus, list) or len(swus) != 16
@@ -181,7 +181,7 @@ def _v13_swu_progress() -> dict:
                  m["code_status"] for m in extension if m["id"] == s.get("task_id"))
                for s in swus if isinstance(s, dict))):
         raise ValueError("CodeShield feature queue does not match integrated inventory")
-    if integrated != 13 or active_count + integrated > 55:
+    if active_count + integrated > 55:
         raise ValueError("unexpected source integration scope")
     if not all(
         isinstance(m.get("allowed_paths"), list) and m["allowed_paths"]

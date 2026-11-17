@@ -2,17 +2,15 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_13_OF_16_SWU007_SANDBOX_FALLBACK_CONFIG_WRITTEN_UNVERIFIED_OS_HOLD",
+  "state": "P1_14_OF_16_SOURCE_CANDIDATES_OS_F18_HOLD",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
   "protected_baseline_swu": 39,
   "baseline_source_complete_at_design": 35,
   "p1_source_swu_total": 16,
-  "p1_source_swu_implemented": 13,
-  "first_source_ready": [
-    "CS-SWU-007"
-  ],
+  "p1_source_swu_implemented": 14,
+  "first_source_ready": [],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
   "real_windows": "NOT_RUN",
@@ -1121,13 +1119,13 @@
         "full CI integration/security/regression"
       ],
       "risk": "CRITICAL",
-      "source_status": "SOURCE_CONTROLLER_HARD_STOP_IMPLEMENTED_UNVERIFIED_F18_HOLD",
-      "implementation_evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "PROGRESS_PROTECTED_GATE_PENDING",
+      "retry_stage": "P1_CONTROLLER_SCANNER_DISPATCH_SOURCE_CANDIDATE_OS_F18_HOLD",
       "retry_evidence": [],
       "owner_go": false,
       "implementation_blocker": "PROTECTED_OS_EXECUTOR_AND_INDEPENDENT_F18_REVIEWER_NOT_PROVEN_RUNTIME_HOLD_ONLY",
@@ -1142,7 +1140,7 @@
         "CS-SWU-007_BROKER_REQUEST_CONTRACT_ONLY"
       ],
       "p1_code_only_scope": "Implement Controller fail-closed stage ordering and denial result before any execution; OS broker/F18/CAS runtime activation remains HOLD",
-      "code_only_progress": "Controller stage sequence and orchestrator API explicitly deny every owner grant, OS isolation, F18 and Git CAS promotion; runtime bridge to independently attested broker still absent. Full SWU NOT COMPLETE. Redacted Controller audit rejects forged scanner names/states, duplicate case-insensitive paths and arbitrary reason strings; F18/OS/CAS still HOLD.",
+      "code_only_progress": "Controller stage sequence and orchestrator API explicitly deny every owner grant, OS isolation, F18 and Git CAS promotion; runtime bridge to independently attested broker still absent. Full SWU NOT COMPLETE. Redacted Controller audit rejects forged scanner names/states, duplicate case-insensitive paths and arbitrary reason strings; F18/OS/CAS still HOLD.\n2026-11-18 dev 7cd995ae3b9564480b1763fb5e3d62204f1ac8c9: plan -> real Controller.propose -> scoped static audit -> protected dispatch HOLD; rejects stale plan/source/path/state/lease; mandatory GitHub Actions 44141907584 PASS. Source P1 complete, protected owner, native OS no-egress, actual F18 and Git CAS runtime remain NOT_RUN/HOLD.",
       "code_only_attempts": [
         {
           "attempt_id": "CS014-20261118-A1",
@@ -1156,6 +1154,14 @@
           "method": "Strictly validate Controller static audit metadata, scanner statuses, redacted reasons and digest paths before dispatch denial",
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "245e04b17b10661da3b00d5069c8d2ad74ee07eb",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS014-20261118-DEV-CALLER",
+          "method": "Implement real PlanSpec -> Controller -> scoped scanner -> fail-closed protected dispatch with mismatched-plan/source/path/lease/state denial checks",
+          "outcome": "P1_SOURCE_CANDIDATE_IMPLEMENTED_UNVERIFIED_RUNTIME_HOLD",
+          "evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
+          "ci_run_id": 44141907584,
           "nonprogress_failure": false
         }
       ]
@@ -1278,26 +1284,21 @@
     "CS-SWU-014"
   ],
   "last_source_wave": {
-    "branch": "feature/code-shield-lightweight-v1",
-    "source_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
+    "branch": "dev/instant-implementation-v1",
+    "source_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
     "task_ids": [
-      "CS-SWU-007",
-      "CS-SWU-014_LINKED_PREVIEW"
+      "CS-SWU-014"
     ],
-    "status": "PARTIAL_SOURCE_PROGRESS_CONFIG_ONLY_OS_ISOLATION_UNPROVEN",
+    "status": "P1_CONTROLLER_SOURCE_COMPLETE_UNVERIFIED_RUNTIME_HOLD",
     "checks": {
-      "github_source_readback": "PASS",
-      "static_contract_markers": "PASS",
-      "python_syntax": "NOT_RUN_NO_MOUNTED_GITHUB_SOURCE",
-      "targeted_smoke": "NOT_RUN_NO_MOUNTED_GITHUB_SOURCE",
-      "windows_sandbox": "NOT_RUN",
-      "semgrep_native": "NOT_RUN",
-      "os_egress": "NOT_RUN",
-      "independent_f18": "NOT_RUN",
-      "full_ci": "P2_LOCKED"
+      "syntax": "PASS",
+      "synthetic_unit": "PASS",
+      "synthetic_integration": "PASS",
+      "synthetic_f18_contract": "PASS",
+      "github_actions_run_id": 44141907584,
+      "real_windows": "NOT_RUN",
+      "independent_f18": "NOT_RUN"
     },
-    "owner_go": false,
-    "guest_execution": false,
     "nonprogress_failures_added": 0
   },
   "sol_max_escalation": {
@@ -1336,5 +1337,6 @@
       "NO_ORIGINAL_OR_MAIN_WRITE"
     ]
   },
-  "next_safe_code_only_ready_reason": "Actual protected native Windows AppContainer/Job Object egress broker remains source gap; continue code-only implementation without host launch, do not fake OS attestation. If code route deadlocks with no safe alternative, apply owner 2+2/High exception."
+  "next_safe_code_only_ready_reason": "Actual protected native Windows AppContainer/Job Object egress broker remains source gap; continue code-only implementation without host launch, do not fake OS attestation. If code route deadlocks with no safe alternative, apply owner 2+2/High exception.",
+  "source_integration_dev_evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9"
 }

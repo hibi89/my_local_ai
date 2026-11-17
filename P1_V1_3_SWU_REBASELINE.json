@@ -21,7 +21,7 @@
   "active_dev_source_candidate_swu_at_rebaseline": 35,
   "code_shield_source_candidate_unmerged_at_rebaseline": 13,
   "unreconciled_swu_count_at_rebaseline": 20,
-  "metric_rule": "P1 active dev candidate total = 35 legacy SWUs + 13 connected CodeShield SWUs. Partially written trust SWUs 007/012/014 excluded. No P2/OS/F18 acceptance.",
+  "metric_rule": "Active dev P1 code candidates: legacy MLA 35 plus CodeShield 14. Historical feature source snapshot 13 unchanged. Controller 014 completes source only; OS/owner/F18/CAS remain HOLD.",
   "optional_scope_excluded": [
     "V1.1 Hydrogen optional remote worker",
     "V1.2 Experience Learning optional extension"
@@ -35,8 +35,7 @@
     "MLA-SWU-021",
     "MLA-SWU-031",
     "CS-SWU-007",
-    "CS-SWU-012",
-    "CS-SWU-014"
+    "CS-SWU-012"
   ],
   "code_shield_swu_inventory": [
     {
@@ -223,10 +222,10 @@
         "REQ-CS-09",
         "REQ-CS-10"
       ],
-      "code_status": "SOURCE_CONTROLLER_HARD_STOP_IMPLEMENTED_UNVERIFIED_F18_HOLD",
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": false,
-      "integrated_into_dev": false,
-      "implementation_evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+      "integrated_into_dev": true,
+      "implementation_evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
       "allowed_paths": [
         "src/my_local_ai/controller/codeshield.py",
         "src/my_local_ai/orchestrator.py"
@@ -272,10 +271,10 @@
   "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission.",
   "integration_scope": "OWNER_APPROVED_SELECTIVE_SOURCE_TRANSFER_ONLY",
   "integration_approved_by_owner": true,
-  "code_shield_source_candidates_integrated": 13,
-  "active_dev_source_candidates_after_integration": 48,
-  "unimplemented_required_swu_after_integration": 7,
-  "source_candidate_implementation_percent_after_integration": 87.27,
+  "code_shield_source_candidates_integrated": 14,
+  "active_dev_source_candidates_after_integration": 49,
+  "unimplemented_required_swu_after_integration": 6,
+  "source_candidate_implementation_percent_after_integration": 89.09,
   "integration_source_branch_head": "736bfd28010f1089a2228c76e74568d56005cd89",
   "integration_base_dev_sha": "cd37b2aab2f89c4c8df090bcc09fa67ca7de2441",
   "integration_source_files": [
@@ -293,5 +292,23 @@
     "src/my_local_ai/ui/status_view.py"
   ],
   "integration_snapshot_file": "docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json",
-  "source_candidate_count_note": "13 CodeShield SWUs considered source-only integrated after source, caller and CLI status link are imported. Protected broker, owner-signed Defender scan, Controller runtime dispatch (007/012/014) remain incomplete despite partial code."
+  "source_candidate_count_note": "13 CodeShield SWUs considered source-only integrated after source, caller and CLI status link are imported. Protected broker, owner-signed Defender scan, Controller runtime dispatch (007/012/014) remain incomplete despite partial code.",
+  "runtime_holds_preserved": [
+    "MLA-SWU-008",
+    "MLA-SWU-015",
+    "MLA-SWU-021",
+    "MLA-SWU-031",
+    "CS-SWU-007",
+    "CS-SWU-012",
+    "CS-SWU-014_RUNTIME_F18_OWNER_OS_CAS"
+  ],
+  "last_p1_wave": {
+    "code_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
+    "swu": "CS-SWU-014",
+    "source_candidate": true,
+    "os_attested": false,
+    "owner_go": false,
+    "f18_attested": false,
+    "ci_run_id": 44141907584
+  }
 }
