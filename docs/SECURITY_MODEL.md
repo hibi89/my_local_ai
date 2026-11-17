@@ -37,3 +37,14 @@
 - **유료·무료 변경:** 0원 약속을 토큰 호출 수만으로 보장 불가, 계정 tier/권한·원격 데이터 계약 확인이 되지 않으면 자체적으로 off. 계정 우회/키 회전/추가 결제 절대 자동 금지.
 - **fallback:** quota/장애 발생 중간 worktree는 유효성을 재검증하기 전 승격·재사용 금지. candidate_sha/approval/lease 정확성 대조 후 새 Qwen task epoch만 생성. 완료 이력은 불변.
 - 적용 범위는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 현재 상태는 설계만 / 실제 보안·외부 API 실행 NOT_RUN.
+
+---
+
+## V1.2 Experience Learning 신규 위협 모델
+1. **경험 오염/프롬프트 인젝션:** 데이터베이스의 에러 로그·모델 출력·스킬 예시는 비신뢰 텍스트. 검색한 문구가 owner GO, shell 명령, 테스트 결과, 승인 정책을 바꿀 수 없음. 허용 경로·SHA·명령 whitelist 및 F18 trusted verifier gate가 항상 우선.
+2. **거짓 성공/자기 강화:** 모델/게스트가 만든 `VERIFIED`나 PASS 문자열을 학습 근거로 신뢰하지 않음. 실제 독립 테스트·정확 commit/test receipt+도구환경 대조 후에만 경험 promotion. 오류 수정 전후·부정 사례·failed attempts도 유지·격리하여 선택 편향을 줄인다.
+3. **권리·비밀:** 외부 Sol Max/모델 출력 자동 대량 수집·경쟁 모델 훈련자료/신호/라벨·숨은 추론 추출 금지. 법적 권리가 있는 own code/test와 적법한 합성 데이터에 한정. private repo/고객 코드/개인 경로/키/프롬프트 원본·API response 원문을 공개 GitHub나 외부에 자동 저장/송신 금지.
+4. **데이터 안전:** local SQLite APP_ID와 backup/migration, redaction, project scoped retrieval, expiry/retire/revoke, approved deletion. 외부 API 기본 OFF/돈0원, 네트워크/권한 변경 별도 사용자 GO. 경험 엔진 중단 시 Qwen baseline 지속.
+5. **과적합·성능 과장:** 동일 시작 SHA synthetic A/B, accepted REQ/hour와 보안/재작업·fail rate 같이 측정. 작은 샘플의 추정 성능이나 model 응답을 실제 Codex 대체/실 OS 안전 증거로 주장 금지.
+
+P1 즉시 검사(원본 손실/인증/권한/비밀/F18)는 유지하며 P2 브라우저/CI·실기기 전체 검증 후행. `docs/EXPERIENCE_LEARNING_ENGINE.md` 참고.
