@@ -78,5 +78,41 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertFalse(result["execution_allowed"])
 
+class CliNextAndControlTests(unittest.TestCase):
+    def test_code_ready_is_visible_but_not_execution_ready(self):
+        code,result=invoke("queue","next")
+        self.assertEqual(code,0)
+        queue=json.loads((Path(__file__).resolve().parents[2]/
+                          "INSTANT_TASK_QUEUE.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["p1_code_ready_ids"],queue["first_ready"])
+        self.assertEqual(result["operational_ready_count"],0)
+        self.assertFalse(result["execution_allowed"])
+        self.assertTrue(result["code_only"])
+
+    def test_evidence_labels_synthetic_tests_only(self):
+        code,result=invoke("evidence")
+        self.assertEqual(code,0)
+        self.assertEqual(result["formal_verified_rate"],"UNASSESSED")
+        self.assertEqual(result["real_windows"],"NOT_RUN")
+        self.assertEqual(result["independent_f18"],"SECURITY_HOLD")
+        self.assertFalse(result["execution_allowed"])
+        self.assertTrue(result["run_id"]>0)
+
+    def test_stop_and_resume_never_change_protected_db_or_start_worker(self):
+        for verb in ("stop","resume"):
+            with self.subTest(verb=verb):
+                code,result=invoke(verb,"--task-id","MLA-019")
+                self.assertEqual(code,2)
+                self.assertEqual(result["status"],"HOLD")
+                self.assertFalse(result["task_state_changed"])
+                self.assertFalse(result["execution_allowed"])
+
+    def test_unknown_stop_target_is_redacted_error(self):
+        code,result=invoke("resume","--task-id","DO_NOT_ECHO_SECRET")
+        self.assertEqual(code,2)
+        self.assertEqual(result["reason"],"INVALID_OR_UNAVAILABLE_LOCAL_INPUT")
+        self.assertNotIn("DO_NOT_ECHO_SECRET",json.dumps(result))
+
+
 if __name__ == "__main__":
     unittest.main()
