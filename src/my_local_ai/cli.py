@@ -80,6 +80,9 @@ def _parser() -> argparse.ArgumentParser:
     evidence_sub = evidence.add_subparsers(dest="evidence_action")
     evidence_sub.add_parser("export", help="Print a sanitized evidence manifest to stdout")
     evidence_sub.add_parser("reqs", help="Source-only REQ to SWU evidence; not P2 proof")
+    shield = subs.add_parser("codeshield", help="Read-only CodeShield source and security HOLD status")
+    shield_sub = shield.add_subparsers(dest="shield_action", required=True)
+    shield_sub.add_parser("status", help="Report source SWUs, missing scanner proof and F18 holds")
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -537,6 +540,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.evidence_action == "export":
                 payload = {**payload, "export_format":"REDACTED_JSON_STDOUT_ONLY",
                            "owner_go":False, "real_use_allowed":False}
+        elif args.command == "codeshield" and args.shield_action == "status":
+            from my_local_ai.ui.status_view import load_codeshield_source_status
+            payload = load_codeshield_source_status(_ROOT).to_public_dict()
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":
