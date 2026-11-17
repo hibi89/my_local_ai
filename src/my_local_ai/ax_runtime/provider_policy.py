@@ -61,6 +61,6 @@ class LoopbackEndpoint:
 
 
 def require_qwen_model(name: str) -> str:
-    if not isinstance(name, str) or not _MODEL.fullmatch(name):
+    if not isinstance(name, str) or not name.isascii() or not _MODEL.fullmatch(name):
         raise ProviderHold("UNAPPROVED_MODEL")
     return name

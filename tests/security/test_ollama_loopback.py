@@ -190,3 +190,36 @@ class OllamaAdversarialResponseTests(unittest.TestCase):
             with self.subTest(url=url), self.assertRaises(ProviderHold):
                 OllamaProvider(endpoint=url, connection_factory=FakeHTTP)
         self.assertEqual(FakeHTTP.calls, [])
+
+
+
+class OllamaStrictJsonResponseTests(unittest.TestCase):
+    def setUp(self):
+        FakeHTTP.calls=[]
+        FakeHTTP.responses=[]
+
+    def test_duplicate_model_keys_are_not_a_valid_availability_receipt(self):
+        FakeHTTP.responses=[FakeResponse(
+            200,b'{"models":[],"models":[{"name":"qwen3:4b-instruct"}]}'
+        )]
+        out=OllamaProvider(connection_factory=FakeHTTP).available()
+        self.assertEqual(out.state,"HOLD")
+        self.assertEqual(out.reason,"OLLAMA_RESPONSE_INVALID")
+
+    def test_nonfinite_model_tag_json_is_denied(self):
+        FakeHTTP.responses=[FakeResponse(200,b'{"models":NaN}')]
+        out=OllamaProvider(connection_factory=FakeHTTP).available()
+        self.assertEqual(out.reason,"OLLAMA_RESPONSE_INVALID")
+
+    def test_duplicate_done_field_cannot_claim_finished_generation(self):
+        FakeHTTP.responses=[
+            FakeResponse(200,{"models":[{"name":"qwen3:4b-instruct"}]}),
+            FakeResponse(200,b'{"done":false,"done":true,"response":"unexpected"}'),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ProviderHold) as exc:
+                OllamaProvider(connection_factory=FakeHTTP).generate(
+                    "synthetic",model_lock=OneModelLock(tmp),
+                    budget=BudgetGuard(ModelBudget()),allow_generation=True)
+        self.assertEqual(exc.exception.code,"OLLAMA_RESPONSE_INVALID")
+        self.assertEqual([x[3] for x in FakeHTTP.calls],["/api/tags","/api/generate"])

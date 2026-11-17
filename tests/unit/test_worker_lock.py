@@ -121,3 +121,40 @@ class LockReplacementRaceTests(unittest.TestCase):
                 with self.assertRaises(ModelLockUnsafe):
                     OneModelLock(folder).acquire()
             self.assertEqual(lockfile.read_text(encoding="ascii"), "0")
+
+
+
+class DurableFencingEpochTests(unittest.TestCase):
+    def test_existing_empty_file_never_resets_epoch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp) / "my_local_ai.model.lock"
+            path.write_bytes(b"")
+            with self.assertRaises(ModelLockUnsafe):
+                OneModelLock(tmp).acquire()
+            self.assertEqual(path.read_bytes(),b"")
+
+    def test_new_file_still_initializes_and_releases_safely(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock=OneModelLock(tmp)
+            lease=lock.acquire()
+            self.assertEqual(lease.generation,1)
+            lock.release(lease)
+            self.assertEqual((Path(tmp)/"my_local_ai.model.lock").read_text(),"1")
+            resumed=lock.acquire()
+            self.assertEqual(resumed.generation,2)
+            lock.release(resumed)
+
+
+class DiscreteBudgetSafetyTests(unittest.TestCase):
+    def test_fractional_or_boolean_counts_never_granted(self):
+        g=BudgetGuard(ModelBudget())
+        for changes in (
+            {"changed_files":1.5}, {"context_tokens":20.3},
+            {"output_bytes":1.2}, {"changed_files":True},
+            {"context_tokens":"4"},
+        ):
+            with self.subTest(changes=changes),self.assertRaises(BudgetExceeded):
+                g.check(**changes)
+
+    def test_float_memory_disk_metrics_remain_usable(self):
+        BudgetGuard(ModelBudget()).check(ram_mb=1200.5,disk_mb=2.5)

@@ -68,7 +68,9 @@ class BudgetGuard:
                 ("files", changed_files, self.limits.max_changed_files),
                 ("disk", disk_mb, self.limits.max_disk_mb),
             ):
-                if (isinstance(amount, bool) or not isinstance(amount, (int, float))
+                # Calls/tokens/file inventory/response length are discrete,
+                # never accept fractional counts or numeric strings.
+                if (type(amount) not in ((int,float) if field in ("ram", "disk") else (int,))
                     or not math.isfinite(amount) or amount < 0 or amount > maximum):
                     raise BudgetExceeded("invalid/excessive " + field + " budget")
 

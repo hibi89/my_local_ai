@@ -307,3 +307,24 @@ class OpenCodeAncestorGuardTests(unittest.TestCase):
                     disposable_worktree=str(guest),
                     original_checkout=str(alias / "original"),
                     prompt="synthetic only")
+
+
+
+class OpenCodeLexicalPathSafetyTests(unittest.TestCase):
+    def test_dotdot_path_alias_refused_even_when_it_resolves_to_disposable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            original=root/"original"
+            work=root/"worktree"
+            original.mkdir()
+            work.mkdir()
+            for bad in (
+                {"disposable_worktree":str(work/".."/"worktree")},
+                {"original_checkout":str(original/".."/"original")},
+            ):
+                with self.subTest(bad=bad),self.assertRaises(WorkerHold):
+                    prepare_opencode_run(
+                        task(),plan_sha256=PLAN,source_sha=SOURCE,
+                        disposable_worktree=str(work),original_checkout=str(original),
+                        prompt="synthetic source-only",**bad,
+                    )

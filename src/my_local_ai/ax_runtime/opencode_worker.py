@@ -150,8 +150,9 @@ def prepare_opencode_run(
         if not isinstance(disposable_worktree, str) or not isinstance(original_checkout, str):
             raise ValueError("invalid path types")
         worktree, original = Path(disposable_worktree), Path(original_checkout)
-        if not worktree.is_absolute() or not original.is_absolute():
-            raise ValueError("absolute paths required")
+        if (not worktree.is_absolute() or not original.is_absolute()
+            or ".." in worktree.parts or ".." in original.parts):
+            raise ValueError("unsafe lexical worktree path")
         _no_alias_ancestors(worktree)
         _no_alias_ancestors(original)
         if (not worktree.is_absolute() or not original.is_absolute()

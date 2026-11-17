@@ -75,7 +75,17 @@ class OllamaProvider:
                 raise ProviderHold("RESOURCE_LIMIT")
             if not isinstance(data, bytes):
                 raise ProviderHold("OLLAMA_RESPONSE_INVALID")
-            parsed = json.loads(data)
+            def reject_duplicate_keys(pairs):
+                obj = {}
+                for key, value in pairs:
+                    if key in obj:
+                        raise ValueError("duplicate Ollama JSON key")
+                    obj[key] = value
+                return obj
+            parsed = json.loads(
+                data, object_pairs_hook=reject_duplicate_keys,
+                parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+            )
             if not isinstance(parsed, dict):
                 raise ProviderHold("OLLAMA_RESPONSE_INVALID")
             return parsed

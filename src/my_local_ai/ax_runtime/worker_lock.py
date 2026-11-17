@@ -71,10 +71,17 @@ class OneModelLock:
         # Protect same-instance concurrency and use OS advisory/mandatory locks
         # for interprocess coordination. An untrusted guest cannot write this dir.
         with _process_mutex:
-            flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NOINHERIT", 0)
+            flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NOINHERIT", 0)
             if self.path.is_symlink():
                 raise ModelLockUnsafe("lock file symlink")
-            descriptor = os.open(self.path, flags, 0o600)
+            # Distinguish a NEW lock file from an existing empty/corrupt file.
+            # An interrupted write must never reset an existing epoch to 1.
+            created = False
+            try:
+                descriptor = os.open(self.path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+                created = True
+            except FileExistsError:
+                descriptor = os.open(self.path, flags)
             handle = os.fdopen(descriptor, "r+b", buffering=0)
             locked = False
             try:
@@ -103,6 +110,8 @@ class OneModelLock:
                     or (checked.st_dev, checked.st_ino) != (fd_info.st_dev, fd_info.st_ino)):
                     raise ModelLockUnsafe("lock replaced while acquiring")
                 if handle.seek(0, 2) == 0:
+                    if not created:
+                        raise ModelLockUnsafe("existing empty fencing epoch; manual HOLD")
                     handle.write(b"0")
                     handle.flush()
                     os.fsync(handle.fileno())
