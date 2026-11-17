@@ -20,13 +20,13 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 30,
-  "source_incomplete_swu_count": 9,
+  "source_complete_swu_count": 31,
+  "source_incomplete_swu_count": 8,
   "status_counts": {
     "BLOCKED_PROVENANCE": 1,
-    "SOURCE_COMPLETE_P2_PENDING": 30,
+    "SOURCE_COMPLETE_P2_PENDING": 31,
     "BLOCKED_TRUST": 4,
-    "PENDING_CODE_DEPENDENCY": 3,
+    "PENDING_CODE_DEPENDENCY": 2,
     "BLOCKED_APPROVAL": 1
   },
   "first_ready": [],
@@ -2596,10 +2596,9 @@
       ],
       "caller_to_callee": "mla start stop>typed owner Controller request",
       "observable_outcome": "CLI request routed but not self-approved",
-      "missing_function": "stub HOLD does not route protected action",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_OWNER_SIGNER_F18_RUNTIME_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
-        "MLA-SWU-008",
         "MLA-SWU-023",
         "MLA-SWU-024"
       ],
@@ -2628,8 +2627,8 @@
         "MLA-006": 1,
         "MLA-009": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
+      "attempts_used": 2,
+      "attempts_note": "One inherited MLA-006 edit attempt + this actual CLI Controller-to-owned-SQLite action request implementation; general max2 reached.",
       "evidence_sha_by_legacy": {
         "MLA-006": "0cdb85475141aaf8e7ed0864eb17c8b67e7e9cd8",
         "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
@@ -2651,7 +2650,19 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_code_depends_on": [
+        "MLA-SWU-008",
+        "MLA-SWU-023",
+        "MLA-SWU-024"
+      ],
+      "source_dependency_review": "CLI request/HOLD authoring consumes native Controller and owned SQLite but not protected signer; SWU-008 remains mandatory for actual execution/owner GO. No trust boundary change.",
+      "original_missing_function": "stub HOLD does not route protected action",
+      "actual_source_implemented": true,
+      "latest_code_sha": "16fc27079b24fcc8fa61c86646b2fe71616cacc1",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "AUTO_CI_SUCCESS_44072707066; NARROW_DURABLE_HOLD_SAFETY_TESTS_PASS_IN_ACTIONS; REAL_OWNER_SIGNER_F18_WINDOWS_NOT_RUN",
+      "runtime_gap": "Signed owner start/resume, F18 independent review, OS worker stop and true process signal are BLOCKED; new CLI request always HOLD; idle task local DB HOLD is not worker termination."
     },
     {
       "id": "MLA-SWU-037",
@@ -4726,34 +4737,24 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "6745975ff13ba7c8d54302bdf3f6fd02592c56cb",
+    "source_sha": "16fc27079b24fcc8fa61c86646b2fe71616cacc1",
     "source_commits": [
-      "e09cd337050b2f921c907b14779651ced26538ec",
-      "b4881a2b9fb935a1f9ba067be6a89bf6b282741d",
-      "ea1a5dd31ca7108d28d6da0f9fea91ad66b21203",
-      "d08cc7f57a0e6dc4b84189791e3a20408abedea5",
-      "6745975ff13ba7c8d54302bdf3f6fd02592c56cb"
+      "da6f7364f981e12f38ab60257c93e9a9311380f1",
+      "16fc27079b24fcc8fa61c86646b2fe71616cacc1"
     ],
     "swus": [
-      "MLA-SWU-026",
-      "MLA-SWU-019",
-      "MLA-SWU-018",
-      "MLA-SWU-033"
+      "MLA-SWU-036"
     ],
     "mandatory_actions_runs": [
-      44070893704,
-      44071166813,
-      44071316296,
-      44071381539,
-      44071568728
+      44072510121,
+      44072707066
     ],
-    "mandatory_ci": "SUCCESS_AT_ALL_SOURCE_SHAS",
-    "targeted_git_os_execution": "NOT_RUN_OS_CHANGE_OWNER_SIGNER_HOLD",
-    "targeted_owned_sqlite_crash_recovery": "NOT_RUN_P2",
-    "targeted_supervisor_24h_real_device": "NOT_RUN_P2",
-    "protected_git_and_f18": "SECURITY_HOLD",
+    "mandatory_ci": "SUCCESS_AT_BOTH_SOURCE_SHAS",
+    "immediate_safety": "OWNED_SQLITE_IDLE_HOLD_IDEMPOTENCE_AND_NO_OWNER_GRANT_PASS_GITHUB_ACTIONS",
+    "actual_owner_signer": "NOT_IMPLEMENTED_HOLD",
+    "windows_os_f18": "NOT_RUN",
     "p2": "LOCKED",
     "owner_go": false
   },
-  "next_wave_exception_reason": "Zero independent P1 source READY after this wave. Remaining 9 SWUs blocked on provenance, protected owner signer/F18, approval or dependencies. High must review trust architecture without weakening HOLD; do not fabricate READY."
+  "next_wave_exception_reason": "No independent code-only READY. Remaining SWU-001 external rights, SWU-008/015/021/031 protected signer/OS trust, SWU-029 owner remote approval, SWU-027/038 blocked by trusted review/Git dependencies. High review needed for safe trust-root implementation and provenance; no runtime authorization."
 }
