@@ -122,3 +122,29 @@ class QueuePolicy:
         if not isinstance(baseline_sha, str) or not _GIT_SHA.fullmatch(baseline_sha):
             raise ValueError("Git baseline SHA")
         return hashlib.sha256(f"my-local-ai/v1|{plan_sha}|{task_id}|{baseline_sha}".encode("ascii")).hexdigest()
+
+
+    def hold_failed_and_continue(
+        self, states: dict[str, str], failed_task_id: str, *,
+        independently_verified: Iterable[str] = (),
+        active_leases: Iterable[str] = (),
+    ) -> tuple[dict[str, str], tuple[ReadyCandidate, ...]]:
+        """Advance one failed task to HOLD and propose independent code candidates.
+
+        No execution, grant, lease or VERIFIED can be issued here. All dependent
+        tasks remain non-ready until the independent reviewer actually accepts
+        their prerequisites in a separately protected component.
+        """
+        if (not isinstance(failed_task_id,str) or failed_task_id not in self._tasks
+            or not isinstance(states,dict) or set(states) != set(self._tasks)
+            or states.get(failed_task_id) not in {
+                "REVIEW_PENDING", "CODING", "REPAIR_ONCE", "INTERRUPTED", "READY",
+            }):
+            raise ValueError("invalid failed-task transition")
+        next_states = dict(states)
+        next_states[failed_task_id] = "HOLD"
+        next_ready = self.propose_ready(
+            next_states, independently_verified=independently_verified,
+            active_leases=active_leases,
+        )
+        return next_states, next_ready

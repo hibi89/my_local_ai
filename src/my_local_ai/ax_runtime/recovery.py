@@ -168,3 +168,79 @@ def plan_improved_repair(
         failure_fingerprint_sha256,proposed_strategy,
         checkpoint.lease_epoch,proposal.minimum_next_lease_epoch,
     )
+
+
+@dataclass(frozen=True)
+class FailedReviewRouting:
+    """Durably HOLD one failed task and report independent non-running options."""
+    task_id: str
+    durable_state: str
+    next_candidate_task_ids: tuple[str, ...]
+    pending_repair: RepairIntent | None
+    execution_allowed: bool = False
+    independent_review_verified: bool = False
+
+
+def route_failed_review_to_hold(
+    state_path, *, plan_id: str, blueprint_sha: str, source_sha: str,
+    policy, states: dict[str, str],
+    checkpoint: RecoveryCheckpoint, failure_kind: str,
+    failure_fingerprint_sha256: str, previous_strategy: str,
+    improved_strategy: str | None = None,
+) -> FailedReviewRouting:
+    """Caller→recovery policy→owned SQLite HOLD→next independent queue.
+
+    An improved second attempt is an untrusted *request* only. Protected owner
+    grant, independent F18, fresh lease and sandbox must separately authorize
+    execution. A stale/missing source/lease fails before any local state write.
+    """
+    from my_local_ai.ax_runtime.queue import QueuePolicy
+    from my_local_ai.state.sqlite_store import persist_local_source_task
+
+    if (not isinstance(policy,QueuePolicy) or
+        not isinstance(checkpoint,RecoveryCheckpoint) or
+        not isinstance(states,dict) or
+        not isinstance(plan_id,str) or not _NAME.fullmatch(plan_id) or
+        not isinstance(blueprint_sha,str) or not _SHA40.fullmatch(blueprint_sha) or
+        not isinstance(source_sha,str) or source_sha != checkpoint.baseline_sha or
+        policy.plan_sha != checkpoint.plan_sha or
+        states.get(checkpoint.task_id) != "REVIEW_PENDING" or
+        failure_kind not in _ALLOWED_FAILURES or
+        not isinstance(failure_fingerprint_sha256,str) or
+        not _SHA64.fullmatch(failure_fingerprint_sha256)):
+        raise ValueError("untrusted/stale review routing")
+    proposal = propose_recovery(
+        checkpoint, event="REVIEW_FAILED",
+        expected_plan_sha=checkpoint.plan_sha,
+        expected_baseline_sha=source_sha,
+        observed_lease_epoch=checkpoint.lease_epoch,
+    )
+    pending = None
+    if improved_strategy is not None:
+        pending = plan_improved_repair(
+            checkpoint, failed_check=failure_kind,
+            failure_fingerprint_sha256=failure_fingerprint_sha256,
+            previous_strategy=previous_strategy,
+            proposed_strategy=improved_strategy,
+            observed_epoch=checkpoint.lease_epoch,
+            plan_sha256=checkpoint.plan_sha,
+            source_sha=source_sha,
+        )
+    # Check queue transition before touching SQLite. This returns no runnable
+    # work order even if an upstream caller passes forged VERIFIED labels.
+    next_states, candidates = policy.hold_failed_and_continue(
+        states, checkpoint.task_id, independently_verified=(), active_leases=(),
+    )
+    receipt = persist_local_source_task(
+        state_path, plan_id=plan_id, task_id=checkpoint.task_id,
+        plan_sha256=checkpoint.plan_sha, source_sha=source_sha,
+        blueprint_sha=blueprint_sha, action="HOLD",
+        expected_state="REVIEW_PENDING",
+    )
+    if receipt.state != "HOLD" or next_states[checkpoint.task_id] != "HOLD":
+        raise ValueError("failed review did not HOLD")
+    return FailedReviewRouting(
+        checkpoint.task_id, receipt.state,
+        tuple(candidate.task_id for candidate in candidates),
+        pending,
+    )

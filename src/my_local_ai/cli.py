@@ -77,6 +77,7 @@ def _parser() -> argparse.ArgumentParser:
     evidence = subs.add_parser("evidence", help="Redacted synthetic evidence, stdout only")
     evidence_sub = evidence.add_subparsers(dest="evidence_action")
     evidence_sub.add_parser("export", help="Print a sanitized evidence manifest to stdout")
+    evidence_sub.add_parser("reqs", help="Source-only REQ to SWU evidence; not P2 proof")
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -212,6 +213,61 @@ def _evidence() -> dict:
     }
 
 
+
+def _req_source_evidence() -> dict:
+    """Summarize the active SWU REQ crosswalk, never treating code as verified."""
+    state = _status()  # immutable local phase/legacy count check
+    q = _read_json(_ROOT / "P1_SWU_TASK_QUEUE.json")
+    if (not isinstance(q, dict) or q.get("policy_id") != "OWNER-SWU-HIGH-20261117"
+        or q.get("program") != "my_local_ai" or q.get("p2") != "LOCKED"
+        or q.get("owner_go") is not False or q.get("operational_ready") != []
+        or q.get("legacy_accepted_req_count") != state["implementation_completed_req"]
+        or q.get("swu_count") != 39 or q.get("req_count") != 30
+        or not isinstance(q.get("tasks"), list) or len(q["tasks"]) != 39
+        or not isinstance(q.get("req_mapping"), list) or len(q["req_mapping"]) != 30):
+        raise ValueError("untrusted SWU evidence inventory")
+    swus = {}
+    for swu in q["tasks"]:
+        if (not isinstance(swu, dict) or not isinstance(swu.get("id"), str)
+            or not swu["id"].startswith("MLA-SWU-") or swu["id"] in swus
+            or swu.get("runtime_authorization") !=
+                "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"
+            or swu.get("operational_ready") is not False
+            or swu.get("code_status") not in {
+                "SOURCE_COMPLETE_P2_PENDING", "IMPLEMENTED_UNVERIFIED", "READY",
+                "PENDING_CODE_DEPENDENCY", "BACKLOG_READY", "BLOCKED_TRUST",
+                "BLOCKED_APPROVAL", "BLOCKED_PROVENANCE", "HOLD_CODE_ATTEMPTS",
+            }):
+            raise ValueError("invalid source status")
+        swus[swu["id"]] = swu
+    rows, seen = [], set()
+    for item in q["req_mapping"]:
+        if (not isinstance(item, dict) or not isinstance(item.get("req_id"), str)
+            or item["req_id"] in seen or not isinstance(item.get("swu_ids"), list)
+            or not item["swu_ids"] or len(set(item["swu_ids"])) != len(item["swu_ids"])
+            or any(sid not in swus for sid in item["swu_ids"])):
+            raise ValueError("invalid REQ-SWU source mapping")
+        seen.add(item["req_id"])
+        source_complete = sum(
+            swus[sid]["code_status"] in ("SOURCE_COMPLETE_P2_PENDING", "IMPLEMENTED_UNVERIFIED")
+            for sid in item["swu_ids"]
+        )
+        rows.append({
+            "req_id":item["req_id"], "swu_ids":item["swu_ids"],
+            "source_candidate_swus":source_complete,
+            "swus_total":len(item["swu_ids"]),
+            "source_coverage_only":True,
+        })
+    if seen != {"REQ-" + f"{number:02d}" for number in range(1, 31)}:
+        raise ValueError("REQ coverage incomplete")
+    return {
+        "req_source_rows":rows, "req_total":30, "swu_total":39,
+        "implementation_completed_req":state["implementation_completed_req"],
+        "p2":"LOCKED", "formal_verified_rate":"UNASSESSED",
+        "independent_f18":"SECURITY_HOLD", "execution_allowed":False,
+    }
+
+
 def _control_hold(task_id: str, action: str) -> dict:
     queue,ids=_safe_code_queue()
     if task_id not in {task["task_id"] for task in queue["tasks"]}:
@@ -339,6 +395,8 @@ def main(argv: list[str] | None = None) -> int:
             payload = _queue_status()
         elif args.command == "queue" and args.queue_action == "next":
             payload = _queue_next()
+        elif args.command == "evidence" and args.evidence_action == "reqs":
+            payload = _req_source_evidence()
         elif args.command == "evidence":
             payload = _evidence()
             if args.evidence_action == "export":

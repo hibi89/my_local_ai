@@ -92,9 +92,14 @@ class BenchmarkObservation:
             or not isinstance(self.source_sha,str) or not _SHA40.fullmatch(self.source_sha)
             or not isinstance(self.plan_sha256,str) or not _SHA64.fullmatch(self.plan_sha256)
             or self.fixture_id != _FIXTURE or self.status != "UNVERIFIED_CANDIDATE"
-            or any(v is not None for v in (self.tokens_generated, self.peak_ram_mb,
-                                          self.peak_vram_mb, self.power_watts,
-                                          self.accepted_req_per_hour))):
+            or self.accepted_req_per_hour is not None
+            or (self.evidence_level == "MOCK_ONLY" and any(v is not None for v in (
+                self.tokens_generated,self.peak_ram_mb,self.peak_vram_mb,self.power_watts)))
+            or (self.tokens_generated is not None and
+                (type(self.tokens_generated) is not int or self.tokens_generated < 0))
+            or any(v is not None and (
+                type(v) not in (int,float) or not math.isfinite(v) or v < 0
+            ) for v in (self.peak_ram_mb,self.peak_vram_mb,self.power_watts))):
             raise BenchmarkHold("BAD_OBSERVATION")
 
     def to_redacted_json(self) -> str:
@@ -103,7 +108,9 @@ class BenchmarkObservation:
 
 def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
              model_lock: OneModelLock, budget: BudgetGuard,
-             clock: Callable[[], float], level: str) -> tuple[BenchmarkObservation, ...]:
+             clock: Callable[[], float], level: str,
+             local_metric_reader: Callable[[], dict] | None = None,
+) -> tuple[BenchmarkObservation, ...]:
     if (not isinstance(prompt, str) or not prompt.strip() or "\x00" in prompt
         or not isinstance(model_lock, OneModelLock) or not isinstance(budget, BudgetGuard)
         or getattr(model, "model", None) != plan.model):
@@ -149,12 +156,26 @@ def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
             budget.check(output_bytes=len(raw))
         except BudgetExceeded:
             raise BenchmarkHold("RESOURCE_LIMIT") from None
+        counters = {}
+        if local_metric_reader is not None:
+            if level != "LOCAL_MEASURED_P2_UNVERIFIED":
+                raise BenchmarkHold("BAD_OBSERVATION")
+            try:
+                counters = local_metric_reader()
+            except (OSError,ValueError,TypeError,RuntimeError):
+                raise BenchmarkHold("BAD_OBSERVATION") from None
+            keys = {"tokens_generated","peak_ram_mb","peak_vram_mb","power_watts"}
+            if type(counters) is not dict or not set(counters).issubset(keys):
+                raise BenchmarkHold("BAD_OBSERVATION")
         records.append(BenchmarkObservation(
             model=plan.model, source_sha=plan.source_sha, plan_sha256=plan.plan_sha256,
             fixture_id=plan.fixture_id, evidence_level=level, elapsed_seconds=end-start,
             output_bytes=len(raw), output_sha256=hashlib.sha256(raw).hexdigest(),
-            tokens_generated=None, peak_ram_mb=None, peak_vram_mb=None,
-            power_watts=None, accepted_req_per_hour=None, status="UNVERIFIED_CANDIDATE",
+            tokens_generated=counters.get("tokens_generated"),
+            peak_ram_mb=counters.get("peak_ram_mb"),
+            peak_vram_mb=counters.get("peak_vram_mb"),
+            power_watts=counters.get("power_watts"),
+            accepted_req_per_hour=None, status="UNVERIFIED_CANDIDATE",
         ))
     return tuple(records)
 
@@ -177,6 +198,7 @@ def run_real_local_p2(
     trusted_hmac_key: bytes | None = None,
     live_consent_check: Callable[[str, str, str], bool] | None = None,
     now_seconds: int = 0, clock: Callable[[], float] = time.monotonic,
+    local_metric_reader: Callable[[], dict] | None = None,
 ) -> tuple[BenchmarkObservation, ...]:
     """Future P2-only entry. No CLI/live call sites in P1.
 
@@ -202,7 +224,8 @@ def run_real_local_p2(
     if not isinstance(provider, OllamaProvider):
         raise BenchmarkHold("BAD_BENCHMARK")
     return _observe(plan, model=provider, prompt=prompt, model_lock=model_lock,
-                    budget=budget, clock=clock, level="LOCAL_MEASURED_P2_UNVERIFIED")
+                    budget=budget, clock=clock, level="LOCAL_MEASURED_P2_UNVERIFIED",
+                    local_metric_reader=local_metric_reader)
 
 
 
@@ -219,9 +242,18 @@ class BenchmarkBatchSummary:
     elapsed_min_seconds: float
     elapsed_max_seconds: float
     status: str = "UNVERIFIED_CANDIDATE"
+    observed_output_bytes: int | None = None
+    observed_bytes_per_second: float | None = None
+    observed_tokens_per_second: float | None = None
+    observed_peak_ram_mb: float | None = None
+    observed_peak_vram_mb: float | None = None
 
     def to_redacted_json(self) -> str:
-        return json.dumps(asdict(self), sort_keys=True, allow_nan=False)
+        return json.dumps(
+            {key:value for key,value in asdict(self).items()
+             if value is not None},
+            sort_keys=True, allow_nan=False,
+        )
 
 
 def classify_benchmark_failure(error: BaseException) -> str:
@@ -265,4 +297,31 @@ def summarize_observations(
         elapsed_total_seconds=total,
         elapsed_min_seconds=min(durations),
         elapsed_max_seconds=max(durations),
+        observed_output_bytes=(
+            sum(item.output_bytes for item in observations)
+            if first.evidence_level == "LOCAL_MEASURED_P2_UNVERIFIED" else None
+        ),
+        observed_bytes_per_second=(
+            sum(item.output_bytes for item in observations)/total
+            if first.evidence_level == "LOCAL_MEASURED_P2_UNVERIFIED"
+            and total > 0 else None
+        ),
+        observed_tokens_per_second=(
+            sum(item.tokens_generated for item in observations)/total
+            if first.evidence_level == "LOCAL_MEASURED_P2_UNVERIFIED"
+            and total > 0 and all(item.tokens_generated is not None for item in observations)
+            else None
+        ),
+        observed_peak_ram_mb=(
+            max(item.peak_ram_mb for item in observations)
+            if first.evidence_level == "LOCAL_MEASURED_P2_UNVERIFIED"
+            and all(item.peak_ram_mb is not None for item in observations)
+            else None
+        ),
+        observed_peak_vram_mb=(
+            max(item.peak_vram_mb for item in observations)
+            if first.evidence_level == "LOCAL_MEASURED_P2_UNVERIFIED"
+            and all(item.peak_vram_mb is not None for item in observations)
+            else None
+        ),
     )

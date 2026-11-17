@@ -209,3 +209,187 @@ def initialize_state(value: str | Path) -> SchemaReceipt:
         )
     finally:
         connection.close()
+
+
+# Local source-state writer. This API cannot grant owner authorization or VERIFIED.
+# Only an already initialized MLA-owned database (exact schema/application ID)
+# may be modified; never create/migrate a caller's original or external DB.
+import re as _re
+_MLA_ID = _re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
+_MLA_SHA40 = _re.compile(r"[0-9a-f]{40}\Z")
+_MLA_SHA64 = _re.compile(r"[0-9a-f]{64}\Z")
+
+
+@dataclass(frozen=True)
+class LocalStateEvent:
+    plan_id: str
+    task_id: str
+    state: str
+    event_id: int | None
+    changed: bool
+    runtime_authorized: bool = False
+    independently_verified: bool = False
+
+
+def _write_owned_transaction(value: str | Path, operation):
+    """Perform one atomic write to an existing, owned, unaliased MLA state DB."""
+    path = _safe_db_path(value)
+    if not path.exists() or _inspect_existing(path) != SCHEMA_VERSION:
+        raise ValueError("MLA-owned initialized state database required")
+    inode = _identity(path)
+    with closing(sqlite3.connect(path.as_uri() + "?mode=rw", uri=True,
+                                 isolation_level=None, timeout=5.0)) as db:
+        db.execute("PRAGMA foreign_keys=ON")
+        db.execute("PRAGMA busy_timeout=5000")
+        if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
+            raise ValueError("foreign keys disabled")
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            if (_identity(path) != inode or
+                db.execute("PRAGMA application_id").fetchone()[0] != APP_ID or
+                db.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION):
+                raise ValueError("stale/unowned state")
+            _check_v1_schema(db)
+            result = operation(db)
+            if _identity(path) != inode:
+                raise ValueError("database identity changed")
+            db.commit()
+            return result
+        except BaseException:
+            db.rollback()
+            raise
+
+
+def persist_local_source_task(
+    value: str | Path, *, plan_id: str, task_id: str,
+    plan_sha256: str, source_sha: str, blueprint_sha: str,
+    action: str = "REGISTER", expected_state: str | None = None,
+) -> LocalStateEvent:
+    """Register source metadata or HOLD a task; never mint a lease/VERIFIED.
+
+    Registration is idempotent. A HOLD requires the exact expected prior state;
+    no task can be silently reset from HOLD to READY/LEASED by this source port.
+    """
+    if (not isinstance(plan_id, str) or not _MLA_ID.fullmatch(plan_id)
+        or not isinstance(task_id, str) or not _MLA_ID.fullmatch(task_id)
+        or not isinstance(plan_sha256, str) or not _MLA_SHA64.fullmatch(plan_sha256)
+        or not isinstance(source_sha, str) or not _MLA_SHA40.fullmatch(source_sha)
+        or not isinstance(blueprint_sha, str) or not _MLA_SHA40.fullmatch(blueprint_sha)
+        or action not in ("REGISTER", "HOLD")
+        or (action == "HOLD" and expected_state not in {
+            "HOLD", "QUEUED", "READY", "LEASED", "CODING", "REVIEW_PENDING",
+            "REPAIR_ONCE", "INTERRUPTED", "BLOCKED_DEPENDENCY", "AWAITING_OWNER",
+        })
+        or (action == "REGISTER" and expected_state is not None)):
+        raise ValueError("untrusted source-state transition")
+
+    def change(db):
+        plan = db.execute("SELECT plan_sha, blueprint_sha FROM plans WHERE plan_id=?",
+                          (plan_id,)).fetchone()
+        if plan is not None and plan != (plan_sha256, blueprint_sha):
+            raise ValueError("stale plan identity")
+        if plan is None and action != "REGISTER":
+            raise ValueError("unknown plan")
+        if plan is None:
+            db.execute("INSERT INTO plans(plan_id,plan_sha,blueprint_sha) VALUES(?,?,?)",
+                       (plan_id,plan_sha256,blueprint_sha))
+        row = db.execute("SELECT source_sha,state FROM tasks WHERE plan_id=? AND task_id=?",
+                         (plan_id,task_id)).fetchone()
+        if row is None and action != "REGISTER":
+            raise ValueError("unknown task")
+        if row is None:
+            db.execute("INSERT INTO tasks(plan_id,task_id,source_sha) VALUES(?,?,?)",
+                       (plan_id,task_id,source_sha))
+            state, changed = "QUEUED", True
+        else:
+            if row[0] != source_sha:
+                raise ValueError("stale task source")
+            state, changed = row[1], False
+        if action == "HOLD" and state != "HOLD":
+            if state != expected_state or state == "VERIFIED":
+                raise ValueError("stale task state or trust boundary")
+            db.execute("UPDATE tasks SET state='HOLD' WHERE plan_id=? AND task_id=? AND state=?",
+                       (plan_id,task_id,expected_state))
+            state, changed = "HOLD", True
+        elif action == "HOLD" and state == "HOLD":
+            if expected_state != "HOLD":
+                raise ValueError("task already changed")
+        event_id = None
+        if changed:
+            kind = "SOURCE_REGISTERED" if action == "REGISTER" else "SOURCE_HOLD"
+            cursor = db.execute(
+                "INSERT INTO events(plan_id,event_kind,safe_summary) VALUES(?,?,?)",
+                (plan_id,kind,"SOURCE_ONLY_NO_OWNER_GRANT_OR_F18"),
+            )
+            event_id = cursor.lastrowid
+        return LocalStateEvent(plan_id,task_id,state,event_id,changed)
+    return _write_owned_transaction(value,change)
+
+
+@dataclass(frozen=True)
+class UntrustedRunEvent:
+    run_id: str
+    plan_id: str
+    task_id: str
+    candidate_sha: str | None
+    changed: bool
+    status: str = "UNTRUSTED_CANDIDATE_NOT_VERIFIED"
+    allowed_to_integrate: bool = False
+
+
+def persist_untrusted_candidate_run(
+    value: str | Path, *, plan_id: str, task_id: str, run_id: str,
+    source_sha: str, baseline_sha: str, lease_epoch: int,
+    candidate_sha: str | None = None,
+) -> UntrustedRunEvent:
+    """Record a candidate run *without* minting leases, rights or trusted PASS.
+
+    Durable run history may be written only for registered tasks with matching
+    source; it cannot promote candidate code, original refs or owner consent.
+    """
+    if (not all(isinstance(x,str) and _MLA_ID.fullmatch(x)
+                for x in (plan_id,task_id,run_id))
+        or not isinstance(source_sha,str) or not _MLA_SHA40.fullmatch(source_sha)
+        or not isinstance(baseline_sha,str) or not _MLA_SHA40.fullmatch(baseline_sha)
+        or type(lease_epoch) is not int or not 1 <= lease_epoch < 2**63
+        or (candidate_sha is not None and
+            (not isinstance(candidate_sha,str) or not _MLA_SHA40.fullmatch(candidate_sha)))):
+        raise ValueError("invalid untrusted run metadata")
+    def change(db):
+        task = db.execute("SELECT source_sha,state FROM tasks WHERE plan_id=? AND task_id=?",
+                          (plan_id,task_id)).fetchone()
+        if task is None or task[0] != source_sha or task[1] in ("HOLD","VERIFIED"):
+            raise ValueError("unknown, stale or stopped task")
+        old = db.execute(
+            "SELECT plan_id,task_id,baseline_sha,lease_epoch,candidate_sha,state "
+            "FROM runs WHERE run_id=?", (run_id,),
+        ).fetchone()
+        expected=(plan_id,task_id,baseline_sha,lease_epoch,candidate_sha,
+                  "UNTRUSTED_CANDIDATE")
+        if old is not None and old != expected:
+            raise ValueError("run ID replay or stale candidate")
+        if old is None:
+            db.execute(
+                "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,"
+                "state,candidate_sha) VALUES(?,?,?,?,?,?,?)",
+                (run_id,plan_id,task_id,baseline_sha,lease_epoch,
+                 "UNTRUSTED_CANDIDATE",candidate_sha),
+            )
+            db.execute(
+                "INSERT INTO events(plan_id,event_kind,safe_summary) VALUES(?,?,?)",
+                (plan_id,"UNTRUSTED_RUN_RECORDED","NO_LEASE_OR_F18_ASSERTED"),
+            )
+            if candidate_sha is not None:
+                # A candidate can enter REVIEW_PENDING for independent
+                # inspection. Neither this state nor the supplied SHA is PASS.
+                db.execute(
+                    "UPDATE tasks SET state='REVIEW_PENDING' WHERE plan_id=? "
+                    "AND task_id=? AND state IN ('QUEUED','REVIEW_PENDING')",
+                    (plan_id,task_id),
+                )
+            db.execute(
+                "INSERT INTO attempts(run_id,attempt_number,state) VALUES(?,?,?)",
+                (run_id,1,"UNTRUSTED_CANDIDATE"),
+            )
+        return UntrustedRunEvent(run_id,plan_id,task_id,candidate_sha,old is None)
+    return _write_owned_transaction(value,change)
