@@ -2,6 +2,9 @@
 
 # My Local AI — 브랜치/병렬 개발/인수인계
 
+## 제품 독립성
+My Local AI는 EAI 자체를 개발하는 저장소가 아니다. EAI의 제한된 분석 알고리즘과 AX 실행기를 선택적으로 참고하며 자체 Controller/정본을 갖는다. 제품 코드 구현·검증률은 원본 프로젝트와 절대 합산하지 않는다. 자세한 내용 `docs/PRODUCT_IDENTITY.md`.
+
 ## 브랜치 구성
 `main` = 사용자 생성 empty repo를 위한 최초 README bootstrap SHA `960621d6207e6beb22a7e9480e524988196f3d44`. 기존 소스 없는 안정 기준. 승인 없는 병합·force push·직접 소스 변경 금지.
 `design/final-blueprint-v1` = High 전체 설계·정본. 본 폴더 문서의 최신 HEAD가 기준. 승인된 설계가 변경되면 새 SHA를 dev에 명시적으로 동기화.

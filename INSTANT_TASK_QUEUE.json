@@ -209,12 +209,19 @@
         "MLA-002"
       ],
       "allowed_paths": [
-        "src/my_local_ai/eai_core/adapter.py",
-        "src/my_local_ai/eai_core/intake.py",
-        "tests/unit/test_eai_cpu.py"
+        "src/my_local_ai/controller/decision.py",
+        "src/my_local_ai/advisors/eai.py",
+        "tests/unit/test_own_controller.py",
+        "tests/unit/test_eai_advisor_optional.py"
       ],
-      "acceptance": "Pinned CPU planning proposes allowed READY IDs only; local classifier input-only; model cannot approve/solve code",
-      "safety_checks": "CPU_DECISION_OWNER;NO_EXTERNAL_API;SOURCE_PROVENANCE",
+      "acceptance": "Implement My Local AI own deterministic Controller/decision policy with optional EAI-derived advisory adapter, safe fallback when EAI omitted; prove no EAI original product dependency or decision authority",
+      "safety_checks": [
+        "MY_LOCAL_AI_OWNS_CONTROL",
+        "EAI_ADVISORY_OPTIONAL",
+        "NO_ORIGINAL_EAI_MUTATION",
+        "NO_EXTERNAL_API",
+        "PROVENANCE"
+      ],
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,
@@ -490,7 +497,7 @@
         "src/my_local_ai/orchestrator.py",
         "tests/integration/test_synthetic_journey.py"
       ],
-      "acceptance": "One approved synthetic end-to-end selected/modified/reviewed/resumed task; no fake PASS",
+      "acceptance": "End-to-end My Local AI controller+AX local coder synthetic journey; with EAI advisor OFF same safety/queue behavior; advisor optionally adds hints only",
       "safety_checks": "SYNTHETIC_ONLY;F18_SECURITY_PASS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
@@ -659,12 +666,17 @@
         "MLA-015"
       ],
       "allowed_paths": [
-        "src/my_local_ai/eai_core/typed_goals.py",
-        "tests/integration/test_eai_goal_compatibility.py",
+        "src/my_local_ai/advisors/eai.py",
+        "tests/integration/test_eai_optional.py",
         "docs/PROVENANCE_AND_LICENSES.md"
       ],
-      "acceptance": "Original 13 CPU goal kinds either evidence-proven supported or honestly unsupported; preserve EAI independence",
-      "safety_checks": "SOURCE_LICENSE;NO_FALSE_COMPATIBILITY",
+      "acceptance": "Audit selected EAI-derived helper functions as optional utilities; integration works without EAI's 13 typed goals or EAI repo runtime; any imported helper pinned and licensed",
+      "safety_checks": [
+        "EAI_OPTIONAL",
+        "NOT_EAI_PRODUCT_COMPLETE",
+        "SOURCE_LICENSE",
+        "NO_FALSE_COMPATIBILITY"
+      ],
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
       "evidence_sha": null,

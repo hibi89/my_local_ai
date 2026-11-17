@@ -10,8 +10,8 @@
 | REQ-02 | 최종설계 전수 추적 | High REQ-ID→소스→테스트→증거 SHA 전수 매핑 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
 | REQ-03 | 불변 High 작업 승인 | PlanSpec 버전+SHA+승인 scope 강제, 갱신 시 재승인 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
 | REQ-04 | 계약 유효성 | TaskSpec ID/allowed_paths/checks/예산/출처 스키마 검증 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
-| REQ-05 | EAI CPU 기획 | 허가된 READY만 근거 제안, CPU 독립 판단 유지 | P1 코드 구현 → P2 실제 검증 | MEDIUM | DESIGNED_NOT_IMPLEMENTED |
-| REQ-06 | 입력 모델 역할 분리 | EAI Qwen=입력분류, AX Qwen=코딩, 모델의 승인 금지 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
+| REQ-05 | My Local AI 고유 Controller 및 선택적 EAI 재사용 | 자체 DAG·선택·안전 판단이 EAI 없이 가능하고, 필요할 때 일부 EAI 유래 분석을 **advisory**로 사용 | P1 코드 구현 → P2 실제 검증 | MEDIUM | DESIGNED_NOT_IMPLEMENTED |
+| REQ-06 | 원본 EAI와 독립된 모델 역할 | EAI 제품 제한은 EAI 원본에 유지, My Local AI Qwen coder는 코드 생성·수정 가능; 모델 승인권 불허 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
 | REQ-07 | 사용자 승인 경계 | 위험/원본/원격/비용/데이터/OS 변경별 별도 GO | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
 | REQ-08 | DAG READY 작업 | 선행 VERIFIED만 착수, 순환/부재 ID 거부 | P1 코드 구현 → P2 실제 검증 | HIGH | DESIGNED_NOT_IMPLEMENTED |
 | REQ-09 | 단일 모델/실행 잠금 | 동시 추론 1개, lock/worker fencing, 자원 과부하 방지 | P1 코드 구현 → P2 실제 검증 | MEDIUM | DESIGNED_NOT_IMPLEMENTED |

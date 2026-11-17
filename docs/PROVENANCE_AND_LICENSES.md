@@ -2,7 +2,7 @@
 
 | 참조 원본 | 기준 정확 HEAD | 최초 재사용 계획 |
 |---|---|---|
-| `hibi89/EAI@feature/kmong-eai-85-p31-20261112` | `5186cb1aa7928054d56b1cd0a40ea5943a5b3892` | CPU input/plan/receipt, 13 typed goals 호환성 |
+| `hibi89/EAI@feature/kmong-eai-85-p31-20261112` | `5186cb1aa7928054d56b1cd0a40ea5943a5b3892` | 유용한 일부 CPU 분석·분류/근거 유틸만 선택적 재사용; 원본 13 goals 이식은 필수 아님 |
 | `hibi89/Freelancer@tools/ax-dev-factory-local` | `5ab94180471c7ea86344b691fc77ad5c29989071` | AX runtime/SQLite/queue/Worktree/OpenCode/F18 안전장치 |
 | `hibi89/my_local_ai@main` | `960621d6207e6beb22a7e9480e524988196f3d44` | 빈 repo 초기 README baseline |
 

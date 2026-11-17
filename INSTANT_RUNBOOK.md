@@ -1,11 +1,13 @@
 > **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
 
+> **[PRODUCT IDENTITY LOCK · OWNER CLARIFICATION · 2026-11-17]** `my_local_ai`는 **EAI의 후속 버전/확장판/완성판이 아니다.** EAI는 선택적으로 재사용할 알고리즘·CPU 분석·도구의 **기술 제공원**일 뿐이다. `my_local_ai`의 고유 목적은 **로컬 모델로 소프트웨어 구현을 지속 자동화하는 개인용 개발 시스템**이며, 정책·스케줄·실행/검증 게이트·진척 기준은 `my_local_ai`가 자체 소유한다. 원본 EAI ADR-0002(Qwen INPUT-only)는 EAI 원본의 아키텍처 지침이지 `my_local_ai`의 코딩 워커 사용 제한이 아니다. EAI 전체 13개 목표·자체 모델 연구의 100% 완료는 `my_local_ai`의 필수 조건이 아니다. 자세한 내용 `docs/PRODUCT_IDENTITY.md`. **P1 구현 우선/P2 검증 잠금 정책은 그대로 유지.**
+
 # INSTANT_RUNBOOK — My Local AI (2026-11-17)
 ## 역할·시작
 실행 전 확인: hibi89/my_local_ai, dev/instant-implementation-v1, exact SHA → AGENTS/HANDOFF/STATUS → REQUIREMENTS/FINAL_BLUEPRINT/SECURITY_MODEL → actual code+queue. 지금은 **설계 승인 대기**다. 다음 ㄱ은 사용자가 이 계획 승인한 경우에만 P1 실행으로 간주한다. 원본 EAI/AX 코드는 read-only, 비밀은 public repo에 올리지 않는다.
 
 ## P0 High 판단
-선택 설계: 독립 새 단일 repo에 검증된 EAI CPU와 AX 실행기 모듈만 provenance+라이선스+테스트로 선별 이식. 기존 F18 guest receipt 신뢰 경계가 안전 BLOCKER다. Qwen local coding worker 역할은 AX 안에서만, EAI 내부 Qwen은 INPUT-only.
+선택 설계: **EAI의 다른 목적을 복제하지 않는** 독립 My Local AI Controller를 자체 구현하고, EAI의 유용한 일부 CPU 분석 기능은 선택적 advisor로, AX 실행기 일부를 provenance+라이선스+테스트 기준으로 재사용. 기존 F18 guest receipt 신뢰 경계가 안전 BLOCKER다. Qwen local coding worker 역할은 AX 안에서만, EAI 내부 Qwen은 INPUT-only.
 공식 구현·검증 상태 UNASSESSED. full CI는 P1 구현 후보 후 묶되 안전한 국소/필수 검사 유지.
 
 ## 최초 READY 5개 — 독립 병렬 설계/구현 후보

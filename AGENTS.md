@@ -1,9 +1,11 @@
 > **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
 
+> **[PRODUCT IDENTITY LOCK · OWNER CLARIFICATION · 2026-11-17]** `my_local_ai`는 **EAI의 후속 버전/확장판/완성판이 아니다.** EAI는 선택적으로 재사용할 알고리즘·CPU 분석·도구의 **기술 제공원**일 뿐이다. `my_local_ai`의 고유 목적은 **로컬 모델로 소프트웨어 구현을 지속 자동화하는 개인용 개발 시스템**이며, 정책·스케줄·실행/검증 게이트·진척 기준은 `my_local_ai`가 자체 소유한다. 원본 EAI ADR-0002(Qwen INPUT-only)는 EAI 원본의 아키텍처 지침이지 `my_local_ai`의 코딩 워커 사용 제한이 아니다. EAI 전체 13개 목표·자체 모델 연구의 100% 완료는 `my_local_ai`의 필수 조건이 아니다. 자세한 내용 `docs/PRODUCT_IDENTITY.md`. **P1 구현 우선/P2 검증 잠금 정책은 그대로 유지.**
+
 # AGENTS — My Local AI 통합 프로젝트 (2026-11-17 KST)
 
 ## 임무 잠금
-유일 대상: `hibi89/my_local_ai`. EAI CPU 판단과 AX Dev Factory의 코딩 실행기를 하나의 로컬 개인용 프로그램으로 통합한다. 다른 크몽 상품·중앙 GitHub App·해커톤으로 전환 금지. 기존 두 레포 코드는 원본 보존; 새 레포에서만 선택적으로 이식하고 변경한다.
+유일 대상: `hibi89/my_local_ai`. **독자적인 자율 개발 운영 엔진**을 만들며 EAI의 일부 알고리즘/분석 도구 및 AX Dev Factory의 로컬 코딩 구현을 재사용한다. 다른 크몽 상품·중앙 GitHub App·해커톤으로 전환 금지. 기존 두 레포 코드는 원본 보존; 새 레포에서만 선택적으로 이식하고 변경한다.
 
 ## 정본 확인 순서
 1. repo / branch / 실제 HEAD 확인
@@ -16,7 +18,8 @@
 High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·작업 큐 → Instant: 여러 READY 묶음 구현 후보 100%까지 코드 작성 → 구현 완료 후보 후 전체 CI·통합/보안·결함 수정 → Codex Sol Max(기술) / Astra Max(UI) 독립 검수 → High 최종 인수 → 사용자 실제 운용 GO. `ㄱ`/`ㄱㄱ`은 현재 프로젝트의 승인된 다음 READY 실제 수행. 설계 승인 전 실행 작업은 설계 수정만 가능.
 
 ## 불변 설계
-- EAI 독립 CPU CognitionEngine이 작업 선택/근거 판단·검증 권한을 갖는다. EAI에서 Qwen은 입력 분류 전용. **AX 코딩 워커 내부 Qwen은 코드 초안 생성 가능**, EAI의 판단권·승인권 소유 금지.
+- **My Local AI Controller가 계획/실행 상태·작업 승인 검증·스케줄 정책의 정본**이다. EAI 기반 분석기는 선택 가능한 advisory 플러그인으로만 사용하며 끄거나 교체해도 기본 큐가 작동해야 한다. 실제 통과 판정은 코딩 모델·EAI 플러그인이 아니라 별도 신뢰 검증기만 가능하다.
+- **EAI 원본 내부**에서는 해당 저장소의 INPUT-only 모델 제한/ADR-0002를 보존한다. 그러나 **My Local AI 전용 Qwen/OpenCode 코딩 워커는 구현·수정·테스트 코드 작성을 수행**할 수 있다. 두 제품의 목표·모델 사용 원칙을 혼동하지 않는다.
 - AX Dev Factory F01–F20의 작업 계약·격리 Git 작업트리·SQLite 복구·1회 수정 후 HOLD·의존성·원본 보호 기준을 누락 없이 마이그레이션한다.
 - 모델/게스트가 작성한 테스트 PASS 영수증은 독립 증거 아님. F18 신뢰 경계가 실제 분리/검증되기 전에는 미검증 코드를 원본/중요 브랜치에 자동 승격하지 않는다. 안전 우회·비격리 호스트 fallback 금지.
 - 리스크나 데이터권한 변경은 즉시 검사. 개발 중 불필요한 전체 CI 대기 금지하나 기존 필수 CI/브랜치 보호 해제 금지.
