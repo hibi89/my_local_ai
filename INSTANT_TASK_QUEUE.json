@@ -19,9 +19,7 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-017",
-    "MLA-028",
-    "MLA-030"
+    "MLA-018"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -590,8 +588,10 @@
       "safety_checks": "IDEMPOTENCY;FENCING;NO_DATA_LOSS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "c792bbeaf6fd14d1415943e6398f8251b17d680f",
+      "blockers": [
+        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -602,8 +602,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_FULL_ACCEPTANCE_RUNTIME_GATES"
+      ]
     },
     {
       "task_id": "MLA-018",
@@ -635,7 +637,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -918,8 +920,10 @@
       ],
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "5ac1b6ec5ab3f8cb80c9c999c6a343aebca37e64",
+      "blockers": [
+        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -928,8 +932,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_FULL_ACCEPTANCE_RUNTIME_GATES"
+      ]
     },
     {
       "task_id": "MLA-029",
@@ -985,8 +991,10 @@
       "safety_checks": "NO_SECRET;NO_HOST_EXECUTION",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "9d6e63a3bf7f5fa274eb7b00e61df2e9f50c465e",
+      "blockers": [
+        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -997,8 +1005,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REMAINING_FULL_ACCEPTANCE_RUNTIME_GATES"
+      ]
     }
   ],
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
@@ -1023,15 +1033,25 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-018",
       "MLA-019",
-      "MLA-022"
+      "MLA-023",
+      "MLA-029"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
     "independent_f18": "HOLD",
     "git_promotion": "HOLD",
     "p2": "LOCKED",
-    "code_req_denominator": 30
+    "code_req_denominator": 30,
+    "current_wave": [
+      "MLA-018"
+    ],
+    "completed_code_waves": [
+      [
+        "MLA-017",
+        "MLA-028",
+        "MLA-030"
+      ]
+    ]
   }
 }

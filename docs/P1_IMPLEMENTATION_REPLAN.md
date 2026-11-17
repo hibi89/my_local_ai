@@ -31,3 +31,10 @@ The former queue used a single dependency edge for (1) safe source authoring and
 
 ## Current baseline
 P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly authored partial modules must **not** be counted until source/function acceptance fully met. Official verification UNASSESSED. P2 LOCKED. GitHub dev branch only, no original/Production edits.
+
+## Code-only Wave 1 recorded (2026-11-17 KST)
+
+- MLA-017: `c792bbeaf6fd14d1415943e6398f8251b17d680f` — stale/duplicate lease pure fence and read-only SQLite/Git recovery protocol; no protected writes
+- MLA-028: `5ac1b6ec5ab3f8cb80c9c999c6a343aebca37e64` — source-pin checked optional EAI advice data, no EAI original source import or execution
+- MLA-030: `9d6e63a3bf7f5fa274eb7b00e61df2e9f50c465e` — synthetic adversarial leak/hooks/injection tests
+- P1 safe integration CI `44017659318` PASS. Original runtime task statuses still `BLOCKED_DEPENDENCY`; no independent F18 or owner signer GO established. Next `MLA-018` source-only, not ref promotion.
