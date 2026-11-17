@@ -102,9 +102,9 @@
       "safety_checks": "NO_HOST_UNTRUSTED_TEST;F18_HOLD",
       "risk": "CRITICAL",
       "status": "PARTIAL_IMPLEMENTED_F18_SECURITY_HOLD",
-      "evidence_sha": "3e06d4751700b39b767a034c716ba81b2db3c5ae",
+      "evidence_sha": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
       "blockers": [
-        "Independent reviewer and Windows OS trust boundary not implemented; MLA-015/P2 pending"
+        "F18 independent reviewer and Windows OS trust boundary remain NOT_RUN; synthetic forgery/replay/DAG checks expanded. No promotion authority."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -126,7 +126,7 @@
       "safety_checks": "NO_PAID_RUNNER;NO_SECRET;NO_PRIVILEGED_WORKFLOW",
       "risk": "MEDIUM",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "0645c540728001208aff9d796e9bbc384a2844c5",
+      "evidence_sha": "ad224cfb59d30ed8c87bfc524976c02662ed7592",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -253,9 +253,9 @@
       "safety_checks": "OWNER_GO_PER_SCOPE;NO_PRIVILEGE_ESCALATION",
       "risk": "CRITICAL",
       "status": "PARTIAL_IMPLEMENTED_TRUST_ROOT_HOLD",
-      "evidence_sha": "57038a6a91cd890518f6a7253a49c1e882a7aafc",
+      "evidence_sha": "d0cc3a6005de3b084d2954699440cdcfff23f985",
       "blockers": [
-        "Owner-signer protected OS identity and live approval issuance not implemented; cryptographic checker and synthetic ledger only"
+        "Protected owner signer/OS principal and live operational grant issuance NOT_RUN. Only LOCAL_PLAN reusable synthetic scope; high-risk action scopes fail closed."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -355,9 +355,9 @@
       "safety_checks": "LOCAL_MODEL_ONLY;NO_UNTRUSTED_HOST_EXECUTION",
       "risk": "CRITICAL",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "748caecf30e680b2794fde287bbf674801c88079",
+      "evidence_sha": "b44312d6dacfdc89d1ff2a57cae37a96626d7d2d",
       "blockers": [
-        "Concrete isolated OS sandbox runner, effective OpenCode runtime/version validation and safe worktree attachment are NOT_RUN / MLA-014, MLA-015 dependencies; no host fallback"
+        "Validated trusted task/model/worktree recomputation and provider hard-deny config; real OpenCode OS sandbox and effective config/runtime NOT_RUN."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -544,7 +544,7 @@
       "status": "IMPLEMENTED_UNVERIFIED",
       "evidence_sha": "63995bfaa0d425d3b361cc9462bbdf37b8b63f5c",
       "blockers": [
-        "Actual owner Windows/Qwen benchmark deferred to P2; tests/integration mock harness authored but not executed in mandatory CI"
+        "Mock-only P1 benchmark tests now PASS in 44015752835; owner Windows/Qwen real benchmark/metrics remain P2 NOT_RUN."
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -765,5 +765,14 @@
     }
   ],
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
-  "p2_browser_verification_task": "MLA-V007"
+  "p2_browser_verification_task": "MLA-V007",
+  "last_p1_local_ci": {
+    "head_sha": "ad224cfb59d30ed8c87bfc524976c02662ed7592",
+    "run_id": 44015752835,
+    "python_compile": "PASS",
+    "unit_tests_pass": 56,
+    "benchmark_mock_tests_pass": 8,
+    "security_contract_tests_pass": 43,
+    "scope": "SYNTHETIC_P1_ONLY_NOT_P2_VERIFICATION"
+  }
 }

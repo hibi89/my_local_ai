@@ -119,3 +119,18 @@
 8. 원본/보안: EAI 현재 브랜치 관측 SHA `af57af08e0d71fb656c76be241944e8cf232a57a` (기존 pinned SHA와 다름), AX HEAD 고정 일치, 원본 쓰기 0. SHA/license scan만으로 라이선스 승인하지 않음; Git 이력 롤백 경로 보존.
 9. Next: P1 queue `first_ready=[]`. High 설계 판단 전 MLA-008/014 의존성 강제 READY 전환/외부 소스 복사 금지. 차단 없는 실제 작업이 생기면 새 `ㄱ`에서 dependency·allowed_paths 확인 후 구현. F18 및 signer는 별도 불변 안전 게이트.
 10. 갱신 2026-11-17 KST, exact evidence source `ffea825ba253b2b12246d3c36f63fb2642215e1d`, Actions `44014692103`. P2 `LOCKED`, 검증률 `UNASSESSED`, 실사용 `HOLD`.
+
+---
+
+# 2026-11-17 KST — 긴 묶음작업 새 채팅 인수인계 (현재 최신)
+
+1. **목표/기술:** My Local AI 독립 Controller·Qwen/Ollama/OpenCode 개인용 로컬 자율개발; optional EAI advisory/Hydrogen/Experience는 기존 P1 분모 무변경. P1 30 REQ, P2 8 전체 검증 LOCKED.
+2. **코드 변경:** MLA-009 HMAC plan 승인 범위를 LOCAL_PLAN으로 제한, high-risk reusable grant fail-closed; SQLite DB main inode pin + WAL/SHM sidecar safety + fail-closed replacement detection (`src/my_local_ai/contracts/approval.py`, `state/consent.py`). MLA-013 OpenCode `run_in_sandbox`가 controller trusted_task/path/model/env/argv와 request를 재계산 대조. MLA-003 F18 forged/replayed receipts·guest VERIFIED DAG 범위 합성 거부. MLA-004/020 P1 benchmark mock-only CI smoke 실행.
+3. **테스트/증거:** 최신 코드+CI SHA `ad224cfb59d30ed8c87bfc524976c02662ed7592`, Actions `44015752835`: Python3.11 compile PASS, 56 synthetic unit PASS, 8 mock benchmark integration PASS, 43 synthetic security PASS, FAIL 0. 중간 `44015195788` SQLite WAL stale-approval 재현 FAIL→`4d665297` 수정 PASS; `44015580712` overstrict SHM 생성 검사 FAIL→`d0cc3a60` 수정 PASS. 실제 Windows/Ollama/OpenCode/F18 protected OS/24h/real browser/independent audit NOT_RUN.
+4. **진척/잔여:** 구현완료율 **5/30=16.67%**, 코딩 완료 후보 MLA-002/004/005/006/007/010/011/012/013/020/021=11/28. 고위험 강화는 과장된 신규 완료 REQ 0. P2 `LOCKED`, 공식 검증률 `UNASSESSED`, 실사용 `HOLD`.
+5. **오류/복구:** WAL 사이드카를 재사용한 파일 교체 시 stale approval 허용 회귀를 테스트로 재현·고정 파일 identity 대조로 해결. SQLite 정상 SHM 생성까지 거부하던 검사 수정. 원본/고객 데이터 미수정. 자동 원본 적용은 계속 금지.
+6. **repo/branch/SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, 최신 기술코드 SHA `ad224cfb59d30ed8c87bfc524976c02662ed7592`; 현 STATUS/HANDOFF+큐 갱신 커밋 이후 실제 HEAD는 재조회. 최종설계 브랜치 `design/final-blueprint-v1` 관측 SHA `e08e127dc372023d4ece477b176b99ac3b9d6412` (전수 read-only 확인 필요).
+7. **운영/Production:** 로컬 개인용, 실제 Windows 검증/모델 벤치마크/OS 격리 NOT_RUN. Production 없음. 실제 비용 0(유료 호출 안 함).
+8. **보안/원본:** EAI/AX 정확 source SHA/license 미확정, **MLA-001 BLOCKED_PROVENANCE**. F18 코드 생성 게스트 서명/자가 PASS 불신, owner protected signer 미연결. remote, customer, paid, OS 권한, main 변경 금지. Github 코드·정책/합성 테스트 외 비밀 업로드 금지.
+9. **다음 READY/사용자 승인:** 현재 큐 `first_ready=[]`. 핵심 차단 `MLA-001` provenance, `MLA-003` F18 trust boundary, `MLA-009` owner identity. High가 `MLA-008/014` clean-room 신규 자체 코드 vs original source import 설계·의존성/allowed_paths·acceptance를 명시적 판단하고 READY 할당해야 구현 흐름을 계속할 수 있음. 임의 status/phase unlock 금지. 사용자 PC 작업 요구 불필요.
+10. **기준/검증:** KST 2026-11-17, exact SHA `ad224cfb59d30ed8c87bfc524976c02662ed7592`, run `44015752835`. User mobile `ㄱ` 반복 시 여러 독립 READY 묶음, 국소 보안 즉시검사 후 소스/테스트/커밋·실제 SHA·완료 REQ/30 보고. 브라우저/전체 CI·실 Win11/F18/24h P2에 후행, 기존 필수 CI 유지.

@@ -97,3 +97,16 @@
 - **GitHub Actions `44014692103` @ `ffea825ba253b2b12246d3c36f63fb2642215e1d` SUCCESS**: Python 3.11 syntax PASS, synthetic unit **56/56 PASS** (기존 54에서 +2), synthetic security **32/32 PASS**. 실제 OS F18/Windows/Ollama/브라우저/24시간, 소스 재사용 법적 검토는 `NOT_RUN/UNRESOLVED`.
 - **구현완료율 5/30 = 16.67% (변동 없음)**. 완결 REQ-04/08/10/18/29. MLA-001은 감사 구현 보강이지만 root license/third-party/owner 권리 확인 미해결로 `BLOCKED_PROVENANCE` 유지. 다음 P1 READY 없음; 구조적 의존성 MLA-008·014는 High의 별도 청정 재구현 기준안 승인이 있을 때만 재분류. F18 `SECURITY_HOLD`, MLA-009 보호된 서명자 미구현 유지.
 - P2 `LOCKED`, 공식 검증완료율 `UNASSESSED`, 실사용 `HOLD`. main/EAI/AX/Production/OS/remote/유료 API 변경 없음.
+
+---
+
+## P1 2026-11-17 KST 집중 구현·보안 보강 라운드 (owner: 한 회차 묶음작업)
+
+- **최종 설계·실구현률: 5/30 = 16.67% (변동 없음)**. 완료 코드 REQ-04/08/10/18/29. 새 코드 보강을 실효 REQ 완료로 과대 산입하지 않음. P1 작업 구현 후보 11/28 유지. P2 LOCKED, 공식 검증완료율 UNASSESSED, 실사용 HOLD.
+- `MLA-009` 승인 체계 (3개 경로): `src/my_local_ai/contracts/approval.py`, `src/my_local_ai/state/consent.py`, `tests/security/test_approvals.py`. reusable `LOCAL_PLAN` plan consent로 `REMOTE_PR/OS_CHANGE/PAID_API/CUSTOMER_DATA/PRODUCTION/NETWORK_EGRESS`를 발급/실행할 수 없도록 fail-closed. 보호된 action-specific owner signer 미연결 상태는 지속 HOLD.
+- SQLite critical bugfix: 승인 DB 파일을 교체했는데 기존 WAL이 연결되어 과거 `APPROVED`를 다시 읽는 재현 사례를 발견 (첫 CI `44015195788` FAIL), 최초 원장 파일 identity를 고정해 수정 (`4d665297...` CI `44015315855` PASS). 추가 WAL/SHM sidecar symlink/reparse·교체 검사 후 정상 SQLite 읽기 중 SHM 생성까지 과도 차단한 회귀를 발견 (중간 CI `44015580712` FAIL), 기존 sidecar identity와 신규 정상 sidecar를 구분해 수정 (`d0cc3a6005de3b084d2954699440cdcfff23f985` CI `44015653878` PASS). OS ACL/F18 독립 신뢰 경계는 증명하지 않음.
+- `MLA-013` OpenCode 호출 계약 (`b44312d6dacfdc89d1ff2a57cae37a96626d7d2d`): 호출 직전에 trusted TaskSpec/모델/원본·격리 worktree/argv/환경 설정을 recompute하여 위조된 prepared dataclass(모델 선택·명령 추가·GITHUB_TOKEN·허용경로 확대·원본 경로)를 거부. 공급자 정책은 cloud 전면 deny, Ollama만 명시적 allow; OpenCode의 agent permission보다 강한 provider policy를 추가. OS sandbox 없는 호스트 실행 fallback 계속 차단. 합성 CI `44015440880` PASS, 실제 OpenCode/Windows `NOT_RUN`.
+- `MLA-003` F18 보안 계약 (`56c7b2f53a38178bbffe6ddadfe217758c6a69ff`): 위조된 guest VERIFIED 선행 상태가 자체 증거만으로 후속 READY를 열지 못함, forged/stale receipts PlanSpec 삽입 거부, self-approved plan도 실행권 없음. 실제 protected trusted reviewer `NOT_RUN`/HOLD.
+- `MLA-020/004` 코드·테스트 하네스: 기존 `scripts/benchmark_real_local.py`, `tests/integration/test_real_model_gate.py`의 mock-only 8개를 기존 read-only synthetic CI에 추가 (`ad224cfb59d30ed8c87bfc524976c02662ed7592`). P1의 실제 모델 다운로드·API/Windows 실행 없음. CI `44015752835` @ exact SHA **SUCCESS**: syntax PASS, unit **56/56**, fake benchmark **8/8**, synthetic security **43/43** (합계 107 PASS). 이 숫자는 P2 검증률 아님.
+- **HIGH/BLOCKER:** source provenance `MLA-001 BLOCKED_PROVENANCE` (고정 원본의 라이선스/제3자 권리 미확인·원본 복사 금지), F18 independent Windows trust boundary CRITICAL HOLD, protected owner signer/OS isolation HOLD. 현재 READY=[]; `MLA-008/014/015` 의존성의 임의 해제/고위험 범위 축소 금지. High가 독자 구현 경로와 출처 게이트를 재판정해야 다음 안전 READY 할당 가능.
+- main/EAI/AX 원본/Production/계정 권한·유료 API/고객 데이터 변경 없음. 실 Windows Qwen/OpenCode, 독립 감사, 24h, 브라우저 `NOT_RUN`.
