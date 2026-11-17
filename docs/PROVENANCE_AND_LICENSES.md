@@ -25,3 +25,10 @@
 - EAI 대상 브랜치 현재 HEAD `af57af08e0d71fb656c76be241944e8cf232a57a`는 기존 고정 SHA와 다름. AX 브랜치 HEAD는 고정 SHA 일치. 새 SHA로 임의 재고정하지 않음.
 - `audit_sources.py`는 고정 tree/blob·목록 완전성 진술 변조, 숨겨진 항목 삭제 및 자체 허가 주장 차단. 오프라인 스크립트 자체는 실 GitHub API를 조회하지 않으므로 원격 현재 SHA 검증 아님.
 - **`BLOCKED_PROVENANCE` 유지, 소스 이식 0건.** 복사 없이 신규 My Local AI 자체 코드를 작성하는 것은 가능하지만, High의 명시적 의존성/권리 재판정 없이 MLA-008·014 READY 해제 또는 새 P1 완료 REQ 산입 금지.
+
+
+## 2026-11-17 MLA-028 optional EAI data-only adapter (clean-room)
+
+- `src/my_local_ai/advisors/eai.py` contains native original JSON boundary code, **no EAI module imported or source copied**. External optional EAI analysis may later pass bounded hints through a separate isolated adapter; its source-pin and plan digest are compared but not accepted as legal provenance or owner approval.
+- `inspect_optional_eai` returns `OFF` or `INVALID_OR_UNAVAILABLE_FALLBACK` on empty/malformed/authority-bearing input. It returns only allowed READY task IDs and integer rank hints with `executable=false`. My Local AI's native Controller always retains DAG/risk/approval judgment.
+- No external API, user original input, private source, actual model execution or Windows isolation test in this P1 patch. Original source reuse remains **BLOCKED_PROVENANCE** and the full MLA-028 runtime dependency is not waived.
