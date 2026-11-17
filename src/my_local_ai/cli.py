@@ -80,6 +80,10 @@ def _parser() -> argparse.ArgumentParser:
     evidence_sub = evidence.add_subparsers(dest="evidence_action")
     evidence_sub.add_parser("export", help="Print a sanitized evidence manifest to stdout")
     evidence_sub.add_parser("reqs", help="Source-only REQ to SWU evidence; not P2 proof")
+    shield = subs.add_parser("codeshield", help="Read-only V1.3 static audit status")
+    shield_sub = shield.add_subparsers(dest="shield_action", required=True)
+    shield_sub.add_parser("status", help="CodeShield source coverage and F18 HOLD")
+    shield_sub.add_parser("doctor", help="Explicit owner-side Defender read-only status query")
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -111,7 +115,7 @@ def _v13_swu_progress() -> dict:
         or record.get("p2_verified_rate") != "UNASSESSED"
         or record.get("owner_go") is not False
         or record.get("integration_gate") !=
-            "NOT_RUN_OWNER_APPROVAL_REQUIRED_BEFORE_FUNCTIONAL_SOURCE_MERGE"
+            "SOURCE_MERGED_P1_UNVERIFIED"
         or record.get("required_v13_swu_total") != 55
         or record.get("legacy_swu_total") != 39
         or record.get("code_shield_swu_total") != 16
@@ -143,32 +147,60 @@ def _v13_swu_progress() -> dict:
     if not isinstance(extension, list) or len(extension) != 16:
         raise ValueError("incomplete CodeShield inventory")
     staged = 0
+    integrated = 0
     ext_ids = set()
     for item in extension:
         if (not isinstance(item, dict)
             or not isinstance(item.get("id"), str)
             or item["id"] in ext_ids or item["id"] in ids
-            or item.get("integrated_into_dev") is not False
+            or type(item.get("integrated_into_dev")) is not bool
+            or item.get("integrated_into_dev") is not
+                 (item.get("code_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED")
             or item.get("source_candidate_on_feature") is not
                  (item.get("code_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED")):
             raise ValueError("untrusted CodeShield integration evidence")
         ext_ids.add(item["id"])
         staged += item["source_candidate_on_feature"]
+        integrated += item["integrated_into_dev"]
     if (ext_ids != {"CS-SWU-" + str(i).zfill(3) for i in range(1, 17)}
-        or staged != record.get("code_shield_source_candidate_unmerged_at_rebaseline")):
+        or staged != record.get("code_shield_source_candidate_unmerged_at_rebaseline")
+        or integrated != record.get("code_shield_source_candidates_integrated")
+        or integrated > staged):
         raise ValueError("invalid CodeShield SWU crosswalk")
-    # Source files on an independent feature branch are NOT product-complete.
+    # The source queue is the public P1 audit inventory, not a permission grant.
+    shield = _read_json(_ROOT / "docs" / "OPTIONAL_CODESHIELD_TASK_QUEUE.json")
+    swus = shield.get("p1_source_swu_tasks")
+    if (shield.get("project") != "hibi89/my_local_ai"
+        or shield.get("p1_source_swu_total") != 16
+        or shield.get("p1_source_swu_implemented") != staged
+        or shield.get("p2_status") != "LOCKED"
+        or shield.get("owner_runtime_go") is not False
+        or not isinstance(swus, list) or len(swus) != 16
+        or {s.get("task_id") for s in swus if isinstance(s, dict)} != ext_ids
+        or any(s.get("source_status") != next(
+                 m["code_status"] for m in extension if m["id"] == s.get("task_id"))
+               for s in swus if isinstance(s, dict))):
+        raise ValueError("CodeShield feature queue does not match integrated inventory")
+    if integrated != 13 or active_count + integrated > 55:
+        raise ValueError("unexpected source integration scope")
+    if not all(
+        isinstance(m.get("allowed_paths"), list) and m["allowed_paths"]
+        and all((_ROOT / p).is_file() for p in m["allowed_paths"])
+        for m in extension if m.get("integrated_into_dev")
+    ):
+        raise ValueError("invalid CodeShield SWU crosswalk")
+    # Integrated source candidates do not establish real OS/F18/owner trust.
     return {
-        "v13_implementation_source_swu_completed": active_count,
+        "v13_implementation_source_swu_completed": active_count + integrated,
         "v13_implementation_source_swu_total": 55,
-        "v13_implementation_source_swu_percent": round(active_count * 100 / 55, 2),
+        "v13_implementation_source_swu_percent": round((active_count + integrated) * 100 / 55, 2),
         "legacy_mla_source_swu_completed": active_count,
         "legacy_mla_source_swu_total": 39,
-        "codeshield_feature_source_candidates_unmerged": staged,
+        "codeshield_feature_source_candidates_at_merge": staged,
         "codeshield_feature_swu_total": 16,
-        "codeshield_feature_integrated_into_dev": 0,
+        "codeshield_source_candidates_integrated_into_dev": integrated,
         "codeshield_feature_source_head_snapshot": record["code_shield_feature_head_at_rebaseline"],
-        "integration": "NOT_RUN",
+        "integration": "SOURCE_MERGED_P1_UNVERIFIED",
         "source_sha_independently_attested": False,
         "high_p2_accepted": False,
         "p2": "LOCKED",
@@ -625,6 +657,29 @@ def main(argv: list[str] | None = None) -> int:
             if args.evidence_action == "export":
                 payload = {**payload, "export_format":"REDACTED_JSON_STDOUT_ONLY",
                            "owner_go":False, "real_use_allowed":False}
+        elif args.command == "codeshield" and args.shield_action == "status":
+            from my_local_ai.ui.status_view import load_codeshield_source_status
+            payload = load_codeshield_source_status(_ROOT).to_public_dict()
+        elif args.command == "codeshield" and args.shield_action == "doctor":
+            from my_local_ai.security.defender_status import probe_defender_status
+            defender = probe_defender_status()
+            payload = {
+                "codeshield": "V1_3",
+                "defender": {
+                    "state": defender.state,
+                    "running_mode": defender.running_mode,
+                    "signatures_age_days": defender.signatures_age_days,
+                    "primary_active": defender.defender_primary_active,
+                    "query_executed": defender.probe_executed,
+                    "error_code": defender.error_code,
+                },
+                "os_permissions_modified": False,
+                "defender_policy_modified": False,
+                "owner_go_verified": False,
+                "f18_independent": False,
+                "allow_code_execution": False,
+                "phase": "P1_SOURCE_ONLY",
+            }
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":

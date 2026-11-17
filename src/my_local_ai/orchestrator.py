@@ -369,3 +369,145 @@ def persist_controller_review_hold_cycle(
         )
 
     return _write_owned_transaction(owned_db, transition)
+
+# V1.3: static risk decision, not the real OS/code execution path.
+# Keep the public call explicitly nonexecuting. Actual dispatch must also
+# enforce the protected F18/owner/sandbox safety gate in later SWUs.
+from my_local_ai.security.codeshield_contracts import (
+    CodeShieldContext as _CodeShieldContext,
+    ScannerEvidence as _ScannerEvidence,
+    ActionKind as _ActionKind,
+)
+from my_local_ai.controller.codeshield import (
+    evaluate_codeshield_candidate as _evaluate_codeshield_candidate,
+    read_only_decision_status as _read_only_decision_status,
+)
+
+
+def preview_codeshield_static(
+    *, context: _CodeShieldContext,
+    candidate_python_sources: dict[str, bytes | str],
+    scanner_evidence: tuple[_ScannerEvidence, ...] = (),
+    action: _ActionKind = _ActionKind.STATIC_READ,
+) -> dict[str, object]:
+    """Controller-facing read-only static code preflight; never runs code.
+
+    Returned fields are redacted and cannot issue F18 receipts, grant owner
+    scope, modify Git, or launch a checker/executable themselves.
+    """
+    reviewed = _evaluate_codeshield_candidate(
+        context, candidate_python_sources=candidate_python_sources,
+        scanner_evidence=scanner_evidence, action=action,
+    )
+    result = _read_only_decision_status(reviewed)
+    if (result["execution_allowed"] is not False
+        or result["owner_go_verified"] is not False
+        or result["f18_verified"] is not False
+        or result["can_write_git"] is not False
+        or result["can_publish_remote"] is not False):
+        raise ValueError("unsafe CodeShield preview")
+    return result
+
+# Bounded source-on-disk → static scanner adapter → redacted result.
+# Never convert these results to CodeRunner, F18 TrustedReceipt or Git CAS.
+from my_local_ai.controller.codeshield import audit_scoped_sources as _audit_scoped_sources
+from my_local_ai.security.supply_chain import OfflineDatabasePin as _OfflineDatabasePin
+
+
+def preview_codeshield_scoped_static(
+    *, context: _CodeShieldContext, worktree: str | _Path,
+    original_checkout: str | _Path, changed_python_paths: tuple[str, ...],
+    ruff_binary: str | _Path | None = None,
+    gitleaks_binary: str | _Path | None = None,
+    semgrep_binary: str | _Path | None = None,
+    local_semgrep_rules: str | _Path | None = None,
+    local_osv_cache: str | _Path | None = None,
+    offline_database_pin: _OfflineDatabasePin | None = None,
+) -> dict[str, object]:
+    """Owner-callable read-only static audit. No owner/F18 execution unlock.
+
+    Results are NOT verified source provenance, Git diff, OS policy
+    attestation or independent scanner execution proof. Unknown => HOLD.
+    """
+    audit = _audit_scoped_sources(
+        context, worktree=worktree, original_checkout=original_checkout,
+        changed_python_paths=changed_python_paths,
+        ruff_binary=ruff_binary, gitleaks_binary=gitleaks_binary,
+        semgrep_binary=semgrep_binary, local_semgrep_rules=local_semgrep_rules,
+        local_osv_cache=local_osv_cache,
+        offline_database_pin=offline_database_pin,
+    )
+    result = audit.to_redacted_dict()
+    if (result.get("execution_allowed") is not False
+        or result.get("owner_go_verified") is not False
+        or result.get("independent_f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False):
+        raise ValueError("untrusted CodeShield static audit result")
+    return result
+
+
+# No runtime dispatcher is exported in P1. A caller attempting to advance
+# a static CodeShield result into owner/F18/OS/Git authority receives HOLD.
+from my_local_ai.controller.codeshield import (
+    LocalStaticAudit as _LocalStaticAudit,
+    preview_protected_dispatch_hold as _preview_protected_dispatch_hold,
+)
+
+
+def preview_codeshield_controller_dispatch_hold(
+    *, context: _CodeShieldContext,
+    audit: _LocalStaticAudit | None = None,
+    action: _ActionKind = _ActionKind.UNTRUSTED_EXECUTION,
+) -> dict[str, object]:
+    """Controller -> phase-ordered denial: never spawn, sign, merge or publish.
+
+    The returned dictionary contains no privileged grant. Neither owner
+    consent references nor model-reported scanner PASS are trusted evidence.
+    """
+    decision = _preview_protected_dispatch_hold(
+        context, audit=audit, action=action,
+    )
+    payload = decision.to_redacted_dict()
+    if (payload["stage"] != "P1_CONTROLLER_DISPATCH_DENIED"
+        or payload["owner_consent_verified"] is not False
+        or payload["isolated_runtime_attested"] is not False
+        or payload["f18_independently_verified"] is not False
+        or payload["git_cas_verified"] is not False
+        or payload["execution_allowed"] is not False
+        or payload["can_modify_original"] is not False
+        or payload["can_promote_git"] is not False
+        or payload["can_publish_remote"] is not False):
+        raise ValueError("unsafe CodeShield controller dispatch state")
+    return payload
+
+
+# Explicit opt-in *preview* only: Windows Sandbox networking disabled config.
+# This never opens a Sandbox, exports host file paths or generates an owner GO.
+from my_local_ai.controller.codeshield import (
+    preview_semgrep_sandbox_fallback as _preview_semgrep_sandbox_fallback,
+)
+
+
+def preview_codeshield_sandbox_fallback(
+    *, context: _CodeShieldContext, executable: str | _Path,
+    local_rules: str | _Path, disposable_worktree: str | _Path,
+    original_checkout: str | _Path, changed_paths: tuple[str, ...],
+    minimal_staging_folder: str | _Path,
+) -> dict[str, object]:
+    result = _preview_semgrep_sandbox_fallback(
+        context, executable=executable, local_rules=local_rules,
+        disposable_worktree=disposable_worktree,
+        original_checkout=original_checkout, changed_paths=changed_paths,
+        minimal_staging_folder=minimal_staging_folder,
+    )
+    if (result.get("stage") != "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
+        or result.get("networking_requested") != "Disable"
+        or result.get("readonly_mapping_requested") is not True
+        or result.get("logon_command_present") is not False
+        or result.get("may_launch_sandbox") is not False
+        or result.get("may_run_scanner") is not False
+        or result.get("os_isolation_attested") is not False
+        or result.get("f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False):
+        raise ValueError("unsafe CodeShield Sandbox preview")
+    return result

@@ -1,0 +1,66 @@
+# CodeShield V1.3 – local-only source analysis rules.
+# Static detection patterns; detection is never an execution/owner approval.
+rules:
+  - id: mla-python-destructive-files
+    message: Dangerous local file or directory mutation
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: shutil.rmtree(...)
+      - pattern: os.remove(...)
+      - pattern: os.unlink(...)
+      - pattern: os.system(...)
+      - pattern: $OBJ.unlink(...)
+      - pattern: $OBJ.rmdir(...)
+      - pattern: $OBJ.write_bytes(...)
+  - id: mla-python-process-and-loader
+    message: Process execution, untrusted deserialization or dynamic loader
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: subprocess.run(...)
+      - pattern: subprocess.Popen(...)
+      - pattern: os.popen(...)
+      - pattern: eval(...)
+      - pattern: exec(...)
+      - pattern: __import__(...)
+      - pattern: importlib.import_module(...)
+      - pattern: pickle.loads(...)
+      - pattern: ctypes.CDLL(...)
+  - id: mla-python-network
+    message: Potential network or secret exfiltration
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: requests.post(...)
+      - pattern: requests.get(...)
+      - pattern: urllib.request.urlopen(...)
+      - pattern: socket.socket(...)
+      - pattern: $OBJ.connect(...)
+      - pattern: $OBJ.sendall(...)
+  - id: mla-python-destructive-sql
+    message: Destructive database query needs protected review
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: $DB.execute("DROP TABLE ...")
+      - pattern: $DB.execute("DELETE FROM ...")
+      - pattern: $DB.executescript(...)
+  - id: mla-js-destructive-and-network
+    message: JavaScript command, file mutation or outbound call
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: child_process.exec(...)
+      - pattern: child_process.execSync(...)
+      - pattern: fs.rmSync(...)
+      - pattern: fs.unlinkSync(...)
+      - pattern: fetch(...)
+      - pattern: $OBJ.post(...)
+  - id: mla-js-dynamic-code
+    message: JavaScript dynamic code evaluation
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)

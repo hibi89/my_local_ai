@@ -324,3 +324,91 @@ def evaluate_p1_source_candidate(
         tuple(incomplete), tuple(incomplete_req), tuple(missing_evidence),
         not incomplete and not missing_evidence and not incomplete_req,
     )
+
+# V1.3 CodeShield P1 source dashboard. This reports candidate code coverage
+# only and intentionally does NOT read raw scanner findings or secrets.
+@dataclass(frozen=True)
+class CodeShieldSourceStatus:
+    implemented_swu: int
+    total_swu: int
+    ready_ids: tuple[str, ...]
+    high_review_ids: tuple[str, ...]
+    evidence_source_sha: str
+    p2_status: str = "LOCKED"
+    official_verified: str = "UNASSESSED"
+    owner_go: bool = False
+    execution_allowed: bool = False
+
+    def to_public_dict(self) -> dict[str, object]:
+        if (self.total_swu != 16 or not 0 <= self.implemented_swu <= self.total_swu
+            or self.p2_status != "LOCKED" or self.official_verified != "UNASSESSED"
+            or self.owner_go is not False or self.execution_allowed is not False):
+            raise ValueError("unsafe CodeShield progress")
+        return {
+            "feature": "CODESHIELD_V1_3",
+            "p1_source_candidates": self.implemented_swu,
+            "p1_source_swu_total": self.total_swu,
+            "p1_source_percent": round(100 * self.implemented_swu / self.total_swu, 2),
+            "p1_code_ready_ids": list(self.ready_ids),
+            "high_review_pending": list(self.high_review_ids),
+            "source_evidence_baseline_sha": self.evidence_source_sha,
+            "scanner_status": {
+                "ruff": "NOT_RUN",
+                "semgrep": "NOT_RUN",
+                "gitleaks": "NOT_RUN",
+                "osv": "NOT_RUN",
+                "defender": "NOT_RUN",
+            },
+            "p2": "LOCKED", "verification": "UNASSESSED",
+            "f18": "SECURITY_HOLD", "owner_go": False,
+            "execution_allowed": False, "can_publish": False,
+        }
+
+
+def load_codeshield_source_status(project_root: str | Path) -> CodeShieldSourceStatus:
+    """Read authorized CodeShield source queue; reject inconsistent unlocks."""
+    root = Path(project_root).absolute()
+    baseline = load_snapshot(root)
+    if baseline.operation_allowed or not baseline.p2_locked:
+        raise ValueError("CodeShield phase not held")
+    queue = _read_limited(root / "docs" / "OPTIONAL_CODESHIELD_TASK_QUEUE.json")
+    swus = queue.get("p1_source_swu_tasks")
+    if (queue.get("project") != "hibi89/my_local_ai"
+        or queue.get("p2_status") != "LOCKED"
+        or queue.get("verified_rate") != "UNASSESSED"
+        or queue.get("owner_runtime_go") is not False
+        or queue.get("p1_source_swu_total") != 16
+        or not isinstance(swus, list) or len(swus) != 16
+        or queue.get("legacy_task_group_total") != 8):
+        raise ValueError("CodeShield queue cannot grant security authority")
+    seen = set()
+    completed = 0
+    for item in swus:
+        if not isinstance(item, dict):
+            raise ValueError("invalid CodeShield SWU")
+        tid = item.get("task_id")
+        if (not isinstance(tid, str) or re.fullmatch(r"CS-SWU-\d{3}", tid) is None
+            or tid in seen or item.get("owner_go") is not False
+            or item.get("runtime_authorization")
+               != "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES"):
+            raise ValueError("untrusted CodeShield source task")
+        seen.add(tid)
+        if item.get("source_status") == "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED":
+            if not isinstance(item.get("implementation_evidence_sha"), str) or not re.fullmatch(
+                r"[0-9a-f]{40}", item["implementation_evidence_sha"]
+            ):
+                raise ValueError("missing source code evidence")
+            completed += 1
+    if (queue.get("p1_source_swu_implemented") != completed
+        or seen != {f"CS-SWU-{n:03d}" for n in range(1, 17)}):
+        raise ValueError("CodeShield SWU completeness mismatch")
+    ready = queue.get("first_source_ready")
+    high = queue.get("swu_high_review_pending")
+    sha = queue.get("source_evidence_head_before_reestimate")
+    if (not isinstance(ready, list) or not isinstance(high, list)
+        or any(t not in seen for t in ready + high)
+        or len(set(ready)) != len(ready)
+        or len(set(high)) != len(high)
+        or not isinstance(sha, str) or re.fullmatch(r"[0-9a-f]{40}", sha) is None):
+        raise ValueError("invalid CodeShield queue references")
+    return CodeShieldSourceStatus(completed, 16, tuple(ready), tuple(high), sha)

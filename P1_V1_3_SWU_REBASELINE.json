@@ -21,12 +21,12 @@
   "active_dev_source_candidate_swu_at_rebaseline": 35,
   "code_shield_source_candidate_unmerged_at_rebaseline": 13,
   "unreconciled_swu_count_at_rebaseline": 20,
-  "metric_rule": "Only actual SOURCE_COMPLETE_P2_PENDING on active dev counts until CodeShield feature source is verified and integrated into active dev; 13 feature source candidates are not product implementation numerator. Existing 39-SWU legacy queue and REQ acceptance remain untouched.",
+  "metric_rule": "P1 active dev candidate total = 35 legacy SWUs + 13 connected CodeShield SWUs. Partially written trust SWUs 007/012/014 excluded. No P2/OS/F18 acceptance.",
   "optional_scope_excluded": [
     "V1.1 Hydrogen optional remote worker",
     "V1.2 Experience Learning optional extension"
   ],
-  "integration_gate": "NOT_RUN_OWNER_APPROVAL_REQUIRED_BEFORE_FUNCTIONAL_SOURCE_MERGE",
+  "integration_gate": "SOURCE_MERGED_P1_UNVERIFIED",
   "integration_is_new_swu": false,
   "integration_note": "No integration SWU is invented: assess actual caller-to-callee code gap on merge and split only if real new feature implementation is required.",
   "trust_blockers": [
@@ -47,7 +47,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
       "allowed_paths": [
         "src/my_local_ai/security/codeshield_contracts.py"
@@ -61,7 +61,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
       "allowed_paths": [
         "src/my_local_ai/security/ast_preflight.py",
@@ -76,7 +76,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "1ab94ec7d2335e7ec03fbaf6f75483148e16f685",
       "allowed_paths": [
         "src/my_local_ai/security/ast_preflight.py",
@@ -90,7 +90,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "allowed_paths": [
         "src/my_local_ai/security/ruff_adapter.py"
@@ -103,7 +103,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "allowed_paths": [
         "src/my_local_ai/security/ruff_adapter.py"
@@ -116,7 +116,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "82612311ec397927c83b146e2ae18a981dda7071",
       "allowed_paths": [
         "src/my_local_ai/security/semgrep_adapter.py",
@@ -144,7 +144,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "allowed_paths": [
         "src/my_local_ai/security/supply_chain.py"
@@ -157,7 +157,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "0854228c32ac75e2cc50fa8435743e32a7343036",
       "allowed_paths": [
         "src/my_local_ai/security/supply_chain.py"
@@ -170,7 +170,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "bdccd9724f1c315a81eba61fb034bd707cfb6382",
       "allowed_paths": [
         "src/my_local_ai/security/supply_chain.py"
@@ -183,7 +183,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "4cee05227bfab686c59ccd5ad8d1c9daaba78133",
       "allowed_paths": [
         "src/my_local_ai/security/defender_status.py"
@@ -210,7 +210,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "18b361f1f4665936199ab3cd0477eb77ee43ba49",
       "allowed_paths": [
         "src/my_local_ai/controller/codeshield.py",
@@ -240,7 +240,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "08e83eaec19786f6a8b2e0db5d613656d7aa166d",
       "allowed_paths": [
         "src/my_local_ai/cli.py",
@@ -256,7 +256,7 @@
       ],
       "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": true,
-      "integrated_into_dev": false,
+      "integrated_into_dev": true,
       "implementation_evidence_sha": "0d5368a9a8c9c3ce4a58999f71a5d2d56e4aa678",
       "allowed_paths": [
         "src/my_local_ai/cli.py",
@@ -269,5 +269,29 @@
   "original_req_count": 30,
   "original_req_completed_legacy": 5,
   "implementation_source_swu_percent_at_rebaseline": 63.64,
-  "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission."
+  "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission.",
+  "integration_scope": "OWNER_APPROVED_SELECTIVE_SOURCE_TRANSFER_ONLY",
+  "integration_approved_by_owner": true,
+  "code_shield_source_candidates_integrated": 13,
+  "active_dev_source_candidates_after_integration": 48,
+  "unimplemented_required_swu_after_integration": 7,
+  "source_candidate_implementation_percent_after_integration": 87.27,
+  "integration_source_branch_head": "736bfd28010f1089a2228c76e74568d56005cd89",
+  "integration_base_dev_sha": "cd37b2aab2f89c4c8df090bcc09fa67ca7de2441",
+  "integration_source_files": [
+    "src/my_local_ai/controller/codeshield.py",
+    "src/my_local_ai/security/ast_preflight.py",
+    "src/my_local_ai/security/codeshield_contracts.py",
+    "src/my_local_ai/security/defender_status.py",
+    "src/my_local_ai/security/ruff_adapter.py",
+    "src/my_local_ai/security/rules/codeshield.yaml",
+    "src/my_local_ai/security/semgrep_adapter.py",
+    "src/my_local_ai/security/supply_chain.py",
+    "src/my_local_ai/app.py",
+    "src/my_local_ai/cli.py",
+    "src/my_local_ai/orchestrator.py",
+    "src/my_local_ai/ui/status_view.py"
+  ],
+  "integration_snapshot_file": "docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json",
+  "source_candidate_count_note": "13 CodeShield SWUs considered source-only integrated after source, caller and CLI status link are imported. Protected broker, owner-signed Defender scan, Controller runtime dispatch (007/012/014) remain incomplete despite partial code."
 }

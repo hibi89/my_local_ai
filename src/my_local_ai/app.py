@@ -7,13 +7,14 @@ from typing import Iterable
 import re
 
 from my_local_ai.orchestrator import PlanningPreview,preview_plan,redact_preview
-from my_local_ai.ui.status_view import StatusSnapshot,load_snapshot
+from my_local_ai.ui.status_view import StatusSnapshot, CodeShieldSourceStatus, load_snapshot, load_codeshield_source_status
 
 
 @dataclass(frozen=True)
 class AppReadOnlyState:
     implementation: StatusSnapshot
     preview: PlanningPreview
+    codeshield: CodeShieldSourceStatus | None = None
 
     def to_public_dict(self) -> dict:
         if (self.implementation.operation_allowed or not self.implementation.p2_locked
@@ -22,6 +23,8 @@ class AppReadOnlyState:
         return {
             "implementation":self.implementation.to_public_dict(),
             "planning":redact_preview(self.preview),
+            "codeshield": (self.codeshield.to_public_dict()
+                           if self.codeshield is not None else None),
             "read_only":True,
             "owner_go":False,
             "execution_allowed":False,
@@ -45,7 +48,8 @@ def build_read_only_app(
         active_leases=active_leases,advisory_json=advisory_json,
         optional_eai_envelope_json=optional_eai_envelope_json,
     )
-    return AppReadOnlyState(snapshot,preview)
+    shield = load_codeshield_source_status(project_root)
+    return AppReadOnlyState(snapshot,preview,shield)
 
 
 
