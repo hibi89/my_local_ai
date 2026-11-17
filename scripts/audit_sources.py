@@ -1,4 +1,7 @@
-"""Offline, read-only source provenance audit (no Git/network/file copying)."""
+"""Read-only source provenance audit; default offline, optional pinned public GitHub GET.
+
+Never copies original source into MLA and never approves reuse or a license.
+"""
 from __future__ import annotations
 import argparse
 import json
@@ -85,11 +88,174 @@ def audit_manifest(raw: str) -> dict:
         "license_cleared": False,
     }
 
+
+# Optional source-tree verification is an explicit PUBLIC GitHub read-only
+# operation. It does not submit plan/source files, tokens, user prompts,
+# credentials, or local source to any remote. The default remains offline.
+# A correct SHA/tree or absent LICENSE is NOT legal re-use permission.
+_GITHUB_HOST = "api.github.com"
+_HTTP_LIMIT = 2_000_000
+_LICENSE_NAME = re.compile(
+    r"(?:LICENSE|LICENCE|NOTICE|COPYING|COPYRIGHT)(?:[._-].*)?\Z", re.I
+)
+
+
+def _get_public_github_json(repo: str, suffix: str) -> object:
+    if repo not in PINNED or not isinstance(suffix, str):
+        raise ValueError("public pinned repository only")
+    from urllib.error import HTTPError, URLError
+    from urllib.parse import quote
+    from urllib.request import Request, build_opener, HTTPHandler, HTTPSHandler, HTTPRedirectHandler
+    from urllib.parse import urlsplit
+
+    # Prevent transparent redirects to unapproved hosts or signed URLs.
+    class NoRedirect(HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise ValueError("unapproved redirect from pinned GitHub API")
+
+    path = "/repos/" + repo + "/" + suffix
+    if not re.fullmatch(
+        r"(?:git/commits/[0-9a-f]{40}|git/trees/[0-9a-f]{40}\?recursive=1|branches/[A-Za-z0-9_./-]{1,128})",
+        suffix,
+    ):
+        raise ValueError("unapproved GitHub API path")
+    if suffix.startswith("branches/"):
+        branch = suffix[len("branches/"):]
+        if (".." in branch or "//" in branch
+            or branch.startswith((".", "-", "/"))
+            or branch.endswith((".", "/"))):
+            raise ValueError("unsafe source branch")
+    url = "https://" + _GITHUB_HOST + path
+    if urlsplit(url).hostname != _GITHUB_HOST:
+        raise ValueError("unapproved source API host")
+    opener = build_opener(NoRedirect(), HTTPHandler(), HTTPSHandler())
+    req = Request(url, headers={
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "mla-public-source-audit/1",
+    }, method="GET")
+    try:
+        with opener.open(req, timeout=8) as response:
+            if response.status != 200:
+                raise ValueError("GitHub source API unavailable")
+            reported = response.headers.get("Content-Length")
+            if reported is not None and int(reported) > _HTTP_LIMIT:
+                raise ValueError("source API result too large")
+            raw = response.read(_HTTP_LIMIT + 1)
+            if len(raw) > _HTTP_LIMIT:
+                raise ValueError("source API result too large")
+    except (HTTPError, URLError, OSError, TimeoutError, OverflowError) as exc:
+        raise ValueError("pinned source API unavailable") from None
+    try:
+        return json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_unique_pairs,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite source JSON")),
+        )
+    except (UnicodeError, json.JSONDecodeError, TypeError):
+        raise ValueError("untrusted source API response") from None
+
+
+def audit_live_pinned_github(raw_manifest: str, *,
+                             fetch_json=None) -> dict:
+    """Fetch immutable GitHub commits/trees and report exact rights HOLD.
+
+    A network failure or branch drift cannot switch license status to PASS.
+    Unknown files, rewritten blobs and incomplete trees fail shut. This
+    verifies public source identity, NOT source ownership or code license.
+    """
+    static = audit_manifest(raw_manifest)
+    data = json.loads(raw_manifest, object_pairs_hook=_unique_pairs)
+    fetch = fetch_json or _get_public_github_json
+    if not callable(fetch):
+        raise ValueError("invalid pinned-source fetch port")
+    sources = []
+    for source in sorted(data["sources"], key=lambda x: x["source_repo"]):
+        repo, branch, commit_sha = (source["source_repo"],
+                                   source["source_branch"],source["commit_sha"])
+        pinned = SOURCE_TREE_EVIDENCE[repo]
+        try:
+            commit = fetch(repo, "git/commits/" + commit_sha)
+            tree = fetch(repo, "git/trees/" + pinned["tree_sha"] + "?recursive=1")
+            current = fetch(repo, "branches/" + branch)
+        except Exception:
+            # Treat unavailable remote evidence as a HOLD; do not silently
+            # reuse last-run GitHub metadata as a fresh live readback.
+            sources.append({
+                "source_repo":repo, "pinned_commit_verified":False,
+                "pinned_tree_verified":False, "live_branch_matches_pin":False,
+                "status":"HOLD_REMOTE_EVIDENCE_UNAVAILABLE",
+            })
+            continue
+        if (not isinstance(commit, dict) or commit.get("sha") != commit_sha
+            or not isinstance(commit.get("tree"), dict)
+            or commit["tree"].get("sha") != pinned["tree_sha"]
+            or not isinstance(tree, dict) or tree.get("sha") != pinned["tree_sha"]
+            or tree.get("truncated") is not False
+            or not isinstance(tree.get("tree"), list)
+            or len(tree["tree"]) != pinned["entry_count"]):
+            raise ValueError("pinned GitHub source commit/tree mismatch")
+        found_paths = {}
+        for entry in tree["tree"]:
+            if (not isinstance(entry,dict)
+                or not isinstance(entry.get("path"),str)
+                or entry["path"] in found_paths
+                or not isinstance(entry.get("sha"),str)
+                or not SHA.fullmatch(entry["sha"])
+                or entry.get("type") not in ("blob","tree")):
+                raise ValueError("untrusted recursive source listing")
+            found_paths[entry["path"]] = entry
+        for path, blob in pinned["candidate_files"].items():
+            entry = found_paths.get(path)
+            if (entry is None or entry.get("type") != "blob"
+                or entry.get("mode") not in ("100644","100755")
+                or entry.get("sha") != blob):
+                raise ValueError("pinned candidate blob mismatch")
+        names = [
+            path for path, entry in found_paths.items()
+            if entry.get("type") == "blob" and _LICENSE_NAME.fullmatch(
+                path.rsplit("/",1)[-1]
+            )
+        ]
+        if names:
+            # Filename changes are informational, not automatic clearance.
+            # The frozen manifest asserted NONE, so require human re-audit.
+            raise ValueError("source NOTICE/license inventory changed")
+        if (not isinstance(current,dict)
+            or not isinstance(current.get("commit"),dict)
+            or not isinstance(current["commit"].get("sha"),str)
+            or not SHA.fullmatch(current["commit"]["sha"])):
+            raise ValueError("untrusted live source branch")
+        matches = current["commit"]["sha"] == commit_sha
+        sources.append({
+            "source_repo":repo,
+            "pinned_commit_verified":True,
+            "pinned_tree_verified":True,
+            "live_branch_matches_pin":matches,
+            "status":"BLOCKED_PROVENANCE_REQUIRES_RIGHTS_REVIEW",
+        })
+    return {
+        **static,
+        "source_reads":sources,
+        "remote_live_sha_verified":(
+            len(sources) == 2 and
+            all(s["pinned_commit_verified"] and s["pinned_tree_verified"]
+                for s in sources)
+        ),
+        "source_tree_verified_count":sum(
+            s["pinned_tree_verified"] for s in sources
+        ),
+        "license_cleared":False,
+        "source_imports":0,
+        "status":"BLOCKED_PROVENANCE",
+        "decision":"NO_SOURCE_IMPORT_UNTIL_OWNER_AND_THIRD_PARTY_RIGHTS_REVIEW",
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", type=Path, default=Path(__file__).resolve().parents[1] / "docs" / "IMPORT_MANIFEST.json")
+    parser.add_argument("--live", action="store_true", help="Opt-in GET-only public GitHub source pin audit; cannot grant license rights")
     args = parser.parse_args()
-    result = audit_manifest(args.manifest.read_text(encoding="utf-8"))
+    raw = args.manifest.read_text(encoding="utf-8")
+    result = audit_live_pinned_github(raw) if args.live else audit_manifest(raw)
     print(json.dumps(result, sort_keys=True))
     return 0
 
