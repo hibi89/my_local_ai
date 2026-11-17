@@ -210,3 +210,24 @@ def claim_synthetic_lease(
     except (sqlite3.Error,LeaseHold):
         db.rollback()
         raise LeaseHold("LEASE_FENCED") from None
+
+
+def reserve_owned_lease(
+    db_path, proposal: LeaseProposal, *, run_id: str, plan_sha256: str,
+    source_sha: str, owner_grant: OwnerGrant | None,
+    trusted_hmac_key: bytes | None, trusted_live_consent_check,
+    now_seconds: int,
+):
+    """Connect controller lease proposal to owned durable SQLite CAS.
+
+    Receipt is always non-executable. This is a source feature, not an
+    independently trusted owner signer or F18 authorization.
+    """
+    from my_local_ai.state.sqlite_store import persist_owned_lease_cas
+    return persist_owned_lease_cas(
+        db_path, proposal=proposal, run_id=run_id,
+        plan_sha256=plan_sha256, source_sha=source_sha,
+        owner_grant=owner_grant, trusted_hmac_key=trusted_hmac_key,
+        trusted_live_consent_check=trusted_live_consent_check,
+        now_seconds=now_seconds,
+    )

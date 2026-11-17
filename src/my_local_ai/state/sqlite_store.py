@@ -462,3 +462,130 @@ def persist_local_repair_offer(
             )
         return UntrustedRepairOffer(run_id,task_id,digest,previous is None)
     return _write_owned_transaction(value,change)
+
+
+# SWU-024: durable compare-and-swap on an existing MLA-owned state DB.
+# Writing a lease reservation is NOT an owner approval, trusted F18 receipt,
+# model execution permit or a Git operation.
+@dataclass(frozen=True)
+class DurableLeaseReservation:
+    plan_id: str
+    task_id: str
+    run_id: str
+    generation: int
+    state: str = "LEASE_RESERVED_UNVERIFIED"
+    may_execute: bool = False
+    owner_runtime_go: bool = False
+    independent_f18_pass: bool = False
+
+
+def persist_owned_lease_cas(
+    value: str | Path, *, proposal, run_id: str, plan_sha256: str,
+    source_sha: str, owner_grant, trusted_hmac_key: bytes | None,
+    trusted_live_consent_check, now_seconds: int,
+) -> DurableLeaseReservation:
+    """Reserve one epoch transactionally; default/failure cannot issue a runner grant.
+
+    The caller must separately supply a protected owner identity and live
+    consent verifier. In the absence of either, this fails before writing.
+    DB schema, path identity and the entire CAS are enforced by the owned
+    transactional writer. Runtime/F18 activation remains outside this module.
+    """
+    from my_local_ai.ax_runtime.leases import LeaseProposal, LeaseHold
+    from my_local_ai.contracts.approval import authorize_claim
+
+    if (not isinstance(proposal, LeaseProposal)
+        or not isinstance(run_id, str) or not _MLA_ID.fullmatch(run_id)
+        or not isinstance(plan_sha256, str) or not _MLA_SHA64.fullmatch(plan_sha256)
+        or not isinstance(source_sha, str) or not _MLA_SHA40.fullmatch(source_sha)
+        or not isinstance(proposal.plan_id, str) or not _MLA_ID.fullmatch(proposal.plan_id)
+        or not isinstance(proposal.task_id, str) or not _MLA_ID.fullmatch(proposal.task_id)
+        or proposal.baseline_sha != source_sha
+        or type(proposal.expected_previous_epoch) is not int
+        or not 0 <= proposal.expected_previous_epoch < 2**63 - 1
+        or type(proposal.proposed_epoch) is not int
+        or proposal.proposed_epoch != proposal.expected_previous_epoch + 1
+        or not isinstance(proposal.idempotency_key, str)
+        or proposal.idempotency_key != hashlib.sha256((
+            "mla-lease/v2|" + proposal.plan_id + "|" + plan_sha256 + "|" +
+            proposal.task_id + "|" + source_sha + "|" +
+            str(proposal.proposed_epoch)
+        ).encode("ascii")).hexdigest()
+        or type(now_seconds) is not int or now_seconds <= 0):
+        raise LeaseHold("INVALID_CONTEXT")
+    if (trusted_hmac_key is None or not callable(trusted_live_consent_check)
+        or not authorize_claim(
+            owner_grant, trusted_hmac_key=trusted_hmac_key,
+            expected_plan_sha=plan_sha256, expected_source_sha=source_sha,
+            required_scope="LOCAL_PLAN", now_seconds=now_seconds,
+            trusted_live_consent_check=trusted_live_consent_check,
+        )):
+        raise LeaseHold("UNTRUSTED_STATE")
+    consent_id = getattr(owner_grant, "grant_id", None)
+    if not isinstance(consent_id, str) or not _MLA_ID.fullmatch(consent_id):
+        raise LeaseHold("UNTRUSTED_STATE")
+
+    def change(db):
+        plan = db.execute(
+            "SELECT plan_sha,blueprint_sha,state FROM plans WHERE plan_id=?",
+            (proposal.plan_id,),
+        ).fetchone()
+        task = db.execute(
+            "SELECT source_sha,state FROM tasks WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id, proposal.task_id),
+        ).fetchone()
+        consent = db.execute(
+            "SELECT state FROM owner_consents "
+            "WHERE consent_id=? AND plan_sha=? AND scope='LOCAL_PLAN'",
+            (consent_id, plan_sha256),
+        ).fetchone()
+        if (plan is None or plan[0] != plan_sha256 or plan[2] != "APPROVED"
+            or task != (source_sha, "READY") or consent != ("APPROVED",)):
+            raise LeaseHold("UNTRUSTED_STATE")
+        if db.execute(
+            "SELECT 1 FROM leases WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id, proposal.task_id),
+        ).fetchone() is not None:
+            raise LeaseHold("ACTIVE_LEASE")
+        previous = db.execute(
+            "SELECT COALESCE(MAX(lease_epoch),0) FROM runs "
+            "WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id, proposal.task_id),
+        ).fetchone()[0]
+        if (type(previous) is not int
+            or previous != proposal.expected_previous_epoch
+            or proposal.proposed_epoch != previous + 1):
+            raise LeaseHold("LEASE_FENCED")
+        if db.execute("SELECT 1 FROM runs WHERE run_id=?", (run_id,)).fetchone():
+            raise LeaseHold("DUPLICATE_RUN")
+        db.execute(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state) "
+            "VALUES(?,?,?,?,?,'LEASE_RESERVED_UNVERIFIED')",
+            (run_id, proposal.plan_id, proposal.task_id, source_sha,
+             proposal.proposed_epoch),
+        )
+        db.execute(
+            "INSERT INTO leases(plan_id,task_id,generation,run_id) "
+            "VALUES(?,?,?,?)",
+            (proposal.plan_id, proposal.task_id, proposal.proposed_epoch, run_id),
+        )
+        updated = db.execute(
+            "UPDATE tasks SET state='LEASED' WHERE plan_id=? "
+            "AND task_id=? AND source_sha=? AND state='READY'",
+            (proposal.plan_id, proposal.task_id, source_sha),
+        )
+        if updated.rowcount != 1:
+            raise LeaseHold("LEASE_FENCED")
+        db.execute(
+            "INSERT INTO events(plan_id,event_kind,safe_summary) VALUES(?,?,?)",
+            (proposal.plan_id, "LEASE_EPOCH_RESERVED",
+             "UNVERIFIED_NO_RUNTIME_PERMISSION_NO_F18"),
+        )
+        return DurableLeaseReservation(
+            proposal.plan_id, proposal.task_id, run_id, proposal.proposed_epoch,
+        )
+
+    try:
+        return _write_owned_transaction(value, change)
+    except sqlite3.IntegrityError:
+        raise LeaseHold("LEASE_FENCED") from None

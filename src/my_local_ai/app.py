@@ -122,3 +122,13 @@ class AppReviewHandoff:
             "may_promote":False,
             "may_publish":False,
         }
+
+
+def build_p1_source_candidate_card(
+    project_root: str | Path, *, exact_source_sha: str,
+) -> dict:
+    """Expose exact-SHA source coverage to the read-only app, not to a runner."""
+    from my_local_ai.ui.status_view import evaluate_p1_source_candidate
+    return evaluate_p1_source_candidate(
+        project_root, exact_source_sha=exact_source_sha,
+    ).to_public_dict()

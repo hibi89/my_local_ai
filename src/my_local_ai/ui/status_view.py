@@ -198,3 +198,129 @@ def load_synthetic_evidence(project_root: str | Path) -> SyntheticEvidenceSnapsh
     ):
         raise ValueError("unsupported P1 evidence origin")
     return SyntheticEvidenceSnapshot(sha,run_id,*counts)
+
+
+@dataclass(frozen=True)
+class P1SourceCandidateReport:
+    """Repository-evidence inventory, explicitly NOT a signed High acceptance."""
+    exact_source_sha: str
+    completed_swu: int
+    total_swu: int
+    recorded_completed_req: int
+    total_req: int
+    uncovered_swu_ids: tuple[str, ...]
+    incomplete_req_ids: tuple[str, ...]
+    missing_evidence_swu_ids: tuple[str, ...]
+    source_inventory_candidate: bool
+    p2_locked: bool = True
+
+    def to_public_dict(self) -> dict:
+        return {
+            "source_sha": self.exact_source_sha,
+            "source_swu_candidate_completed": self.completed_swu,
+            "source_swu_total": self.total_swu,
+            "source_swu_percent": round(100 * self.completed_swu / self.total_swu, 2),
+            "official_p1_req_completed": self.recorded_completed_req,
+            "official_p1_req_total": self.total_req,
+            "missing_swu_ids": list(self.uncovered_swu_ids),
+            "incomplete_req_ids": list(self.incomplete_req_ids),
+            "missing_evidence_swu_ids": list(self.missing_evidence_swu_ids),
+            "source_inventory_candidate": self.source_inventory_candidate,
+            "source_sha_independently_attested": False,
+            "high_approved": False,
+            "p2_locked": True,
+            "owner_go": False,
+            "verification": "UNASSESSED",
+            "runtime_authorized": False,
+        }
+
+
+def evaluate_p1_source_candidate(
+    project_root: str | Path, *, exact_source_sha: str,
+) -> P1SourceCandidateReport:
+    """Join 39 source SWUs to all 30 REQs and require pinned source SHA.
+
+    Untrusted status/queue JSON cannot unlock P2 or replace Git ancestry,
+    protected F18, High acceptance, or independently verified source evidence.
+    """
+    if (not isinstance(exact_source_sha, str)
+        or re.fullmatch(r"[0-9a-f]{40}", exact_source_sha) is None):
+        raise ValueError("exact source SHA required")
+    root = Path(project_root).absolute()
+    current = load_snapshot(root)
+    if current.operation_allowed or not current.p2_locked or current.total_req != 30:
+        raise ValueError("phase gate not locked")
+    gate = _read_limited(root / "WORK_PHASE_GATES.json")
+    swu = _read_limited(root / "P1_SWU_TASK_QUEUE.json")
+    tasks, mappings = swu.get("tasks"), swu.get("req_mapping")
+    if (swu.get("program") != "my_local_ai"
+        or swu.get("policy_id") != "OWNER-SWU-HIGH-20261117"
+        or swu.get("stage") != "P1_FUNCTION_CODE_ONLY"
+        or swu.get("swu_count") != 39 or swu.get("req_count") != 30
+        or swu.get("owner_go") is not False
+        or swu.get("operational_ready") != []
+        or swu.get("f18") != "SECURITY_HOLD"
+        or swu.get("p2") != "LOCKED"
+        or not isinstance(tasks, list) or len(tasks) != 39
+        or not isinstance(mappings, list) or len(mappings) != 30
+        or gate["p1"].get("high_approved_candidate") is not False):
+        raise ValueError("invalid P1 source inventory")
+    last = swu.get("last_source_wave")
+    if (not isinstance(last, dict)
+        or last.get("source_sha") != exact_source_sha):
+        raise ValueError("source SHA differs from recorded code wave")
+    by_id = {}
+    incomplete, missing_evidence = [], []
+    for task in tasks:
+        if not isinstance(task, dict):
+            raise ValueError("invalid source task")
+        tid = task.get("id")
+        if (not isinstance(tid, str) or re.fullmatch(r"MLA-SWU-\d{3}", tid) is None
+            or tid in by_id
+            or task.get("runtime_authorization")
+                != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"
+            or task.get("operational_ready") is not False
+            or task.get("owner_go") is not False):
+            raise ValueError("unsafe source task record")
+        by_id[tid] = task
+        if task.get("code_status") != "SOURCE_COMPLETE_P2_PENDING":
+            incomplete.append(tid)
+            continue
+        sha = task.get("latest_code_sha")
+        legacy = task.get("evidence_sha_by_legacy")
+        if (not isinstance(sha, str) or
+            re.fullmatch(r"[0-9a-f]{40}", sha) is None):
+            if (not isinstance(legacy, dict) or not legacy
+                or any(not isinstance(x, str)
+                       or re.fullmatch(r"[0-9a-f]{40}", x) is None
+                       for x in legacy.values())):
+                missing_evidence.append(tid)
+    if len(by_id) != 39 or {f"MLA-SWU-{n:03d}" for n in range(1, 40)} != set(by_id):
+        raise ValueError("source SWU ID mismatch")
+    incomplete_req, req_seen = [], set()
+    for rec in mappings:
+        if not isinstance(rec, dict):
+            raise ValueError("invalid requirement mapping")
+        req, covered = rec.get("req_id"), rec.get("swu_ids")
+        if (not isinstance(req, str)
+            or re.fullmatch(r"REQ-\d{2}", req) is None
+            or req in req_seen or not isinstance(covered, list)
+            or not covered or len(covered) != len(set(covered))
+            or any(x not in by_id or req not in by_id[x].get("req_ids", [])
+                   for x in covered)):
+            raise ValueError("inconsistent SWU/REQ mapping")
+        req_seen.add(req)
+        if any(x in incomplete or x in missing_evidence for x in covered):
+            incomplete_req.append(req)
+    if req_seen != {f"REQ-{n:02d}" for n in range(1, 31)}:
+        raise ValueError("missing REQ inventory")
+    completed = 39 - len(incomplete)
+    if (swu.get("source_complete_swu_count") != completed
+        or swu.get("source_incomplete_swu_count") != len(incomplete)
+        or swu.get("legacy_accepted_req_count") != current.completed_req):
+        raise ValueError("source counters are inconsistent")
+    return P1SourceCandidateReport(
+        exact_source_sha, completed, 39, current.completed_req, 30,
+        tuple(incomplete), tuple(incomplete_req), tuple(missing_evidence),
+        not incomplete and not missing_evidence and not incomplete_req,
+    )
