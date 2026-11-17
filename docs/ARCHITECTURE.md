@@ -77,3 +77,12 @@ My Local AI Controller [owner/plan SHA, DAG/READY, status authority]
 계획 경로: `src/my_local_ai/providers/{base,registry,policy,hydrogen}.py`, `src/my_local_ai/controller/provider_scheduler.py`, `src/my_local_ai/state/provider_recovery.py`, `tests/security/test_provider_*.py`. **기존 dev 소스/파일명 점검 후 최소 변경**한다. Hydrogen은 코딩과 수정 후보 생성; API 응답 자체는 신뢰 검증이 아니다. 서로 다른 allowed_paths여도 lockfile/공유 스키마/종속 변경 충돌 시 병렬 실행 금지. 429/paid/no key/off -> local-only; safe checkpoint + lease fencing + source SHA 대조 후에만 재배정, 독립 READY는 계속.
 
 전체 BE/API/DB/FE/안전/수용 명세는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. 선택적 확장 큐는 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`; **P1 30개 REQ·기존 phase gate 불변**.
+
+---
+
+## V1.2 ExperienceSelector — 사용자 소유 개발경험 학습 (선택형 설계)
+`My Local AI Controller`의 PlanSpec/TaskSpec SHA·DAG·권한/자원·F18 판단은 최종 권위로 유지한다. 하위 `ExperienceSelector`는 **승인된 READY에 적용 가능한 스킬/템플릿/수정 전략을 추천만** 한다. Qwen/OpenCode·Hydrogen과 자동 실행 승격 권한을 공유하지 않는다.
+
+`Observed(redacted run/test/sha) → Candidate → TrustedReviewBoundary → Synthetic A/B → Owner-Approved Versioned Skill → read-only retrieval top3`. 독립 검증 실패 또는 출처·계정/데이터 권리 위반은 QUARANTINE. SQLite/FTS5 불능·no-match·conflict 상태에는 기억 미적용 기존 Qwen baseline으로 정상 fallback. EAI AdvisorPort는 계속 비권한 선택형, AXNODE도 선택적 typed graph/portable export 후보이며 신규 바이너리 런타임 선행 필수 아님.
+
+예상 경로 `src/my_local_ai/experience/{schema,collector,retrieval,curator,policy,skills}.py`, `controller/experience_selector.py` 및 SQLite own DB/CLI read-only. 실제 dev 경로/라이선스·PR 충돌 조사 뒤 별도 구현. 전체 스키마·위험/acceptance는 `docs/EXPERIENCE_LEARNING_ENGINE.md`, 작업 큐 `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`. 별도 사용자 구현 범위 승인 전 기존 P1/P2 분모/READY 불변.
