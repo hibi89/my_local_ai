@@ -2,21 +2,15 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_5_OF_16_SOURCE_CONNECTED_UNVERIFIED_HIGH_REVIEW_PENDING",
+  "state": "P1_12_OF_16_SOURCE_CONNECTED_UNVERIFIED_CRITICAL_RUNTIME_HOLDS",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
   "protected_baseline_swu": 39,
   "baseline_source_complete_at_design": 35,
   "p1_source_swu_total": 16,
-  "p1_source_swu_implemented": 5,
-  "first_source_ready": [
-    "CS-SWU-003",
-    "CS-SWU-004",
-    "CS-SWU-006",
-    "CS-SWU-008",
-    "CS-SWU-011"
-  ],
+  "p1_source_swu_implemented": 12,
+  "first_source_ready": [],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
   "real_windows": "NOT_RUN",
@@ -507,8 +501,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "ed8eb3c6f884da5929e1c273a105f961ada43723",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "1ab94ec7d2335e7ec03fbaf6f75483148e16f685",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -558,8 +552,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "MEDIUM",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -608,8 +602,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "MEDIUM",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -659,8 +653,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "3bd3a83f0c86220ddd0cdea33bf77f18a90fd7c4",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "82612311ec397927c83b146e2ae18a981dda7071",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -761,8 +755,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "7624fc318825d75982ca2fb85e44b0fd84440fa6",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "ded7a51e76eee4fa3d4b2cd5a60fc12fbc42214b",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -811,8 +805,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "7624fc318825d75982ca2fb85e44b0fd84440fa6",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "0854228c32ac75e2cc50fa8435743e32a7343036",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -912,8 +906,8 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_COMPONENT_WRITTEN_INTEGRATION_PENDING",
-      "implementation_evidence_sha": "05c085223b9743aeedc14d69c6510782312029c1",
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "4cee05227bfab686c59ccd5ad8d1c9daaba78133",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -1200,5 +1194,24 @@
   "critical_high_safety_blocked": [
     "CS-SWU-012",
     "CS-SWU-014"
-  ]
+  ],
+  "last_source_wave": {
+    "branch": "feature/code-shield-lightweight-v1",
+    "head_sha": "8426d30f55809ba10458b53ab034db9ea76f3ca1",
+    "completed_code_only_swu": [
+      "CS-SWU-003",
+      "CS-SWU-004",
+      "CS-SWU-005",
+      "CS-SWU-006",
+      "CS-SWU-008",
+      "CS-SWU-009",
+      "CS-SWU-011"
+    ],
+    "local_syntax": "NOT_RUN_NO_PYTHON_RUNNER",
+    "unit_tests": "DEFERRED_TO_P2",
+    "native_windows": "NOT_RUN",
+    "f18": "SECURITY_HOLD",
+    "runtime_authorized": false,
+    "nonprogress_attempts_added": 0
+  }
 }
