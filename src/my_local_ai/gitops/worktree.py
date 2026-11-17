@@ -653,3 +653,120 @@ def read_protected_git_inventory(
         if isinstance(exc, GitInventoryHold):
             raise
         raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY") from None
+
+
+# SWU-018: deletion is restricted to Git's own registered, empty
+# no-checkout disposable worktree; never recursive OS deletion.
+@_dataclass(frozen=True)
+class DisposableCleanupReceipt:
+    task_id: str
+    baseline_sha: str
+    scope_sha256: str
+    status: str = "DISPOSABLE_GIT_REMOVED_NO_F18_ATTESTATION"
+    removed: bool = True
+    original_checkout_files_modified: bool = False
+    main_ref_modified: bool = False
+    may_resume_coder: bool = False
+    independently_verified: bool = False
+
+
+def cleanup_disposable_no_checkout(
+    intent: WorktreeIntent, creation: DisposableCreateReceipt, *,
+    plan_sha256: str, expected_main_sha: str,
+    owner_grant, trusted_hmac_key: bytes | None,
+    trusted_live_consent_check, now_seconds: int,
+    protected_git_call, protected_git_read,
+) -> DisposableCleanupReceipt:
+    """Safely target only the same Git-registered no-checkout worktree.
+
+    The actual OS action remains disabled by the current owner signer:
+    OS_CHANGE is denied before any Git operation. A future protected runner
+    must serialize source-directory changes and attest the full OS boundary.
+    """
+    from my_local_ai.contracts.approval import authorize_claim
+    if (not isinstance(intent, WorktreeIntent)
+        or not isinstance(creation, DisposableCreateReceipt)
+        or creation.stage != "CREATED_NO_CHECKOUT_UNVERIFIED"
+        or creation.created is not True
+        or creation.checked_out_source is not False
+        or creation.coder_permitted is not False
+        or creation.reviewer_verified is not False
+        or creation.may_integrate is not False
+        or creation.may_publish is not False
+        or creation.task_id != intent.task_id
+        or creation.baseline_sha != intent.baseline_sha
+        or creation.disposable_path != intent.preflight.worktree
+        or not isinstance(plan_sha256, str)
+        or _re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None
+        or not isinstance(expected_main_sha, str)
+        or _HEX40.fullmatch(expected_main_sha) is None
+        or type(now_seconds) is not int or now_seconds <= 0
+        or not callable(protected_git_call)
+        or not callable(protected_git_read)):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    if not authorize_claim(
+        owner_grant, trusted_hmac_key=trusted_hmac_key,
+        expected_plan_sha=plan_sha256,
+        expected_source_sha=intent.baseline_sha,
+        required_scope="OS_CHANGE", now_seconds=now_seconds,
+        trusted_live_consent_check=trusted_live_consent_check,
+    ):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+
+    # Only a separately approved protected owner runner can reach here.
+    try:
+        fresh = plan_disposable(
+            task_id=intent.task_id, worktree=intent.preflight.worktree,
+            original_checkout=intent.preflight.original_checkout,
+            baseline_sha=intent.baseline_sha,
+            allowed_paths=intent.preflight.allowed_paths,
+        )
+        if fresh != intent:
+            raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+        marker = audit_linked_worktree_metadata(intent)
+        work = _Path(intent.preflight.worktree)
+        original = _Path(intent.preflight.original_checkout)
+        original_before = original.lstat()
+        root = _Path(marker.original_worktrees_root)
+        gitdir_text = _read_unique_metadata(work / ".git")
+        target = _Path(gitdir_text[8:])
+        if target.parent != root or not target.is_dir():
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        snapshot = read_protected_git_inventory(
+            intent, expected_main_sha=expected_main_sha,
+            protected_git_read=protected_git_read, no_checkout=True,
+        )
+        if (snapshot.original_head_sha != intent.baseline_sha
+            or snapshot.main_ref_sha != expected_main_sha
+            or set(work.iterdir()) != {work / ".git"}):
+            raise GitInventoryHold("STALE_GIT_SOURCE")
+        lifecycle = plan_disposable_lifecycle(intent, snapshot)
+        # The no-checkout worktree has intentionally absent tracked files;
+        # '--force' is used only after proving the disposable directory
+        # contains .git metadata and NO user files. Never use --force on
+        # a populated or modified worktree, and never run shutil.rmtree.
+        result = protected_git_call(
+            original, ("worktree", "remove", "--force", "--", str(work)),
+        )
+        if type(result) is not int or result != 0:
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        original_after = original.lstat()
+        if (work.exists() or target.exists()
+            or (original_before.st_dev, original_before.st_ino) !=
+               (original_after.st_dev, original_after.st_ino)
+            or _read_protected_sha(
+                protected_git_read, original,
+                ("rev-parse", "--verify", "HEAD^{commit}"),
+            ) != intent.baseline_sha
+            or _read_protected_sha(
+                protected_git_read, original,
+                ("rev-parse", "--verify", "refs/heads/main^{commit}"),
+            ) != expected_main_sha):
+            raise GitInventoryHold("STALE_GIT_SOURCE")
+        return DisposableCleanupReceipt(
+            intent.task_id, intent.baseline_sha, lifecycle.scope_sha256,
+        )
+    except (OSError, ScopeHold, ValueError) as exc:
+        if isinstance(exc, GitInventoryHold):
+            raise
+        raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
