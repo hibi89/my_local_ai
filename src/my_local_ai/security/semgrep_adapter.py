@@ -180,3 +180,40 @@ def run_local_semgrep(
         )
     except (OSError, ValueError, KeyError, UnicodeError, subprocess.TimeoutExpired):
         return _result(context, ScanStatus.ERROR, "SEMGREP_UNAVAILABLE_OR_INVALID")
+
+@dataclass(frozen=True)
+class SemgrepRulesInspection:
+    """Non-executing local rules pin check, NOT a Semgrep scan receipt."""
+    state: str
+    rules_sha256: str | None
+    expected_rules_sha256: str | None
+    can_execute_scanner: bool = False
+    can_execute_candidate: bool = False
+    independent_f18_verified: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.state not in {"LOCAL_RULES_PINNED_STATIC_ONLY", "UNKNOWN_HOLD"}
+            or any(getattr(self, field) is not False for field in (
+                "can_execute_scanner", "can_execute_candidate",
+                "independent_f18_verified",
+            ))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+
+def inspect_packaged_semgrep_rules(context: CodeShieldContext) -> SemgrepRulesInspection:
+    """Match only the packaged CodeShield YAML to the trusted-side rule pin.
+
+    No registry/YAML evaluation, no Semgrep binary invocation, no network.
+    The caller's pin is still merely data until independently authenticated.
+    """
+    if not isinstance(context, CodeShieldContext):
+        raise CodeShieldHold()
+    pin = next((p for p in context.scanner_pins if p.tool == "semgrep"), None)
+    expected = pin.rules_sha256 if pin is not None else None
+    packaged = Path(__file__).parent / "rules" / "codeshield.yaml"
+    actual = _digest(packaged, max_size=_MAX_RULES)
+    valid = expected is not None and actual == expected
+    return SemgrepRulesInspection(
+        "LOCAL_RULES_PINNED_STATIC_ONLY" if valid else "UNKNOWN_HOLD",
+        actual, expected,
+    )
