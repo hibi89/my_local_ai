@@ -79,3 +79,22 @@
 | HYD-AC-10 | Provider OFF 이후 기존 30 REQ/원래 기능 보존 | exact-SHA regression tests (P2 후행) | NOT_RUN |
 
 작업 ID·의존성·허용 파일/상태는 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`, 상세 수용 정의는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. 선택형 확장을 필수 범위로 재편하면 새로운 승인된 REQ/가중치/acceptance 버전을 만든 뒤에만 분모 변경; 기존 수치 소급 변경 금지.
+
+---
+
+## V1.2 Experience Learning 확장 독립 수용표 (기존 공식 분모에 미산입)
+
+| AC | 확인 사항 | 단계 | 결과 |
+|---|---|---|---|
+| EXP-AC-01 | experience OFF 상태에서 로컬 기본 Qwen·큐·외부 0 호출 | P1/P2 | NOT_RUN |
+| EXP-AC-02 | 권리·원본 SHA·scope 불일치 기록 검색/적용 차단 | P1 위험검사 | NOT_RUN |
+| EXP-AC-03 | 위조 모델 self-PASS/F18 receipt/owner GO로 경험 활성 금지 | P1 위험/P2 | NOT_RUN |
+| EXP-AC-04 | secret/private prompt/customer canary 저장·외부 유출 0 | P1 위험/P2 | NOT_RUN |
+| EXP-AC-05 | top3 관련 사례, 버전/충돌/만료 제외·검색 실패 fallback | P1 국소/P2 | NOT_RUN |
+| EXP-AC-06 | skill version revert/revocation 원본 무수정·중복실행 없음 | P1 국소/P2 | NOT_RUN |
+| EXP-AC-07 | 동일 SHA, own synthetic A/B accepted REQ/hour·실패·안전 기록 | P2 | NOT_RUN |
+| EXP-AC-08 | 무관·오염된 경험/오류 추론 격리 | P1 위험/P2 | NOT_RUN |
+| EXP-AC-09 | AXNODE/외부 API/실브라우저 없어도 P1 구현 진행 | P1/P2 | NOT_RUN |
+| EXP-AC-10 | 별도 승인 없이 외부송신·수집 확장·모델 training·원격 merge 없음 | P1 정책/P2 | NOT_RUN |
+
+새 `docs/EXPERIENCE_LEARNING_ENGINE.md`/`docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`의 **선택형 확장 설계**만 추가했다. 기존 필수 REQ-01~30 구현 분모 30, P1 28, P2 8, LOCKED, P1 브라우저 후행, Codex/Astra 독립 검수에 변화 없음. 이 설계만으로 검증률/구현률을 올리지 않는다.
