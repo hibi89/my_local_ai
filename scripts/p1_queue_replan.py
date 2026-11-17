@@ -40,7 +40,7 @@ def audit_p1_queue(raw: str) -> dict:
     if (queue.get("task_count") != 28 or queue.get("total_code_req") != 30
         or type(queue.get("code_completed_req")) is not int
         or not 0 <= queue["code_completed_req"] < 30
-        or queue.get("phase") != "P1_IMPLEMENTATION"
+        or queue.get("phase") != "P1_IMPLEMENTATION_ONLY"
         or queue.get("p1_ready_mode") != "CODE_ONLY_NOT_RUNTIME"
         or queue.get("operational_ready") != []):
         raise ValueError("P1 invariant or runtime availability invalid")
