@@ -31,3 +31,5 @@ The `INSTANT_TASK_QUEUE.json` `p1_code_status` fields track source writing only.
 ## Last P1 synthetic CI evidence
 
 GitHub Actions `44018595764` at `20e81dea7abb78769a3311f378f43f7e96b9273a`: Python compile PASS; unit 88/88 PASS; synthetic integration 36/36 PASS; synthetic security 85/85 PASS. Real owner Windows, P2 browser and 24-hour tests not executed and not implied. The `p1_code_status` dual graph is authoring-only; 5/30 full REQ implementation candidates remain. 
+
+Latest P1 synthetic run `44018982422` on `471e4b601c0cb50fb8b0bd6de71fd79495ee187e`: **214/214 PASS** (88 unit, 41 mock integration, 85 security) and syntax PASS. Owner Windows real F18 24h browser full verification NOT_RUN. 

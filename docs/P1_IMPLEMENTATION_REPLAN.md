@@ -60,3 +60,11 @@ P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly autho
 ## End of first P1 code-only source wave, second hardening wave opened
 
 All 28/28 task entries have code evidence SHAs (not completion). `MLA-025` P2-gated source SHA `20e81dea7abb78769a3311f378f43f7e96b9273a`. Next code READY `MLA-014`, `MLA-015`, `MLA-017` for protected Git worktree, reviewer issuer and SQLite lease transaction hardening. Original runtime status `BLOCKED_DEPENDENCY` and source rights/F18/owner P2 holds remain. See STATUS for exact 209/209 synthetic test breakdown and why REQ implementation is still 5/30.
+
+
+## 2026-11-17 KST 2차 하드닝 — MLA-017 합성 SQLite 원자 리스
+
+- 최초 코드 전용 큐 재편 5개 wave 후, 추가 구현 `src/my_local_ai/ax_runtime/leases.py`, `tests/integration/test_crash_resume.py` 최신 소스 SHA `471e4b601c0cb50fb8b0bd6de71fd79495ee187e`. HMAC `LOCAL_PLAN` owner claim, exact plan/source SHA, user/owner consent rows, `BEGIN IMMEDIATE` task/runs/leases atomic mutation, idempotent epoch fence, duplicate RUN and revocation/rollback HOLD. **테스트 연결은 오직 `:memory:` SQLite로만 허용**; 실제 고객/원본/디스크 DB는 아예 거부. 출력 `can_run_coder=false`이고 OS protected signer/F18/실 Git ref 증거는 없다.
+- 큐 `MLA-017`은 2차 **`READY_CODE_ONLY`** 유지: 실제 owner Windows protected SQLite transaction, crash-to-ref reconciliation, real F18 결합이 미구현. `MLA-014`/015도 독립 code-only 보안 하드닝 READY. 원래 `status=BLOCKED_DEPENDENCY`, provenance·owner GO·F18·P2 잠금 불변.
+- GitHub Actions `44018982422` @ `471e4b601c0cb50fb8b0bd6de71fd79495ee187e` **SUCCESS**: Python syntax PASS, 합성 단위 **88/88 PASS**, 모의 통합 **41/41 PASS**, 합성 보안 **85/85 PASS**, 총 **214/214 PASS**. 중간 CI `44018723958`, `44018882552`, `44018912841`는 **동적 큐 테스트의 구형 고정 의존성 가정 때문에 FAIL**, `471e4b6`에서 개선 후 재검증 PASS. 미검증 Windows/Ollama/OpenCode/24h/브라우저 `NOT_RUN`.
+- *공식 P1 구현완료율* 기존 **5/30=16.67%**, 28/28은 단지 작업별 code-source SHA 증거 존재. P2 LOCKED/검증률 UNASSESSED, 사용자 실사용 HOLD. 이번 라운드에서 main/원본/remote/OS/Production/유료 API 변경 없음.

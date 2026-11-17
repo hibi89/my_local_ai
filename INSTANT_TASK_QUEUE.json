@@ -588,9 +588,9 @@
       "safety_checks": "IDEMPOTENCY;FENCING;NO_DATA_LOSS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": "c792bbeaf6fd14d1415943e6398f8251b17d680f",
+      "evidence_sha": "471e4b601c0cb50fb8b0bd6de71fd79495ee187e",
       "blockers": [
-        "P1 code candidate only; operational acceptance/original task dependencies remain HOLD"
+        "Atomic SQLite owner-grant lease CAS tested against synthetic in-memory-only DB; actual protected Windows owner signer, crash process and Git ref reconciling still NOT_RUN"
       ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -604,7 +604,8 @@
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
       "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": [],
-      "p1_hardening_round": 2
+      "p1_hardening_round": 2,
+      "p1_hardening_evidence_sha": "471e4b601c0cb50fb8b0bd6de71fd79495ee187e"
     },
     {
       "task_id": "MLA-018",
@@ -1039,13 +1040,13 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "20e81dea7abb78769a3311f378f43f7e96b9273a",
-    "run_id": 44018595764,
+    "head_sha": "471e4b601c0cb50fb8b0bd6de71fd79495ee187e",
+    "run_id": 44018982422,
     "python_compile": "PASS",
     "unit_tests_pass": 88,
-    "synthetic_integration_tests_pass": 36,
+    "synthetic_integration_tests_pass": 41,
     "security_contract_tests_pass": 85,
-    "scope": "P1_ONLY_SYNTHETIC_NO_BROWSER_NO_REAL_MODEL_NO_WINDOWS_F18"
+    "scope": "P1_ONLY_SYNTHETIC_NO_OWNER_WINDOWS_F18_NO_REAL_MODEL"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
   "operational_ready": [],
