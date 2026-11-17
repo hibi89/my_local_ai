@@ -102,3 +102,39 @@ class OptionalEaiEnvelopeTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class OptionalEaiControllerIntegrationTests(unittest.TestCase):
+    def test_real_controller_contract_can_consume_pinned_data_without_eai_import(self):
+        from my_local_ai.controller.decision import Controller
+        from my_local_ai.contracts.plan import PlanSpec
+        tasks = [
+            {"task_id": name, "req_ids": ["REQ-05"], "depends_on": [],
+             "goal": "offline synthetic", "allowed_paths": [f"src/{name}.py"],
+             "acceptance": ["offline"], "checks": [], "risk": "LOW",
+             "resource_budget": {"max_calls": 1, "max_seconds": 5},
+             "safety_checks": ["NO_REMOTE"], "plan_sha": None,
+             "source_sha": SOURCE}
+            for name in ("TASK-A", "TASK-B")
+        ]
+        obj = {
+            "version": 1, "plan_id": "EAI-SYNTH-001",
+            "blueprint": {"repo": "hibi89/my_local_ai",
+                          "branch": "dev/instant-implementation-v1", "sha": SOURCE},
+            "approval": {"status": "NOT_APPROVED", "scope": "SYNTHETIC_ONLY", "digest": None},
+            "tasks": tasks,
+        }
+        controller = Controller(PlanSpec.parse_json(json.dumps(obj)))
+        states = {"TASK-A": "READY", "TASK-B": "READY"}
+        original = controller.propose(states)
+        payload = make_env(
+            [{"task_id":"TASK-B","rank":0},{"task_id":"TASK-A","rank":5}],
+            plan_sha256=controller._plan.digest,
+        )
+        selected = controller.propose(states, optional_eai_envelope_json=payload)
+        self.assertEqual([x.task_id for x in original.decisions], ["TASK-A", "TASK-B"])
+        self.assertEqual([x.task_id for x in selected.decisions], ["TASK-B", "TASK-A"])
+        self.assertFalse(selected.verified)
+        self.assertFalse(selected.owner_go)
+        self.assertFalse(selected.execution_allowed)

@@ -12,7 +12,7 @@ from typing import Iterable
 from my_local_ai.ax_runtime.queue import QueuePolicy
 from my_local_ai.contracts.plan import PlanSpec
 from my_local_ai.contracts.task import TaskSpec
-from my_local_ai.advisors.eai import parse_advisory
+from my_local_ai.advisors.eai import parse_advisory, inspect_optional_eai
 
 _RISK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
@@ -74,6 +74,7 @@ class Controller:
         independently_verified: Iterable[str] = (),
         active_leases: Iterable[str] = (),
         advisory_json: str | None = None,
+        optional_eai_envelope_json: str | None = None,
     ) -> "CodeBatchPreview":
         """Select disjoint *candidate code tasks*, never parallel executors.
 
@@ -89,6 +90,7 @@ class Controller:
         result = self.propose(
             states,independently_verified=independently_verified,
             active_leases=active_leases,advisory_json=advisory_json,
+            optional_eai_envelope_json=optional_eai_envelope_json,
         )
         if result.execution_allowed or result.verified or result.owner_go:
             raise ValueError("untrusted Controller privilege")
@@ -126,12 +128,15 @@ class Controller:
         independently_verified: Iterable[str] = (),
         active_leases: Iterable[str] = (),
         advisory_json: str | None = None,
+        optional_eai_envelope_json: str | None = None,
     ) -> ControllerResult:
         """Return only passive proposals, even for self-claimed APPROVED plans.
 
         Trusted review IDs are supplied by a protected owner-side caller;
         nothing in PlanSpec, advisor text or queue state can mint them.
         """
+        if advisory_json is not None and optional_eai_envelope_json is not None:
+            raise ValueError("two competing advisor sources are not allowed")
         candidates = self._queue.propose_ready(
             states, independently_verified=independently_verified,
             active_leases=active_leases,
@@ -139,7 +144,24 @@ class Controller:
         candidate_ids = frozenset(c.task_id for c in candidates)
         hints: dict[str, int] = {}
         status = "DISABLED"
-        if advisory_json is not None:
+        if optional_eai_envelope_json is not None:
+            # Pin the optional advisor's text to the exact immutable plan
+            # and source, *after* the native DAG/lease READY calculation.
+            # Importing/running the original EAI product is never necessary.
+            advisory = inspect_optional_eai(
+                envelope_json=optional_eai_envelope_json,
+                eligible_ids=candidate_ids,
+                trusted_source_sha=self._plan.blueprint_sha,
+                trusted_plan_sha=self._plan.digest,
+            )
+            if advisory.executable or not advisory.independent_controller_required:
+                raise ValueError("unsafe optional advisor authority")
+            if advisory.status == "OPTIONAL_HINTS_VALIDATED_ONLY":
+                hints = dict(advisory.hints)
+                status = "OPTIONAL_HINTS_ACCEPTED"
+            else:
+                status = "INVALID_HINTS_IGNORED"
+        elif advisory_json is not None:
             try:
                 hints = parse_advisory(advisory_json, candidate_ids)
                 status = "OPTIONAL_HINTS_ACCEPTED"

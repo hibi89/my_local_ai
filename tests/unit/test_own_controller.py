@@ -186,3 +186,70 @@ class CodeBatchPlanningTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class ControllerOptionalPinnedEaiTests(unittest.TestCase):
+    def setUp(self):
+        self.plan = plan()
+        self.controller = Controller(self.plan)
+        self.states = {name: "READY" for name in
+                       ("TASK-A", "TASK-B", "TASK-C", "TASK-D")}
+
+    def envelope(self, hints=None, **override):
+        payload = {
+            "version": 1, "origin": "OPTIONAL_EAI_ADVISOR_DATA",
+            "source_git_sha": self.plan.blueprint_sha,
+            "plan_sha256": self.plan.digest,
+            "non_authoritative": True,
+            "hints": hints if hints is not None else [
+                {"task_id": "TASK-C", "rank": 0},
+                {"task_id": "TASK-B", "rank": 5},
+                {"task_id": "TASK-A", "rank": 0},
+            ]
+        }
+        payload.update(override)
+        return json.dumps(payload)
+
+    def test_optional_eai_data_changes_only_same_risk_priority(self):
+        out = self.controller.propose(
+            self.states, optional_eai_envelope_json=self.envelope())
+        self.assertEqual([item.task_id for item in out.decisions],
+                         ["TASK-C", "TASK-B", "TASK-A"])
+        self.assertEqual(out.advisory_status, "OPTIONAL_HINTS_ACCEPTED")
+        self.assertFalse(out.execution_allowed)
+        preview = self.controller.propose_code_batch(
+            self.states, max_tasks=2, max_total_calls=2,
+            max_total_seconds=20,
+            optional_eai_envelope_json=self.envelope())
+        self.assertEqual(preview.task_ids, ("TASK-C", "TASK-B"))
+        self.assertEqual(preview.model_calls_executed, 0)
+        self.assertFalse(preview.owner_go_verified)
+
+    def test_advisor_off_or_stale_plan_falls_back_without_EAI_runtime(self):
+        baseline = self.controller.propose(self.states)
+        for payload in (self.envelope(plan_sha256="f" * 64),
+                        self.envelope(source_git_sha="f" * 40),
+                        self.envelope(owner_go=True),
+                        self.envelope(hints=[{"task_id": "TASK-D", "rank": 0}]),
+                        "invalid-json"):
+            with self.subTest(payload=payload[:100]):
+                out = self.controller.propose(
+                    self.states, optional_eai_envelope_json=payload)
+                self.assertEqual(out.advisory_status, "INVALID_HINTS_IGNORED")
+                self.assertEqual(out.decisions, baseline.decisions)
+                self.assertFalse(out.execution_allowed)
+
+    def test_simultaneous_raw_and_pinned_eai_hints_refused(self):
+        with self.assertRaises(ValueError):
+            self.controller.propose(
+                self.states, advisory_json='{"version":1,"hints":[]}',
+                optional_eai_envelope_json=self.envelope())
+
+    def test_forged_eligible_child_still_cannot_be_selected(self):
+        self.states["TASK-A"] = "VERIFIED"  # guest label alone is not proof
+        forged = self.envelope(hints=[{"task_id":"TASK-D","rank":0}])
+        out = self.controller.propose(
+            self.states, optional_eai_envelope_json=forged)
+        self.assertEqual(out.advisory_status, "INVALID_HINTS_IGNORED")
+        self.assertNotIn("TASK-D", [d.task_id for d in out.decisions])

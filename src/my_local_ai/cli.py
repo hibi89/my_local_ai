@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
+import stat
 import shutil
 import sys
 
@@ -12,11 +14,40 @@ from .contracts import PlanSpec
 _ROOT = Path(__file__).resolve().parents[2]
 _MAX_PLAN_BYTES = 1_048_576
 
+def _read_bounded_regular(path: Path) -> bytes:
+    """Read a bounded regular file without following link/reparse ancestors.
+
+    This is a host-level read-only preflight, not a Windows owner ACL claim.
+    A hostile simultaneous filesystem writer remains outside P1 trust guarantees.
+    """
+    candidate = Path(path).absolute()
+    for segment in (candidate, *candidate.parents):
+        info = segment.lstat()
+        if (stat.S_ISLNK(info.st_mode)
+            or getattr(info, "st_file_attributes", 0) &
+               getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+            raise ValueError("unsafe state/plan file alias")
+    before = candidate.lstat()
+    if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+        or before.st_size > _MAX_PLAN_BYTES):
+        raise ValueError("nonregular or oversized local file")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    fd = os.open(candidate, flags)
+    with os.fdopen(fd, "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+            or (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino)):
+            raise ValueError("local file replaced before read")
+        raw = stream.read(_MAX_PLAN_BYTES + 1)
+    after = candidate.lstat()
+    if ((after.st_dev, after.st_ino) != (before.st_dev, before.st_ino)
+        or after.st_size != len(raw) or len(raw) > _MAX_PLAN_BYTES):
+        raise ValueError("local file changed while reading")
+    return raw
+
+
 def _read_json(path: Path) -> object:
-    raw = path.read_bytes()
-    if len(raw) > _MAX_PLAN_BYTES:
-        raise ValueError("oversized JSON")
-    return json.loads(raw.decode("utf-8"))
+    return json.loads(_read_bounded_regular(path).decode("utf-8"))
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="mla", description="My Local AI read-only P1 CLI")
@@ -43,11 +74,39 @@ def _status() -> dict:
     if not isinstance(gates, dict) or gates.get("program") != "my_local_ai":
         raise ValueError("invalid local gates")
     p1, p2 = gates.get("p1"), gates.get("p2")
-    if not isinstance(p1, dict) or not isinstance(p2, dict) or p2.get("status") != "LOCKED":
+    p4 = gates.get("p4")
+    if (not isinstance(p1, dict) or not isinstance(p2, dict)
+        or not isinstance(p4, dict) or gates.get("current_phase") != "P1_IMPLEMENTATION"
+        or p1.get("status") != "IN_PROGRESS"
+        or p1.get("implementation_complete_candidate") is not False
+        or p1.get("high_approved_candidate") is not False
+        or p2.get("status") != "LOCKED" or p2.get("verified_rate") != "UNASSESSED"
+        or p4.get("owner_go") is not False):
         raise ValueError("safety gate unavailable")
     total, done = p1.get("code_req_total"), p1.get("code_req_completed")
-    if type(total) is not int or type(done) is not int or not 0 <= done <= total <= 30:
+    if type(total) is not int or type(done) is not int or total != 30 or not 0 <= done < total:
         raise ValueError("invalid local counts")
+    queue = _read_json(_ROOT / "INSTANT_TASK_QUEUE.json")
+    if (not isinstance(queue, dict) or queue.get("program") != "my_local_ai"
+        or queue.get("phase") != "P1_IMPLEMENTATION_ONLY"
+        or queue.get("p1_ready_mode") != "CODE_ONLY_NOT_RUNTIME"
+        or queue.get("operational_ready") != []
+        or queue.get("code_completed_req") != done
+        or queue.get("total_code_req") != total
+        or not isinstance(queue.get("tasks"), list) or len(queue["tasks"]) != 28):
+        raise ValueError("queue and phase mismatch")
+    rows = queue["tasks"]
+    if (any(not isinstance(t, dict) or not isinstance(t.get("task_id"), str)
+            or t.get("runtime_authorization") !=
+               "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES" for t in rows)
+        or len({t["task_id"] for t in rows}) != 28):
+        raise ValueError("untrusted code-only queue")
+    ready = queue.get("first_ready")
+    if (not isinstance(ready, list) or not 0 < len(ready) <= 10
+        or len(ready) != len(set(ready))
+        or set(ready) != {t["task_id"] for t in rows
+                           if t.get("p1_code_status") == "READY_CODE_ONLY"}):
+        raise ValueError("code-only READY mismatch")
     return {
         "program": "my_local_ai",
         "phase": gates.get("current_phase"),
@@ -159,11 +218,7 @@ def _control_hold(task_id: str, action: str) -> dict:
 
 def _validate_plan(path: Path) -> dict:
     # Read at most 1 MiB; never print the plan or raw error details to stdout.
-    with path.open("rb") as stream:
-        raw = stream.read(_MAX_PLAN_BYTES + 1)
-    if len(raw) > _MAX_PLAN_BYTES:
-        raise ValueError("oversized plan")
-    spec = PlanSpec.parse_json(raw.decode("utf-8"))
+    spec = PlanSpec.parse_json(_read_bounded_regular(path).decode("utf-8"))
     return {
         "valid_schema": True,
         "plan_sha256": spec.digest,

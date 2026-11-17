@@ -23,7 +23,9 @@ def _unique_pairs(pairs):
 
 def parse_advisory(raw: str, eligible_ids: frozenset[str]) -> dict[str, int]:
     """Validate a strictly non-authoritative, bounded prioritization proposal."""
-    if not isinstance(raw, str) or not isinstance(eligible_ids, frozenset):
+    if (not isinstance(raw, str) or not isinstance(eligible_ids, frozenset)
+        or len(eligible_ids) > 512
+        or any(not isinstance(tid, str) for tid in eligible_ids)):
         raise ValueError("invalid advisory")
     try:
         if len(raw.encode("utf-8")) > _MAX_BYTES:
@@ -82,7 +84,8 @@ def inspect_optional_eai(
     if (not isinstance(trusted_source_sha, str) or not _SHA40.fullmatch(trusted_source_sha)
         or not isinstance(trusted_plan_sha, str) or not _SHA64.fullmatch(trusted_plan_sha)):
         raise ValueError("trusted reference required")
-    if not isinstance(eligible_ids, frozenset):
+    if (not isinstance(eligible_ids, frozenset) or len(eligible_ids) > 512
+        or any(not isinstance(tid, str) for tid in eligible_ids)):
         raise ValueError("eligible ready-set required")
     if envelope_json is None:
         return OptionalAdvisorResult("OFF", ())

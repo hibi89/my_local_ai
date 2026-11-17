@@ -32,3 +32,19 @@
 - `src/my_local_ai/advisors/eai.py` contains native original JSON boundary code, **no EAI module imported or source copied**. External optional EAI analysis may later pass bounded hints through a separate isolated adapter; its source-pin and plan digest are compared but not accepted as legal provenance or owner approval.
 - `inspect_optional_eai` returns `OFF` or `INVALID_OR_UNAVAILABLE_FALLBACK` on empty/malformed/authority-bearing input. It returns only allowed READY task IDs and integer rank hints with `executable=false`. My Local AI's native Controller always retains DAG/risk/approval judgment.
 - No external API, user original input, private source, actual model execution or Windows isolation test in this P1 patch. Original source reuse remains **BLOCKED_PROVENANCE** and the full MLA-028 runtime dependency is not waived.
+
+
+## 2026-11-17 P1 source-only Controller integration (MLA-008/028)
+
+The native \`Controller.propose(..., optional_eai_envelope_json=...)\` consumes the
+existing bounded offline EAI *data envelope* only after independent plan/DAG/
+lease candidate selection. The envelope's exact plan SHA256, blueprint Git SHA
+and eligible task set must match. Rank hints can only reorder eligible tasks
+within native immutable risk priorities. Invalid, stale, forged, unavailable,
+or disabled EAI hints fall back to the native controller. Passing both a raw
+hint and a pinned EAI envelope is refused as ambiguous. The optional adapter
+does not import EAI code, run its process, or transmit data.
+
+**No EAI source was copied or relicensed.** MLA-001 remains
+\`BLOCKED_PROVENANCE\`; SHA-pinned data is not evidence of copyright license,
+F18 review, protected owner consent, real Git authority or runtime approval.

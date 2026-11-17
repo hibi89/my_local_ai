@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shutil
+from unittest.mock import patch
 
 from my_local_ai.cli import main
 
@@ -116,3 +118,65 @@ class CliNextAndControlTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class CliLocalSafetyTests(unittest.TestCase):
+    def test_plan_symlink_never_read_even_for_valid_synthetic_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = Path(tmp) / "target.json"
+            original.write_text(json.dumps(minimal_plan()), encoding="utf-8")
+            linked = Path(tmp) / "linked.json"
+            try:
+                linked.symlink_to(original)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unavailable")
+            code, result = invoke("plan", "validate", "--file", str(linked))
+            self.assertEqual(code, 2)
+            self.assertEqual(result["status"], "HOLD")
+            self.assertFalse(result["execution_allowed"])
+
+    def test_plan_hardlink_and_linked_parent_denied(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = base / "source.json"
+            source.write_text(json.dumps(minimal_plan()), encoding="utf-8")
+            hard = base / "hard.json"
+            os.link(source, hard)
+            self.assertEqual(invoke("plan", "validate", "--file", str(hard))[0], 2)
+            direct = base / "physical"
+            direct.mkdir()
+            file = direct / "test.json"
+            file.write_text(json.dumps(minimal_plan()), encoding="utf-8")
+            linked = base / "alias"
+            try:
+                linked.symlink_to(direct, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("directory symlinks unavailable")
+            self.assertEqual(invoke("plan", "validate", "--file", str(linked / "test.json"))[0], 2)
+
+    def test_oversize_plan_refused_before_parse(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "oversized.json"
+            target.write_bytes(b"{" + b"x" * (1_048_577))
+            self.assertEqual(invoke("plan", "validate", "--file", str(target))[0], 2)
+
+    def test_queue_metric_tamper_does_not_appear_as_valid_status(self):
+        import my_local_ai.cli as cli
+        old_root = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("WORK_PHASE_GATES.json", "INSTANT_TASK_QUEUE.json"):
+                shutil.copyfile(old_root / name, root / name)
+            qfile = root / "INSTANT_TASK_QUEUE.json"
+            queue = json.loads(qfile.read_text(encoding="utf-8"))
+            queue["code_completed_req"] += 1
+            qfile.write_text(json.dumps(queue), encoding="utf-8")
+            with patch.object(cli, "_ROOT", root):
+                for command in (("status",), ("queue", "next"), ("doctor",)):
+                    with self.subTest(command=command):
+                        code, result = invoke(*command)
+                        self.assertEqual(code, 2)
+                        self.assertEqual(result["status"], "HOLD")
+                        self.assertFalse(result["execution_allowed"])
