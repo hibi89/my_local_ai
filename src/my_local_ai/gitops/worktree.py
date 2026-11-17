@@ -478,3 +478,178 @@ def create_disposable_no_checkout(
         if isinstance(exc, GitInventoryHold):
             raise
         raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
+
+
+# SWU-019: fixed-argv HEAD/index readback. This is data collection for a
+# separately protected owner Git reader, NOT an F18 trusted review.
+_MAX_GIT_READ_BYTES = 8 * 1024 * 1024
+
+
+def _bounded_protected_git_read(reader, root: _Path, argv: tuple[str, ...],
+                                *, max_bytes: int = _MAX_GIT_READ_BYTES) -> bytes:
+    if not callable(reader) or not isinstance(root, _Path):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    try:
+        value = reader(root, argv)
+    except Exception:
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY") from None
+    if not isinstance(value, bytes) or len(value) > max_bytes:
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    return value
+
+
+def _read_protected_sha(reader, root: _Path, argv: tuple[str, ...]) -> str:
+    raw = _bounded_protected_git_read(reader, root, argv, max_bytes=128)
+    try:
+        value = raw.decode("ascii").strip()
+    except UnicodeDecodeError:
+        raise GitInventoryHold("STALE_GIT_SOURCE") from None
+    if not _HEX40.fullmatch(value):
+        raise GitInventoryHold("STALE_GIT_SOURCE")
+    return value
+
+
+def _check_protected_config_keys(reader, root: _Path) -> None:
+    # Reject dangerous Git config before running status, which may otherwise
+    # call fsmonitor or extension hooks. These keys are read by fixed argv only.
+    raw = _bounded_protected_git_read(
+        reader, root, ("config", "--name-only", "--null", "--list"),
+        max_bytes=256 * 1024,
+    )
+    try:
+        keys = raw.decode("utf-8").split("\0")
+    except UnicodeDecodeError:
+        raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
+    if keys and keys[-1] == "":
+        keys.pop()
+    if len(keys) > 4096:
+        raise GitInventoryHold("UNSAFE_GIT_METADATA")
+    blocked_exact = {
+        "core.hookspath","core.worktree","core.fsmonitor",
+        "core.attributesfile","core.sshcommand",
+        "extensions.worktreeconfig",
+    }
+    blocked_prefixes = (
+        "include.", "includeif.", "filter.", "diff.", "merge.",
+        "submodule.", "credential.", "alias.",
+    )
+    if any(
+        not key or len(key) > 200 or key != key.strip()
+        or key.lower() in blocked_exact
+        or key.lower().startswith(blocked_prefixes)
+        for key in keys
+    ):
+        raise GitInventoryHold("UNSAFE_GIT_METADATA")
+
+
+def read_protected_git_inventory(
+    intent: WorktreeIntent, *, expected_main_sha: str,
+    protected_git_read, no_checkout: bool = False,
+) -> GitInventorySnapshot:
+    """Read actual Git HEAD, main and stage-0 index via fixed read-only argv.
+
+    The read callback is injected by an *owner-protected* environment; an
+    untrusted guest callback does NOT make its output trustworthy. Missing
+    tracked files in a deliberately empty --no-checkout worktree are accepted
+    only after confirming they match every stage-0 index path; changes, unknown
+    files, .git aliases, hooks/filters and config overrides are rejected.
+    """
+    if (not isinstance(intent, WorktreeIntent)
+        or not isinstance(expected_main_sha, str)
+        or _HEX40.fullmatch(expected_main_sha) is None
+        or type(no_checkout) is not bool
+        or not callable(protected_git_read)):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    try:
+        fresh = plan_disposable(
+            task_id=intent.task_id,
+            worktree=intent.preflight.worktree,
+            original_checkout=intent.preflight.original_checkout,
+            baseline_sha=intent.baseline_sha,
+            allowed_paths=intent.preflight.allowed_paths,
+        )
+        if fresh != intent:
+            raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+        audit_linked_worktree_metadata(intent)
+        work = _Path(intent.preflight.worktree)
+        original = _Path(intent.preflight.original_checkout)
+        if no_checkout and set(work.iterdir()) != {work / ".git"}:
+            raise GitInventoryHold("DIRTY_DISPOSABLE")
+        for directory in (original, work):
+            _check_protected_config_keys(protected_git_read, directory)
+        original_sha = _read_protected_sha(
+            protected_git_read, original,
+            ("rev-parse", "--verify", "HEAD^{commit}"),
+        )
+        main_sha = _read_protected_sha(
+            protected_git_read, original,
+            ("rev-parse", "--verify", "refs/heads/main^{commit}"),
+        )
+        disposable_sha = _read_protected_sha(
+            protected_git_read, work,
+            ("rev-parse", "--verify", "HEAD^{commit}"),
+        )
+        if (original_sha != intent.baseline_sha
+            or main_sha != expected_main_sha
+            or disposable_sha != intent.baseline_sha):
+            raise GitInventoryHold("STALE_GIT_SOURCE")
+
+        index_raw = _bounded_protected_git_read(
+            protected_git_read, work, ("ls-files", "--stage", "-z"),
+        )
+        rows = index_raw.split(b"\0")
+        if rows[-1] != b"":
+            raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+        entries = []
+        for row in rows[:-1]:
+            try:
+                header, name = row.split(b"\t", 1)
+                mode, sha, stage = header.decode("ascii").split(" ")
+                path = name.decode("utf-8", "strict")
+            except (UnicodeError, ValueError):
+                raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY") from None
+            if stage != "0":
+                raise GitInventoryHold("UNSAFE_GIT_MODE")
+            entries.append(IndexEntry(path, mode, sha))
+            if len(entries) > _INVENTORY_PATH_LIMIT:
+                raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+
+        status_raw = _bounded_protected_git_read(
+            protected_git_read, work,
+            ("status", "--porcelain=v1", "-z",
+             "--untracked-files=all", "--ignored=matching"),
+        )
+        tracked_names = {entry.relative_path for entry in entries}
+        if not no_checkout:
+            if status_raw:
+                raise GitInventoryHold("DIRTY_DISPOSABLE")
+        else:
+            status_rows = status_raw.split(b"\0")
+            if status_rows[-1] != b"":
+                raise GitInventoryHold("DIRTY_DISPOSABLE")
+            missing = []
+            for line in status_rows[:-1]:
+                if not line.startswith(b" D "):
+                    raise GitInventoryHold("DIRTY_DISPOSABLE")
+                try:
+                    missing.append(line[3:].decode("utf-8", "strict"))
+                except UnicodeDecodeError:
+                    raise GitInventoryHold("UNSAFE_GIT_PATH") from None
+            if len(missing) != len(set(missing)) or set(missing) != tracked_names:
+                raise GitInventoryHold("DIRTY_DISPOSABLE")
+        # The caller may use this snapshot only as a bounded index/readback,
+        # not an owner/F18 execution attestation.
+        snapshot = GitInventorySnapshot(
+            source_commit_sha=intent.baseline_sha,
+            disposable_head_sha=disposable_sha,
+            original_head_sha=original_sha,
+            main_ref_sha=main_sha,
+            expected_main_ref_sha=expected_main_sha,
+            index_entries=tuple(entries),
+        )
+        audit_disposable_git_inventory(intent, snapshot)
+        return snapshot
+    except (OSError, ScopeHold, ValueError) as exc:
+        if isinstance(exc, GitInventoryHold):
+            raise
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY") from None
