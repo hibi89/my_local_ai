@@ -382,6 +382,60 @@ def inspect_packaged_semgrep_rules(context: CodeShieldContext) -> SemgrepRulesIn
 from xml.etree import ElementTree as _ET
 
 
+def _validate_sandbox_xml(xml_text: str) -> None:
+    """Reject altered .wsb content even when its digest was recalculated.
+
+    This checks only an inert configuration preview. It does not attest to
+    an effective Windows policy or permit launching the Sandbox.
+    """
+    if (type(xml_text) is not str or not 0 < len(xml_text) <= 4096
+        or "<!" in xml_text or "<?" in xml_text):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    try:
+        root = _ET.fromstring(xml_text)
+    except _ET.ParseError:
+        raise CodeShieldHold("UNTRUSTED_DECISION") from None
+    settings = (
+        ("VGpu", "Disable"), ("Networking", "Disable"),
+        ("AudioInput", "Disable"), ("VideoInput", "Disable"),
+        ("ProtectedClient", "Enable"), ("PrinterRedirection", "Disable"),
+        ("ClipboardRedirection", "Disable"), ("MemoryInMB", "2048"),
+    )
+    if (root.tag != "Configuration" or root.attrib
+        or [part.tag for part in root] != [
+            *(name for name, _ in settings), "MappedFolders"
+        ]):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    for node, (name, expected) in zip(root, settings):
+        if (node.tag != name or node.attrib or len(node) != 0
+            or node.text != expected or node.tail not in (None, "")):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+    mapped = root[-1]
+    if (mapped.attrib or mapped.text not in (None, "")
+        or mapped.tail not in (None, "") or len(mapped) != 1):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    entry = mapped[0]
+    if (entry.tag != "MappedFolder" or entry.attrib
+        or entry.text not in (None, "") or entry.tail not in (None, "")
+        or [part.tag for part in entry] != [
+            "HostFolder", "SandboxFolder", "ReadOnly"
+        ]):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    for part in entry:
+        if part.attrib or len(part) != 0 or part.tail not in (None, ""):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+    host = entry[0].text
+    if (not isinstance(host, str) or not Path(host).is_absolute()
+        or ".." in Path(host).parts or len(host) > 180
+        or "%" in host or "\x00" in host
+        or entry[1].text != r"C:\CodeShieldIn"
+        or entry[2].text != "true"):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    # Accept only the exact producer format; discard XML extensions/comments.
+    if _ET.tostring(root, encoding="unicode", short_empty_elements=False) != xml_text:
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+
+
 @dataclass(frozen=True)
 class OfflineSandboxConfigPreview:
     """Inert fallback .wsb XML from an exactly pinned disposable input staging.
@@ -425,6 +479,8 @@ class OfflineSandboxConfigPreview:
                 "f18_verified", "git_promotion_allowed",
             ))):
             raise CodeShieldHold("UNTRUSTED_DECISION")
+
+        _validate_sandbox_xml(self.xml_text)
 
     def to_redacted_dict(self) -> dict[str, object]:
         """Never include local paths or executable config in UI/log output."""
