@@ -521,3 +521,126 @@ def decode_untrusted_host_qwen_files(
         request.plan_sha256,request.request_sha256,tuple(files),
         sha256(b"mla-untrusted-host-files/v1|"+canonical).hexdigest(),
     )
+
+
+# The host model can generate proposed file contents while the guest has no
+# network interface. A separate protected owner broker may later place this
+# in a one-run scratch directory (never original checkout) and map it into a
+# Windows Sandbox as READ-ONLY. Host side never executes model-authored text.
+from pathlib import PureWindowsPath as _PureWindowsPath
+
+
+@dataclass(frozen=True)
+class SandboxReadOnlyPatchImport:
+    task_id: str
+    run_id: str
+    role: str
+    plan_sha256: str
+    source_sha: str
+    host_scratch_input_dir: str
+    guest_input_dir: str
+    config_xml: str
+    config_sha256: str
+    manifest_sha256: str
+    manifest_bytes: bytes
+    state: str = "READ_ONLY_GUEST_IMPORT_SOURCE_ONLY"
+    host_scratch_acl_verified: bool = False
+    guest_isolation_attested: bool = False
+    guest_execution_started: bool = False
+    guest_writable_host_mapping: bool = False
+    owner_source_written: bool = False
+    may_promote: bool = False
+
+
+def prepare_sandbox_readonly_patch_import(
+    *, profile: WindowsNoEgressProfile,
+    proposed_files: UntrustedHostQwenFiles,
+    scratch_root: str,
+) -> SandboxReadOnlyPatchImport:
+    """Render exact .wsb read-only host-scratch mapping; no file or OS changes.
+
+    Requires a disposable, task-specific host path. Before installing it,
+    the protected Windows broker MUST attest path, DACL, no reparse ancestors,
+    package hash and safe owner/guest principal separation. The directory
+    and the WSB XML are source-only plans, not proof that mapping occurred.
+    """
+    if (not isinstance(profile,WindowsNoEgressProfile)
+        or not isinstance(proposed_files,UntrustedHostQwenFiles)
+        or profile.role != "CODER"
+        or proposed_files.task_id != profile.task_id
+        or proposed_files.run_id != profile.run_id
+        or proposed_files.source_sha != profile.source_sha
+        or proposed_files.plan_sha256 != profile.plan_sha256
+        or proposed_files.state != "UNTRUSTED_HOST_MODEL_OUTPUT_F18_REQUIRED"
+        or proposed_files.files_applied_to_original
+        or proposed_files.guest_executed
+        or proposed_files.independent_f18_verified
+        or proposed_files.can_publish
+        or not isinstance(scratch_root,str)
+        or not scratch_root.isascii()):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    audit_no_egress_profile(
+        profile,expected_task_id=profile.task_id,
+        expected_run_id=profile.run_id,expected_role="CODER",
+        expected_source_sha=profile.source_sha,
+        expected_plan_sha256=profile.plan_sha256,
+    )
+    # Require exactly one owner-selected scratch root. No path segments
+    # from guest/model data, no UNC/\\?\ or alternate data streams.
+    host_root = _PureWindowsPath(scratch_root)
+    normalized = str(host_root)
+    if (not host_root.is_absolute() or host_root.drive.upper() != "C:"
+        or normalized != r"C:\MLA_Disposable"
+        or any(part in (".", "..") for part in host_root.parts)):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    host_input = str(host_root / profile.run_id / "input")
+    guest_input = r"C:\MLA_Input"
+    root = ET.fromstring(profile.config_xml)
+    mapped = ET.SubElement(root, "MappedFolders")
+    folder = ET.SubElement(mapped, "MappedFolder")
+    ET.SubElement(folder, "HostFolder").text = host_input
+    ET.SubElement(folder, "SandboxFolder").text = guest_input
+    ET.SubElement(folder, "ReadOnly").text = "true"
+    config = ET.tostring(root, encoding="unicode", short_empty_elements=False)
+    manifest = _json.dumps({
+        "version":1,"task_id":profile.task_id,"run_id":profile.run_id,
+        "source_sha":profile.source_sha,"plan_sha256":profile.plan_sha256,
+        "files_sha256":proposed_files.files_sha256,
+        "files":[{"path":p,"content":c} for p,c in proposed_files.files],
+        "trust":"UNTRUSTED_MODEL_FILES_NEVER_HOST_EXECUTABLE",
+    },ensure_ascii=True,sort_keys=True,separators=(",",":")).encode("utf-8")
+    if len(manifest)>196608:
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    config_hash=sha256(
+        b"mla-wsb-readonly-import/v1|" + profile.config_sha256.encode("ascii")
+        + b"|" + config.encode("utf-8")
+    ).hexdigest()
+    manifest_hash=sha256(b"mla-model-import/v1|"+manifest).hexdigest()
+    return SandboxReadOnlyPatchImport(
+        profile.task_id,profile.run_id,profile.role,profile.plan_sha256,
+        profile.source_sha,host_input,guest_input,config,config_hash,
+        manifest_hash,manifest,
+    )
+
+
+def audit_sandbox_readonly_patch_import(
+    plan: SandboxReadOnlyPatchImport, *,
+    profile: WindowsNoEgressProfile,
+    proposed_files: UntrustedHostQwenFiles,
+) -> str:
+    """Verify all fields and exact XML before any protected broker operation."""
+    if (not isinstance(plan,SandboxReadOnlyPatchImport)
+        or plan.state != "READ_ONLY_GUEST_IMPORT_SOURCE_ONLY"
+        or plan.host_scratch_acl_verified
+        or plan.guest_isolation_attested
+        or plan.guest_execution_started
+        or plan.guest_writable_host_mapping
+        or plan.owner_source_written or plan.may_promote):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    expected=prepare_sandbox_readonly_patch_import(
+        profile=profile,proposed_files=proposed_files,
+        scratch_root=r"C:\MLA_Disposable",
+    )
+    if plan != expected:
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    return "EXACT_READ_ONLY_GUEST_IMPORT_HOST_ACL_AND_EGRESS_NOT_ATTESTED"
