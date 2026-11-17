@@ -80,20 +80,26 @@ def _v2_config(model: str, allowed_paths: tuple[str, ...]) -> str:
         "model": "ollama/" + model,
         "permissions": permissions,
         "policies": [
-            # Provider policy is a hard deny after permission evaluation.
-            # Only the explicitly selected local Ollama provider may run.
+            # In V2, policies are hard-deny rules evaluated *after* saved
+            # approvals, agents and inherited config permissions. An allow
+            # lifts the hard deny; it never grants permission by itself.
             {"action": "provider.use", "resource": "*", "effect": "deny"},
             {"action": "provider.use", "resource": "ollama", "effect": "allow"},
+            {"action": "tool.use", "resource": "*", "effect": "deny"},
             *(
-                {"action": "tool.use", "resource": action + ":*", "effect": "deny"}
-                for action in (
-                    "shell", "execute", "external_directory", "webfetch",
-                    "websearch", "subagent", "skill",
+                item
+                for path in allowed_paths
+                for item in (
+                    {"action": "tool.use", "resource": "read:" + path, "effect": "allow"},
+                    {"action": "tool.use", "resource": "edit:" + path, "effect": "allow"},
                 )
             ),
         ],
         "mcp": {},
-        "plugin": [],
+        # OpenCode V2 uses plural 'plugins'. The old singular field was
+        # ignored and could accidentally load installed plugins.
+        "plugins": [],
+        "update": "disable",
     }
     return json.dumps(config, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 

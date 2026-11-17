@@ -220,6 +220,29 @@ class OpenCodePolicyTests(unittest.TestCase):
                 self.dispatch(sandbox=sandbox, **missing)
         self.assertEqual(sandbox.calls, 0)
 
+    def test_v2_plugin_and_hard_policy_scope_is_explicit(self):
+        req=self.prepare()
+        config=json.loads(dict(req.environment)["OPENCODE_CONFIG_CONTENT"])
+        self.assertEqual(config["plugins"], [])
+        self.assertNotIn("plugin",config)
+        self.assertEqual(config["update"],"disable")
+        self.assertEqual(config["policies"][2],{
+            "action":"tool.use","resource":"*","effect":"deny",
+        })
+        allowed={
+            (p["resource"],p["effect"]) for p in config["policies"][3:]
+        }
+        self.assertEqual(allowed,{
+            ("read:src/test.py","allow"),("edit:src/test.py","allow"),
+        })
+        # A broad hard deny followed by specific exceptions is the
+        # documented V2 ordering. Shell/web/remote tools never get an allow.
+        self.assertFalse(any(
+            p["resource"].startswith(("shell:","execute:","webfetch:","websearch:"))
+            and p["effect"]=="allow"
+            for p in config["policies"]
+        ))
+
     def test_provider_policy_deny_cloud_and_allow_only_local(self):
         request = self.prepare()
         config = json.loads(dict(request.environment)["OPENCODE_CONFIG_CONTENT"])
