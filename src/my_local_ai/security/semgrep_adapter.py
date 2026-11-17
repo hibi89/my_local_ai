@@ -373,3 +373,175 @@ def inspect_packaged_semgrep_rules(context: CodeShieldContext) -> SemgrepRulesIn
         "LOCAL_RULES_PINNED_STATIC_ONLY" if valid else "UNKNOWN_HOLD",
         actual, expected,
     )
+
+
+# CS-SWU-007: manually approved Windows Sandbox fallback (CONFIG ONLY).
+# NEVER starts Sandbox, enables Windows features, runs scanners or writes .wsb.
+# Microsoft Windows Sandbox supports Networking=Disable and mapped ReadOnly
+# folders; actual OS/network isolation and Windows policy require P2 evidence.
+from xml.etree import ElementTree as _ET
+import ntpath as _ntpath
+
+
+@dataclass(frozen=True)
+class OfflineSandboxConfigPreview:
+    """Inert fallback .wsb XML from an exactly pinned disposable input staging.
+
+    The host folder must be a *minimal* owner-prepared staging directory:
+    semgrep.exe, codeshield.yaml and numbered source copies only. There are no
+    host executable actions or Sandbox LogonCommand. Never treat this as OS
+    attestation, permission, successful scan, or independent F18.
+    """
+    request_context_sha256: str
+    inventory_sha256: str
+    configuration_sha256: str
+    xml_text: str
+    source_count: int
+    stage: str = "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
+    may_launch_sandbox: bool = False
+    may_run_scanner: bool = False
+    os_isolation_attested: bool = False
+    owner_permission_verified: bool = False
+    f18_verified: bool = False
+    git_promotion_allowed: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.stage != "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
+            or type(self.source_count) is not int
+            or not 1 <= self.source_count <= 16
+            or any(not isinstance(value, str) or len(value) != 64
+                   or any(c not in "0123456789abcdef" for c in value)
+                   for value in (
+                       self.request_context_sha256,
+                       self.inventory_sha256,
+                       self.configuration_sha256,
+                   ))
+            or not isinstance(self.xml_text, str)
+            or len(self.xml_text) > 4096
+            or sha256(self.xml_text.encode("utf-8")).hexdigest()
+               != self.configuration_sha256
+            or any(getattr(self, flag) is not False for flag in (
+                "may_launch_sandbox", "may_run_scanner",
+                "os_isolation_attested", "owner_permission_verified",
+                "f18_verified", "git_promotion_allowed",
+            ))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+    def to_redacted_dict(self) -> dict[str, object]:
+        """Never include local paths or executable config in UI/log output."""
+        return {
+            "stage": self.stage,
+            "request_context_sha256": self.request_context_sha256,
+            "inventory_sha256": self.inventory_sha256,
+            "configuration_sha256": self.configuration_sha256,
+            "source_count": self.source_count,
+            "networking_requested": "Disable",
+            "readonly_mapping_requested": True,
+            "logon_command_present": False,
+            "may_launch_sandbox": False,
+            "may_run_scanner": False,
+            "os_isolation_attested": False,
+            "f18_verified": False,
+            "git_promotion_allowed": False,
+        }
+
+
+def prepare_on_demand_sandbox_fallback(
+    request: SemgrepBrokerRequest, *,
+    minimal_staging_folder: str | Path,
+) -> OfflineSandboxConfigPreview:
+    """Return inert, offline Windows Sandbox XML for optional future owner GO.
+
+    This is NOT the default scanner runner. A protected Windows service must
+    independently verify the owner principal, staging ACLs, folder inventory,
+    OS Sandbox support, effective networking policy and exact Git snapshot.
+    No shell, OS settings, file write, .wsb launch, network or model call.
+    """
+    if not isinstance(request, SemgrepBrokerRequest):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    if os.name != "nt":
+        raise CodeShieldHold("WINDOWS_REQUIRED")
+    folder = Path(minimal_staging_folder)
+    if (not folder.is_absolute() or ".." in folder.parts
+        or folder.anchor == str(folder) or len(folder.parts) < 3
+        or len(str(folder)) > 180 or "%" in str(folder)):
+        raise CodeShieldHold("UNSAFE_PATH")
+    # Staging cannot be the candidate source worktree or trusted tool dir.
+    toolpath = Path(request.argv[0])
+    sources = tuple(request.source_sha256)
+    if (not 1 <= len(sources) <= 16 or len(request.allowed_paths) != len(sources)
+        or request.can_spawn or request.network_isolation_attested
+        or request.owner_go_verified or request.f18_verified):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    if (folder == toolpath.parent or folder in toolpath.parents
+        or toolpath in folder.parents
+        or any(folder == Path(p).parent or folder in Path(p).parents
+               or Path(p) in folder.parents for p in request.argv[-len(sources):])):
+        raise CodeShieldHold("UNSAFE_PATH")
+    expected = {
+        "semgrep.exe": request.binary_sha256,
+        "codeshield.yaml": request.rules_sha256,
+    }
+    for index, (relative, digest) in enumerate(sources):
+        if (relative != request.allowed_paths[index]
+            or not isinstance(digest, str) or len(digest) != 64
+            or any(v not in "0123456789abcdef" for v in digest)):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+        suffix = Path(relative).suffix.lower()
+        if suffix not in _SUFFIXES:
+            raise CodeShieldHold("UNSAFE_PATH")
+        expected[f"source_{index:02d}{suffix}"] = digest
+    # No unexpected files, nested directories, symlinks, NTFS junctions,
+    # hardlinked files or stealth config. Include *only* scanner/rule/sources.
+    try:
+        for parent in (folder, *folder.parents):
+            st = parent.lstat()
+            if (not stat.S_ISDIR(st.st_mode) or stat.S_ISLNK(st.st_mode)
+                or getattr(st, "st_file_attributes", 0)
+                   & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+                raise CodeShieldHold("UNSAFE_PATH")
+        entries = os.listdir(folder)
+        if (len(entries) != len(expected)
+            or set(entries) != set(expected)
+            or len({v.casefold() for v in entries}) != len(entries)):
+            raise CodeShieldHold("UNSAFE_PATH")
+        for name, digest in expected.items():
+            limit = (_MAX_BINARY if name.endswith(".exe")
+                     else _MAX_RULES if name.endswith(".yaml")
+                     else _MAX_SOURCE_BYTES)
+            if _digest(folder / name, max_size=limit) != digest:
+                raise CodeShieldHold("STALE_EVIDENCE")
+    except CodeShieldHold:
+        raise
+    except (OSError, ValueError, UnicodeError):
+        raise CodeShieldHold("UNSAFE_PATH") from None
+    root = _ET.Element("Configuration")
+    for key, value in (
+        ("VGpu", "Disable"), ("Networking", "Disable"),
+        ("AudioInput", "Disable"), ("VideoInput", "Disable"),
+        ("ProtectedClient", "Enable"), ("PrinterRedirection", "Disable"),
+        ("ClipboardRedirection", "Disable"), ("MemoryInMB", "2048"),
+    ):
+        _ET.SubElement(root, key).text = value
+    mapped = _ET.SubElement(root, "MappedFolders")
+    item = _ET.SubElement(mapped, "MappedFolder")
+    _ET.SubElement(item, "HostFolder").text = str(folder)
+    _ET.SubElement(item, "SandboxFolder").text = r"C:\CodeShieldIn"
+    _ET.SubElement(item, "ReadOnly").text = "true"
+    xml = _ET.tostring(root, encoding="unicode", short_empty_elements=False)
+    # No <LogonCommand>: even starting this config must not auto-run Semgrep.
+    if "LogonCommand" in xml:
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    inventory = sha256(
+        json.dumps({
+            "context": request.context_sha256,
+            "candidate": request.candidate_git_sha,
+            "staging": str(folder),
+            "files": sorted(expected.items()),
+        }, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return OfflineSandboxConfigPreview(
+        request.context_sha256, inventory,
+        sha256(xml.encode("utf-8")).hexdigest(),
+        xml, len(sources),
+    )
