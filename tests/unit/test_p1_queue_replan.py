@@ -59,8 +59,14 @@ class CodeQueueSeparationTests(unittest.TestCase):
 
     def test_missing_source_evidence_denied(self):
         fake=copy.deepcopy(SOURCE)
+        ready=set(SOURCE["first_ready"])
+        dependents=[dep for task in SOURCE["tasks"] if task["task_id"] in ready
+                    for dep in task["p1_code_depends_on"]]
+        if not dependents:
+            self.skipTest("current code-only READY wave contains no source dependencies")
+        target=dependents[0]
         for item in fake["tasks"]:
-            if item["task_id"] == SOURCE["tasks"][next(i for i,t in enumerate(SOURCE["tasks"]) if t["task_id"] == SOURCE["first_ready"][0])]["p1_code_depends_on"][0]:
+            if item["task_id"] == target:
                 item["evidence_sha"]=None
         with self.assertRaises(ValueError):
             self.audit(fake)
