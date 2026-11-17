@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import re
 
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
+_PLAN_SHA = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
 _REQ = re.compile(r"REQ-[0-9]{2}\Z")
 _RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
@@ -90,7 +91,7 @@ class TaskSpec:
         if any(not isinstance(v, str) or not _ID.fullmatch(v) for v in safety):
             raise ValueError("safety check")
         plan_sha = obj["plan_sha"]
-        if plan_sha is not None and (not isinstance(plan_sha, str) or not _SHA.fullmatch(plan_sha)):
+        if plan_sha is not None and (not isinstance(plan_sha, str) or not _PLAN_SHA.fullmatch(plan_sha)):
             raise ValueError("plan sha")
         source_sha = obj["source_sha"]
         if not isinstance(source_sha, str) or not _SHA.fullmatch(source_sha):
