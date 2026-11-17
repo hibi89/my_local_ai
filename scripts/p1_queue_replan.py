@@ -15,6 +15,36 @@ EXPECTED = frozenset({
     "MLA-019","MLA-020","MLA-021","MLA-022","MLA-023","MLA-024",
     "MLA-025","MLA-028","MLA-029","MLA-030",
 })
+RUNTIME_DEPENDS_ON = {
+    "MLA-001": [],
+    "MLA-002": [],
+    "MLA-003": [],
+    "MLA-004": [],
+    "MLA-005": [],
+    "MLA-006": ["MLA-002"],
+    "MLA-007": ["MLA-002"],
+    "MLA-008": ["MLA-001","MLA-002"],
+    "MLA-009": ["MLA-002","MLA-007"],
+    "MLA-010": ["MLA-002","MLA-007"],
+    "MLA-011": ["MLA-010"],
+    "MLA-012": ["MLA-005","MLA-011"],
+    "MLA-013": ["MLA-012"],
+    "MLA-014": ["MLA-001","MLA-002","MLA-003"],
+    "MLA-015": ["MLA-003","MLA-004","MLA-014"],
+    "MLA-016": ["MLA-010","MLA-015"],
+    "MLA-017": ["MLA-007","MLA-010","MLA-014"],
+    "MLA-018": ["MLA-014","MLA-015","MLA-017"],
+    "MLA-019": ["MLA-006","MLA-008","MLA-010","MLA-013","MLA-016","MLA-018"],
+    "MLA-020": ["MLA-005","MLA-012"],
+    "MLA-021": ["MLA-006","MLA-007"],
+    "MLA-022": ["MLA-017","MLA-019","MLA-020"],
+    "MLA-023": ["MLA-009","MLA-018"],
+    "MLA-024": ["MLA-023"],
+    "MLA-025": ["MLA-019","MLA-021","MLA-022","MLA-029"],
+    "MLA-028": ["MLA-008","MLA-015"],
+    "MLA-029": ["MLA-015","MLA-019"],
+    "MLA-030": ["MLA-004","MLA-014","MLA-015"],
+}
 MUST_HOLD = frozenset({"MLA-001","MLA-003","MLA-009"})
 CODE_READY = "READY_CODE_ONLY"
 RUNTIME_HOLD = "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"
@@ -72,6 +102,8 @@ def audit_p1_queue(raw: str) -> dict:
         if (not isinstance(deps, list) or len(deps) != len(set(deps))
             or any(dep not in EXPECTED or dep == tid for dep in deps)):
             raise ValueError("bad code dependency")
+        if task.get("depends_on") != RUNTIME_DEPENDS_ON[tid]:
+            raise ValueError("full acceptance dependency graph modified")
         if (not isinstance(task.get("depends_on"), list)
             or not set(deps).issubset(set(task["depends_on"]))):
             raise ValueError("source dependency cannot invent old edge")

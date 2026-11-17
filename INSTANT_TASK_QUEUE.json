@@ -19,8 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-019",
-    "MLA-023"
+    "MLA-022",
+    "MLA-024",
+    "MLA-029"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -672,8 +673,10 @@
       "safety_checks": "SYNTHETIC_ONLY;F18_SECURITY_PASS",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "5b6f5c83d2c3dae51db8a103422d952a4e58138d",
+      "blockers": [
+        "Code-only adapter/preview implemented; full runtime dependencies remain unresolved, no owner GO or F18 or original/remote operation"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -690,8 +693,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "UNVERIFIED_RUNTIME_AND_HIGH_ACCEPTANCE"
+      ]
     },
     {
       "task_id": "MLA-020",
@@ -796,7 +801,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -816,8 +821,10 @@
       "safety_checks": "READ_ONLY_REMOTE;NO_PRODUCTION",
       "risk": "MEDIUM",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "efc2f33713ed4c3af77583b2d276cf601615f12e",
+      "blockers": [
+        "Code-only adapter/preview implemented; full runtime dependencies remain unresolved, no owner GO or F18 or original/remote operation"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -827,8 +834,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "UNVERIFIED_RUNTIME_AND_HIGH_ACCEPTANCE"
+      ]
     },
     {
       "task_id": "MLA-024",
@@ -859,10 +868,8 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
-      "p1_code_blockers": [
-        "actual remote publish approval remains separate"
-      ]
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": []
     },
     {
       "task_id": "MLA-025",
@@ -974,7 +981,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "PENDING_CODE_DEPENDENCY",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -1040,9 +1047,7 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-022",
-      "MLA-024",
-      "MLA-029"
+      "MLA-025"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
@@ -1051,8 +1056,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-019",
-      "MLA-023"
+      "MLA-022",
+      "MLA-024",
+      "MLA-029"
     ],
     "completed_code_waves": [
       [
@@ -1062,6 +1068,10 @@
       ],
       [
         "MLA-018"
+      ],
+      [
+        "MLA-019",
+        "MLA-023"
       ]
     ]
   }

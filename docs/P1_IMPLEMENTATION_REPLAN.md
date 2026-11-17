@@ -43,3 +43,9 @@ P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly autho
 
 - MLA-018 pure isolated local CAS intent `46f6995ea7456f77632826712247ec099aa2582e`; cryptographic inspection alone never permits promotion; all Git writes disabled. Safe synthetic CI on exact source SHA PASS.
 - Current P1 code-only READY: MLA-019 BE/FE synthetic integration, MLA-023 **read-only** remote preview. Their original runtime statuses stay `BLOCKED_DEPENDENCY`, with runtime_authorization HOLD; no remote API/PR/actual original changes.
+
+## Wave 3 in progress (2026-11-17 KST)
+
+- MLA-019 Controller→redacted read-only app synthetic journey source `5b6f5c83d2c3dae51db8a103422d952a4e58138d`.
+- MLA-023 read-only remote action preview source `efc2f33713ed4c3af77583b2d276cf601615f12e` (fixed rejected traversal-like repo IDs after synthetic regression), no API/push/PR capability.
+- Next independent code-only READY: MLA-022 supervisor/resource synthetic policy, MLA-024 action-bound remote publish fail-closed gate, MLA-029 Windows trust-boundary fixture authoring. Runtime task statuses remain BLOCKED and P2 locked. This audit now pins every original runtime `depends_on` edge and tests are dynamic across code-only waves.

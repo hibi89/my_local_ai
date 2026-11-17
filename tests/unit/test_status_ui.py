@@ -23,8 +23,9 @@ class StatusUiTests(unittest.TestCase):
 
     def test_code_only_ready_is_distinct_from_runtime_ready(self):
         result=load_snapshot(ROOT).to_public_dict()
-        self.assertEqual(result["p1_code_ready_ids"], ["MLA-019","MLA-023"])
-        self.assertEqual(result["p1_code_ready_tasks"], 2)
+        queue=json.loads((ROOT/"INSTANT_TASK_QUEUE.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["p1_code_ready_ids"], queue["first_ready"])
+        self.assertEqual(result["p1_code_ready_tasks"], len(queue["first_ready"]))
         self.assertEqual(result["ready_tasks"], 0)
         self.assertFalse(result["operation_allowed"])
 
@@ -32,7 +33,7 @@ class StatusUiTests(unittest.TestCase):
         html=render_html(load_snapshot(ROOT)).decode("utf-8")
         self.assertIn("코드 작성 READY",html)
         self.assertIn("실행 READY",html)
-        self.assertIn("MLA-019",html)
+        self.assertIn(load_snapshot(ROOT).to_public_dict()["p1_code_ready_ids"][0],html)
         self.assertIn("실행 허가 아님",html)
         self.assertNotIn("<script",html)
 
