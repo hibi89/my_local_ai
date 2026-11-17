@@ -1,3 +1,5 @@
+> **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
+
 # My Local AI — REQ-01~32 수용 매트릭스 (전수, 설계 시점)
 
 모든 REQ는 현재 **DESIGNED_NOT_IMPLEMENTED / PASS NOT_RUN**. 아래는 계획된 검증 방법이며 실행 결과가 아니다. 승인 가중치 미정이므로 공식 검증률 UNASSESSED. 본 표가 전체 최종설계 범위 기준이며 누락·축소 금지.
@@ -48,3 +50,5 @@
 - G7 운영 GO: 사용자 명시 승인, 고객자료·GitHub 원격/OS시작/상용은 별도 권한.
 
 출시·상용화·모든 상품 자동 완성 보장은 이번 프로젝트 범위 밖이다. 숫자 근거 없이 완성률 100%·검증 100% 금지.
+
+> **단계 분리:** 위 REQ-01~REQ-30 수용 조건은 P1 중에는 테스트·코드 작성 여부로만 구현 근거를 기록하고, **P2에서 실제로 통과**해야 검증 근거가 된다. REQ-31은 P3 독립 감사, REQ-32는 P4 High 최종 인수/사용자 GO이며 P1 코드 분모가 아니다. 각 P2 작업 ID 및 정확 SHA는 `VERIFICATION_TASK_QUEUE.json`에서 확인한다. `INSTANT_TASK_QUEUE.json`의 P1 `status`를 P2 PASS로 해석 금지.

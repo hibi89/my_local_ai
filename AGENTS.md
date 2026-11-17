@@ -1,3 +1,5 @@
+> **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
+
 # AGENTS — My Local AI 통합 프로젝트 (2026-11-17 KST)
 
 ## 임무 잠금
@@ -8,7 +10,7 @@
 2. `AGENTS.md`
 3. `HANDOFF.md` → `STATUS.md`
 4. `REQUIREMENTS.md` → `docs/FINAL_BLUEPRINT.md` → `docs/INTEGRATION_CONTRACT.md` 및 `docs/SECURITY_MODEL.md`
-5. 실제 코드/테스트/`INSTANT_TASK_QUEUE.json` → 첫 READY
+5. `WORK_PHASE_GATES.json`→현재 단계 전용 큐(`INSTANT_TASK_QUEUE.json` 또는 `VERIFICATION_TASK_QUEUE.json`)→실제 코드/테스트→첫 READY
 
 ## 사용자가 확정한 작업 순서
 High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·작업 큐 → Instant: 여러 READY 묶음 구현 후보 100%까지 코드 작성 → 구현 완료 후보 후 전체 CI·통합/보안·결함 수정 → Codex Sol Max(기술) / Astra Max(UI) 독립 검수 → High 최종 인수 → 사용자 실제 운용 GO. `ㄱ`/`ㄱㄱ`은 현재 프로젝트의 승인된 다음 READY 실제 수행. 설계 승인 전 실행 작업은 설계 수정만 가능.

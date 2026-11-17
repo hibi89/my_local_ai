@@ -1,0 +1,3 @@
+# My Local AI — mandatory instructions for GitHub coding assistants
+
+Read root AGENTS.md (owner latest), docs/PHASE_GATES.md and WORK_PHASE_GATES.json before any task. Current mode: P1 IMPLEMENTATION FIRST, P2 VERIFICATION LOCKED. Read INSTANT_TASK_QUEUE.json ONLY for implementation, not VERIFICATION_TASK_QUEUE.json until High's exact-SHA IMPLEMENTATION_100_CANDIDATE gate. In P1 write actual BE/FE code in allowed paths, create local tests and run targeted safety/syntax checks; do not manually wait for entire CI each commit, but NEVER disable required CI or safety checks. Preserve EAI/AX original repos, main, secrets, no cloud APIs/remote writes. Report exact SHA and tests NOT_RUN vs PASS. Codex/Astra independent review only after P2 actual acceptance.
