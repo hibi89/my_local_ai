@@ -522,3 +522,18 @@
 - **Early Sol Max ONLY if indispensable actual P1 development deadlock** (no safe independent READY or viable safe redesign), or proceeding would require violating safety. A mere CRITICAL label, F18 execution HOLD or expected P2 Windows evidence absence is not automatically an early escalation.
 - Prior immediate status for `CS-SWU-014` is revoked in the active queue, now `DEFERRED_CONDITIONAL_2_PLUS_2`; continue source-ready `CS-SWU-010` offline dependency work. `CS-SWU-007/010/012/014` are still high-risk review/implementation gaps; owner runtime/OS scanner invocation, F18 trusted signer, P2 remain HOLD. No Codex review has run.
 - Policy evidence: queue `43658d275da49710ab7cba6523ee97609ce89760`, AGENTS `f3269736a5821776f78685bdce24c5b86c1113cb`, STATUS `ebad9483c84bb35bf8aefb9e222c9851b23e367a`; final HEAD re-read after this handoff update. This policy turn has no Python code edits, syntax/smoke/Windows validation NOT_RUN, 2+2 failure count unchanged.
+
+---
+
+## 2026-11-17 KST — CodeShield P1 SWU-010 after 2+2-first policy
+
+1. Goal: MLA V1.3 offline-only scanner implementation in `feature/code-shield-lightweight-v1`; no migration or other project change.
+2. Code: OSV V2 lockfile source scan port completed with local ecosystem/DB/cache pinning, no remote DB update, no call analysis, local config deny, binary/source freshness and redacted result parsing. `src/my_local_ai/security/supply_chain.py` at `bdccd9724f1c315a81eba61fb034bd707cfb6382`.
+3. Checks: GitHub branch and file readback PASS; Python syntax, Windows binary/options/real OSV run, native isolation and F18 NOT_RUN; CI full P2 deferred. No claim of actual native scanner PASS.
+4. Progress: CodeShield 13/16=81.25% IMPLEMENTED_UNVERIFIED; legacy MLA 35/39=89.74%, official REQ 5/30=16.67% unchanged. P2 LOCKED and owner GO=false.
+5. Blocked/not implemented: 007 Semgrep protected OS egress broker, 012 owner-scoped Defender scan, 014 independent F18/Controller execution gate; protected runtime and promotion HOLD. New non-progress failures=0; 2+2 policy first, Codex Sol Max only after proven essential deadlock or 4 failures.
+6. Repo/refs: `hibi89/my_local_ai`, feature branch only; queue `2764026e070faf6d3fca817112540f4ebc2fcc26`, AGENTS `92154c5191b45e7586c1e67a05ca9d2940a02f86`, STATUS `146893aef6f883c3826c86554bb25742dab248b3`; re-read current HEAD after this handoff.
+7. Production/OS: not applicable; owner Windows 11/Qwen untouched, no tool auto-install, local AV policy changes, network, unauthorized personal data.
+8. Preservation: main, dev, High design, original data, required CI, protected signer/F18 trust restrictions unchanged.
+9. Next code READY: CS-SWU-007 code-only protected Semgrep scanner broker, no arbitrary boolean-based egress privilege. Ask High for true OS broker design if implementation requires changing trust boundary; Sol Max condition remains deferred.
+10. Basis: 2026-11-17 KST, GitHub source file/queue verification only. P2 verification still unassessed.
