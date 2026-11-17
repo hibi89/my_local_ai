@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import re
 
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
-_REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
+_REPO = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\Z")
 _TASK = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
 _REF = re.compile(r"refs/heads/mla/review/[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
 
@@ -48,6 +48,7 @@ def make_remote_preview(proposal: RemoteProposal, *,
     if not isinstance(proposal,RemoteProposal):
         raise RemotePreviewHold("invalid proposal")
     if (not isinstance(proposal.repository,str) or not _REPO.fullmatch(proposal.repository)
+        or any(segment in (".","..") or segment.endswith((".", ".lock")) for segment in proposal.repository.split("/"))
         or not isinstance(proposal.task_id,str) or not _TASK.fullmatch(proposal.task_id)
         or not isinstance(proposal.baseline_sha,str) or not _SHA.fullmatch(proposal.baseline_sha)
         or not isinstance(proposal.candidate_sha,str) or not _SHA.fullmatch(proposal.candidate_sha)

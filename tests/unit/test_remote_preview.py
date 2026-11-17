@@ -51,7 +51,7 @@ class RemotePreviewTests(unittest.TestCase):
     def test_untrusted_ref_and_repo_schema_rejected(self):
         for repo in ("https://github.com/hibi89/my_local_ai",
                      "hibi89/my_local_ai;curl evil",
-                     "hibi89//my_local_ai","../repo"):
+                     "hibi89//my_local_ai","../repo","hibi89/..","hibi89/.","hibi89/.git","hibi89/repo.lock","./repo"):
             with self.subTest(repo=repo),self.assertRaises(RemotePreviewHold):
                 make_remote_preview(proposal(repository=repo))
 
