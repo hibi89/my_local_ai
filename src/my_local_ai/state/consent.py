@@ -6,6 +6,7 @@ cannot by itself prove the SQLite file is protected against an untrusted worker.
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing as _closing
 from pathlib import Path
 import stat
 
@@ -75,7 +76,10 @@ class ConsentLedger:
                 return False
             sidecars_before = _safe_sidecar_identity(self._path)
             uri = self._path.as_uri() + "?mode=ro"
-            with sqlite3.connect(uri, uri=True, timeout=1.0) as db:
+            # sqlite3.Connection.__exit__ commits/rolls back but does NOT
+            # close the connection. Explicit closing releases read locks,
+            # DB/WAL handles and potential resource leakage on every path.
+            with _closing(sqlite3.connect(uri, uri=True, timeout=1.0)) as db:
                 db.execute("PRAGMA query_only=ON")
                 db.execute("PRAGMA busy_timeout=1000")
                 if (db.execute("PRAGMA application_id").fetchone()[0] != APP_ID
