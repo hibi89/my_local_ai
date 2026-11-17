@@ -100,6 +100,8 @@ from my_local_ai.security.supply_chain import (
     scan_gitleaks_stdin, inspect_osv_offline_cache, OfflineDatabasePin,
 )
 from my_local_ai.security.codeshield_contracts import ScanStatus
+import re as _re
+from my_local_ai.security.codeshield_contracts import checked_relative_path as _checked_relative_path
 
 
 @dataclass(frozen=True)
@@ -123,6 +125,48 @@ class LocalStaticAudit:
                 "independent_f18_verified", "git_promotion_allowed",
             ))):
             raise CodeShieldHold("UNTRUSTED_DECISION")
+
+        if (not isinstance(self.context_sha256, str)
+            or _re.fullmatch(r"[0-9a-f]{64}", self.context_sha256) is None
+            or not isinstance(self.candidate_sha, str)
+            or _re.fullmatch(r"[0-9a-f]{40}", self.candidate_sha) is None
+            or not isinstance(self.outcome, RiskOutcome)
+            or not isinstance(self.status_by_scanner, tuple)
+            or not 1 <= len(self.status_by_scanner) <= 8
+            or not isinstance(self.reason_codes, tuple)
+            or not 1 <= len(self.reason_codes) <= 32
+            or any(not isinstance(code, str)
+                   or _re.fullmatch(r"[A-Z0-9_]{3,96}", code) is None
+                   for code in self.reason_codes)
+            or not isinstance(self.changed_file_digests, tuple)
+            or len(self.changed_file_digests) > 16):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+        possible = {
+            "ast": {item.value for item in RiskOutcome},
+            "ruff": {item.value for item in ScanStatus},
+            "gitleaks": {item.value for item in ScanStatus},
+            "semgrep": {item.value for item in ScanStatus},
+            "semgrep_rules": {"PIN_MATCH", "UNKNOWN_HOLD"},
+            "osv_cache": {"PIN_MATCH", "UNKNOWN_HOLD"},
+        }
+        encountered: set[str] = set()
+        for item in self.status_by_scanner:
+            if (not isinstance(item, tuple) or len(item) != 2
+                or not isinstance(item[0], str) or item[0] in encountered
+                or item[0] not in possible or item[1] not in possible[item[0]]):
+                raise CodeShieldHold("UNTRUSTED_DECISION")
+            encountered.add(item[0])
+        path_aliases: set[str] = set()
+        for item in self.changed_file_digests:
+            if (not isinstance(item, tuple) or len(item) != 2
+                or not isinstance(item[0], str)
+                or not isinstance(item[1], str)
+                or _re.fullmatch(r"[0-9a-f]{64}", item[1]) is None):
+                raise CodeShieldHold("UNTRUSTED_DECISION")
+            _checked_relative_path(item[0])
+            if item[0].casefold() in path_aliases:
+                raise CodeShieldHold("UNTRUSTED_DECISION")
+            path_aliases.add(item[0].casefold())
 
     def to_redacted_dict(self) -> dict[str, object]:
         return {
