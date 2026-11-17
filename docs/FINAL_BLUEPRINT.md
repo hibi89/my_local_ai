@@ -1,3 +1,5 @@
+> **[2026-11-18 KST · LOW-VRAM HARDWARE + HIGH-P1 CANONICAL ALIGNMENT]** 현재 사용자 확정 기본 경로는 **VM/Sandbox 상시 실행 OFF · CodeShield 경량 비실행 사전검수 ON · 호스트 Qwen 단일 모델 · 기존 Defender 유지**다. 원본 EAI 순수 메모리 Player는 임의 AI 코드 격리 실행기의 대체물이 아니다. CodeShield 정적 검사 PASS만으로 AI 생성 코드·테스트·설치 훅·PowerShell 등을 호스트에서 실행·Git 승격하지 않으며, 실제 코드 실행에는 승인된 보호 OS 경계와 독립 F18이 필요하다. 불가능하면 해당 실행만 HOLD하고 안전한 비실행 개발은 지속한다. 이 지침은 기존 REQ/SWU·F18·P2 LOCK·소유자 GO를 축소하지 않는다. 해총 §0J/§0E에 따라 12월 실제 전환·사용자 결정 전 P1 담당은 웹 GPT-6 Sol High다. 세부: 아래 K항.
+
 > **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
 
 > **[PRODUCT IDENTITY LOCK · OWNER CLARIFICATION · 2026-11-17]** `my_local_ai`는 **EAI의 후속 버전/확장판/완성판이 아니다.** EAI는 선택적으로 재사용할 알고리즘·CPU 분석·도구의 **기술 제공원**일 뿐이다. `my_local_ai`의 고유 목적은 **로컬 모델로 소프트웨어 구현을 지속 자동화하는 개인용 개발 시스템**이며, 정책·스케줄·실행/검증 게이트·진척 기준은 `my_local_ai`가 자체 소유한다. 원본 EAI ADR-0002(Qwen INPUT-only)는 EAI 원본의 아키텍처 지침이지 `my_local_ai`의 코딩 워커 사용 제한이 아니다. EAI 전체 13개 목표·자체 모델 연구의 100% 완료는 `my_local_ai`의 필수 조건이 아니다. 자세한 내용 `docs/PRODUCT_IDENTITY.md`. **P1 구현 우선/P2 검증 잠금 정책은 그대로 유지.**
@@ -132,5 +134,23 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 
 **절대 불변:** 정적 검사 PASS는 임의 모델 생성 코드/테스트/설치 script/외부 executable을 호스트 PC에서 실행하는 권한이 아니다. 실제 실행은 보호된 OS 격리+F18 별도 독립 검수 입증이 필요하며 실패·미구현은 HOLD. AppContainer/Job Object는 P2 실기기 호환성·보안 후보, Windows Sandbox는 필요시 승인된 fallback; 무조건 VM 제거 아님. Defender CFA/ACL/Windows 보안/방화벽 변경은 소유자 별도 GO. 원본·비밀·Git main·고객·Production 접근과 F18/CAS 보호 불변.
 
-**단계/지표:** 기존 30 REQ/39개 source SWU와 28 legacy 구현, P2 8개 검증 LOCKED 및 V1.1 Hydrogen/V1.2 경험학습을 보존한다. CodeShield 추가는 docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json의 CS-01..CS-08 별도 source 구현 큐 (0/8 DESIGN_ONLY), 검증·구현률 증가나 실운용 허가를 뜻하지 않는다. CodeShield 기능은 최신 최종설계 인수 때 별도로 완료해야 한다.
+**단계/지표(2026-11-18 기준):** 기존 **30 REQ / 39개 P1 SWU(완료 후보 35/39) / 28개 legacy 작업**, P2 8개 검증 LOCKED 및 V1.1 Hydrogen/V1.2 경험학습을 보존한다. `CS-01..08`은 과거 CodeShield **8개 설계 작업군**이며 최신 SWU 재분할 기준은 **16개 SWU, 별도 `feature/code-shield-lightweight-v1`에서 소스 구현 후보 13/16**이다. 나머지 `CS-SWU-007/012/014`는 미완료이며 실제 Windows OS 브로커/F18/egress는 NOT_RUN/HOLD다. **별도 feature 구현은 dev 브랜치에 자동 통합된 것이 아니며**, 원래 35/39 분자와 혼산하거나 소스 기능·P2 검증 PASS·실운용 허가로 인정하지 않는다. CodeShield 큐와 기술설계는 해당 기능 브랜치와 본 설계 브랜치에서 구분하여 관리한다.
 
+---
+
+## K. 2026-11-18 저자원 실행·검수 경로 최종 적용 — 기본 VM OFF, CodeShield ON
+
+**임무·기기 잠금:** My Local AI는 EAI와 독립된 로컬 코딩 자동화 제품이다. 현재 대상은 Windows 11 Pro / GTX 1050 Ti / RAM 16GB / Python 3.11 / 기존 Ollama Qwen3-4B. 모델 추가 다운로드·동시 상주 또는 두 번째 백신/상시 VM을 기본 요건으로 만들지 않는다. VM의 주 병목은 게스트 RAM·CPU·시작 비용이며 VRAM 증가는 GPU 구성에 따라 다르므로, GPU·RAM·시간 절감 배수는 실측 전 `UNMEASURED`다.
+
+**기본 비실행 경로 (독립 실행 권한을 생성하지 않음):**
+1. 승인된 계획과 `plan_sha256`, 소스 SHA, REQ/SWU, `allowed_paths`, lease/epoch, 데이터 분류·자원 예산 확인 → **로컬 Qwen 한 개**가 untrusted candidate를 격리된 일회용 worktree/scratch에 제안. Hydrogen 및 외부 공급자는 기본 OFF, 별도 명시 승인만.
+2. MLA 자체 경로·Git diff·원본/비밀 차단 → Python AST/tokenize **비실행 파싱** → 서명·버전·규칙을 확인한 로컬 **Ruff(S)** → 승인된 오프라인 규칙의 **Semgrep CE**. 추가 Gitleaks/OSV 오프라인은 조건부, Defender는 기존 상태 읽기/명시적 보조 검사만. 검사기는 순차 호출, 추가 상주 GPU 모델 **0**.
+3. 검사기 누락/실패·위험 신호·경로/권리 불명확하면 **HOLD**. 모든 검사 PASS도 **코드 후보/비실행 검토**만 허용하며 테스트 실행, import, 설치 훅, 빌드/셸·Python·PowerShell 실행, 원본 쓰기 또는 보호 Git ref 승격 권한은 **부여하지 않는다**.
+
+**실제 실행이 필요한 경우 (별도 필수 경계):** 먼저 독립된 Windows OS 보안 주체·소유자 서명자 및 키 보관·보호된 파일/프로세스 접근통제·CPU/RAM/시간 제한·호스트 검증 네트워크 egress 거부·별도 F18 reviewer/서명/nonce/lease/CAS를 **실제로 구현·입증**해야 한다. **AppContainer + 제한 토큰 + Job Object는 VM보다 가벼울 수 있는 검증 후보이지 현재 PASS/안전성 보증이 아니다.** 실제 Windows 11의 Python/OpenCode/네트워크/NTFS 권한 및 독립 reviewer 분리를 검증하기 전 임의 생성 코드를 실행하지 않는다. Windows Sandbox는 사용자 별도 승인 후 필요한 실행에만 켜는 fallback이며 상시 기동, guest Qwen 중복 적재, 고객·원본 공유는 기본 금지다. 위험 작업만 HOLD하고 비실행 작업은 계속한다.
+
+**EAI 재사용 범위:** EAI의 CPU-first 순수 메모리 Player·typed operator allowlist·무효작업 HOLD 원칙은 분석·계획·자원 제어에 선택적으로 참조한다. 순수 메모리 실행은 임의 모델 생성 코드/테스트를 안전하게 실행할 수 있다는 증거가 아니다. **EAI의 INPUT-only Qwen 규칙은 EAI 고유**이며 MLA의 승인된 Qwen 코딩 워커 범위를 임의 축소하지 않는다.
+
+**작업 브랜치 및 진척 분리:** `design/final-blueprint-v1`은 설계 정본, `dev/instant-implementation-v1`은 기존 39 SWU/30 REQ 제품 소스 정본, `feature/code-shield-lightweight-v1`은 분리된 CodeShield 소스 구현 정본이다. 현재 관측: 기본 P1 구현 후보 **35/39(89.74%)**, 기존 인정 REQ **5/30**, CodeShield 별도 후보 **13/16(81.25%)** — **서로 더하지 않는다.** 기능 통합은 실제 diff·allowed_paths·안전/CI·코드 SHA 확인 후 별도 수행; 이 설계 갱신만으로 구현률 **+0**, 검증률 `UNASSESSED`, P2 `LOCKED`, F18/OS 안전 증명 `NOT_RUN`, owner GO 없음. 보호 원본·비밀·main/Production·Windows 보안 정책·비용·외부 전송은 별도 사용자 승인 필요.
+
+**다음 P1 임계경로:** dev의 `MLA-SWU-008 → {015,021} → 031`은 보호된 owner signer / 실제 coder / 독립 reviewer-F18 / no-egress가 해결되지 않아 `BLOCKED_TRUST`; `first_ready=[]`. feature CodeShield의 `CS-SWU-007/012/014` 역시 미완료. 새 채팅은 최신 양쪽 SHA/큐와 설계 K항을 읽고, 하위 설계·코드 상태를 섞어 100%로 주장하지 않는다. 무진전만 2+2로 집계하고 필요한 경우 솔맥스 기술 지원을 별도 요청한다.

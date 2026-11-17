@@ -2,7 +2,7 @@
 
 **최종설계 변경 승인: 2026-11-17 KST.**
 대상: hibi89/my_local_ai 전용 / Windows 11 Pro, GTX 1050 Ti, RAM 16GB, Python 3.11, 기존 Ollama Qwen3 4B.
-상태: HIGH_DESIGN_APPROVED / CODE_NOT_IMPLEMENTED / F18_SECURITY_HOLD / P2_LOCKED / OWNER_RUNTIME_GO_FALSE.
+상태(2026-11-18): HIGH_DESIGN_APPROVED / FEATURE_SOURCE_PARTIAL_13_OF_16_IMPLEMENTED_UNVERIFIED / DEV_CODE_NOT_MERGED / F18_SECURITY_HOLD / P2_LOCKED / OWNER_RUNTIME_GO_FALSE. 과거 본 기술설계 작성 시점의 CODE_NOT_IMPLEMENTED는 역사적 상태다.
 
 ## A. 최종 선택과 설계 대안
 
@@ -73,3 +73,11 @@ High 승인 Plan/REQ/SHA → Controller + live owner plan scope → disposable w
 - experiment/local-model-benchmarks: 합성 벤치마크, 제품 자동 병합 금지.
 - review/codex-solmax-<exactSHA> 및 review/astra-max-<exactSHA>: 실제 구현 후보 정확 SHA에서만 추후 생성.
 - 본 변경은 GitHub 설계 변경만; Windows 설정, PC care/백신 설정, 외부 전송, 유료 설치, 제품 실행/검증 인수는 실행하지 않았다.
+
+## F. 2026-11-18 실제 브랜치·저자원 실행 기준 업데이트
+
+- 기본 **VM 상시 OFF, CodeShield 정적 비실행 사전검수 ON, 기존 Windows Defender 유지**, 호스트 Ollama/Qwen **1개 모델**. Qwen용 VRAM을 아끼기 위해 검사기 GPU 모델 추가 상주/두 번째 Qwen 적재 금지; VM RAM/CPU·GPU 부담은 실측 전 미확정.
+- `feature/code-shield-lightweight-v1` HEAD `06a704016eb5ab0cc59c0e705b49d5908ffd08e3`의 별도 source queue는 **13/16 구현 후보**, 미완료 `CS-SWU-007/012/014`; 원래 8개 CS-01..08은 역사적 설계 작업군. dev의 **35/39(89.74%)**와 독립이며 커밋 병합/통합 검증은 `NOT_RUN`.
+- AppContainer/Job Object는 검증 전의 저자원 **옵션**이며 상시 VM을 대체하는 확정 실행 보안 증명이 아니다. Windows Sandbox는 소유자 승인 이후 필요 시에만 켜는 fallback. 생성 코드/테스트/설치 훅이 실제로 실행된다면 보호된 OS boundary·네트워크 egress·독립 F18/signature/nonce/lease 검증이 필요하다. 실패·불가 시 해당 실행만 `HOLD`.
+- EAI V3.1 CPU-first 순수 메모리 Player는 **계획/허용 연산 원칙 참고용**이다. 실제 AI 생성 코드의 안전 실행 경계로 사용하면 안 된다. P1 구현과 P2 독립 검증, 각자의 REQ·SWU 분모 및 2+2 이력은 유지.
+- 개발/상용·권한·방화벽·Defender·원본/비밀·외부 API/유료는 별도 승인 전 변경 금지. 본 갱신은 오직 설계/상태의 동기화이며 실제 모델/Windows 코드 실행과 P2 검증은 하지 않았다.
