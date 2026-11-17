@@ -35,7 +35,11 @@ def _check_safe_owned_file(path: Path) -> tuple[int, int, int, int]:
 class ConsentLedger:
     def __init__(self, owned_path: str | Path):
         self._path = Path(owned_path).absolute()
-        _check_safe_owned_file(self._path)
+        # Pin the inode/file-id at ledger creation. A replacement at the same
+        # pathname is NEVER the same protected grant store even if old WAL
+        # sidecars make it appear to contain prior approved rows.
+        identity = _check_safe_owned_file(self._path)
+        self._origin_identity = identity[:2]
 
     def is_live(self, grant_id: str, plan_sha256: str, scope: str) -> bool:
         """Fresh read-only lookup; revocation wins. Caller still verifies signature."""
@@ -46,6 +50,8 @@ class ConsentLedger:
             return False
         try:
             before = _check_safe_owned_file(self._path)
+            if before[:2] != self._origin_identity:
+                return False
             uri = self._path.as_uri() + "?mode=ro"
             with sqlite3.connect(uri, uri=True, timeout=1.0) as db:
                 db.execute("PRAGMA query_only=ON")
