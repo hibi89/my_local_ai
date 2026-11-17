@@ -30,3 +30,15 @@
 8. **원본·백업/인증:** 원본 Git 이력 불변, 새 문서 commit으로 rollback 가능. 고객/개인 자료·비밀·.env/GitHub 토큰 0 업로드. DB migration/OS 권한/실 테스트 수행 안 함. `remote_enabled=false`, network deny, spend cap 0 유지.
 9. **다음 READY·완료 기준·승인:** Instant는 개발 브랜치 기존 안전 P1 큐를 계속 수행. High는 선택형 큐 EXT-HYD-01 mock contract부터 정확 source SHA·허용 경로·타 작업 충돌 없는 계획을 별도 인수한 뒤 착수 가능. dev 동기화 시 설계 docs만 신중하게 적용하고 기존 dev STATUS/큐/코드를 통째로 덮어쓰지 않는다. 원격 송신·계정/비용·GitHub PR/권한/원본·Production·main은 **별도 사용자 GO 필수**.
 10. **갱신·범위·기준:** 2026-11-17 KST, `design/final-blueprint-v1` 설계 문서만 실제 반영. 구현/검증률 추가 상승 0, 공식 검증완료율 `UNASSESSED`, Hydrogen 실제 운용 `NOT_RUN`. 최종 설계 브랜치 SHA는 반드시 재조회하고 dev는 실제 최신 HEAD를 다시 읽는다.
+
+
+---
+
+# 2026-11-17 KST 최신 인수인계 — P1 브라우저 후행 정책
+1. **추가 사용자 확정:** Codex·Instant·Qwen/Hydrogen이 P1에서 BE/FE 모두 구현하되, 반복 브라우저·Playwright E2E/시각·반응형·접근성 검사는 P2에 집중. 문법·타입·필요 최소 빌드·국소 smoke와 인증/권한/원본/비밀/F18 위험 즉시 검사는 P1 유지.
+2. **설계 변경:** `docs/FINAL_BLUEPRINT.md F-1`, `docs/PHASE_GATES.md`, `AGENTS.md`, `INSTANT_RUNBOOK.md`, `REQUIREMENTS.md`, `docs/ACCEPTANCE_MATRIX.md`, `VERIFICATION_TASK_QUEUE.json MLA-V007`, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, `STATUS.md` 반영.
+3. **P1/P2 경계:** 브라우저 확인이 필수적인 구현/위험 변경에 한정해 최소 스모크 허용하고 이유·정확 SHA·결과 기록. 전체 브라우저 검증 미실행은 `NOT_RUN/DEFERRED_TO_P2`; `IMPLEMENTED_UNVERIFIED`는 검증 PASS가 아님.
+4. **인수 상태:** 이 변경은 문서·P2 큐 수용조건 갱신뿐. P1 30 REQ/28 구현 task, P2 8 verification task 및 P2 LOCKED/High 정확 SHA 게이트 불변. Hydrogen live API 기본 OFF/별도 GO, F18 HOLD 유지.
+5. **실행 증거/차단:** 이번 변경으로 Python/CI/브라우저/Windows/실 Qwen/Hydrogen/24h/독립감사 테스트 **NOT_RUN**. 외부 송신/권한/결제/remote PR/main·Production 변경 없음. 실제 dev 구현률은 dev HEAD·코드·큐 확인 후 별도 보고.
+6. **다음 READY:** 설계 브랜치 최신 SHA/AGENTS/FINAL_BLUEPRINT→dev HEAD·진행 중 수정 경로 비교→설계 문서만 안전 동기화. 기존 P1 구현 계속, P1 구현 100% 후보+High 인수 후 P2 브라우저/Playwright 전체 검증.
+7. **기준:** 2026-11-17 KST; `hibi89/my_local_ai@design/final-blueprint-v1`. 최신 commit SHA는 GitHub 재조회. 기존 dev 이력은 보존하고 이 인수인계가 과거 수치나 Code PASS를 소급 갱신하지 않는다.
