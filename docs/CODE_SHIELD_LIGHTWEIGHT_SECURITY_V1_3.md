@@ -69,7 +69,7 @@ High 승인 Plan/REQ/SHA → Controller + live owner plan scope → disposable w
 - main: 안정, 승인 없는 merge/Production 금지.
 - design/final-blueprint-v1: V1.3 최종설계·기술/안전/queue의 **High 정본**.
 - dev/instant-implementation-v1: 기존 코딩/상태/39-SWU 정본. 과거 design 큐·STATUS 덮어쓰기 금지; 최신 설계·CS queue는 선별 복제/주석으로 동기화.
-- feature/code-shield-lightweight-v1: dev의 최신 정확 SHA에서 생성하는 분리 CodeShield P1 구현 브랜치; 현 단계 기능 코드 NOT_STARTED.
+- feature/code-shield-lightweight-v1: dev와 분리된 CodeShield P1 소스 브랜치. 2026-11-18 확인 기준 HEAD `06a704016eb5ab0cc59c0e705b49d5908ffd08e3`, 구현 후보 13/16, 나머지 007/012/014 부분 구현·OS/F18 HOLD; dev 코드 자동 반영 아님.
 - experiment/local-model-benchmarks: 합성 벤치마크, 제품 자동 병합 금지.
 - review/codex-solmax-<exactSHA> 및 review/astra-max-<exactSHA>: 실제 구현 후보 정확 SHA에서만 추후 생성.
 - 본 변경은 GitHub 설계 변경만; Windows 설정, PC care/백신 설정, 외부 전송, 유료 설치, 제품 실행/검증 인수는 실행하지 않았다.
