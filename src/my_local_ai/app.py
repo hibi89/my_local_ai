@@ -209,3 +209,30 @@ def build_pure_player_nonexecuting_card(
         or result.get("p2") != "LOCKED"):
         raise ValueError("unsafe Pure Player application response")
     return result
+
+
+
+def build_public_pure_player_candidate_card(
+    *, plan_json: str, context: object, protected_states: dict[str, str],
+    coding_request: str, model_lock, budget,
+    active_leases: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """Owner opt-in PUBLIC_SYNTHETIC_ONLY local generation; no code execution."""
+    from my_local_ai.orchestrator import generate_public_pure_player_candidate
+    from my_local_ai.security.codeshield_contracts import CodeShieldContext
+    if not isinstance(context, CodeShieldContext):
+        raise ValueError("invalid Pure Player context")
+    result = generate_public_pure_player_candidate(
+        plan_json=plan_json, context=context, protected_states=protected_states,
+        coding_request=coding_request, model_lock=model_lock,
+        budget=budget, active_leases=active_leases,
+    )
+    if (result["stage"] != "PUBLIC_SYNTHETIC_QWEN_NONEXECUTING_HOLD"
+        or result["generated_code_executed"] is not False
+        or result["owner_go_verified"] is not False
+        or result["independent_f18_verified"] is not False
+        or result["git_promotion_allowed"] is not False
+        or result["host_no_egress_attested"] is not False
+        or result["p2"] != "LOCKED"):
+        raise ValueError("unsafe local Pure Player app result")
+    return result

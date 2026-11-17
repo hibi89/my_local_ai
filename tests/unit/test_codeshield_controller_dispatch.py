@@ -12,7 +12,7 @@ from my_local_ai.controller.codeshield import (
     LocalStaticAudit, deny_codeshield_controller_plan_action,
 )
 from my_local_ai.orchestrator import inspect_codeshield_controller_action_scoped
-from my_local_ai.app import build_pure_player_nonexecuting_card
+from my_local_ai.app import build_pure_player_nonexecuting_card, build_public_pure_player_candidate_card
 
 SOURCE = "a" * 40
 CANDIDATE = "b" * 40
@@ -210,6 +210,63 @@ class ControllerCodeShieldDispatchTests(unittest.TestCase):
         for flag in ("network_egress_attested", "git_promotion_allowed"):
             with self.subTest(flag=flag), self.assertRaises(WindowsIsolationHold):
                 replace(candidate, **{flag: True})
+
+
+    def test_controller_to_local_generation_is_scoped_and_nonexecuting(self):
+        import tempfile
+        import pathlib
+        import hashlib
+        from my_local_ai.ax_runtime.budgets import BudgetGuard, ModelBudget
+        from my_local_ai.ax_runtime.worker_lock import OneModelLock
+        from my_local_ai.ax_runtime.isolation_runner import (
+            UntrustedHostQwenFiles,
+        )
+        raw, _plan, ctx, _audit = make_fixture()
+        files=(("src/sample.py", "answer = 42\n"),)
+        digest=hashlib.sha256(
+            b"mla-untrusted-host-files/v1|" +
+            json.dumps(files, sort_keys=True, separators=(",",":"),
+                       ensure_ascii=True).encode("utf-8")
+        ).hexdigest()
+        def fake_generate(request, context, *, budget):
+            return UntrustedHostQwenFiles(
+                request.task_id,request.run_id,request.source_sha,
+                request.plan_sha256,request.request_sha256,
+                files,digest,
+            )
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("my_local_ai.ax_runtime.isolation_runner.infer_host_qwen_public_synthetic",side_effect=fake_generate) as model:
+                result=build_public_pure_player_candidate_card(
+                    plan_json=raw,context=ctx,protected_states={TASK:"READY"},
+                    coding_request="synthetic code",model_lock=OneModelLock(pathlib.Path(tmp)),
+                    budget=BudgetGuard(ModelBudget(max_calls=1)),
+                )
+                model.assert_called_once()
+        self.assertEqual(result["file_count"],1)
+        self.assertEqual(result["stage"],"PUBLIC_SYNTHETIC_QWEN_NONEXECUTING_HOLD")
+        self.assertFalse(result["generated_code_executed"])
+        self.assertFalse(result["git_promotion_allowed"])
+        self.assertFalse(result["host_no_egress_attested"])
+        self.assertEqual(result["pure_player"]["pure_candidate"]["syntax"],
+                         "SYNTAX_SHAPE_ONLY")
+
+    def test_stale_controller_request_never_calls_local_model(self):
+        import tempfile
+        import pathlib
+        from my_local_ai.ax_runtime.budgets import BudgetGuard, ModelBudget
+        from my_local_ai.ax_runtime.worker_lock import OneModelLock
+        raw, _plan, ctx, _audit = make_fixture()
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("my_local_ai.ax_runtime.isolation_runner.infer_host_qwen_public_synthetic") as model:
+                with self.assertRaises((CodeShieldHold,ValueError)):
+                    build_public_pure_player_candidate_card(
+                        plan_json=raw,
+                        context=replace(ctx,source_git_sha="d"*40),
+                        protected_states={TASK:"READY"},coding_request="synthetic",
+                        model_lock=OneModelLock(pathlib.Path(tmp)),
+                        budget=BudgetGuard(ModelBudget(max_calls=1)),
+                    )
+                model.assert_not_called()
 
     def test_controller_exports_no_banned_sandbox_preview_port(self):
         import my_local_ai.controller.codeshield as controller

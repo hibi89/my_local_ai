@@ -650,3 +650,115 @@ def inspect_pure_player_nonexecuting_cycle(
         "network_egress_allowed": False,
         "p2": "LOCKED",
     }
+
+
+
+def generate_public_pure_player_candidate(
+    *, plan_json: str, context: _CodeShieldContext,
+    protected_states: dict[str, str], coding_request: str,
+    model_lock, budget, active_leases: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """Native Controller -> single host Qwen -> bounded text -> Pure Player.
+
+    Only explicit PUBLIC_SYNTHETIC_ONLY prompts may reach 127.0.0.1 Ollama.
+    Generated code/tests are never executed, imported, promoted or applied.
+    A real owner key, F18 proof and OS egress attestation are NEVER inferred.
+    """
+    from my_local_ai.contracts.plan import PlanSpec
+    from my_local_ai.controller.codeshield import (
+        deny_codeshield_controller_plan_action,
+    )
+    from my_local_ai.ax_runtime.worker_lock import (
+        OneModelLock, ModelLockBusy, ModelLockUnsafe,
+    )
+    from my_local_ai.ax_runtime.budgets import BudgetGuard
+    from my_local_ai.ax_runtime.isolation_runner import (
+        HostQwenGenerationRequest, UntrustedHostQwenFiles,
+        prepare_host_qwen_generation, infer_host_qwen_public_synthetic,
+        prepare_pure_player_candidate,
+    )
+    from my_local_ai.security.codeshield_contracts import (
+        CodeShieldHold, DataClass,
+    )
+    if (type(plan_json) is not str
+        or not isinstance(context, _CodeShieldContext)
+        or context.data_class != DataClass.PUBLIC_SYNTHETIC
+        or type(coding_request) is not str
+        or type(active_leases) is not tuple
+        or not isinstance(model_lock, OneModelLock)
+        or not isinstance(budget, BudgetGuard)):
+        raise ValueError("unsafe local Pure Player generation request")
+    plan = PlanSpec.parse_json(plan_json)
+    denial = deny_codeshield_controller_plan_action(
+        plan, context, states=protected_states, audit=None,
+        action=_ActionKind.STATIC_READ, active_leases=active_leases,
+    )
+    if (denial.owner_consent_verified or denial.f18_independently_verified
+        or denial.may_launch_untrusted or denial.may_promote_git):
+        raise ValueError("unexpected Controller authority")
+    req = prepare_host_qwen_generation(
+        context, run_id=context.run_id, coding_request=coding_request,
+    )
+    try:
+        with model_lock:
+            proposed = infer_host_qwen_public_synthetic(
+                req, context, budget=budget,
+            )
+    except (ModelLockBusy, ModelLockUnsafe):
+        raise ValueError("local model lock unavailable") from None
+    if (not isinstance(proposed, UntrustedHostQwenFiles)
+        or proposed.state != "UNTRUSTED_HOST_MODEL_OUTPUT_F18_REQUIRED"
+        or proposed.request_sha256 != req.request_sha256
+        or proposed.task_id != context.task_id
+        or proposed.run_id != context.run_id
+        or proposed.plan_sha256 != context.plan_sha256
+        or proposed.source_sha != context.source_git_sha
+        or proposed.files_applied_to_original
+        or proposed.generated_code_executed
+        or proposed.independent_f18_verified
+        or proposed.can_publish):
+        raise ValueError("untrusted generated source envelope")
+    # Re-check case folding, allowed_paths, sizes, type and content digest.
+    import json as _json
+    from hashlib import sha256 as _sha
+    canonical = _json.dumps(
+        proposed.files, sort_keys=True, separators=(",",":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    if proposed.files_sha256 != _sha(
+        b"mla-untrusted-host-files/v1|" + canonical,
+    ).hexdigest():
+        raise ValueError("changed generated file inventory")
+    pure = prepare_pure_player_candidate(
+        context, operator_id="STATIC_AST_REVIEW",
+        proposed_files=dict(proposed.files),
+    )
+    if len(pure.files) != len(proposed.files):
+        raise ValueError("duplicate or altered generated file paths")
+    result = inspect_pure_player_nonexecuting_cycle(
+        plan_json=plan_json, context=context,
+        protected_states=protected_states, operator_id="STATIC_AST_REVIEW",
+        candidate_python_sources=dict(pure.files),
+        active_leases=active_leases,
+    )
+    if (result["execution_allowed"] is not False
+        or result["independent_f18_verified"] is not False
+        or result["git_promotion_allowed"] is not False
+        or result["pure_candidate"]["network_egress_allowed"] is not False):
+        raise ValueError("Pure Player must never promote model output")
+    return {
+        "stage":"PUBLIC_SYNTHETIC_QWEN_NONEXECUTING_HOLD",
+        "source_git_sha":context.source_git_sha,
+        "candidate_git_sha":context.candidate_git_sha,
+        "prompt_sha256":req.prompt_sha256,
+        "request_sha256":req.request_sha256,
+        "files_sha256":proposed.files_sha256,
+        "file_count":len(proposed.files),
+        "pure_player":result,
+        "generated_code_executed":False,
+        "owner_go_verified":False,
+        "independent_f18_verified":False,
+        "git_promotion_allowed":False,
+        "host_no_egress_attested":False,
+        "p2":"LOCKED",
+    }
