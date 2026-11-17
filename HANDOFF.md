@@ -569,3 +569,19 @@ Next-chat task order:
 1. Verify actual feature head and AGENTS; then HANDOFF, STATUS, CodeShield queue, source.
 2. Continue CS-SWU-007 protected broker P1 code only, no untrusted execution.
 3. Report exact SHA, CodeShield 13/16, original MLA 35/39, REQ 5/30, unverified P2, 2+2 evidence, next READY.
+
+---
+
+## 2026-11-18 KST — CodeShield SWU-007 offline Windows Sandbox fallback config
+
+- Repo/branch: hibi89/my_local_ai feature/code-shield-lightweight-v1. Start verified HEAD a58787d0785f3b3d8cecf598cab1981204eff89d. Source commits: 8ad3a0780a047c7d38c0ae248119ec4457cb4d00 Semgrep WSB inert fallback, 843c8fe74f310c1d9bea12a28eedc668ad068b55 Controller redacted preview, b9feb6680c7d5e1410fb5579c325eff7d86f535a Orchestrator preview, 190ed21624a615ce5c05be2bb6ddb4335bca1487 bounded stage listing. Queue d0a0b9465c54aff4253fd6160a05d48700630463.
+- Actual P1 code: prepare_on_demand_sandbox_fallback validates owner-prepared minimal staging inventory (only semgrep.exe/rules/source numbered copies), hash and path identity; returns inert Windows Sandbox XML with Networking/Clipboard/vGPU off, ReadOnly mapped folder, ProtectedClient and 2048MB target, NO LogonCommand; no file creation, OS settings, process launch or F18 receipts. Controller + Orchestrator expose only redacted preview status, never user code or local paths.
+- Microsoft Windows Sandbox WSB specification checked: https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file . Config intent alone is NOT evidence of Windows networking isolation or host permissions. This is an opt-in Sandbox fallback, not default VM requirement; AppContainer/Job Object candidate remains for High/P2.
+- Implementation accounting: CodeShield 13/16 = 81.25% SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED (unchanged). Remaining SWU-007 true protected Windows broker, SWU-012 Defender action grant/native scan, SWU-014 independently attested Controller/F18/CAS. Original MLA 35/39=89.74% source candidates and formal 5/30=16.67% REQs unchanged.
+- Checks: GitHub readback and source-pattern guards PASS. Python syntax NOT_RUN; no checked-out current GitHub source in test container (outbound GitHub DNS unavailable); Windows Sandbox/runtime/effective egress, actual native Semgrep, F18, P2/full CI NOT_RUN/LOCKED. Explicit P1 source and no authority.
+- Safety: no customer/private data, paid API, owner PC change, OS/Defender/ACL/Firewall policy mutation, untrusted execution, Git original/main/dev/prod alteration; false scanner PASS never enables host code.
+- Retry 2+2: CS-SWU-007 positive progress attempt CS007-20261118-A2, no nonprogress failures added; Sol Max DEFERRED_CONDITIONAL_2_PLUS_2. Next READY actual native broker code-only with High-sensitive design; request Sol Max only on evidence-backed 4 failures or proven unavoidable critical coding deadlock.
+- Status and handoff authoritative at final GitHub commit SHA to be read back. Verification remains UNASSESSED and P2 LOCKED.
+
+
+New chat order: verify actual feature branch HEAD + AGENTS; read latest HANDOFF, STATUS, CodeShield queue; review true protected Windows broker gap and safe implementation; preserve 13/16 until real source functional completion evidence. No user OS/Windows Sandbox launch without explicit owner approval.
