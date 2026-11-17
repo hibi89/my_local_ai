@@ -89,7 +89,15 @@ class ConsentLedger:
             # This is defense in depth, NOT a substitute for protected ACLs.
             after = _check_safe_owned_file(self._path)
             sidecars_after = _safe_sidecar_identity(self._path)
-            return (before == after and sidecars_before == sidecars_after
+            # SQLite's read-only WAL reader may create a benign -shm file.
+            # Accept only newly created *regular* sidecars, while rejecting
+            # a replaced inode for any sidecar already present at read start.
+            after_ids = {item[0]: item[1:3] for item in sidecars_after}
+            existing_sidecars_stable = all(
+                after_ids.get(item[0]) == item[1:3]
+                for item in sidecars_before
+            )
+            return (before == after and existing_sidecars_stable
                     and len(matches) == 1 and matches[0][0] == "APPROVED")
         except (OSError, sqlite3.Error, ValueError):
             return False
