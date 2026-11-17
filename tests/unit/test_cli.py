@@ -180,3 +180,75 @@ class CliLocalSafetyTests(unittest.TestCase):
                         self.assertEqual(code, 2)
                         self.assertEqual(result["status"], "HOLD")
                         self.assertFalse(result["execution_allowed"])
+
+
+
+class CliPlanPreviewTests(unittest.TestCase):
+    def test_offline_plan_preview_shows_dag_roots_not_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan.json"
+            obj = minimal_plan()
+            child = json.loads(json.dumps(obj["tasks"][0]))
+            child["task_id"] = "TEST-002"
+            child["depends_on"] = ["TEST-001"]
+            child["allowed_paths"] = ["src/child.py"]
+            obj["tasks"].append(child)
+            path.write_text(json.dumps(obj), encoding="utf-8")
+            code, result = invoke("plan", "preview", "--file", str(path))
+            self.assertEqual(code, 0)
+            self.assertEqual(result["candidate_task_ids"], ["TEST-001"])
+            self.assertEqual(result["reserved_calls_max"], 1)
+            self.assertEqual(result["reserved_seconds_max"], 20)
+            self.assertEqual(result["model_calls_executed"], 0)
+            self.assertFalse(result["execution_allowed"])
+            self.assertFalse(result["git_write_allowed"])
+            self.assertEqual(result["independent_f18"], "SECURITY_HOLD")
+            self.assertNotIn("No execution", json.dumps(result))
+            self.assertNotIn("src/demo.py", json.dumps(result))
+
+    def test_preview_cannot_expand_budget_or_start_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan.json"
+            path.write_text(json.dumps(minimal_plan()), encoding="utf-8")
+            for params in (("--max-calls","0"),("--max-seconds","-1"),
+                           ("--max-tasks","33")):
+                with self.subTest(params=params):
+                    code, result = invoke("plan", "preview", "--file", str(path), *params)
+                    self.assertEqual(code, 2)
+                    self.assertEqual(result["status"], "HOLD")
+
+    def test_pinned_optional_eai_envelope_works_offline_only(self):
+        from my_local_ai.contracts.plan import PlanSpec
+        with tempfile.TemporaryDirectory() as tmp:
+            plan_file = Path(tmp) / "plan.json"
+            payload = minimal_plan()
+            sibling = json.loads(json.dumps(payload["tasks"][0]))
+            sibling["task_id"] = "TEST-002"
+            sibling["allowed_paths"] = ["src/sibling.py"]
+            payload["tasks"].append(sibling)
+            plan_file.write_text(json.dumps(payload), encoding="utf-8")
+            plan_digest = PlanSpec.parse_json(json.dumps(payload)).digest
+            eai_file = Path(tmp) / "optional-eai.json"
+            eai_file.write_text(json.dumps({
+                "version": 1, "origin":"OPTIONAL_EAI_ADVISOR_DATA",
+                "source_git_sha":SHA, "plan_sha256":plan_digest,
+                "non_authoritative":True,
+                "hints":[{"task_id":"TEST-002","rank":0},
+                         {"task_id":"TEST-001","rank":5}],
+            }), encoding="utf-8")
+            code, result = invoke("plan", "preview", "--file", str(plan_file),
+                                  "--eai-file", str(eai_file))
+            self.assertEqual(code, 0)
+            self.assertEqual(result["candidate_task_ids"], ["TEST-002","TEST-001"])
+            self.assertEqual(result["advisor_status"], "OPTIONAL_HINTS_ACCEPTED")
+            self.assertFalse(result["execution_allowed"])
+            self.assertEqual(result["model_calls_executed"], 0)
+            # Stale optional evidence must silently fall back to native ordering.
+            bad = json.loads(eai_file.read_text())
+            bad["plan_sha256"] = "f" * 64
+            eai_file.write_text(json.dumps(bad), encoding="utf-8")
+            code, fallback = invoke("plan", "preview", "--file", str(plan_file),
+                                    "--eai-file", str(eai_file))
+            self.assertEqual(code, 0)
+            self.assertEqual(fallback["candidate_task_ids"], ["TEST-001","TEST-002"])
+            self.assertEqual(fallback["advisor_status"], "INVALID_HINTS_IGNORED")

@@ -10,6 +10,7 @@ import shutil
 import sys
 
 from .contracts import PlanSpec
+from .controller.decision import Controller
 
 _ROOT = Path(__file__).resolve().parents[2]
 _MAX_PLAN_BYTES = 1_048_576
@@ -58,6 +59,13 @@ def _parser() -> argparse.ArgumentParser:
     plan_sub = plan.add_subparsers(dest="plan_action", required=True)
     validate = plan_sub.add_parser("validate")
     validate.add_argument("--file", required=True, type=Path)
+    preview = plan_sub.add_parser("preview", help="Offline, non-executing Controller batch preview")
+    preview.add_argument("--file", required=True, type=Path)
+    preview.add_argument("--max-tasks", type=int, default=8)
+    preview.add_argument("--max-calls", type=int, default=8)
+    preview.add_argument("--max-seconds", type=int, default=600)
+    preview.add_argument("--eai-file", type=Path, default=None,
+                         help="Optional pinned offline EAI data envelope, never a model call")
     queue = subs.add_parser("queue", help="Queue reports only; execution is unavailable")
     queue_sub = queue.add_subparsers(dest="queue_action", required=True)
     queue_sub.add_parser("status", help="Read-only implementation task counts")
@@ -227,6 +235,49 @@ def _validate_plan(path: Path) -> dict:
         "execution_allowed": False,
     }
 
+def _preview_plan(
+    path: Path, *, max_tasks: int, max_calls: int, max_seconds: int,
+    optional_eai_file: Path | None = None,
+) -> dict:
+    """Purely local P1 dry-run: plan schema cannot mint owner approval."""
+    _status()  # P1-only phase/queue safety check before reading untrusted plan
+    plan = PlanSpec.parse_json(_read_bounded_regular(path).decode("utf-8"))
+    # A guest's VERIFIED labels never stand in for trusted F18 results.
+    # Without actual protected verification, only DAG roots can be proposed.
+    states = {task.task_id: "READY" for task in plan.tasks}
+    optional = (
+        _read_bounded_regular(optional_eai_file).decode("utf-8")
+        if optional_eai_file is not None else None
+    )
+    batch = Controller(plan).propose_code_batch(
+        states, max_tasks=max_tasks, max_total_calls=max_calls,
+        max_total_seconds=max_seconds,
+        independently_verified=(), active_leases=(),
+        optional_eai_envelope_json=optional,
+    )
+    if (batch.runnable or batch.owner_go_verified
+        or batch.independent_f18_verified or batch.model_calls_executed
+        or batch.state != "CODE_CANDIDATE_ONLY"):
+        raise ValueError("unsafe non-executing preview")
+    return {
+        "plan_sha256": batch.plan_sha256,
+        "source_sha": batch.source_sha,
+        "candidate_task_ids": list(batch.task_ids),
+        "deferred": [{"task_id": tid, "reason": reason}
+                     for tid, reason in batch.deferred],
+        "reserved_calls_max": batch.reserved_calls,
+        "reserved_seconds_max": batch.reserved_seconds,
+        "advisor_status": batch.advisory_status,
+        "plan_approval": "NOT_VERIFIED",
+        "model_calls_executed": 0,
+        "independent_f18": "SECURITY_HOLD",
+        "p2": "LOCKED",
+        "execution_allowed": False,
+        "git_write_allowed": False,
+        "code_only": True,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -242,6 +293,12 @@ def main(argv: list[str] | None = None) -> int:
             payload = _status()
         elif args.command == "plan" and args.plan_action == "validate":
             payload = _validate_plan(args.file)
+        elif args.command == "plan" and args.plan_action == "preview":
+            payload = _preview_plan(
+                args.file, max_tasks=args.max_tasks,
+                max_calls=args.max_calls, max_seconds=args.max_seconds,
+                optional_eai_file=args.eai_file,
+            )
         elif args.command == "queue" and args.queue_action == "status":
             payload = _queue_status()
         elif args.command == "queue" and args.queue_action == "next":
