@@ -1364,8 +1364,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 3,
-      "attempts_note": "Existing 2 source implementation improvements retained. 2026-11-18 further code wave produced real public/synthetic local Ollama -> exact file -> scratch one-shot IO; positive progress, not an initial or post-isolation nonprogress failure.",
+      "attempts_used": 4,
+      "attempts_note": "Prior meaningful source attempts retained. New 2026-11-18 source contribution adds fresh fixed-path, read-only manifest reopening+identity/reparse/digest checks. These are source *progress*, NOT evidenced nonprogress/2+2 failures. SWU still blocked on real Windows isolated OS runner and protected signer.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -1391,11 +1391,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "796f8e2bc365fad1116751d676759dd256be9f4f",
+      "partial_source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished.",
+      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch.",
       "runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
       "legacy_attempt_policy_20261117": {
@@ -1415,6 +1415,13 @@
           "method": "Write-once pre-existing Windows disposable scratch file and exact readback, connect actual public/synthetic Qwen response to staged guest input",
           "evidence_sha": "796f8e2bc365fad1116751d676759dd256be9f4f",
           "outcome": "PARTIAL_REAL_CODE_PROGRESS_NO_TRUST_BOUNDARY",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "MLA-SWU-015-20261118-SRC-4",
+          "method": "Read-only staged public/synthetic input reopening verifies fixed scratch directory inventory, manifest bytes, inode/mtime and deny-only state",
+          "evidence_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
+          "outcome": "SOURCE_PROGRESS_REAL_SCRATCH_RECHECK_NO_OS_BROKER",
           "nonprogress_failure": false
         }
       ],
@@ -1952,8 +1959,8 @@
         "MLA-003": 0,
         "MLA-015": 0
       },
-      "attempts_used": 2,
-      "attempts_note": "Earlier substantive reviewer transcript source attempt retained; second 2026-11-18 code wave implements actual bounded raw reviewer result ingress and strict check matching; not 2+2 failure.",
+      "attempts_used": 3,
+      "attempts_note": "Prior reviewer source progress retained. New P1 source code adds concrete fixed-path outbox read and strict lease/plan/policy/binary context matching. This is source *progress*, NOT a 2+2 failure or independent F18 issuer.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
@@ -1980,11 +1987,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
+      "partial_source_sha": "4fa8c8939db05211c9ffca681aa3d1014cf587da",
       "partial_source_paths": [
         "src/my_local_ai/review/protected_reviewer.py"
       ],
-      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance.",
+      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript.",
       "runtime_gap": "Actual independently protected Windows reviewer principal, fixed check execution isolation, protected nonce/key issuer and signed F18 receipt still absent. Untrusted outbox parse is not attestation or F18 acceptance.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -2004,6 +2011,13 @@
           "method": "Parse fixed external review result JSON with bounded bytes/closed fields/unique keys; canonicalize check observations; reject all credential/authority claims",
           "evidence_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
           "outcome": "PARTIAL_REAL_CODE_PROGRESS_NO_SIGNED_F18",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261118-SRC-3",
+          "method": "Constrain read-only F18 observation file to one fixed scratch path with link, identity and size checks; enforce plan, lease and reviewer binary binding in raw outbox JSON",
+          "evidence_sha": "4fa8c8939db05211c9ffca681aa3d1014cf587da",
+          "outcome": "SOURCE_PROGRESS_REAL_UNTRUSTED_REVIEW_OUTBOX_INGRESS_NO_PROTECTED_ISSUER",
           "nonprogress_failure": false
         }
       ],
@@ -5611,7 +5625,7 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
+    "source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
     "branch": "dev/instant-implementation-v1",
     "swus_source_complete": [],
     "swus_partial_source": [
@@ -5619,22 +5633,23 @@
       "MLA-SWU-021"
     ],
     "commits": [
-      "61791f7c36cc32d130bac24bb652a07670d35fd8",
-      "796f8e2bc365fad1116751d676759dd256be9f4f",
-      "3f74fcb0f3cccf00db233424f51ab3b0ae14da34"
+      "4fa8c8939db05211c9ffca681aa3d1014cf587da",
+      "12091f75d73566cb4ca50eacb70bec84067a853a"
     ],
-    "mandatory_actions": "AUTOMATIC_GITHUB_ACTIONS_SUCCESS_FOR_ALL_THREE_SOURCE_SHAS",
     "source_complete_count": 35,
     "source_incomplete_count": 4,
     "feature_progress_delta": 0,
-    "syntax": "GITHUB_ACTIONS_SUCCESS",
-    "windows_native": "NOT_RUN",
-    "protected_owner_signer": "NOT_RUN",
-    "protected_review": "NOT_RUN",
-    "f18": "SECURITY_HOLD",
+    "syntax": "PASS_GITHUB_ACTIONS_COMPILE_SYNTAX",
+    "targeted_unit": "PASS_GITHUB_ACTIONS_SYNTHETIC_UNIT",
+    "synthetic_f18_security": "PASS_GITHUB_ACTIONS_SYNTHETIC_F18_CONTRACT",
+    "real_windows": "NOT_RUN",
+    "real_sandbox": "NOT_RUN",
+    "real_egress": "NOT_RUN",
+    "independent_f18": "NOT_RUN",
+    "protected_os_signer": "NOT_RUN",
     "p2": "LOCKED",
     "owner_go": false,
-    "guest_execution": "NONE",
+    "solmax_executed": false,
     "nonprogress_failures_added": 0
   },
   "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
@@ -5737,7 +5752,7 @@
     },
     "worker_triage_20261118": {
       "triaged_by": "MLA_P1_WEB_GPT6_SOL_HIGH",
-      "reason": "Owner directs further substantive High code efforts and per-SWU 2+2 evidence; batch unresolvable 4-failure SWUs to Sol Max, not immediate escalation. Current 015/021 made positive source progress; no evidenced nonprogress counts.",
+      "reason": "Current 015/021 actual code made meaningful progress and mandatory Actions passed, no evidenced nonprogress failures. Continue source progress only when safe; hold installed OS signer/F18 principal/egress proof without owner authorization. Aggregate Sol Max when owner 2+2 nonprogress criteria met.",
       "status": "DEFERRED_OWNER_2PLUS2_FIRST",
       "requested_surface": "CODEX",
       "model": "GPT-6.1 Sol Max",
@@ -5754,7 +5769,7 @@
       "protected_os_owner_go": false,
       "actual_codex_execution": "NOT_RUN",
       "authorization_scope": "TECHNICAL_SOURCE_CODE_REVIEW_ONLY_NO_OS_PRIVILEGE_NO_PRODUCTION_NO_MAIN_NO_SECRETS",
-      "latest_source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34"
+      "latest_source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a"
     }
   },
   "policy_only_change_adds_implementation_progress": false,
@@ -5783,7 +5798,7 @@
     "owner_go": false
   },
   "cpaa_critical_path_20261118": {
-    "verified_source_head": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
+    "verified_source_head": "12091f75d73566cb4ca50eacb70bec84067a853a",
     "blocked_ids": [
       "MLA-SWU-008",
       "MLA-SWU-015",
@@ -5809,7 +5824,7 @@
       ]
     ],
     "estimated_time": "UNMEASURED",
-    "blockers": "NATIVE_WINDOWS_SEPARATE_PRINCIPAL_F18_ISSUER_AND_EGRESS_UNVERIFIED; SOURCE_ONLY_QWEN_SCRATCH_WRITER_AND_REVIEW_OUTBOX_INGRESS_ARE_PARTIAL",
+    "blockers": "Protected owner OS principal 008 and actual independent OS coder/reviewer 015/021 unavailable; staged manifest recheck and F18 unsigned outbox context binding implemented, still not F18/egress proof.",
     "code_only_ready": [],
     "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
     "no_ready_fabrication": true
