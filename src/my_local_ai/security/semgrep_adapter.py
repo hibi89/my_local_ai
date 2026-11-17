@@ -380,7 +380,6 @@ def inspect_packaged_semgrep_rules(context: CodeShieldContext) -> SemgrepRulesIn
 # Microsoft Windows Sandbox supports Networking=Disable and mapped ReadOnly
 # folders; actual OS/network isolation and Windows policy require P2 evidence.
 from xml.etree import ElementTree as _ET
-import ntpath as _ntpath
 
 
 @dataclass(frozen=True)
@@ -500,7 +499,11 @@ def prepare_on_demand_sandbox_fallback(
                 or getattr(st, "st_file_attributes", 0)
                    & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
                 raise CodeShieldHold("UNSAFE_PATH")
-        entries = os.listdir(folder)
+        # Bounded enumeration: hostile staging with millions of files must
+        # not force unbounded memory allocation in the Controller.
+        from itertools import islice
+        with os.scandir(folder) as iterator:
+            entries = [item.name for item in islice(iterator, len(expected) + 1)]
         if (len(entries) != len(expected)
             or set(entries) != set(expected)
             or len({v.casefold() for v in entries}) != len(entries)):
