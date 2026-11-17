@@ -101,3 +101,90 @@ class ConsentLedger:
                     and len(matches) == 1 and matches[0][0] == "APPROVED")
         except (OSError, sqlite3.Error, ValueError):
             return False
+
+
+# SWU-008: owner-consent inspection adapter. A valid MAC only means the
+# supplied key can validate the claim. It does not prove protected OS key
+# custody, a separate principal, or current P2/owner execution approval.
+from dataclasses import dataclass as _dataclass
+from my_local_ai.contracts.approval import (
+    OwnerGrant as _OwnerGrant, authorize_claim as _authorize_claim,
+)
+
+
+@_dataclass(frozen=True)
+class OwnerConsentInspection:
+    """Read-only scope and live-store inspection with no minted capability."""
+
+    grant_id: str
+    plan_sha256: str
+    source_sha: str
+    scope: str
+    signature_matches_and_live: bool
+    status: str = "LOCAL_PLAN_SIGNATURE_CHECKED_OS_PROTECTION_UNVERIFIED"
+    protected_owner_principal_verified: bool = False
+    independent_f18_verified: bool = False
+    can_issue_owner_grant: bool = False
+    can_start_worker: bool = False
+    can_change_os: bool = False
+    can_publish_remote: bool = False
+
+
+def inspect_owner_local_plan_consent(
+    raw_grant_json: str, *, owned_state: str | Path,
+    expected_plan_sha256: str, expected_source_sha: str,
+    now_seconds: int, protected_key_reader=None,
+) -> OwnerConsentInspection:
+    """Read existing owner consent and verify LOCAL_PLAN MAC using a key port.
+
+    The caller MUST supply a truly protected broker, otherwise this result
+    remains advisory only. There is no key creation, storage, migration,
+    signing, write access, OS identity assertion or remote permission here.
+    Sensitive key bytes and raw grant never appear in returned metadata.
+    """
+    import re
+    from my_local_ai.contracts.approval import OwnerGrant
+    if (not isinstance(expected_plan_sha256,str)
+        or re.fullmatch(r"[0-9a-f]{64}",expected_plan_sha256) is None
+        or not isinstance(expected_source_sha,str)
+        or re.fullmatch(r"[0-9a-f]{40}",expected_source_sha) is None
+        or type(now_seconds) is not int or now_seconds <= 0
+        or protected_key_reader is not None and not callable(protected_key_reader)):
+        raise ValueError("invalid owner consent read scope")
+    grant=OwnerGrant.parse_json(raw_grant_json)
+    if (grant.scope != "LOCAL_PLAN"
+        or grant.plan_sha256 != expected_plan_sha256
+        or grant.source_git_sha != expected_source_sha):
+        raise ValueError("out-of-scope or stale owner consent")
+    ledger=ConsentLedger(owned_state)
+    key=None
+    if protected_key_reader is not None:
+        try:
+            key=protected_key_reader(grant.grant_id,grant.scope)
+        except Exception:
+            key=None
+    if not isinstance(key,bytes) or len(key)!=32:
+        key=None
+    valid=_authorize_claim(
+        grant, trusted_hmac_key=key,
+        expected_plan_sha=expected_plan_sha256,
+        expected_source_sha=expected_source_sha,
+        required_scope="LOCAL_PLAN", now_seconds=now_seconds,
+        trusted_live_consent_check=ledger.is_live,
+    )
+    return OwnerConsentInspection(
+        grant.grant_id,expected_plan_sha256,expected_source_sha,
+        grant.scope,valid,
+    )
+
+
+def require_protected_owner_identity(inspection: OwnerConsentInspection,
+                                     *, protected_os_session=None):
+    """P1 fails closed until an installed, separately owned signer is proven.
+
+    A caller-supplied session boolean/callback is not OS attestation. The
+    actual gate must live in an independently protected owner process.
+    """
+    if not isinstance(inspection,OwnerConsentInspection):
+        raise ValueError("invalid owner consent inspection")
+    raise PermissionError("OWNER_OS_PROTECTED_SIGNER_NOT_ATTESTED")
