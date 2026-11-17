@@ -96,7 +96,9 @@ from pathlib import Path as _Path
 from my_local_ai.security.ast_preflight import scan_scoped_python_sources
 from my_local_ai.security.ruff_adapter import run_ruff_static
 from my_local_ai.security.semgrep_adapter import run_local_semgrep, inspect_packaged_semgrep_rules
-from my_local_ai.security.supply_chain import scan_gitleaks_stdin
+from my_local_ai.security.supply_chain import (
+    scan_gitleaks_stdin, inspect_osv_offline_cache, OfflineDatabasePin,
+)
 from my_local_ai.security.codeshield_contracts import ScanStatus
 
 
@@ -145,6 +147,8 @@ def audit_scoped_sources(
     gitleaks_binary: str | _Path | None = None,
     semgrep_binary: str | _Path | None = None,
     local_semgrep_rules: str | _Path | None = None,
+    local_osv_cache: str | _Path | None = None,
+    offline_database_pin: OfflineDatabasePin | None = None,
 ) -> LocalStaticAudit:
     """Read actual scoped files, then invoke explicitly supplied pinned tools.
 
@@ -223,6 +227,19 @@ def audit_scoped_sources(
             reasons.append(semgrep.reason)
     else:
         statuses.append(("semgrep", ScanStatus.NOT_RUN.value))
+    # Lockfile-dependent OSV checks are conditional. A local cache hash/age
+    # is data-only and never represents a completed vulnerability scan.
+    if (local_osv_cache is None) != (offline_database_pin is None):
+        raise CodeShieldHold("UNPINNED_SCANNER")
+    if local_osv_cache is not None:
+        cache = inspect_osv_offline_cache(
+            offline_database_pin, cache_root=local_osv_cache,
+            worktree=worktree, original_checkout=original_checkout,
+        )
+        statuses.append(("osv_cache", "PIN_MATCH" if cache.state ==
+                         "CACHE_PIN_MATCH_STATIC_ONLY" else "UNKNOWN_HOLD"))
+        if cache.state != "CACHE_PIN_MATCH_STATIC_ONLY":
+            reasons.append("OFFLINE_DB_HOLD")
     scanner = assess_static_only(
         context, tuple(evidences), action=ActionKind.STATIC_READ,
     )
