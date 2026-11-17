@@ -54,8 +54,10 @@ def make_remote_preview(proposal: RemoteProposal, *,
         or not isinstance(proposal.candidate_sha,str) or not _SHA.fullmatch(proposal.candidate_sha)
         or proposal.baseline_sha==proposal.candidate_sha
         or not isinstance(proposal.intended_ref,str) or not _REF.fullmatch(proposal.intended_ref)
+        or proposal.intended_ref != "refs/heads/mla/review/" + proposal.task_id
         or proposal.intended_ref.endswith(("/main","/master"))
-        or proposal.classification!="PUBLIC_SYNTHETIC_ONLY"):
+        or proposal.classification!="PUBLIC_SYNTHETIC_ONLY"
+        or type(exact_owner_grant_verified) is not bool):
         raise RemotePreviewHold("unsafe remote proposal")
     # This Boolean is NOT an action-bound protected signer proof. Even True is
     # not enough: REMOTE_PR is blocked until separate owner GO and P4 release.
@@ -69,6 +71,19 @@ def make_remote_preview(proposal: RemoteProposal, *,
 from my_local_ai.contracts.task import safe_path as _safe_path
 
 _BASE_BRANCH = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}\Z")
+_SENSITIVE_PARTS = frozenset({"secrets", "credentials", "private", "id_rsa", "id_ed25519"})
+_SENSITIVE_EXTENSIONS = (".pem", ".key", ".p12", ".pfx", ".kdbx")
+
+
+def _public_synthetic_file(relative: str) -> bool:
+    """Never claim a private path is safe for future remote disclosure."""
+    for segment in relative.split("/"):
+        lower = segment.casefold()
+        if (not lower or lower.startswith(".") or lower in _SENSITIVE_PARTS
+            or lower.endswith(_SENSITIVE_EXTENSIONS)
+            or lower.startswith((".env", ".npmrc", ".pypirc"))):
+            return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -117,10 +132,12 @@ def preview_protected_draft(
         or not _BASE_BRANCH.fullmatch(snapshot.base_branch)
         or ".." in snapshot.base_branch
         or "//" in snapshot.base_branch
+        or any(part.startswith(".") or part.endswith(".") for part in snapshot.base_branch.split("/"))
         or snapshot.base_branch.endswith((".lock", ".", "/"))
         or not isinstance(snapshot.expected_base_sha, str)
         or not _SHA.fullmatch(snapshot.expected_base_sha)
         or snapshot.observed_base_sha != snapshot.expected_base_sha
+        or snapshot.expected_base_sha == reviewed.candidate_sha
         or snapshot.protection_required is not True
         or snapshot.protection_observed is not True
         or snapshot.config_filters_unknown is not False):
@@ -138,6 +155,8 @@ def preview_protected_draft(
             raise RemotePreviewHold("unsafe draft filename") from None
         if checked.casefold() in seen:
             raise RemotePreviewHold("duplicate draft change")
+        if not _public_synthetic_file(checked):
+            raise RemotePreviewHold("sensitive or hidden source cannot be considered public")
         seen.add(checked.casefold())
     # Important: this metadata is a caller-provided CLAIM, not a live
     # GitHub protection readback or a data classification attestation.

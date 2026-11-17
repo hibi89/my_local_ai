@@ -88,3 +88,26 @@ class InjectionBoundaryTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class ForgedReviewerVisibilityTests(InjectionBoundaryTests):
+    def test_fabricated_review_card_with_guest_pass_cannot_be_rendered(self):
+        from my_local_ai.review.trusted_runner import (
+            IsolatedReviewerIntent, redact_isolated_review_intent,
+            build_reviewer_policy, ReviewPlanHold,
+        )
+        intent=IsolatedReviewerIntent(
+            "TASK-030","RUN-030",PLAN,SRC,"c"*40,1,
+            build_reviewer_policy().policy_sha256,"d"*64,
+            ("SYNTAX-001","UNIT-001","SECURITY-001"),
+        )
+        card=redact_isolated_review_intent(intent)
+        self.assertFalse(card["f18_verified"])
+        for changed in (
+            {"can_issue_trusted_receipt":True},
+            {"state":"REVIEW_PASSED"},
+            {"host_fallback":True},
+        ):
+            with self.subTest(changed=changed),self.assertRaises(ReviewPlanHold):
+                redact_isolated_review_intent(replace(intent,**changed))

@@ -52,3 +52,22 @@ class NoExfilPolicyTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class RemoteSyntheticDisclosureTests(unittest.TestCase):
+    def test_synthetic_label_never_authorizes_secret_filename_for_draft(self):
+        from my_local_ai.gitops.remote_preview import (
+            RemoteProposal,DraftTargetSnapshot,RemotePreviewHold,preview_protected_draft
+        )
+        proposed=RemoteProposal(
+            "hibi89/my_local_ai","TASK-030","a"*40,"b"*40,
+            "refs/heads/mla/review/TASK-030","PUBLIC_SYNTHETIC_ONLY"
+        )
+        for path in ("src/.env","src/credentials.json","certs/key.pem"):
+            view=DraftTargetSnapshot(
+                "hibi89/my_local_ai","main","c"*40,"c"*40,
+                True,True,(path,),
+            )
+            with self.subTest(path=path),self.assertRaises(RemotePreviewHold):
+                preview_protected_draft(proposed,view)

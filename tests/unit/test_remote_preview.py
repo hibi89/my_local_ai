@@ -128,3 +128,45 @@ class ProtectedDraftPreviewTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class RemoteTaskAndPrivacyHardeningTests(unittest.TestCase):
+    def test_review_ref_must_match_task_identity_even_for_synthetic_public(self):
+        for changes in (
+            {"intended_ref":"refs/heads/mla/review/OTHER-023"},
+            {"task_id":"TASK-099"},
+            {"exact_owner_grant_verified":"true"},
+        ):
+            with self.subTest(changes=changes),self.assertRaises(RemotePreviewHold):
+                if "exact_owner_grant_verified" in changes:
+                    make_remote_preview(
+                        proposal(),exact_owner_grant_verified=changes["exact_owner_grant_verified"])
+                else:
+                    make_remote_preview(proposal(**changes))
+
+    def test_sensitive_filenames_cannot_be_approved_as_public(self):
+        for rel in (
+            ".env", "src/.env.dev", "src/.aws/config", "src/.ssh/id_rsa",
+            "src/secrets/api.json", "src/private/token.txt",
+            "src/credentials.json", "src/id_ed25519",
+            "certs/client.pem", "certs/client.KEY", "certs/wallet.p12",
+        ):
+            with self.subTest(rel=rel),self.assertRaises(RemotePreviewHold):
+                preview_protected_draft(proposal(),target(change_paths=(rel,)))
+
+    def test_ambiguous_base_and_base_equal_candidate_denied(self):
+        for variant in (
+            {"base_branch":"release/.hidden"},
+            {"base_branch":"release/trailing."},
+            {"expected_base_sha":CAND,"observed_base_sha":CAND},
+        ):
+            with self.subTest(variant=variant),self.assertRaises(RemotePreviewHold):
+                preview_protected_draft(proposal(),target(**variant))
+
+    def test_no_remote_boolean_can_mint_real_remote_approval(self):
+        out=preview_protected_draft(
+            proposal(),target(),exact_owner_grant_verified=True)
+        self.assertFalse(out.owner_action_grant_verified)
+        self.assertFalse(out.remote_observed_live)
+        self.assertFalse(out.draft_pr_created)

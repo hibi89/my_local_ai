@@ -69,3 +69,30 @@ class GitMetadataGuardTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+
+class NestedPathAliasDenialTests(GitMetadataGuardTests):
+    def test_alias_of_original_via_parent_lexical_traversal_is_denied(self):
+        with self.assertRaises(ScopeHold):
+            preflight_paths(
+                worktree=self.guest / ".." / "original",
+                original_checkout=self.original,
+                baseline_sha=SHA,
+                allowed_paths=("src/safe.py",),
+            )
+
+    def test_scoped_generator_cannot_exhaust_memory_or_hang(self):
+        count=[]
+        def infinite():
+            while True:
+                count.append(1)
+                yield "src/new.py"
+        with self.assertRaises(ScopeHold):
+            preflight_paths(
+                worktree=self.guest,
+                original_checkout=self.original,
+                baseline_sha=SHA,
+                allowed_paths=infinite(),
+            )
+        self.assertEqual(len(count),17)
