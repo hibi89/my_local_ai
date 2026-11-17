@@ -38,8 +38,8 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 ---
 
 ## 2026-11-17 High V1.1 설계 확장: 탈부착형 모델 워커 (설계만)
-- 필독: \`docs/FINAL_BLUEPRINT.md\`의 H항, \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`, \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\` — Hydrogen은 **선택형 독립 병렬 코딩 워커**, 단순 검증자도 EAI의 필수 판단 엔진도 아니다.
+- 필독: `docs/FINAL_BLUEPRINT.md`의 H항, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json` — Hydrogen은 **선택형 독립 병렬 코딩 워커**, 단순 검증자도 EAI의 필수 판단 엔진도 아니다.
 - 로컬 Qwen/AX Dev Factory 계열 core 우선, 공급자 OFF·무료 quota 종료·유료 전환에도 기존 30 REQ 구현 흐름 유지. 웹 Instant 세션 자동 API 호출을 보장하지 않는다. Codex는 별도 구현/후행 독립 감사.
 - 새 ProviderPort는 기본 OFF/네트워크 DENY/비용 0. 실제 API·비공개 코드·고객 자료 전송, SDK 계정 활성화·유료 결제·GitHub PR/main·권한·Production은 별도 사용자 GO. mock만 설계·안전 구현 후보 가능.
-- 여러 워커의 동시 코딩은 다른 READY, disjoint \`allowed_paths\`, exact source/plan SHA, worktree·lease·F18 독립 trust verifier를 지켜야 하며, 모델 셀프 PASS를 VERIFIED로 간주 금지.
-- 원래 \`INSTANT_TASK_QUEUE.json\` 28개/REQ-01~30/P1 구현률 분모 30 및 \`WORK_PHASE_GATES.json\` P2 LOCKED를 **절대 임의 변경하지 않는다**. 확장은 별도 설계/선택형 큐로 추적. 현재 작업중인 dev Instant 소스·STATUS·큐는 설계 브랜치 파일로 덮어쓰지 않는다.
+- 여러 워커의 동시 코딩은 다른 READY, disjoint `allowed_paths`, exact source/plan SHA, worktree·lease·F18 독립 trust verifier를 지켜야 하며, 모델 셀프 PASS를 VERIFIED로 간주 금지.
+- 원래 `INSTANT_TASK_QUEUE.json` 28개/REQ-01~30/P1 구현률 분모 30 및 `WORK_PHASE_GATES.json` P2 LOCKED를 **절대 임의 변경하지 않는다**. 확장은 별도 설계/선택형 큐로 추적. 현재 작업중인 dev Instant 소스·STATUS·큐는 설계 브랜치 파일로 덮어쓰지 않는다.
