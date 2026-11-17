@@ -69,5 +69,51 @@ class PublishConsentBoundaryTests(unittest.TestCase):
         self.assertFalse(out.owner_go_verified)
 
 
+from my_local_ai.gitops.remote_preview import DraftTargetSnapshot,preview_protected_draft
+from my_local_ai.gitops.remote_publish import prepare_draft_action_intent
+
+
+def draft_fixture(**changes):
+    props=dict(
+        repository="hibi89/my_local_ai",base_branch="main",
+        expected_base_sha="d"*40,observed_base_sha="d"*40,
+        protection_required=True,protection_observed=True,
+        change_paths=("src/synthetic.py",),
+    )
+    props.update(changes)
+    return preview_protected_draft(
+        RemoteProposal(
+            repository="hibi89/my_local_ai",task_id="TASK-024",
+            baseline_sha=SOURCE,candidate_sha=CANDIDATE,
+            intended_ref="refs/heads/mla/review/TASK-024",
+            classification="PUBLIC_SYNTHETIC_ONLY",
+        ),DraftTargetSnapshot(**props),
+    )
+
+
+class DraftActionHashTests(unittest.TestCase):
+    def test_action_sha_binds_base_sha_and_cannot_create_pr(self):
+        first=prepare_draft_action_intent(draft_fixture())
+        other=prepare_draft_action_intent(
+            draft_fixture(expected_base_sha="e"*40,observed_base_sha="e"*40)
+        )
+        self.assertNotEqual(first.action_sha256,other.action_sha256)
+        self.assertFalse(first.network_enabled)
+        self.assertFalse(first.owner_go_verified)
+        self.assertFalse(first.may_create_pr)
+        self.assertFalse(first.may_merge)
+
+    def test_forged_remote_success_and_invalid_candidates_fail_shut(self):
+        for changes in (
+            {"draft_pr_created":True},
+            {"owner_action_grant_verified":True},
+            {"remote_push_allowed":True},
+            {"candidate_sha":"bad"},
+            {"changed_file_count":0},
+        ):
+            with self.subTest(changes=changes),self.assertRaises(ValueError):
+                prepare_draft_action_intent(replace(draft_fixture(),**changes))
+
+
 if __name__=="__main__":
     unittest.main()

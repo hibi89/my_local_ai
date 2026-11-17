@@ -68,3 +68,49 @@ def assess_resources(reading: ResourceReading, limits: ResourceLimits) -> Resour
     # A synthetic reading can be within limits but does NOT prove the real
     # platform, cooling, VRAM pressure, duration or execution authorization.
     return ResourceAssessment("WITHIN_DECLARED_LIMITS_UNVERIFIED",())
+
+
+@dataclass(frozen=True)
+class ResourceSample:
+    sequence: int
+    elapsed_seconds: int
+    reading: ResourceReading
+
+
+@dataclass(frozen=True)
+class ResourceWindow:
+    state: str
+    duration_seconds: int
+    reasons: tuple[str, ...]
+    real_hardware_verified: bool = False
+    may_restart_worker: bool = False
+
+
+def assess_synthetic_window(
+    samples: tuple[ResourceSample, ...], limits: ResourceLimits,
+    *, min_samples: int = 3,
+) -> ResourceWindow:
+    """Detect missing/over-limit readings; never claim actual 24h operation."""
+    if (not isinstance(samples, tuple) or not 1 <= len(samples) <= 128
+        or type(min_samples) is not int or not 1 <= min_samples <= 128):
+        raise ValueError("invalid resource window")
+    previous=-1
+    issues=[]
+    for i,sample in enumerate(samples):
+        if (not isinstance(sample,ResourceSample)
+            or type(sample.sequence) is not int or sample.sequence != i
+            or type(sample.elapsed_seconds) is not int
+            or sample.elapsed_seconds <= previous):
+            raise ValueError("untrusted sensor sequence or timestamp")
+        previous=sample.elapsed_seconds
+        check=assess_resources(sample.reading,limits)
+        for reason in check.reasons:
+            if reason not in issues:
+                issues.append(reason)
+    if len(samples)<min_samples:
+        issues.append("INSUFFICIENT_SAMPLES")
+    return ResourceWindow(
+        "HOLD" if issues else "SYNTHETIC_WINDOW_NOT_REAL_DEVICE_PROVEN",
+        samples[-1].elapsed_seconds-samples[0].elapsed_seconds,
+        tuple(issues),
+    )

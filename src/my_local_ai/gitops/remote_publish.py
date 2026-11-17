@@ -58,3 +58,51 @@ def inspect_remote_publish(
         "HOLD_ACTION_SPECIFIC_GO_AND_F18",
         preview.repository,preview.candidate_sha,
     )
+
+
+# Future one-shot remote action fingerprint: a digest is NOT an owner signer,
+# nor a license/egress permit. Actual GitHub API calls remain absent.
+from hashlib import sha256 as _sha256
+import json as _json
+from my_local_ai.gitops.remote_preview import DraftPRPreview
+
+
+@dataclass(frozen=True)
+class DraftActionIntent:
+    repository: str
+    base_branch: str
+    base_sha: str
+    candidate_sha: str
+    action_sha256: str
+    state: str = "REMOTE_DRAFT_ACTION_OWNER_GO_HOLD"
+    owner_go_verified: bool = False
+    network_enabled: bool = False
+    may_create_pr: bool = False
+    may_merge: bool = False
+
+
+def prepare_draft_action_intent(draft: DraftPRPreview) -> DraftActionIntent:
+    if (not isinstance(draft, DraftPRPreview)
+        or draft.state != "READ_ONLY_DRAFT_PR_SIMULATION_OWNER_GO_REQUIRED"
+        or draft.owner_action_grant_verified or draft.remote_observed_live
+        or draft.draft_pr_created or draft.remote_push_allowed
+        or draft.target_branch_modified
+        or type(draft.changed_file_count) is not int
+        or not 1 <= draft.changed_file_count <= 16
+        or not isinstance(draft.base_branch, str)
+        or not isinstance(draft.expected_base_sha, str)
+        or not _SHA.fullmatch(draft.expected_base_sha)
+        or not isinstance(draft.candidate_sha, str)
+        or not _SHA.fullmatch(draft.candidate_sha)):
+        raise ValueError("untrusted remote action preflight")
+    payload=_json.dumps({
+        "operation":"DRAFT_PR_ONLY","repository":draft.repository,
+        "base":draft.base_branch,"base_sha":draft.expected_base_sha,
+        "candidate_sha":draft.candidate_sha,
+        "changed_file_count":draft.changed_file_count,
+    },sort_keys=True,separators=(",",":"),ensure_ascii=True).encode("ascii")
+    digest=_sha256(b"mla-draft-pr/v1|"+payload).hexdigest()
+    return DraftActionIntent(
+        draft.repository,draft.base_branch,
+        draft.expected_base_sha,draft.candidate_sha,digest,
+    )

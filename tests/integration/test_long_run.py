@@ -78,5 +78,50 @@ class ResourceSupervisorFixtureTests(unittest.TestCase):
             assess_resources(reading(source="UNTRUSTED_MODEL_JSON"),LIMITS)
 
 
+from my_local_ai.ops.resource_monitor import ResourceSample,assess_synthetic_window
+
+
+class SyntheticWindowRegressionTests(unittest.TestCase):
+    def samples(self,*overrides):
+        if overrides:
+            return tuple(ResourceSample(i,i*15,reading(**change))
+                         for i,change in enumerate(overrides))
+        return tuple(ResourceSample(i,i*15,reading()) for i in range(4))
+
+    def test_all_safe_synthetic_samples_are_not_24hour_proof(self):
+        result=assess_synthetic_window(self.samples(),LIMITS)
+        self.assertEqual(result.state,"SYNTHETIC_WINDOW_NOT_REAL_DEVICE_PROVEN")
+        self.assertEqual(result.duration_seconds,45)
+        self.assertFalse(result.real_hardware_verified)
+        self.assertFalse(result.may_restart_worker)
+
+    def test_single_thermal_spike_in_window_is_hold(self):
+        result=assess_synthetic_window(
+            self.samples({},{"temperature_c":97.0},{}),LIMITS,
+        )
+        self.assertEqual(result.state,"HOLD")
+        self.assertIn("UNSAFE_THERMAL",result.reasons)
+
+    def test_untrusted_clock_and_missing_samples_fail_closed(self):
+        with self.assertRaises(ValueError):
+            assess_synthetic_window((
+                ResourceSample(0,15,reading()),
+                ResourceSample(1,15,reading()),
+            ),LIMITS)
+        with self.assertRaises(ValueError):
+            assess_synthetic_window((ResourceSample(7,0,reading()),),LIMITS)
+        short=assess_synthetic_window((ResourceSample(0,0,reading()),),LIMITS)
+        self.assertEqual(short.state,"HOLD")
+
+    def test_large_claimed_elapsed_time_does_not_create_real_evidence(self):
+        result=assess_synthetic_window((
+            ResourceSample(0,0,reading()),
+            ResourceSample(1,50000,reading()),
+            ResourceSample(2,100000,reading()),
+        ),LIMITS)
+        self.assertGreater(result.duration_seconds,86400)
+        self.assertFalse(result.real_hardware_verified)
+
+
 if __name__=="__main__":
     unittest.main()
