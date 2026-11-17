@@ -92,3 +92,36 @@ class CodeQueueSeparationTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+
+class FastTrackAttemptPolicyTests(unittest.TestCase):
+    def audit(self,value):
+        return mod.audit_p1_queue(json.dumps(value))
+
+    def test_policy_batch_size_and_attempt_defaults(self):
+        report=self.audit(SOURCE)
+        self.assertEqual(report["batch_target"],(4,6))
+        self.assertEqual(report["max_attempts_default"],2)
+        self.assertEqual(len(report["p1_code_ready"]),5)
+        self.assertEqual(next(t for t in SOURCE["tasks"] if t["task_id"]=="MLA-006")["p1_fast_track_attempts"],1)
+
+    def test_no_forged_extra_attempt_or_permission(self):
+        for change in ("nonimproving_failure_stop","p2","owner_go","default_max_attempts"):
+            fake=copy.deepcopy(SOURCE)
+            fake["p1_fast_track"][change]="UNLOCKED"
+            with self.subTest(field=change),self.assertRaises(ValueError):
+                self.audit(fake)
+        for attempts,limit,reason in ((4,2,None),(3,3,None),(2,2,None)):
+            fake=copy.deepcopy(SOURCE)
+            item=next(t for t in fake["tasks"] if t["task_id"]=="MLA-012")
+            item["p1_fast_track_attempts"]=attempts
+            item["p1_fast_track_limit"]=limit
+            item["p1_fast_track_exception_reason"]=reason
+            with self.subTest(attempts=attempts,limit=limit),self.assertRaises(ValueError):
+                self.audit(fake)
+
+    def test_invalid_four_to_six_wave_exception_is_rejected(self):
+        fake=copy.deepcopy(SOURCE)
+        fake["p1_fast_track"]["wave_size_exception"]="unnecessary"
+        with self.assertRaises(ValueError):
+            self.audit(fake)

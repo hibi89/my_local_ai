@@ -66,11 +66,18 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument("--max-seconds", type=int, default=600)
     preview.add_argument("--eai-file", type=Path, default=None,
                          help="Optional pinned offline EAI data envelope, never a model call")
+    approve = plan_sub.add_parser("approve", help="Owner approval request only; never signs or approves")
+    approve.add_argument("--file", type=Path, required=True)
     queue = subs.add_parser("queue", help="Queue reports only; execution is unavailable")
     queue_sub = queue.add_subparsers(dest="queue_action", required=True)
     queue_sub.add_parser("status", help="Read-only implementation task counts")
     queue_sub.add_parser("next", help="P1 code-only READY IDs, never operational grants")
-    subs.add_parser("evidence", help="Display redacted P1 synthetic evidence only")
+    start = queue_sub.add_parser("start", help="Non-executing owner HOLD; never starts a worker")
+    start.add_argument("--task-id", required=True)
+    evidence = subs.add_parser("evidence", help="Redacted synthetic evidence, stdout only")
+    evidence_sub = evidence.add_subparsers(dest="evidence_action")
+    evidence_sub.add_parser("export", help="Print a sanitized evidence manifest to stdout")
+    subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
     resume = subs.add_parser("resume", help="Safe HOLD notice; never self-resumes")
@@ -209,7 +216,7 @@ def _control_hold(task_id: str, action: str) -> dict:
     queue,ids=_safe_code_queue()
     if task_id not in {task["task_id"] for task in queue["tasks"]}:
         raise ValueError("unknown target task")
-    if action not in ("stop","resume"):
+    if action not in ("stop","resume","start"):
         raise ValueError("unsupported action")
     # P1 CLI must not attempt runtime state writes, signal processes,
     # remove leases or bypass the protected owner-controlled Controller.
@@ -221,6 +228,31 @@ def _control_hold(task_id: str, action: str) -> dict:
         "task_state_changed":False,
         "execution_allowed":False,
         "p2":"LOCKED",
+    }
+
+
+def _request_plan_approval(path: Path) -> dict:
+    """Show digest for a future protected owner signer; no key and no approval."""
+    spec = PlanSpec.parse_json(_read_bounded_regular(path).decode("utf-8"))
+    _status()
+    return {
+        "status":"HOLD", "action":"PLAN_APPROVE_REQUEST_ONLY",
+        "plan_sha256":spec.digest,"source_sha":spec.blueprint_sha,
+        "task_count":len(spec.tasks),"owner_approval_verified":False,
+        "signed_grant_created":False,"execution_allowed":False,
+        "reason":"PROTECTED_OWNER_SIGNER_NOT_CONNECTED",
+    }
+
+
+def _benchmark_synthetic() -> dict:
+    """No model, network or user data; use literal built-in fixture metadata."""
+    _status()
+    return {
+        "mode":"SYNTHETIC_FIXTURE_ONLY",
+        "sample_count":0,"measured_model_calls":0,
+        "tokens_per_second":None,"accepted_req_per_hour":None,
+        "real_windows":"NOT_RUN","real_qwen":"NOT_RUN",
+        "p2":"LOCKED","execution_allowed":False,
     }
 
 
@@ -293,6 +325,10 @@ def main(argv: list[str] | None = None) -> int:
             payload = _status()
         elif args.command == "plan" and args.plan_action == "validate":
             payload = _validate_plan(args.file)
+        elif args.command == "plan" and args.plan_action == "approve":
+            payload = _request_plan_approval(args.file)
+            print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
+            return 2
         elif args.command == "plan" and args.plan_action == "preview":
             payload = _preview_plan(
                 args.file, max_tasks=args.max_tasks,
@@ -305,6 +341,15 @@ def main(argv: list[str] | None = None) -> int:
             payload = _queue_next()
         elif args.command == "evidence":
             payload = _evidence()
+            if args.evidence_action == "export":
+                payload = {**payload, "export_format":"REDACTED_JSON_STDOUT_ONLY",
+                           "owner_go":False, "real_use_allowed":False}
+        elif args.command == "benchmark":
+            payload = _benchmark_synthetic()
+        elif args.command == "queue" and args.queue_action == "start":
+            payload = _control_hold(args.task_id, "start")
+            print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
+            return 2
         elif args.command in ("stop","resume"):
             payload = _control_hold(args.task_id, args.command)
             print(json.dumps(payload, sort_keys=True, ensure_ascii=True))

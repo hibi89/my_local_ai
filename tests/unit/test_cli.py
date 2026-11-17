@@ -252,3 +252,49 @@ class CliPlanPreviewTests(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertEqual(fallback["candidate_task_ids"], ["TEST-001","TEST-002"])
             self.assertEqual(fallback["advisor_status"], "INVALID_HINTS_IGNORED")
+
+
+class CliMissingRequiredCommandsTests(unittest.TestCase):
+    def test_plan_approve_is_digest_bound_request_and_never_creates_grant(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target=Path(tmp)/"plan.json"
+            data=json.dumps(minimal_plan())
+            target.write_text(data,encoding="utf-8")
+            code,result=invoke("plan","approve","--file",str(target))
+            self.assertEqual(code,2)
+            self.assertEqual(result["status"],"HOLD")
+            self.assertEqual(result["action"],"PLAN_APPROVE_REQUEST_ONLY")
+            self.assertEqual(len(result["plan_sha256"]),64)
+            self.assertFalse(result["owner_approval_verified"])
+            self.assertFalse(result["signed_grant_created"])
+            self.assertFalse(result["execution_allowed"])
+            self.assertNotIn("src/demo.py",json.dumps(result))
+            self.assertEqual(target.read_text(encoding="utf-8"),data)
+
+    def test_queue_start_is_explicit_hold_without_state_mutation(self):
+        code,result=invoke("queue","start","--task-id","MLA-006")
+        self.assertEqual(code,2)
+        self.assertEqual(result["status"],"HOLD")
+        self.assertFalse(result["task_state_changed"])
+        self.assertFalse(result["execution_allowed"])
+        bad,denied=invoke("queue","start","--task-id","OTHER-999")
+        self.assertEqual(bad,2)
+        self.assertEqual(denied["status"],"HOLD")
+
+    def test_benchmark_never_invents_a_real_measurement(self):
+        code,report=invoke("benchmark")
+        self.assertEqual(code,0)
+        self.assertEqual(report["mode"],"SYNTHETIC_FIXTURE_ONLY")
+        self.assertEqual(report["sample_count"],0)
+        self.assertEqual(report["measured_model_calls"],0)
+        self.assertIsNone(report["tokens_per_second"])
+        self.assertEqual(report["real_qwen"],"NOT_RUN")
+        self.assertFalse(report["execution_allowed"])
+
+    def test_evidence_export_is_redacted_stdout_only(self):
+        code,report=invoke("evidence","export")
+        self.assertEqual(code,0)
+        self.assertEqual(report["export_format"],"REDACTED_JSON_STDOUT_ONLY")
+        self.assertFalse(report["owner_go"])
+        self.assertFalse(report["real_use_allowed"])
+        self.assertEqual(report["independent_f18"],"SECURITY_HOLD")

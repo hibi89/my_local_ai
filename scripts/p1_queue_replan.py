@@ -83,6 +83,23 @@ def audit_p1_queue(raw: str) -> dict:
         or replan.get("p2") != "LOCKED"
         or replan.get("code_req_denominator") != 30):
         raise ValueError("unapproved safety-gate changes")
+    policy = queue.get("p1_fast_track")
+    if (not isinstance(policy, dict)
+        or policy.get("version") != 1
+        or policy.get("scope") != "P1_SOURCE_ONLY_NOT_RUNTIME"
+        or policy.get("one_pass_target") != 1
+        or policy.get("default_max_attempts") != 2
+        or policy.get("exceptional_max_attempts") != 3
+        or policy.get("nonimproving_failure_stop") != 2
+        or policy.get("batch_min") != 4
+        or policy.get("batch_max") != 6
+        or policy.get("attempts_count_from_adoption_only") is not True
+        or policy.get("p2") != "LOCKED"
+        or policy.get("protected_f18") != "HOLD"
+        or policy.get("owner_go") is not False
+        or policy.get("source_rights") != "NO_ORIGINAL_SOURCE_IMPORT"
+        or policy.get("instructions") != "docs/P1_FAST_IMPLEMENTATION_RUNBOOK.md"):
+        raise ValueError("fast-track policy or safety gate altered")
     tasks = queue.get("tasks")
     if not isinstance(tasks, list) or len(tasks) != 28:
         raise ValueError("task inventory mismatch")
@@ -90,6 +107,19 @@ def audit_p1_queue(raw: str) -> dict:
     for task in tasks:
         if not isinstance(task, dict):
             raise ValueError("task schema")
+        attempts, limit = task.get("p1_fast_track_attempts"), task.get("p1_fast_track_limit")
+        reason = task.get("p1_fast_track_exception_reason")
+        if (type(attempts) is not int or not 0 <= attempts <= 3
+            or type(limit) is not int or limit not in (2, 3)
+            or attempts > limit or not isinstance(task.get("p1_fast_track_disposition"), str)):
+            raise ValueError("unsafe fast-track attempt ledger")
+        if limit == 3 and (task.get("risk") not in ("HIGH", "CRITICAL")
+                           or not isinstance(reason, str) or len(reason.strip()) < 12):
+            raise ValueError("undocumented third attempt")
+        if limit == 2 and reason is not None:
+            raise ValueError("invalid exception reason")
+        if attempts == limit and task.get("p1_code_status") == CODE_READY:
+            raise ValueError("exhausted task cannot remain READY")
         tid = task.get("task_id")
         if tid not in EXPECTED or tid in by_id:
             raise ValueError("duplicate/unknown task")
@@ -135,6 +165,12 @@ def audit_p1_queue(raw: str) -> dict:
         or not 0 < len(ready) <= 10
         or set(ready) != {t for t,v in by_id.items() if v["p1_code_status"] == CODE_READY}):
         raise ValueError("code READY mismatches status")
+    reason = policy.get("wave_size_exception")
+    if not (4 <= len(ready) <= 6):
+        if (not isinstance(reason, str) or len(reason.strip()) < 12):
+            raise ValueError("unexplained wave size exception")
+    elif reason is not None:
+        raise ValueError("unnecessary wave exception")
     for tid in ready:
         if not all(by_id[dep].get("evidence_sha") is not None for dep in by_id[tid]["p1_code_depends_on"]):
             raise ValueError("source module dependency has no code evidence")
@@ -147,6 +183,8 @@ def audit_p1_queue(raw: str) -> dict:
         "p2_locked": True,
         "completed_req": queue["code_completed_req"],
         "req_denominator": 30,
+        "batch_target": (policy["batch_min"], policy["batch_max"]),
+        "max_attempts_default": policy["default_max_attempts"],
     }
 
 
