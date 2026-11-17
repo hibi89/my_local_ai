@@ -34,7 +34,7 @@ class LoopbackEndpoint:
 
     @classmethod
     def parse(cls, url: str) -> "LoopbackEndpoint":
-        if not isinstance(url, str) or not url.isascii() or len(url) > 100:
+        if not isinstance(url, str) or not url.isascii() or len(url) > 100 or url.strip() != url:
             raise ProviderHold("UNSAFE_ENDPOINT")
         try:
             parts = urlsplit(url)

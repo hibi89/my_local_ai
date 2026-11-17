@@ -94,6 +94,14 @@ class OneModelLock:
                     if isinstance(error, BlockingIOError) or getattr(error, "errno", None) in (errno.EACCES, errno.EAGAIN):
                         raise ModelLockBusy("another local model owns the lock") from None
                     raise
+                # Recheck identity *after* acquiring OS lock. A replaced name
+                # must never receive a valid fencing epoch on an orphan inode.
+                checked = self.path.lstat()
+                if (not stat.S_ISREG(checked.st_mode)
+                    or getattr(checked, "st_file_attributes", 0) & _REPARSE
+                    or checked.st_nlink != 1
+                    or (checked.st_dev, checked.st_ino) != (fd_info.st_dev, fd_info.st_ino)):
+                    raise ModelLockUnsafe("lock replaced while acquiring")
                 if handle.seek(0, 2) == 0:
                     handle.write(b"0")
                     handle.flush()

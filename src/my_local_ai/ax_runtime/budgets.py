@@ -41,14 +41,26 @@ class BudgetGuard:
         self.limits = limits
         self._clock = clock or time.monotonic
         self._started = self._clock()
+        if (isinstance(self._started, bool)
+            or not isinstance(self._started, (int, float))
+            or not math.isfinite(self._started)):
+            raise BudgetExceeded("invalid monotonic clock")
+        self._last_time = self._started
         self._lock = threading.Lock()
         self._calls = 0
+
+    def _check_time_locked(self) -> None:
+        now = self._clock()
+        if (isinstance(now, bool) or not isinstance(now, (int, float))
+            or not math.isfinite(now) or now < self._last_time
+            or now - self._started > self.limits.max_seconds):
+            raise BudgetExceeded("invalid or expired time budget")
+        self._last_time = now
 
     def check(self, *, ram_mb: float = 0, context_tokens: int = 0,
               output_bytes: int = 0, changed_files: int = 0, disk_mb: float = 0) -> None:
         with self._lock:
-            if self._clock() - self._started > self.limits.max_seconds:
-                raise BudgetExceeded("elapsed time limit")
+            self._check_time_locked()
             for field, amount, maximum in (
                 ("ram", ram_mb, self.limits.max_ram_mb),
                 ("context", context_tokens, self.limits.max_context_tokens),
@@ -62,8 +74,7 @@ class BudgetGuard:
 
     def reserve_call(self) -> int:
         with self._lock:
-            if self._clock() - self._started > self.limits.max_seconds:
-                raise BudgetExceeded("elapsed time limit")
+            self._check_time_locked()
             if self._calls >= self.limits.max_calls:
                 raise BudgetExceeded("model call limit")
             self._calls += 1

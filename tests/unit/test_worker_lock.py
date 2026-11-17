@@ -2,6 +2,9 @@
 from pathlib import Path
 import tempfile
 import unittest
+import os
+from unittest.mock import patch
+from my_local_ai.ax_runtime import worker_lock
 
 from my_local_ai.ax_runtime.worker_lock import OneModelLock, ModelLockBusy, ModelLockUnsafe
 from my_local_ai.ax_runtime.budgets import ModelBudget, BudgetGuard, BudgetExceeded
@@ -79,3 +82,42 @@ class BudgetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BudgetClockSafetyTests(unittest.TestCase):
+    def test_nan_or_backwards_clock_never_extends_budget(self):
+        for bad in (float("nan"), float("inf"), -100):
+            with self.subTest(clock=bad):
+                with self.assertRaises(BudgetExceeded):
+                    BudgetGuard(ModelBudget(), clock=lambda: bad)
+        ticks = [10.0]
+        budget = BudgetGuard(ModelBudget(), clock=lambda: ticks[0])
+        budget.reserve_call()
+        ticks[0] = 9.9
+        with self.assertRaises(BudgetExceeded):
+            budget.reserve_call()
+        with self.assertRaises(BudgetExceeded):
+            budget.check()
+
+    def test_clock_nan_after_start_rejected_before_any_call(self):
+        ticks = [1.0]
+        budget = BudgetGuard(ModelBudget(), clock=lambda: ticks[0])
+        ticks[0] = float("nan")
+        with self.assertRaises(BudgetExceeded):
+            budget.reserve_call()
+
+
+class LockReplacementRaceTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "synthetic path replacement requires POSIX")
+    def test_lock_path_replacement_after_os_lock_denied(self):
+        with tempfile.TemporaryDirectory() as folder:
+            lockfile = Path(folder) / "my_local_ai.model.lock"
+            original = worker_lock._os_lock
+            def swap_after_lock(handle):
+                original(handle)
+                lockfile.unlink()
+                lockfile.write_text("0", encoding="ascii")
+            with patch.object(worker_lock, "_os_lock", side_effect=swap_after_lock):
+                with self.assertRaises(ModelLockUnsafe):
+                    OneModelLock(folder).acquire()
+            self.assertEqual(lockfile.read_text(encoding="ascii"), "0")

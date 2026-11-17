@@ -32,8 +32,11 @@ class QueuePolicy:
 
     def __init__(self, tasks: Iterable[TaskSpec], plan_sha: str):
         values = tuple(tasks)
-        if not values or not _SHA256.fullmatch(plan_sha):
-            raise ValueError("tasks and SHA256 plan digest required")
+        if (not isinstance(plan_sha, str) or not _SHA256.fullmatch(plan_sha)
+            or not 1 <= len(values) <= 512):
+            raise ValueError("bounded tasks and SHA256 plan digest required")
+        if any(not isinstance(task, TaskSpec) or task.plan_sha != plan_sha for task in values):
+            raise ValueError("task plan SHA mismatch or invalid task")
         self._tasks = {t.task_id: t for t in values}
         if len(self._tasks) != len(values):
             raise ValueError("duplicate tasks")
@@ -67,15 +70,19 @@ class QueuePolicy:
         Independently verified IDs are still suggestions; this layer never executes.
         The F18 reviewer must populate the protected set in the integrated controller.
         """
-        if set(states) != set(self._tasks):
+        if not isinstance(states, dict) or set(states) != set(self._tasks):
             raise ValueError("missing or unknown task states")
         if any(state not in _STATES for state in states.values()):
             raise ValueError("invalid queue state")
+        if isinstance(independently_verified, (str, bytes)):
+            raise ValueError("trusted ID collection required")
         trusted = set(independently_verified)
         if not trusted.issubset(self._tasks):
             raise ValueError("unknown trusted dependency")
         if any(states[tid] != "VERIFIED" for tid in trusted):
             raise ValueError("inconsistent trusted dependency")
+        if isinstance(active_leases, (str, bytes)):
+            raise ValueError("active lease ID collection required")
         active = set(active_leases)
         if not active.issubset(self._tasks):
             raise ValueError("unknown active lease")

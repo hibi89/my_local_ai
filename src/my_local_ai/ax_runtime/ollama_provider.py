@@ -73,6 +73,8 @@ class OllamaProvider:
             data = response.read(limit + 1)
             if len(data) > limit:
                 raise ProviderHold("RESOURCE_LIMIT")
+            if not isinstance(data, bytes):
+                raise ProviderHold("OLLAMA_RESPONSE_INVALID")
             parsed = json.loads(data)
             if not isinstance(parsed, dict):
                 raise ProviderHold("OLLAMA_RESPONSE_INVALID")
@@ -141,10 +143,15 @@ class OllamaProvider:
                     "options": {"num_ctx": budget.limits.max_context_tokens},
                 }, limit=min(1_048_576, budget.limits.max_output_bytes + 16384))
                 answer = result.get("response")
-                if (result.get("done") is not True or not isinstance(answer, str)
-                    or len(answer.encode("utf-8")) > budget.limits.max_output_bytes):
+                if result.get("done") is not True or not isinstance(answer, str):
                     raise ProviderHold("OLLAMA_RESPONSE_INVALID")
-                budget.check(output_bytes=len(answer.encode("utf-8")))
+                try:
+                    encoded = answer.encode("utf-8")
+                except UnicodeError:
+                    raise ProviderHold("OLLAMA_RESPONSE_INVALID") from None
+                if len(encoded) > budget.limits.max_output_bytes:
+                    raise ProviderHold("RESOURCE_LIMIT")
+                budget.check(output_bytes=len(encoded))
                 return UntrustedGeneration(answer, self.model)
         except (ModelLockBusy, ModelLockUnsafe, BudgetExceeded, OSError):
             raise ProviderHold("RESOURCE_LIMIT") from None

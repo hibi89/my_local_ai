@@ -3,6 +3,7 @@ import dataclasses
 import unittest
 
 from my_local_ai.ax_runtime.queue import QueuePolicy
+from dataclasses import replace
 from my_local_ai.contracts.task import TaskSpec
 
 SHA = "a" * 40
@@ -72,3 +73,30 @@ class QueueTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QueueFailClosedHardeningTests(unittest.TestCase):
+    def test_cross_plan_task_cannot_enter_queue(self):
+        invalid = replace(task("TASK-001"), plan_sha="c"*64)
+        with self.assertRaisesRegex(ValueError, "plan SHA"):
+            QueuePolicy((invalid,), PLAN)
+
+    def test_unchecked_task_objects_are_not_accepted(self):
+        with self.assertRaises(ValueError):
+            QueuePolicy((object(),), PLAN)
+        with self.assertRaises(ValueError):
+            QueuePolicy((task("TASK-001"),), "bad")
+
+    def test_bare_string_for_trusted_or_active_ids_rejected(self):
+        q = QueuePolicy((task("TASK-001"),), PLAN)
+        with self.assertRaises(ValueError):
+            q.propose_ready({"TASK-001": "READY"}, independently_verified="TASK-001")
+        with self.assertRaises(ValueError):
+            q.propose_ready({"TASK-001": "READY"}, active_leases="TASK-001")
+
+    def test_immutable_ready_candidates_never_grant_runtime_execution(self):
+        q = QueuePolicy((task("TASK-001"),), PLAN)
+        candidate = q.propose_ready({"TASK-001": "READY"})[0]
+        self.assertFalse(candidate.runnable)
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            candidate.runnable = True

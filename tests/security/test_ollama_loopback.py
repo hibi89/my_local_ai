@@ -158,3 +158,35 @@ class OllamaLoopbackTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OllamaAdversarialResponseTests(unittest.TestCase):
+    def setUp(self):
+        FakeHTTP.calls = []
+        FakeHTTP.responses = []
+
+    def test_malformed_unicode_generation_fail_closed_no_secret_message(self):
+        FakeHTTP.responses = [
+            FakeResponse(200, {"models":[{"name":"qwen3:4b-instruct"}]}),
+            FakeResponse(200, {"done":True, "response":"\ud800"}),
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ProviderHold) as exc:
+                OllamaProvider(connection_factory=FakeHTTP).generate(
+                    "synthetic-only", model_lock=OneModelLock(temp),
+                    budget=BudgetGuard(ModelBudget()), allow_generation=True)
+        self.assertEqual(exc.exception.code, "OLLAMA_RESPONSE_INVALID")
+
+    def test_nonbytes_fake_http_response_is_rejected(self):
+        class NonBytes(FakeResponse):
+            def read(self, size):
+                return "secret-fake"
+        FakeHTTP.responses = [NonBytes(200, {"models":[]})]
+        self.assertEqual(OllamaProvider(connection_factory=FakeHTTP).available().reason,
+                         "OLLAMA_RESPONSE_INVALID")
+
+    def test_loopback_url_whitespace_and_control_are_denied(self):
+        for url in (" http://127.0.0.1:11434", "http://127.0.0.1:11434\n"):
+            with self.subTest(url=url), self.assertRaises(ProviderHold):
+                OllamaProvider(endpoint=url, connection_factory=FakeHTTP)
+        self.assertEqual(FakeHTTP.calls, [])
