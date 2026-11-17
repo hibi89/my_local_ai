@@ -242,3 +242,130 @@ def preview_f18_review_handoff(
         or review.plan_sha256 != code.plan_sha256):
         raise ValueError("untrusted F18 handoff output")
     return ControllerReviewHandoff(code,review)
+
+
+# SWU-038: a real owner-local DB state transition for a single blocked
+# controller -> code request -> independent reviewer *request*. The worker
+# and reviewer are not run while F18/OS signer remains unavailable.
+@dataclass(frozen=True)
+class ControllerHoldCycle:
+    task_id: str
+    run_id: str
+    plan_sha256: str
+    source_sha: str
+    request_sha256: str
+    review_policy_sha256: str
+    event_id: int
+    state: str = "HOLD_F18_INDEPENDENCE_NOT_ESTABLISHED"
+    task_state_changed: bool = True
+    coder_executed: bool = False
+    reviewer_executed: bool = False
+    trusted_receipt_issued: bool = False
+    lease_created: bool = False
+    owner_go_verified: bool = False
+    may_promote: bool = False
+    may_publish: bool = False
+
+
+def persist_controller_review_hold_cycle(
+    owned_db, *, plan_json: str, task_id: str,
+    disposable_worktree: str | _Path, original_checkout: str | _Path,
+    run_id: str, candidate_sha: str, reviewer_binary_sha256_claim: str,
+    lease_epoch: int = 1,
+) -> ControllerHoldCycle:
+    """Pin native Controller and F18 *request* before atomically holding task.
+
+    The candidate SHA is untrusted input, not a coder run result. A real
+    reviewed candidate needs a separate OS-isolated runner, live lease,
+    independent signer and reviewer; none is inferred or created here.
+    """
+    from my_local_ai.state.sqlite_store import _write_owned_transaction
+
+    plan = PlanSpec.parse_json(plan_json)
+    if (not isinstance(task_id, str) or
+        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}", task_id) is None
+        or task_id not in {task.task_id for task in plan.tasks}
+        or not isinstance(run_id, str) or
+        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}", run_id) is None):
+        raise ValueError("invalid Controller cycle identity")
+
+    def transition(db):
+        record = db.execute(
+            "SELECT plan_sha,blueprint_sha,state FROM plans WHERE plan_id=?",
+            (plan.plan_id,),
+        ).fetchone()
+        if (record is None or record[:2] != (plan.digest, plan.blueprint_sha)
+            or record[2] not in ("AWAITING_OWNER", "APPROVED")):
+            raise ValueError("stale or unavailable owner plan")
+        rows = db.execute(
+            "SELECT task_id,source_sha,state FROM tasks WHERE plan_id=?",
+            (plan.plan_id,),
+        ).fetchall()
+        if len(rows) != len(plan.tasks):
+            raise ValueError("incomplete task ledger")
+        known = {item.task_id for item in plan.tasks}
+        states = {}
+        for tid, source, state in rows:
+            if (tid not in known or tid in states or source != plan.blueprint_sha):
+                raise ValueError("task/source mismatch")
+            states[tid] = state
+        if states.get(task_id) != "READY":
+            raise ValueError("task is not READY")
+        active = db.execute(
+            "SELECT task_id FROM leases WHERE plan_id=?",
+            (plan.plan_id,),
+        ).fetchall()
+        if any(row[0] not in known for row in active):
+            raise ValueError("untrusted active lease")
+        active_ids = tuple(row[0] for row in active)
+        if task_id in active_ids:
+            raise ValueError("task has active lease")
+        if db.execute("SELECT 1 FROM runs WHERE run_id=?", (run_id,)).fetchone():
+            raise ValueError("run ID must not be reused")
+
+        prepared = preview_f18_review_handoff(
+            plan_json=plan_json, protected_states=states, task_id=task_id,
+            disposable_worktree=disposable_worktree,
+            original_checkout=original_checkout,
+            candidate_sha=candidate_sha, run_id=run_id,
+            lease_epoch=lease_epoch,
+            reviewer_binary_sha256_claim=reviewer_binary_sha256_claim,
+            active_leases=active_ids,
+        )
+        if (prepared.model_executed or prepared.reviewer_executed
+            or prepared.trusted_receipt_issued or prepared.owner_go_verified
+            or prepared.may_promote or prepared.may_publish
+            or prepared.code.may_execute or prepared.review.executable
+            or prepared.review.can_issue_trusted_receipt):
+            raise ValueError("untrusted F18 privilege")
+        if (prepared.code.plan_sha256 != plan.digest
+            or prepared.code.baseline_sha != plan.blueprint_sha
+            or prepared.review.run_id != run_id
+            or prepared.review.lease_epoch != lease_epoch
+            or prepared.review.candidate_sha != candidate_sha):
+            raise ValueError("controller/reviewer chain mismatch")
+        changed = db.execute(
+            "UPDATE tasks SET state='HOLD' WHERE plan_id=? AND task_id=? "
+            "AND source_sha=? AND state='READY'",
+            (plan.plan_id, task_id, plan.blueprint_sha),
+        )
+        if changed.rowcount != 1:
+            raise ValueError("concurrent Controller state change")
+        # Do not store raw model output, code, filesystem paths or secrets.
+        safe_summary = _sha256(
+            ("mla-cycle-hold/v1|" + plan.digest + "|" + task_id +
+             "|" + run_id + "|" + str(lease_epoch) + "|" +
+             prepared.review.policy_sha256).encode("ascii")
+        ).hexdigest()
+        event = db.execute(
+            "INSERT INTO events(plan_id,event_kind,safe_summary) "
+            "VALUES(?,'CONTROLLER_REVIEW_HELD',?)",
+            (plan.plan_id, safe_summary),
+        )
+        return ControllerHoldCycle(
+            task_id, run_id, plan.digest, plan.blueprint_sha,
+            prepared.code.prepared_request_sha256,
+            prepared.review.policy_sha256, event.lastrowid,
+        )
+
+    return _write_owned_transaction(owned_db, transition)
