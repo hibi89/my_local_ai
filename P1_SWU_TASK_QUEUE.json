@@ -712,8 +712,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-009": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
+      "attempts_used": 2,
+      "attempts_note": "Earlier one substantive source attempt retained; second 2026-11-18 source improvement: actual read-only Windows current-user DPAPI REG_BINARY unprotect->LOCAL_PLAN MAC/current SQLite inspection. Both source progress, neither evidenced nonprogress failure nor established independent owner OS principal.",
       "evidence_sha_by_legacy": {
         "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
       },
@@ -737,12 +737,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "2c0c047052c2d7b76f9dbd0feb9090cab69536cd",
+      "partial_source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Owner-local existing grant MAC and live SQLite ledger read with strict LOCAL_PLAN scope and redacted result. No key provisioning, signer, protected Windows principal or authority issuance.",
-      "runtime_gap": "Protected OS identity and key custody, real signer broker, independently confirmed owner grant; current inspection cannot authorize execution.",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity.",
+      "runtime_gap": "Separate Windows owner principal, ACL/key custody with actual protected signer and one-shot owner action grants remain absent. New Windows current-user DPAPI MAC check is an advisory real crypto path only; does not establish independent signer or F18 and cannot execute/merge/publish. Protected owner service requires separately authorized provisioning and real Windows security evidence.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -752,10 +752,18 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "MLA_WORKER_CRITICALITY_TRIAGE_PENDING",
+      "retry_stage": "SOURCE_PROGRESS_PROTECTED_OWNER_BROKER_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
-      "retry_evidence": [],
+      "retry_evidence": [
+        {
+          "attempt_id": "MLA-SWU-008-20261118-SOURCE-2",
+          "evidence_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
+          "method": "Windows current-user DPAPI key unseal to existing live LOCAL_PLAN consent MAC validation with deny-only authority contract",
+          "outcome": "POSITIVE_SOURCE_PROGRESS_RUNTIME_TRUST_STILL_BLOCKED",
+          "nonprogress_failure": false
+        }
+      ],
       "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
@@ -5587,41 +5595,26 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "0cdec8816b53d072bf776db1ac6cfec827e0ea2f",
+    "source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
+    "branch": "dev/instant-implementation-v1",
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-015",
-      "MLA-SWU-031"
+      "MLA-SWU-008"
     ],
     "commits": [
-      "65fd39f757adce3dd7cd208b3fc81c95aa63ed4a",
-      "37da28ea106feaf494a474bb70c2a4f08760c079",
-      "b57eba27a3ace88a801df5087dbc85555cdd6229",
-      "28f165fd9db58e2ee514aca073ac4530af1b5b53",
-      "0ae92611f4e5910ed89dbe2980dfddae8bb7964d",
-      "ef0319f11fbdb300f792b4e709ecae1e06b87850",
-      "0cdec8816b53d072bf776db1ac6cfec827e0ea2f"
+      "da7554454a46b0d1813770ffdfcdbf5f86509b10",
+      "aedc9dacb0932dd65bfd4abcd7e61cb83640573a"
     ],
-    "mandatory_actions_runs": [
-      44092737158,
-      44092893068,
-      44093131862,
-      44093278923,
-      44093552149,
-      44093631184,
-      44093747671
-    ],
-    "ci": "SUCCESS_ALL",
     "source_complete_count": 35,
     "source_incomplete_count": 4,
-    "os_signer": "NOT_PROVISIONED",
-    "host_qwen": "IMPLEMENTED_SOURCE_CALL_NOT_EXECUTED",
-    "windows_sandbox": "NOT_RUN",
-    "independent_reviewer": "NOT_RUN",
-    "real_windows_egress": "NOT_RUN",
+    "feature_progress_delta": 0,
+    "syntax": "MANDATORY_AUTO_ACTIONS_FIRST_COMMIT_SUCCESS_SECOND_COMMIT_RUNNING_AT_CHECK",
+    "windows_native": "NOT_RUN",
     "p2": "LOCKED",
+    "f18": "SECURITY_HOLD",
     "owner_go": false,
-    "remote_actions": "NONE"
+    "os_policy_changes": "NONE",
+    "solmax_executed": false
   },
   "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
   "legacy_retry_policy_before_20261117": {
@@ -5739,7 +5732,8 @@
       "partial_source_attempts_are_not_nonprogress_failures": true,
       "protected_os_owner_go": false,
       "actual_codex_execution": "NOT_RUN",
-      "authorization_scope": "TECHNICAL_SOURCE_CODE_REVIEW_ONLY_NO_OS_PRIVILEGE_NO_PRODUCTION_NO_MAIN_NO_SECRETS"
+      "authorization_scope": "TECHNICAL_SOURCE_CODE_REVIEW_ONLY_NO_OS_PRIVILEGE_NO_PRODUCTION_NO_MAIN_NO_SECRETS",
+      "latest_source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a"
     }
   },
   "policy_only_change_adds_implementation_progress": false,
@@ -5768,7 +5762,7 @@
     "owner_go": false
   },
   "cpaa_critical_path_20261118": {
-    "verified_source_head": "59b3b25383b5996f7b92d833fabba1658c1393a7",
+    "verified_source_head": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
     "blocked_ids": [
       "MLA-SWU-008",
       "MLA-SWU-015",
@@ -5794,7 +5788,7 @@
       ]
     ],
     "estimated_time": "UNMEASURED",
-    "blockers": "OWNER_PROTECTED_OS_PRINCIPAL_KEY_CUSTODY_AND_INDEPENDENT_F18_NO_EGRESS_UNPROVEN",
+    "blockers": "OWNER_PROTECTED_OS_PRINCIPAL_NOT_INSTALLED; DPAPI_CURRENT_USER_MAC_READ_AVAILABLE_SOURCE_ONLY; INDEPENDENT_F18_AND_NO_EGRESS_UNVERIFIED",
     "code_only_ready": [],
     "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
     "no_ready_fabrication": true
