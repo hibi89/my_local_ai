@@ -36,4 +36,4 @@
 - **F18 강화:** 다른 모델 사용은 독립 검증이 아니다. 원격 코드+영수증도 동일한 비신뢰 입력으로 처리한다. trusted verifier host OS 경계 실증 전 protected ref 승격 금지.
 - **유료·무료 변경:** 0원 약속을 토큰 호출 수만으로 보장 불가, 계정 tier/권한·원격 데이터 계약 확인이 되지 않으면 자체적으로 off. 계정 우회/키 회전/추가 결제 절대 자동 금지.
 - **fallback:** quota/장애 발생 중간 worktree는 유효성을 재검증하기 전 승격·재사용 금지. candidate_sha/approval/lease 정확성 대조 후 새 Qwen task epoch만 생성. 완료 이력은 불변.
-- 적용 범위는 \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`, 현재 상태는 설계만 / 실제 보안·외부 API 실행 NOT_RUN.
+- 적용 범위는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 현재 상태는 설계만 / 실제 보안·외부 API 실행 NOT_RUN.
