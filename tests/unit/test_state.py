@@ -1,10 +1,11 @@
 """Synthetic disposable SQLite tests only; user DBs must never be opened."""
 from pathlib import Path
+import hashlib
 import sqlite3
 import tempfile
 import unittest
 
-from my_local_ai.state.migrations import APP_ID, REQUIRED_TABLES, SCHEMA_VERSION
+from my_local_ai.state.migrations import APP_ID, REQUIRED_TABLES, SCHEMA_VERSION, canonical_schema_sql
 from my_local_ai.state.sqlite_store import initialize_state
 
 class SQLiteStateTests(unittest.TestCase):
@@ -39,6 +40,7 @@ class SQLiteStateTests(unittest.TestCase):
             self.assertIsNotNone(receipt.backup_name)
             snapshot = path.with_name(receipt.backup_name)
             self.assertTrue(snapshot.exists())
+            self.assertEqual(receipt.backup_sha256, hashlib.sha256(snapshot.read_bytes()).hexdigest())
             with sqlite3.connect(snapshot) as old:
                 self.assertEqual(old.execute("PRAGMA user_version").fetchone()[0], 0)
             with sqlite3.connect(path) as newer:
@@ -77,6 +79,82 @@ class SQLiteStateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 initialize_state(path)
             self.assertEqual(path.read_bytes(), before)
+
+
+    def test_canonical_schema_mapping_matches_required_tables(self):
+        self.assertEqual(set(canonical_schema_sql()), REQUIRED_TABLES)
+
+    def test_v1_schema_drift_rejected_without_overwriting_data(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "synthetic.sqlite3"
+            initialize_state(path)
+            db = sqlite3.connect(path)
+            try:
+                db.execute("INSERT INTO plans(plan_id,plan_sha,blueprint_sha) VALUES ('keep','p','b')")
+                db.execute("ALTER TABLE plans ADD COLUMN injected TEXT")
+                db.commit()
+            finally:
+                db.close()
+            with self.assertRaisesRegex(ValueError, "schema drift"):
+                initialize_state(path)
+            with sqlite3.connect(path) as verify:
+                self.assertEqual(verify.execute("SELECT plan_id FROM plans").fetchone()[0], "keep")
+
+    def test_owned_v1_foreign_key_corruption_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "synthetic.sqlite3"
+            initialize_state(path)
+            db = sqlite3.connect(path)
+            try:
+                db.execute("PRAGMA foreign_keys=OFF")
+                db.execute("INSERT INTO tasks(plan_id,task_id,source_sha) VALUES ('missing','t1','abc')")
+                db.commit()
+            finally:
+                db.close()
+            with self.assertRaisesRegex(ValueError, "foreign keys"):
+                initialize_state(path)
+
+    def test_triggers_are_not_allowed_in_owned_state(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "synthetic.sqlite3"
+            initialize_state(path)
+            db = sqlite3.connect(path)
+            try:
+                db.execute("CREATE TRIGGER sneaky AFTER INSERT ON plans BEGIN SELECT 1; END")
+                db.commit()
+            finally:
+                db.close()
+            with self.assertRaises(ValueError):
+                initialize_state(path)
+
+    def test_sidecar_symlink_rejected_without_touching_target(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "synthetic.sqlite3"
+            target = Path(temp) / "unrelated.txt"
+            target.write_text("retain", encoding="utf-8")
+            link = Path(temp) / "synthetic.sqlite3-wal"
+            try:
+                link.symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unavailable")
+            with self.assertRaises(ValueError):
+                initialize_state(path)
+            self.assertEqual(target.read_text(encoding="utf-8"), "retain")
+            self.assertFalse(path.exists())
+
+    def test_unexpected_existing_state_version_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "synthetic.sqlite3"
+            db = sqlite3.connect(path)
+            try:
+                db.execute(f"PRAGMA application_id={APP_ID}")
+                db.execute("PRAGMA user_version=500")
+            finally:
+                db.close()
+            original = path.read_bytes()
+            with self.assertRaises(ValueError):
+                initialize_state(path)
+            self.assertEqual(path.read_bytes(), original)
 
 if __name__ == "__main__":
     unittest.main()

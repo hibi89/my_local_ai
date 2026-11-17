@@ -120,7 +120,10 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class BenchmarkAggregationTests(BenchmarkHarnessSecurityTests):
+class BenchmarkAggregationTests(unittest.TestCase):
+    setUp = BenchmarkHarnessSecurityTests.setUp
+    mock = BenchmarkHarnessSecurityTests.mock
+
     def test_summary_keeps_mock_scope_and_never_invents_speed(self):
         fake = FakeModel()
         result = self.mock(fake)

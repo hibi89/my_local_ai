@@ -92,5 +92,16 @@ REQUIRED_TABLES = frozenset({
     "integrations", "events", "owner_consents"
 })
 
+def canonical_schema_sql() -> dict[str, str]:
+    """Normalized v1 CREATE TABLE text to reject drift and unknown objects.
+
+    Only whitespace is normalized; altered constraints are NOT equivalent.
+    """
+    return {
+        statement.split("(", 1)[0].split()[-1]: " ".join(statement.split())
+        for statement in DDL
+    }
+
+
 def schema_sha256() -> str:
     return hashlib.sha256(("\n".join(DDL) + "\nversion=1").encode("utf-8")).hexdigest()
