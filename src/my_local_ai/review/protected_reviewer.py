@@ -1,0 +1,153 @@
+"""Independent F18 reviewer host-broker input boundary (source-only).
+
+The coder must never supply the reviewer executable, policy, results, signer,
+nonce or OS principal. This module constructs a canonical *UNSIGNED* review
+transcript from a fixed policy and an independently supplied host check report.
+It cannot mint a TrustedReceipt: a separately installed/protected Windows
+reviewer must attest the actual principal, deny egress, consume the nonce and
+sign the result. No guest process or test is run in this module.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from hashlib import sha256
+import json
+import re
+
+from .trusted_runner import (
+    IsolatedReviewerIntent, MandatoryCheck, ReviewPlanHold,
+    build_reviewer_policy,
+)
+
+_SHA40 = re.compile(r"[0-9a-f]{40}\Z")
+_SHA64 = re.compile(r"[0-9a-f]{64}\Z")
+_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
+
+
+class ProtectedReviewerHold(ValueError):
+    """Fixed bounded denial; never echo guest text or test output."""
+
+    def __init__(self, reason="INDEPENDENT_OS_REVIEWER_NOT_ATTESTED"):
+        codes = {
+            "INDEPENDENT_OS_REVIEWER_NOT_ATTESTED",
+            "STALE_REVIEW_REQUEST", "MANDATORY_REVIEW_FAILED",
+            "UNTRUSTED_CHECK_RESULTS", "REVIEWER_NONCE_REUSED",
+        }
+        self.code = reason if reason in codes else "INDEPENDENT_OS_REVIEWER_NOT_ATTESTED"
+        super().__init__(self.code)
+
+
+@dataclass(frozen=True)
+class HostCheckObservation:
+    """Bare check exit observation from a future protected OS reviewer.
+
+    Caller-provided observations are NEVER treated as trusted OS evidence.
+    """
+    check_id: str
+    exit_code: int
+    elapsed_ms: int
+    timed_out: bool
+    output_sha256: str
+
+
+@dataclass(frozen=True)
+class UnsignedReviewerTranscript:
+    task_id: str
+    run_id: str
+    source_sha: str
+    candidate_sha: str
+    plan_sha256: str
+    lease_epoch: int
+    policy_sha256: str
+    reviewer_binary_sha256: str
+    check_ids: tuple[str, ...]
+    transcript_sha256: str
+    state: str = "UNSIGNED_REVIEW_OBSERVATIONS_UNTRUSTED"
+    guest_can_issue_receipt: bool = False
+    reviewer_os_attested: bool = False
+    nonce_consumed: bool = False
+    trusted_receipt_issued: bool = False
+    may_promote: bool = False
+
+
+def canonicalize_fixed_review_observations(
+    intent: IsolatedReviewerIntent,
+    observations: tuple[HostCheckObservation, ...],
+) -> UnsignedReviewerTranscript:
+    """Validate all checks against immutable fixed argv/timeouts.
+
+    This function is pure; execution evidence and a protected signing key
+    must arrive independently and outside guest-writable storage.
+    """
+    policy=build_reviewer_policy()
+    if (not isinstance(intent, IsolatedReviewerIntent)
+        or intent.state != "HOLD_UNTIL_INDEPENDENT_OS_REVIEWER"
+        or intent.executable is not False
+        or intent.can_issue_trusted_receipt is not False
+        or intent.host_fallback is not False
+        or not isinstance(intent.task_id,str) or not _ID.fullmatch(intent.task_id)
+        or not isinstance(intent.run_id,str) or not _ID.fullmatch(intent.run_id)
+        or not isinstance(intent.source_sha,str) or not _SHA40.fullmatch(intent.source_sha)
+        or not isinstance(intent.candidate_sha,str) or not _SHA40.fullmatch(intent.candidate_sha)
+        or intent.source_sha == intent.candidate_sha
+        or not isinstance(intent.plan_sha256,str) or not _SHA64.fullmatch(intent.plan_sha256)
+        or not isinstance(intent.reviewer_binary_sha256,str)
+        or not _SHA64.fullmatch(intent.reviewer_binary_sha256)
+        or intent.policy_sha256 != policy.policy_sha256
+        or type(intent.lease_epoch) is not int or intent.lease_epoch <= 0
+        or intent.check_ids != tuple(check.check_id for check in policy.checks)):
+        raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
+    if not isinstance(observations,tuple) or len(observations)!=len(policy.checks):
+        raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+    normalized=[]
+    for observation,check in zip(observations,policy.checks):
+        if (not isinstance(observation,HostCheckObservation)
+            or observation.check_id != check.check_id
+            or type(observation.exit_code) is not int
+            or type(observation.elapsed_ms) is not int
+            or not 0 <= observation.elapsed_ms <= check.timeout_seconds*1000
+            or type(observation.timed_out) is not bool
+            or not isinstance(observation.output_sha256,str)
+            or not _SHA64.fullmatch(observation.output_sha256)):
+            raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
+        if observation.exit_code != 0 or observation.timed_out:
+            raise ProtectedReviewerHold("MANDATORY_REVIEW_FAILED")
+        normalized.append({
+            "check_id":check.check_id,
+            "argv":list(check.argv),
+            "timeout_seconds":check.timeout_seconds,
+            "elapsed_ms":observation.elapsed_ms,
+            "exit_code":observation.exit_code,
+            "timed_out":False,
+            "output_sha256":observation.output_sha256,
+            "network_disabled_required":check.no_network,
+        })
+    canonical=json.dumps({
+        "version":1,"task_id":intent.task_id,"run_id":intent.run_id,
+        "source_sha":intent.source_sha,"candidate_sha":intent.candidate_sha,
+        "plan_sha256":intent.plan_sha256,"lease_epoch":intent.lease_epoch,
+        "policy_sha256":intent.policy_sha256,
+        "reviewer_binary_sha256":intent.reviewer_binary_sha256,
+        "checks":normalized,
+    },ensure_ascii=True,sort_keys=True,separators=(",",":")).encode("ascii")
+    digest=sha256(b"mla-untrusted-observations/v1|"+canonical).hexdigest()
+    return UnsignedReviewerTranscript(
+        intent.task_id,intent.run_id,intent.source_sha,intent.candidate_sha,
+        intent.plan_sha256,intent.lease_epoch,intent.policy_sha256,
+        intent.reviewer_binary_sha256,intent.check_ids,digest,
+    )
+
+
+def require_protected_reviewer_issuer(
+    transcript: UnsignedReviewerTranscript, *,
+    independent_os_principal_evidence=None,
+    owner_signer_evidence=None,
+) -> None:
+    """P1 never promotes self-declared attestations to protected F18 proof.
+
+    Only an external reviewer process with its own OS-controlled security
+    principal and key custody can issue the official, nonce-bound receipt.
+    """
+    if not isinstance(transcript,UnsignedReviewerTranscript):
+        raise ProtectedReviewerHold("STALE_REVIEW_REQUEST")
+    raise ProtectedReviewerHold("INDEPENDENT_OS_REVIEWER_NOT_ATTESTED")
