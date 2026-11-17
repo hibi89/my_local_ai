@@ -378,3 +378,103 @@ def plan_disposable_cleanup(
     if fresh != lifecycle:
         raise GitInventoryHold("STALE_GIT_SOURCE")
     return WorktreeCleanupPreview(lifecycle.task_id, lifecycle.scope_sha256)
+
+
+# SWU-016: a real no-checkout Git worktree creation path for a future
+# independently protected owner OS runner. OS_CHANGE grants are categorically
+# rejected by the current v1 signer, so this route stays on hard runtime HOLD
+# until an approved action-bound signer and F18 isolation exist.
+@_dataclass(frozen=True)
+class DisposableCreateReceipt:
+    task_id: str
+    baseline_sha: str
+    disposable_path: str
+    stage: str = "CREATED_NO_CHECKOUT_UNVERIFIED"
+    created: bool = True
+    checked_out_source: bool = False
+    coder_permitted: bool = False
+    reviewer_verified: bool = False
+    may_integrate: bool = False
+    may_publish: bool = False
+
+
+def create_disposable_no_checkout(
+    intent: WorktreeIntent, *, plan_sha256: str, owner_grant,
+    trusted_hmac_key: bytes | None, trusted_live_consent_check,
+    now_seconds: int, protected_git_call, protected_git_readback,
+) -> DisposableCreateReceipt:
+    """Create ONLY an empty detached linked worktree, never checkout files.
+
+    Caller supplies a genuinely protected Git invoker/readback on the owner
+    side; this function never provides one or accepts guest receipts as proof.
+    The current v1 owner signer rejects OS_CHANGE: with today's policy this
+    MUST raise before a Git operation. When explicitly authorized in a future
+    separate High-approved trust layer, --no-checkout prevents filters/smudge
+    and the post-readback must match source, main and original SHA exactly.
+    """
+    from my_local_ai.contracts.approval import authorize_claim
+    from my_local_ai.gitops.path_guard import ScopeHold
+
+    if (not isinstance(intent, WorktreeIntent)
+        or intent.state != "PLAN_ONLY_NO_GIT_EXECUTION"
+        or intent.source_modified is not False
+        or intent.trusted_reviewer_present is not False
+        or not isinstance(intent.preflight, ScopePreflight)
+        or intent.preflight.writes_allowed is not False
+        or intent.preflight.git_verified is not False
+        or intent.preflight.reviewer_verified is not False
+        or not isinstance(plan_sha256, str)
+        or _re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None
+        or type(now_seconds) is not int or now_seconds <= 0
+        or not callable(protected_git_call)
+        or not callable(protected_git_readback)):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    if not authorize_claim(
+        owner_grant, trusted_hmac_key=trusted_hmac_key,
+        expected_plan_sha=plan_sha256,
+        expected_source_sha=intent.baseline_sha,
+        required_scope="OS_CHANGE", now_seconds=now_seconds,
+        trusted_live_consent_check=trusted_live_consent_check,
+    ):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    # This block is deliberately unreachable with today's signer. It is real
+    # creation source for the separately approved owner-runner integration,
+    # not a command any untrusted worker/app is allowed to trigger.
+    try:
+        fresh = plan_disposable(
+            task_id=intent.task_id, worktree=intent.preflight.worktree,
+            original_checkout=intent.preflight.original_checkout,
+            baseline_sha=intent.baseline_sha,
+            allowed_paths=intent.preflight.allowed_paths,
+        )
+        if fresh != intent:
+            raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+        work = _Path(intent.preflight.worktree)
+        original = _Path(intent.preflight.original_checkout)
+        if (not work.is_dir() or work.is_symlink()
+            or any(work.iterdir()) or not (original / ".git").is_dir()):
+            raise GitInventoryHold("UNSAFE_GIT_PATH")
+        # No checkout: only owner-owned Git metadata changes. A failed call
+        # leaves the worktree for a separately approved recovery, not deletion.
+        argv = ("worktree", "add", "--detach", "--no-checkout", "--",
+                str(work), intent.baseline_sha)
+        result = protected_git_call(original, argv)
+        if type(result) is not int or result != 0:
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        audit_linked_worktree_metadata(intent)
+        snapshot = protected_git_readback(intent)
+        verified = audit_disposable_git_inventory(intent, snapshot)
+        if (verified.source_sha != intent.baseline_sha
+            or verified.original_sha != intent.baseline_sha
+            or verified.may_write_worktree or verified.may_update_git_ref):
+            raise GitInventoryHold("STALE_GIT_SOURCE")
+        files = set(work.iterdir())
+        if files != {work / ".git"}:
+            raise GitInventoryHold("DIRTY_DISPOSABLE")
+        return DisposableCreateReceipt(
+            intent.task_id, intent.baseline_sha, str(work),
+        )
+    except (ScopeHold, OSError, ValueError) as exc:
+        if isinstance(exc, GitInventoryHold):
+            raise
+        raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
