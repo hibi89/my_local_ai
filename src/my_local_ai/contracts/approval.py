@@ -85,6 +85,12 @@ def authorize_claim(
     """
     if not isinstance(grant, OwnerGrant) or type(now_seconds) is not int:
         return False
+    # V1 signer can bind only a local plan. A scope-only grant MUST NOT
+    # authorize individual remote PRs, payments, OS/network/customer changes:
+    # these require action-specific, one-shot approval + protected OS signer.
+    # Preserve the future scope catalog for parsing, but fail closed at use-time.
+    if required_scope != "LOCAL_PLAN":
+        return False
     if required_scope not in SCOPES or required_scope != grant.scope:
         return False
     if grant.plan_sha256 != expected_plan_sha or grant.source_git_sha != expected_source_sha:

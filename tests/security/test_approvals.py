@@ -59,6 +59,38 @@ class ConsentTests(unittest.TestCase):
     def claim_json(self):
         return json.dumps({**json.loads(self.claim.payload()), "signature":self.claim.signature})
 
+    def test_high_risk_action_scope_never_authorized_by_reusable_plan_grant(self):
+        for scope in ("REMOTE_PR", "OS_CHANGE", "PAID_API", "CUSTOMER_DATA",
+                      "PRODUCTION", "NETWORK_EGRESS"):
+            obj = {"version": 1, "grant_id": "SYNTH-GRANT-0001",
+                   "plan_sha256": PLAN, "source_git_sha": SOURCE,
+                   "scope": scope, "issued_at": 100, "expires_at": 200,
+                   "nonce": "synthetic-nonce-1", "signature": "0"*64}
+            claimed = OwnerGrant.parse_json(json.dumps(obj))
+            signature = hmac.new(KEY, b"mla-owner-go/v1|" + claimed.payload(), hashlib.sha256).hexdigest()
+            actual = OwnerGrant.parse_json(json.dumps({**obj, "signature": signature}))
+            self.assertFalse(check(actual, self.ledger, required_scope=scope))
+            self.assertFalse(self.ledger.is_live(actual.grant_id, PLAN, scope))
+
+    def test_malformed_or_moved_state_file_does_not_authorize(self):
+        other = Path(self.tmp.name) / "replacement.sqlite3"
+        initialize_state(other)
+        with sqlite3.connect(other) as db:
+            db.execute("INSERT INTO owner_consents(consent_id,plan_sha,scope,state) VALUES(?,?,?,?)",
+                       ("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN", "NOT_APPROVED"))
+        original_is_live = self.ledger.is_live
+        # A replaced DB can never retain stale in-memory approval.
+        self.assertTrue(original_is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
+        import os
+        os.replace(other, self.path)
+        self.assertFalse(original_is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
+
+    def test_deleted_or_renamed_state_is_fail_closed(self):
+        moved = Path(self.tmp.name) / "old.sqlite3"
+        self.path.rename(moved)
+        self.assertFalse(check(self.claim, self.ledger))
+        self.assertFalse(self.ledger.is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
+
     def test_scope_and_sha_mismatch_denied(self):
         self.assertFalse(check(self.claim,self.ledger,required_scope="REMOTE_PR"))
         self.assertFalse(check(self.claim,self.ledger,expected_plan_sha="c"*64))
