@@ -323,8 +323,10 @@ class OpenCodeLexicalPathSafetyTests(unittest.TestCase):
                 {"original_checkout":str(original/".."/"original")},
             ):
                 with self.subTest(bad=bad),self.assertRaises(WorkerHold):
-                    prepare_opencode_run(
-                        task(),plan_sha256=PLAN,source_sha=SOURCE,
+                    kwargs=dict(
+                        task=task(),plan_sha256=PLAN,source_sha=SOURCE,
                         disposable_worktree=str(work),original_checkout=str(original),
-                        prompt="synthetic source-only",**bad,
+                        prompt="synthetic source-only",
                     )
+                    kwargs.update(bad)
+                    prepare_opencode_run(**kwargs)
