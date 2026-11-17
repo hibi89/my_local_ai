@@ -84,3 +84,116 @@ def check_lease_fence(*, expected_run_id: str, expected_epoch: int,
         or not isinstance(observed_run_id, str) or type(observed_epoch) is not int):
         return False
     return expected_run_id == observed_run_id and expected_epoch == observed_epoch
+
+
+# P1 synthetic-only SQLite transaction. The in-memory restriction means no
+# customer/owner database can be changed by this API. A protected Windows
+# owner signer + actual isolated worker gate is a separate production port.
+import sqlite3
+from my_local_ai.contracts.approval import OwnerGrant, authorize_claim
+from my_local_ai.state.migrations import APP_ID, SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class SyntheticLeaseReceipt:
+    run_id: str
+    task_id: str
+    lease_epoch: int
+    state: str = "SYNTHETIC_LEASED_UNVERIFIED"
+    can_run_coder: bool = False
+    can_update_original: bool = False
+
+
+def claim_synthetic_lease(
+    db: sqlite3.Connection, proposal: LeaseProposal, *,
+    run_id: str, plan_sha256: str, source_sha: str,
+    owner_grant: OwnerGrant | None, trusted_test_key: bytes | None,
+    trusted_live_consent_check, now_seconds: int,
+) -> SyntheticLeaseReceipt:
+    """One atomic lease claim on an in-memory fixture, never on an OS database.
+
+    The transaction is a semantics smoke. It cannot establish signer identity
+    or permit real model execution. Future owner-runtime path must enforce an
+    OS-protected database and real independent F18 gate.
+    """
+    if not isinstance(db,sqlite3.Connection) or not isinstance(proposal,LeaseProposal):
+        raise LeaseHold("INVALID_CONTEXT")
+    if (not isinstance(run_id,str) or not _ID.fullmatch(run_id)
+        or not isinstance(plan_sha256,str) or not _SHA64.fullmatch(plan_sha256)
+        or not isinstance(source_sha,str) or not _SHA40.fullmatch(source_sha)
+        or proposal.baseline_sha != source_sha
+        or type(now_seconds) is not int or now_seconds <= 0):
+        raise LeaseHold("INVALID_CONTEXT")
+    # Production-file and even temp-disk databases are categorically refused.
+    # Attacker-controlled URI modes and attached databases are also refused.
+    try:
+        files=db.execute("PRAGMA database_list").fetchall()
+        if (len(files)!=1 or files[0][1]!="main" or files[0][2]!=""
+            or db.in_transaction or db.execute("PRAGMA query_only").fetchone()[0]!=0
+            or db.execute("PRAGMA application_id").fetchone()[0]!=APP_ID
+            or db.execute("PRAGMA user_version").fetchone()[0]!=SCHEMA_VERSION
+            or db.execute("PRAGMA foreign_keys").fetchone()[0]!=1):
+            raise LeaseHold("INVALID_CONTEXT")
+    except sqlite3.Error:
+        raise LeaseHold("INVALID_CONTEXT") from None
+    if not authorize_claim(
+        owner_grant,trusted_hmac_key=trusted_test_key,
+        expected_plan_sha=plan_sha256,expected_source_sha=source_sha,
+        required_scope="LOCAL_PLAN",now_seconds=now_seconds,
+        trusted_live_consent_check=trusted_live_consent_check,
+    ):
+        raise LeaseHold("UNTRUSTED_STATE")
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        plan=db.execute(
+            "SELECT plan_sha,blueprint_sha,state FROM plans WHERE plan_id=?",
+            (proposal.plan_id,),
+        ).fetchall()
+        task=db.execute(
+            "SELECT source_sha,state FROM tasks WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id,proposal.task_id),
+        ).fetchall()
+        consent=db.execute(
+            "SELECT state FROM owner_consents WHERE consent_id=? AND plan_sha=? AND scope='LOCAL_PLAN'",
+            (owner_grant.grant_id,plan_sha256),
+        ).fetchall()
+        if (len(plan)!=1 or len(task)!=1 or len(consent)!=1
+            or plan[0] != (plan_sha256,source_sha,"APPROVED")
+            or task[0] != (source_sha,"READY")
+            or consent[0] != ("APPROVED",)):
+            raise LeaseHold("UNTRUSTED_STATE")
+        existing=db.execute(
+            "SELECT run_id FROM leases WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id,proposal.task_id),
+        ).fetchall()
+        highest=db.execute(
+            "SELECT COALESCE(MAX(lease_epoch),0) FROM runs WHERE plan_id=? AND task_id=?",
+            (proposal.plan_id,proposal.task_id),
+        ).fetchone()[0]
+        if existing:
+            raise LeaseHold("ACTIVE_LEASE")
+        if (type(highest) is not int or highest != proposal.expected_previous_epoch
+            or proposal.proposed_epoch != highest+1):
+            raise LeaseHold("LEASE_FENCED")
+        if db.execute("SELECT 1 FROM runs WHERE run_id=?",(run_id,)).fetchone():
+            raise LeaseHold("DUPLICATE_RUN")
+        db.execute(
+            "INSERT INTO runs(run_id,plan_id,task_id,baseline_sha,lease_epoch,state) "
+            "VALUES(?,?,?,?,?,'REVIEW_PENDING')",
+            (run_id,proposal.plan_id,proposal.task_id,source_sha,proposal.proposed_epoch),
+        )
+        db.execute(
+            "INSERT INTO leases(plan_id,task_id,generation,run_id) VALUES(?,?,?,?)",
+            (proposal.plan_id,proposal.task_id,proposal.proposed_epoch,run_id),
+        )
+        updated=db.execute(
+            "UPDATE tasks SET state='LEASED' WHERE plan_id=? AND task_id=? AND state='READY'",
+            (proposal.plan_id,proposal.task_id),
+        )
+        if updated.rowcount!=1:
+            raise LeaseHold("LEASE_FENCED")
+        db.commit()
+        return SyntheticLeaseReceipt(run_id,proposal.task_id,proposal.proposed_epoch)
+    except (sqlite3.Error,LeaseHold):
+        db.rollback()
+        raise LeaseHold("LEASE_FENCED") from None

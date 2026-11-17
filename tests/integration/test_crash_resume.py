@@ -124,5 +124,88 @@ class CrashResumeContractTests(unittest.TestCase):
             self.run_reconcile()
 
 
+# P1-only semantic transaction checks on in-memory SQLite, not owner files.
+import hashlib
+import hmac
+from my_local_ai.contracts.approval import OwnerGrant
+from my_local_ai.ax_runtime.leases import claim_synthetic_lease
+
+
+class SyntheticLeaseTransactionTests(CrashResumeContractTests):
+    def setUp(self):
+        super().setUp()
+        self.db.execute("PRAGMA query_only=OFF")
+        self.db.execute("UPDATE tasks SET state='READY' WHERE plan_id='PLAN-017'")
+        self.db.execute(
+            "INSERT INTO owner_consents(consent_id,plan_sha,scope,state) VALUES(?,?,?,?)",
+            ("SYNTH-OWNER-017",PLAN,"LOCAL_PLAN","APPROVED"),
+        )
+        self.db.commit()
+        self.key=b"synthetic-owner-consent-unit-tests-32"
+        unsigned=OwnerGrant("SYNTH-OWNER-017",PLAN,SRC,"LOCAL_PLAN",100,500,
+                            "nonce0001","0"*64)
+        signature=hmac.new(self.key,b"mla-owner-go/v1|"+unsigned.payload(),hashlib.sha256).hexdigest()
+        from dataclasses import replace
+        self.grant=replace(unsigned,signature=signature)
+
+    def issue(self, **change):
+        props=dict(
+            db=self.db,proposal=propose_lease(
+                snapshot(existing_epoch=0),trusted_plan_sha=PLAN,
+                trusted_baseline_sha=SRC),
+            run_id="RUN-017",plan_sha256=PLAN,source_sha=SRC,
+            owner_grant=self.grant,trusted_test_key=self.key,
+            trusted_live_consent_check=lambda *_:True,
+            now_seconds=150,
+        )
+        props.update(change)
+        return claim_synthetic_lease(**props)
+
+    def test_synthetic_transaction_persists_fenced_lease_without_exec(self):
+        claim=self.issue()
+        self.assertEqual(claim.lease_epoch,1)
+        self.assertFalse(claim.can_run_coder)
+        self.assertFalse(claim.can_update_original)
+        self.assertEqual(
+            self.db.execute("SELECT state FROM tasks WHERE task_id='TASK-017'").fetchone()[0],
+            "LEASED",
+        )
+        self.assertEqual(
+            self.db.execute("SELECT count(*) FROM runs WHERE run_id='RUN-017'").fetchone()[0],1,
+        )
+
+    def test_duplicate_and_stale_replay_rollback(self):
+        self.issue()
+        with self.assertRaises(LeaseHold):
+            self.issue()
+        self.assertEqual(self.db.execute("SELECT count(*) FROM runs").fetchone()[0],1)
+        self.assertEqual(self.db.execute("SELECT count(*) FROM leases").fetchone()[0],1)
+
+    def test_unsigned_wrong_plan_or_revoked_consent_rejected(self):
+        with self.assertRaises(LeaseHold):
+            self.issue(owner_grant=None)
+        with self.assertRaises(LeaseHold):
+            self.issue(plan_sha256="f"*64)
+        self.db.execute("UPDATE owner_consents SET state='REVOKED'")
+        self.db.commit()
+        with self.assertRaises(LeaseHold):
+            self.issue()
+        self.assertEqual(self.db.execute("SELECT count(*) FROM runs").fetchone()[0],0)
+
+    def test_wrong_expected_generation_rolls_back(self):
+        stale=propose_lease(
+            snapshot(existing_epoch=5),trusted_plan_sha=PLAN,trusted_baseline_sha=SRC,
+        )
+        with self.assertRaises(LeaseHold):
+            self.issue(proposal=stale)
+        self.assertEqual(self.db.execute("SELECT state FROM tasks WHERE task_id='TASK-017'").fetchone()[0],"READY")
+        self.assertEqual(self.db.execute("SELECT count(*) FROM leases").fetchone()[0],0)
+
+    def test_forged_database_identity_does_not_issue_lease(self):
+        self.db.execute("PRAGMA application_id=12345")
+        with self.assertRaises(LeaseHold):
+            self.issue()
+
+
 if __name__=="__main__":
     unittest.main()
