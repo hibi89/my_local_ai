@@ -353,7 +353,7 @@
   ],
   "source_implementation_branch": "feature/code-shield-lightweight-v1",
   "p1_local_syntax": "NOT_RUN_NO_EXECUTION_ENVIRONMENT",
-  "current_source_head_before_queue": "a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf",
+  "current_source_head_before_queue": "d4a3abef6d991e472da25bcd8e99cd5a60f787c4",
   "legacy_task_group_total": 8,
   "legacy_task_group_source_candidate_count": 3,
   "legacy_task_group_status_preserved": true,
@@ -720,7 +720,7 @@
       "owner_go": false,
       "code_only_work_allowed": true,
       "code_only_scope": "Implement protected broker interface and refusal state only; do not enable Semgrep native execution before independent OS principal and egress evidence",
-      "code_only_progress": "Fixed Semgrep request/JSON guard + bounded on-demand Windows Sandbox fallback WSB config with Networking Disable, Clipboard Disable, ReadOnly minimal staging SHA inventory, no LogonCommand, no file writes or launch; Controller+orchestrator expose redacted preview. Effective OS egress isolation, protected execution and F18 remain unverified and NOT IMPLEMENTED; full SWU not complete.",
+      "code_only_progress": "Fixed Semgrep request/JSON guard + bounded on-demand Windows Sandbox fallback WSB config with Networking Disable, Clipboard Disable, ReadOnly minimal staging SHA inventory, no LogonCommand, no file writes or launch; Controller+orchestrator expose redacted preview. Effective OS egress isolation, protected execution and F18 remain unverified and NOT IMPLEMENTED; full SWU not complete. Canonical XML structure and security settings guarded against altered preview payload; Windows effective isolation still NOT_RUN.",
       "code_only_attempts": [
         {
           "attempt_id": "CS007-20261118-A1",
@@ -734,6 +734,13 @@
           "method": "Add on-demand Windows Sandbox fallback config from exact pinned source inventory, bound staging enumeration, connect redacted controller->orchestrator preview",
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS007-20261118-A3",
+          "method": "Validate inert .wsb XML as strict canonical no-network/read-only/no-LogonCommand config even against rehashed malicious XML",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "41316d7d55e512eeafad9830986711352afca617",
           "nonprogress_failure": false
         }
       ]
@@ -995,13 +1002,20 @@
       "owner_go": false,
       "code_only_attempt_allowed": true,
       "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant",
-      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE.",
+      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE. Scan request contract now carries replay-bound context metadata; owner action verification/native Start-MpScan remain HOLD.",
       "code_only_attempts": [
         {
           "attempt_id": "CS012-20261118-A1",
           "method": "Add immutable Defender scan preview with allowed target scope, bounded regular-file hash and immutable deny flags",
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "4e40fa741cc3c471208f675d8c3fda761fea8a2e",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS012-20261118-A2",
+          "method": "Bind non-executing Defender owner-scan intent to exact plan/source SHA, nonce and lease epoch with strict validation",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "d4a3abef6d991e472da25bcd8e99cd5a60f787c4",
           "nonprogress_failure": false
         }
       ]
@@ -1128,13 +1142,20 @@
         "CS-SWU-007_BROKER_REQUEST_CONTRACT_ONLY"
       ],
       "p1_code_only_scope": "Implement Controller fail-closed stage ordering and denial result before any execution; OS broker/F18/CAS runtime activation remains HOLD",
-      "code_only_progress": "Controller stage sequence and orchestrator API explicitly deny every owner grant, OS isolation, F18 and Git CAS promotion; runtime bridge to independently attested broker still absent. Full SWU NOT COMPLETE.",
+      "code_only_progress": "Controller stage sequence and orchestrator API explicitly deny every owner grant, OS isolation, F18 and Git CAS promotion; runtime bridge to independently attested broker still absent. Full SWU NOT COMPLETE. Redacted Controller audit rejects forged scanner names/states, duplicate case-insensitive paths and arbitrary reason strings; F18/OS/CAS still HOLD.",
       "code_only_attempts": [
         {
           "attempt_id": "CS014-20261118-A1",
           "method": "Implement deterministic source/scan/owner/OS/F18/CAS stage denial, redacted Controller->orchestrator preview without any privileged call",
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS014-20261118-A2",
+          "method": "Strictly validate Controller static audit metadata, scanner statuses, redacted reasons and digest paths before dispatch denial",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "245e04b17b10661da3b00d5069c8d2ad74ee07eb",
           "nonprogress_failure": false
         }
       ]
