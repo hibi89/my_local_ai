@@ -318,3 +318,13 @@
 - `src/`, `tests/`, frozen blueprint, Git history, phase gates untouched; this rescoping produces **0 new REQ source-acceptance change**. Recorded formal P1 remains **5/30 (16.67%)**, P2 verification `UNASSESSED/LOCKED`, owner GO false, real model/Windows/F18/browser NOT_RUN. Existing mandatory CI and narrow immediate safety apply.
 - Original IDs/evidence/attempts and safety/full dependencies retained in `legacy_mapping`. New ids cannot reset attempts. P1 only BE/FE real code, P2 entire test harness, full regression/real hardware/security reviews. No paid/external/remote or customer original operation.
 - Next `ㄱ`: implement five independent READY code gaps without preview-only hardening or P2 test code. After actual source commit, update SWU status/SHA and legacy mapping; preserve 30-REQ denominator until individually accepted.
+
+
+---
+
+## 2026-11-17 KST P1 SWU functional code wave 01 — DONE SOURCE / P2 NOT RUN
+- **Exact code SHA:** `ecf9f491980a30d50f7539e12a00c30f64bcce0e` (parent functional SHA `909f763b0c2d3ce7b0264cdaa08509828cbdd0dc`). New source modules: CLI REQ-to-SWU read-only report; owned SQLite task/event/untrusted run + repair-offer transactional persistence; failure HOLD and independent READY proposal; Windows local RAM/CPU read-only sample with unavailable VRAM/thermal explicit; redacted benchmark observed counters and throughput (P2 model permit remains hard-locked).
+- **5/5 scheduled source SWUs coded:** MLA-SWU-002, MLA-SWU-011, MLA-SWU-023, MLA-SWU-032, MLA-SWU-034. SWU source candidates **18/39 → 23/39 (58.97%)**; remaining **16 SWUs** include source gaps, dependencies and protected/rights blockers. This is a *source SWU candidate* ratio, not formal 30-REQ implementation acceptance.
+- **P1 official REQ implementation:** still **5/30 = 16.67%** (newly completed 5 SWUs span partial REQs; no per-REQ independent acceptance). **P2 official verification UNASSESSED/LOCKED**, owner runtime GO false, protected reviewer F18 HOLD, real Windows/Ollama/browser/24h/real Git ops NOT_RUN.
+- **Mandatory CI:** GitHub Actions [44068198463](https://github.com/hibi89/my_local_ai/actions/runs/44068198463) at exact `ecf9f491980a30d50f7539e12a00c30f64bcce0e` **success**: 173 unit, 118 synthetic integration, 194 synthetic security, 485/485 PASS, syntax checks PASS. **New code paths targeted local run: NOT_RUN** (repository checkout not available in scratch environment). P2 full security/Windows/browser E2E not executed.
+- **Next real source-only READY:** MLA-SWU-016, MLA-SWU-024, MLA-SWU-039 (**3 only**, source-safe DAG constrained). Existing `docs/FINAL_BLUEPRINT.md`, `WORK_PHASE_GATES.json`, P2 task statuses, original 28 legacy task histories and runtime gates unchanged.

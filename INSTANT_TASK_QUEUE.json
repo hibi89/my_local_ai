@@ -1396,15 +1396,16 @@
   "active_p1_scheduler": "P1_SWU_TASK_QUEUE_V1",
   "active_swu_queue": "P1_SWU_TASK_QUEUE.json",
   "first_ready_swu": [
-    "MLA-SWU-002",
-    "MLA-SWU-011",
-    "MLA-SWU-023",
-    "MLA-SWU-032",
-    "MLA-SWU-034"
+    "MLA-SWU-016",
+    "MLA-SWU-024",
+    "MLA-SWU-039"
   ],
   "swu_task_count": 39,
   "legacy_first_ready_compatibility_only": true,
   "swu_reestimate_baseline_sha": "bc28dfee99fecd16180d8a16c54a0adb95420658",
   "swu_policy": "OWNER-SWU-HIGH-20261117",
-  "swu_runtime_authority": "NONE"
+  "swu_runtime_authority": "NONE",
+  "swu_progress_source_complete_candidates": 23,
+  "swu_last_source_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+  "swu_execution_authority": "NONE"
 }

@@ -20,23 +20,20 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 18,
-  "source_incomplete_swu_count": 21,
+  "source_complete_swu_count": 23,
+  "source_incomplete_swu_count": 16,
   "status_counts": {
     "BLOCKED_PROVENANCE": 1,
-    "READY": 5,
-    "SOURCE_COMPLETE_P2_PENDING": 18,
+    "SOURCE_COMPLETE_P2_PENDING": 23,
     "BLOCKED_TRUST": 4,
-    "BACKLOG_READY": 2,
-    "PENDING_CODE_DEPENDENCY": 8,
+    "READY": 3,
+    "PENDING_CODE_DEPENDENCY": 7,
     "BLOCKED_APPROVAL": 1
   },
   "first_ready": [
-    "MLA-SWU-002",
-    "MLA-SWU-011",
-    "MLA-SWU-023",
-    "MLA-SWU-032",
-    "MLA-SWU-034"
+    "MLA-SWU-016",
+    "MLA-SWU-024",
+    "MLA-SWU-039"
   ],
   "operational_ready": [],
   "owner_go": false,
@@ -126,8 +123,8 @@
       ],
       "caller_to_callee": "mla evidence>REQ inventory>redacted rows",
       "observable_outcome": "per-REQ source coverage visible",
-      "missing_function": "no REQ live coverage CLI",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-003",
         "MLA-SWU-004"
@@ -157,7 +154,7 @@
         "MLA-001": 0,
         "MLA-006": 1
       },
-      "attempts_used": 1,
+      "attempts_used": 2,
       "attempts_note": "Inherited conservatively from edited legacy task; splitting cannot reset effort",
       "evidence_sha_by_legacy": {
         "MLA-001": "aa626dc11c96135439d369cdf211ac9055e17550",
@@ -179,7 +176,12 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "no REQ live coverage CLI",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
     },
     {
       "id": "MLA-SWU-003",
@@ -742,8 +744,8 @@
       ],
       "caller_to_callee": "protected run writer>SQLite tasks/runs/events",
       "observable_outcome": "durable task event commit",
-      "missing_function": "schema exists but no state writer",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-010"
       ],
@@ -772,7 +774,7 @@
         "MLA-007": 0,
         "MLA-017": 0
       },
-      "attempts_used": 0,
+      "attempts_used": 1,
       "attempts_note": "No post-policy feature coding attempt proven for inherited task",
       "evidence_sha_by_legacy": {
         "MLA-007": "675a7c772866709d626bf5e1001b454e98647f9d",
@@ -797,7 +799,12 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "schema exists but no state writer",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
     },
     {
       "id": "MLA-SWU-012",
@@ -1097,7 +1104,7 @@
       "caller_to_callee": "protected source>pinned git worktree create",
       "observable_outcome": "isolated checkout without changing main",
       "missing_function": "only preview and metadata audit",
-      "code_status": "BACKLOG_READY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-017",
         "MLA-SWU-003"
@@ -1150,7 +1157,8 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     },
     {
       "id": "MLA-SWU-017",
@@ -1597,8 +1605,8 @@
       ],
       "caller_to_callee": "review failure>repair policy>next READY",
       "observable_outcome": "persist retry/HOLD decision path",
-      "missing_function": "only pure retry proposal, no queue transition",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-009",
         "MLA-SWU-022"
@@ -1629,7 +1637,7 @@
         "MLA-010": 0,
         "MLA-016": 0
       },
-      "attempts_used": 0,
+      "attempts_used": 1,
       "attempts_note": "No post-policy feature coding attempt proven for inherited task",
       "evidence_sha_by_legacy": {
         "MLA-010": "675a7c772866709d626bf5e1001b454e98647f9d",
@@ -1653,7 +1661,12 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "only pure retry proposal, no queue transition",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
     },
     {
       "id": "MLA-SWU-024",
@@ -1671,7 +1684,7 @@
       "caller_to_callee": "lease proposal>SQLite CAS epoch>receipt",
       "observable_outcome": "stale duplicate workers fenced",
       "missing_function": "in-memory intent but no durable CAS",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-011",
         "MLA-SWU-009"
@@ -1724,7 +1737,8 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     },
     {
       "id": "MLA-SWU-025",
@@ -2257,8 +2271,8 @@
       ],
       "caller_to_callee": "bounded sampler>ResourceReading>limits",
       "observable_outcome": "local RAM CPU thermal VRAM or NOT_AVAILABLE",
-      "missing_function": "only injected synthetic sample; no platform read",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-012"
       ],
@@ -2287,7 +2301,7 @@
         "MLA-011": 0,
         "MLA-022": 0
       },
-      "attempts_used": 0,
+      "attempts_used": 1,
       "attempts_note": "No post-policy feature coding attempt proven for inherited task",
       "evidence_sha_by_legacy": {
         "MLA-011": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
@@ -2312,7 +2326,12 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "only injected synthetic sample; no platform read",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
     },
     {
       "id": "MLA-SWU-033",
@@ -2398,8 +2417,8 @@
       ],
       "caller_to_callee": "local generation>observation>redacted metrics",
       "observable_outcome": "bounded model throughput fields not fabricated",
-      "missing_function": "tokens RAM observation discarded; real run P2",
-      "code_status": "READY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-012",
         "MLA-SWU-013"
@@ -2429,7 +2448,7 @@
         "MLA-011": 0,
         "MLA-020": 0
       },
-      "attempts_used": 0,
+      "attempts_used": 1,
       "attempts_note": "No post-policy feature coding attempt proven for inherited task",
       "evidence_sha_by_legacy": {
         "MLA-011": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998",
@@ -2453,7 +2472,12 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_missing_function": "tokens RAM observation discarded; real run P2",
+      "actual_source_implemented": true,
+      "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
     },
     {
       "id": "MLA-SWU-035",
@@ -2769,7 +2793,7 @@
       "caller_to_callee": "protected evidence>REQ map>phase candidate",
       "observable_outcome": "immutable 30-REQ candidate decision",
       "missing_function": "static phase JSON only",
-      "code_status": "BACKLOG_READY",
+      "code_status": "READY",
       "code_depends_on": [
         "MLA-SWU-002",
         "MLA-SWU-003",
@@ -2830,7 +2854,8 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "scheduling_reason": "ALL_CODE_ONLY_DEPENDENCIES_HAVE_SOURCE_CANDIDATE_EVIDENCE"
     }
   ],
   "legacy_mapping": [
@@ -4659,5 +4684,28 @@
         "MLA-V008"
       ]
     }
-  ]
+  ],
+  "last_source_wave": {
+    "source_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
+    "source_commits": [
+      "909f763b0c2d3ce7b0264cdaa08509828cbdd0dc",
+      "ecf9f491980a30d50f7539e12a00c30f64bcce0e"
+    ],
+    "swus": [
+      "MLA-SWU-002",
+      "MLA-SWU-011",
+      "MLA-SWU-023",
+      "MLA-SWU-032",
+      "MLA-SWU-034"
+    ],
+    "mandatory_actions_run": 44068198463,
+    "unit_tests_pass": 173,
+    "synthetic_integration_pass": 118,
+    "synthetic_security_pass": 194,
+    "new_functions_targeted_runtime_test": "NOT_RUN",
+    "owner_windows": "NOT_RUN",
+    "protected_f18": "SECURITY_HOLD",
+    "p2": "LOCKED"
+  },
+  "next_wave_exception_reason": "Exactly 3 independent source READY after this wave; other SWUs await code predecessors, source rights, protected owner signer or F18. Do not create unsafe READY to reach four."
 }
