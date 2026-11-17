@@ -498,3 +498,18 @@
 8. **Preservation:** main/dev/design source, F18, original data, owner consent, protected signer, mandatory CI, P2 lock, 30 MLA REQs not changed. Public source only; no secret or customer artifacts.
 9. **Next READY:** CS-SWU-003/004/006/008/011 integration and reliable local-only scanner pins, then protected CS-SWU-014 dispatch gate after High/Sol Max safety review. CLI HTML/browser P2 validation deferred. Escalation is owned by MLA implementer (Codex Sol Max for security/code review; Work only for UI/browser/site workflows if later needed).
 10. **Date/evidence:** 2026-11-17 KST, GitHub source writes/readbacks only; exact feature HEAD after final handoff update required.
+
+---
+
+## 2026-11-17 KST — CodeShield P1 source handoff 12/16
+
+1. **Mission:** MLA V1.3 CodeShield on `feature/code-shield-lightweight-v1` only, High-sized P1 source SWUs; F18 and OS execution HOLD.
+2. **Code:** New source wave: scoped file read→AST→Ruff/Gitleaks pinned sequential static audit, fixed Semgrep packaged-rules digest check (native execution blocked pending genuine OS egress broker), offline OSV local cache hash/freshness, CLI Defender read-only health probe, Controller/orchestrator static report. No guest code launched.
+3. **Checks:** GitHub file/queue readback PASS. Python syntax/smoke, local native scanner binaries, Windows, F18, full CI, browser and integration tests NOT_RUN. No associated branch Actions/checks at lookup. P1 candidates do not imply runtime correctness.
+4. **Status:** **CodeShield 12/16 = 75% source-connected IMPLEMENTED_UNVERIFIED**, remaining 007/010/012/014 HIGH or CRITICAL HOLD. Existing MLA 35/39 (89.74%) and formal P1 5/30 (16.67%) unchanged; P2 LOCKED / verified UNASSESSED / owner GO false.
+5. **Blocker:** 014 protected Controller dispatch and independent F18 signer/Windows OS principal not proven; 007 Semgrep egress broker not proven; 010 OSV offline tool/DB native CLI requires High review; 012 owner-action-scoped scan not implemented. No host fallback. New 2+2 nonprogress failures 0.
+6. **GitHub:** `hibi89/my_local_ai` feature branch, source/queue SHA before docs `fb5968c65881b58d944e1c5d12d3f95a79274a89`; exact latest HEAD re-read after this document.
+7. **Production:** Not applicable, local Windows user PC not accessed. No install/OS policy/remote API/model/secret/source data changes.
+8. **Preservation:** main/dev/other repos untouched by this round; exact code/source and queue history retained; original scope/F18/owner/mandatory CI/P2 locks maintained.
+9. **Next:** The feature queue has no independent unblocked SWUs; request **Codex GPT-6.1 Sol Max** for critical 014/related 007 code+security review, not Work GUI. High design approval and owner GO still required for any protected execution. After review, complete 010/007/014 source, leave 012 optional scan held until grant.
+10. **Basis:** 2026-11-17 KST; this is GitHub-only source authoring, not Windows functional verification.
