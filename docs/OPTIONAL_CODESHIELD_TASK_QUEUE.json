@@ -2,7 +2,7 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_13_OF_16_IMPLEMENTED_UNVERIFIED_CS007_BROKER_CONTRACT_HOLD_2_PLUS_2",
+  "state": "P1_13_OF_16_PARTIAL_012_014_2PLUS2_NO_FAILURE",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
@@ -11,8 +11,7 @@
   "p1_source_swu_total": 16,
   "p1_source_swu_implemented": 13,
   "first_source_ready": [
-    "CS-SWU-012",
-    "CS-SWU-014"
+    "CS-SWU-007"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -976,17 +975,27 @@
         "full CI integration/security/regression"
       ],
       "risk": "HIGH",
-      "source_status": "HIGH_REDESIGN_AND_OWNER_ACTION_GO_HOLD",
-      "implementation_evidence_sha": null,
+      "source_status": "SOURCE_OWNER_SCOPE_PREVIEW_IMPLEMENTED_UNVERIFIED_SCAN_HOLD",
+      "implementation_evidence_sha": "4e40fa741cc3c471208f675d8c3fda761fea8a2e",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "NONE",
+      "retry_stage": "PROGRESS_OWNER_GRANT_BROKER_PENDING",
       "retry_evidence": [],
       "owner_go": false,
       "code_only_attempt_allowed": true,
-      "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant"
+      "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant",
+      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE.",
+      "code_only_attempts": [
+        {
+          "attempt_id": "CS012-20261118-A1",
+          "method": "Add immutable Defender scan preview with allowed target scope, bounded regular-file hash and immutable deny flags",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "4e40fa741cc3c471208f675d8c3fda761fea8a2e",
+          "nonprogress_failure": false
+        }
+      ]
     },
     {
       "task_id": "CS-SWU-013",
@@ -1089,13 +1098,13 @@
         "full CI integration/security/regression"
       ],
       "risk": "CRITICAL",
-      "source_status": "HIGH_REDESIGN_CRITICAL_EXECUTION_HOLD",
-      "implementation_evidence_sha": null,
+      "source_status": "SOURCE_CONTROLLER_HARD_STOP_IMPLEMENTED_UNVERIFIED_F18_HOLD",
+      "implementation_evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "NONE_WAITING_CODE_ONLY_DEPENDENCIES",
+      "retry_stage": "PROGRESS_PROTECTED_GATE_PENDING",
       "retry_evidence": [],
       "owner_go": false,
       "implementation_blocker": "PROTECTED_OS_EXECUTOR_AND_INDEPENDENT_F18_REVIEWER_NOT_PROVEN_RUNTIME_HOLD_ONLY",
@@ -1109,7 +1118,17 @@
         "CS-SWU-013",
         "CS-SWU-007_BROKER_REQUEST_CONTRACT_ONLY"
       ],
-      "p1_code_only_scope": "Implement Controller fail-closed stage ordering and denial result before any execution; OS broker/F18/CAS runtime activation remains HOLD"
+      "p1_code_only_scope": "Implement Controller fail-closed stage ordering and denial result before any execution; OS broker/F18/CAS runtime activation remains HOLD",
+      "code_only_progress": "Controller stage sequence and orchestrator API explicitly deny every owner grant, OS isolation, F18 and Git CAS promotion; runtime bridge to independently attested broker still absent. Full SWU NOT COMPLETE.",
+      "code_only_attempts": [
+        {
+          "attempt_id": "CS014-20261118-A1",
+          "method": "Implement deterministic source/scan/owner/OS/F18/CAS stage denial, redacted Controller->orchestrator preview without any privileged call",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+          "nonprogress_failure": false
+        }
+      ]
     },
     {
       "task_id": "CS-SWU-015",
@@ -1230,17 +1249,21 @@
   ],
   "last_source_wave": {
     "branch": "feature/code-shield-lightweight-v1",
-    "source_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
+    "source_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
     "task_ids": [
-      "CS-SWU-007"
+      "CS-SWU-012",
+      "CS-SWU-014"
     ],
-    "status": "PARTIAL_SOURCE_PROGRESS_UNVERIFIED_OS_EGRESS_BROKER_HOLD",
-    "python_syntax": "NOT_RUN_GITHUB_CONNECTOR_ONLY",
-    "targeted_smoke": "NOT_RUN_GITHUB_CONNECTOR_ONLY",
-    "native_windows": "NOT_RUN",
-    "semgrep_native": "NOT_RUN",
-    "f18": "SECURITY_HOLD",
-    "full_ci": "DEFERRED_TO_P2",
+    "status": "SOURCE_PARTIAL_PROGRESS_UNVERIFIED_CRITICAL_RUNTIME_HOLD",
+    "checks": {
+      "github_file_readback": "PASS",
+      "source_hard_stop_markers": "PASS_STATIC_READBACK_ONLY",
+      "python_syntax": "NOT_RUN_NO_LOCAL_SOURCE_CHECKOUT",
+      "targeted_smoke": "NOT_RUN",
+      "native_windows": "NOT_RUN",
+      "independent_f18": "NOT_RUN",
+      "full_ci": "DEFERRED_TO_P2"
+    },
     "owner_go": false,
     "untrusted_execution": false,
     "nonprogress_failures_added": 0
@@ -1255,7 +1278,7 @@
     ],
     "selected_surface": "CODEX",
     "selected_model": "GPT-6.1 Sol Max",
-    "reason": "SWU-007 source contract advanced; two independent code-only tasks remain (012 grant contract and 014 Controller denial stage), no actual unavoidable deadlock; runtime OS/F18 still HOLD",
+    "reason": "SWU-012 owner-scope preview and SWU-014 fail-closed Controller source implementations progressed. Missing trusted broker is not yet a demonstrated unavoidable P1 deadlock. Continue 007 safe code-only redesign with unchanged 2+2 counters.",
     "trigger": "ACTUAL_UNAVOIDABLE_MANDATORY_BLOCKAGE_OR_FOUR_EVIDENCED_NONPROGRESS_FAILURES",
     "owner_go_required": true,
     "source_head": "aeb058a10b77d1c4e68892b5b1614afda7642f31",
@@ -1281,5 +1304,5 @@
       "NO_ORIGINAL_OR_MAIN_WRITE"
     ]
   },
-  "next_safe_code_only_ready_reason": "No trusted OS egress runner yet; source-only owner-scoped Defender contract and Controller hard-stop stage can be authored independently without performing high-risk runtime actions"
+  "next_safe_code_only_ready_reason": "Progress in 012 owner-scope request and 014 hard-stop Controller; remaining safe source work on 007 protected OS broker design. No untrusted host scan, no ACL/firewall/owner action change."
 }
