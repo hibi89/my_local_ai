@@ -46,3 +46,26 @@ F01→REQ-02/03/04, F02→08, F03→09, F04→10, F05→12, F06→13, F07→14/1
 
 ### EAI 역사적 기준과의 매핑
 EAI 독립 CPU Cognition/Intent/ResultSpec 및 bounded typed goals = REQ-05/06/14. P24/P26 SHA-pinned allowlist/owner execution = REQ-03/04/07. EAI P38 Hydrogen 벤치마크는 선택적 실험이며 필수 기능 아님; 실제 모델 결과 미검증. 기존 13종 모든 목표의 호환성은 원본 이식 단계에서 별도 테스트하고, 검증 없이 지원한다고 주장하지 않는다.
+
+
+---
+
+## 기존 REQ-14/29/30의 브라우저 실행 시점 — 2026-11-17 사용자 확정
+`REQ-29`(FE 상태판)·`REQ-30`(전수 검증 하네스)·`REQ-14`(독립 테스트)의 **P1 구현 코드 작성과 P2 전체 검증 실행**을 분리한다. P1은 BE+FE 코드·API·상태 전이·UI 구성·테스트 하네스 작성과 문법/타입·필요 최소 빌드/국소 스모크, 인증/권한/비밀/원본/DB 손실/F18 즉시 검사로 구현 100% 후보를 판단한다. 반복 브라우저·Playwright E2E·클릭·스크린샷·반응형/접근성 전체 검증은 P2 `MLA-V007` 이후 실시한다. 고위험 또는 구현 상태 확인에 불가결한 최소 브라우저 스모크만 예외. 미실행은 `NOT_RUN`이며 P1 `IMPLEMENTED_UNVERIFIED`는 브라우저/검증 PASS 아님. 기존 필수 CI·P2 LOCKED·30 REQ 분모 및 Hydrogen 선택형 확장 분모 불변.
+
+## V1.1 선택형 확장 REQ-EXT-01~08 — 공식 기존 REQ-01~32 분모 불변
+
+2026-11-17 사용자 요청에 따라 최종설계의 **선택형 Hydrogen 병렬 개발 워커**를 구조에 반영했다. 이 항목은 원래 확정된 `REQ-01~30` P1 구현완료율 분자/분모와 `REQ-31~32` 후행 감사/GO, `VERIFICATION_TASK_QUEUE.json`의 8개 P2 게이트를 **변경·축소하지 않는다.** 신규 확장 구현을 필수로 재분류하려면 별도 전체 REQ 기준선/가중치/작업 큐와 사용자 GO가 필요하다. 이번 변경은 외부 API 호출·송신 승인이 아니다.
+
+| 확장 REQ | 설계 대상 | 수용 기준 | 추적 작업 | 상태 |
+|---|---|---|---|---|
+| EXT-01 | ProviderPort/capability/immutable worker contract | Qwen-only 동작·비신뢰 요청 응답·SHA/승인 검증 | EXT-HYD-01 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-02 | 0원/프라이버시/쿼터 정책 | 기본 OFF; 무료 미확인/유료/429/비밀 자료 전송 거부 | EXT-HYD-02 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-03 | 독립 병렬 스케줄링 | 서로 다른 READY, 격리 worktree, 경로·lease 충돌 차단 | EXT-HYD-03 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-04 | Hydrogen API 탈부착 adapter | mock만 기본, 정확 API 계약·라이브 사용 별도 GO | EXT-HYD-04 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-05 | 장애·fallback·SQLite checkpoint | 429/타임아웃/owner OFF 시 중복 없이 Qwen 재배정 후보 | EXT-HYD-05 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-06 | FE/CLI provider 상태판 | 가용성/차단 이유/비용 0원·소진 표시, 비밀 미노출 | EXT-HYD-06 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-07 | 합성/보안·F18 수용 검증 | HYD-AC-01~10, 모델 자기 PASS 차단, P2 별도 | EXT-HYD-07 | DESIGNED_NOT_IMPLEMENTED |
+| EXT-08 | 라이브 무료 tier 선택형 시험 | 해당 계정·model ID·ToS·허용 데이터 scope 별도 owner GO | EXT-HYD-08 | BLOCKED_OWNER_APPROVAL |
+
+**상세 구조:** `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`; **독립 작업 큐:** `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`; **완료율:** 기존 30 필수 REQ에 미산입, 별도 선택형 설계 상태만 보고.

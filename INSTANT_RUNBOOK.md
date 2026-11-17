@@ -26,6 +26,12 @@
 6. 모델/보안/원본/구조 고위험 또는 두 번째 진전 없는 실패는 High 판단; 다른 독립 READY 계속.
 7. 32 REQ 코드 후보 전수 준비 시 P2 전체 Linux/Windows CI·실사용/보안·회귀로 진입; P3 독립 감사, P4 High 인수/사용자 GO.
 
+## P1 브라우저 실행 최적화 — 모든 구현 담당 공통
+- Codex/Instant/Qwen/OpenCode/선택형 Hydrogen은 **BE와 FE 전부 구현**하되 브라우저 자동 실행·반복 클릭·Playwright E2E·스크린샷 비교·반응형/접근성 전수 검증은 기본 `DEFERRED_TO_P2`.
+- P1 성공 기준은 코드·UI 컴포넌트/API 연결·데이터 흐름·테스트 하네스/정확 SHA/문법·타입·필요 최소 빌드/국소 스모크 등이다. 브라우저 E2E PASS를 P1 후보 조건으로 요구하지 않는다.
+- 보안·인증/권한/데이터손실/외부전송/F18 위험은 즉시 검사한다. 브라우저가 유일하게 필요한 구현/안전 확인이면 최소 시나리오만 실행하고 사유·정확 SHA·PASS/FAIL/NOT_RUN을 기록한다.
+- **P2 전용:** 실제 브라우저/Playwright E2E, 다중 해상도, Console/Network, 키보드/a11y, 전체 통합·회귀. CLI-only면 비대상 근거 기록. 브라우저가 없으면 NOT_RUN. 기존 필수 CI는 끄거나 우회하지 않는다.
+
 ## Stop/HOLD
 - 외부 API/유료·계정 권한/보안 설정·실 고객자료·GitHub push/PR·OS 자동실행·main 병합은 별도 승인.
 - F18 trusted reviewer 실제 완료 전 중요 repo 자동 승격 금지. 주말 통합 시험은 일회용 합성 repo만.
@@ -33,3 +39,11 @@
 
 ## Definition of Done
 각 task가 README/코드만 추가했다고 COMPLETE 아님. REQ ID/실제 코드 sha/테스트 커맨드와 PASS·FAIL·SKIP·NOT_RUN/인증·회복·차단 근거를 남긴다. `IMPLEMENTED_UNVERIFIED`와 `VERIFIED` 혼동 금지.
+
+
+---
+
+## V1.1 설계 참조 — 별도 선택형 멀티워커 큐
+2026-11-17 High 설계 브랜치에 Hydrogen ProviderPort, 병렬 격리 워커, 무료 한도·유료 전환 시 자동 OFF/fallback 구조를 추가했다. 상세 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 확장 큐 `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`.
+
+**기존 MLA-001..030 / P1 28 작업·필수 30 REQ·P2 LOCKED는 그대로.** 이 문서 변경만으로 신규 READY를 자동 할당하거나 구현/검증 진척에 산입하지 않는다. 확장 mock/contract 코드의 허용 경로/의존성은 High가 실제 dev HEAD를 보고 따로 승인. 실제 Hydrogen API·비공개/고객 자료 송신·유료·키·GitHub 원격 쓰기는 owner 별도 GO까지 차단. OFF 이후 Qwen 기본경로 유지와 F18 독립 검증 경계를 보존한다.

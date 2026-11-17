@@ -23,6 +23,7 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 - AX Dev Factory F01–F20의 작업 계약·격리 Git 작업트리·SQLite 복구·1회 수정 후 HOLD·의존성·원본 보호 기준을 누락 없이 마이그레이션한다.
 - 모델/게스트가 작성한 테스트 PASS 영수증은 독립 증거 아님. F18 신뢰 경계가 실제 분리/검증되기 전에는 미검증 코드를 원본/중요 브랜치에 자동 승격하지 않는다. 안전 우회·비격리 호스트 fallback 금지.
 - 리스크나 데이터권한 변경은 즉시 검사. 개발 중 불필요한 전체 CI 대기 금지하나 기존 필수 CI/브랜치 보호 해제 금지.
+- **사용자 확정 브라우저 후행(2026-11-17):** P1 Instant/Codex/Qwen/Hydrogen 구현자는 BE+FE 코드/연결을 모두 작성하지만 반복 브라우저·Playwright E2E·시각/접근성/반응형 전체 검증은 `DEFERRED_TO_P2`. P1은 문법/타입/최소 빌드·국소 smoke 및 인증/권한/비밀/데이터 손실/F18 즉시 위험검사 유지. 브라우저 필수/고위험이면 최소 확인만 예외 허용, 사유·정확 SHA·결과 기록. P1 `IMPLEMENTED_UNVERIFIED`는 브라우저 PASS 아님. P2 전체 브라우저 검증은 High의 정확 구현 후보 SHA 게이트 후 `MLA-V007` 등에서 수행. `docs/PHASE_GATES.md`와 `docs/FINAL_BLUEPRINT.md F-1`을 확인한다.
 - 외부 Hydrogen/유료 서비스/고객 자료 외부 전송/GitHub App 권한·remote push/PR/OS startup/Production/배포/보안 정책 변경은 사전 승인. 모델은 자체 권한을 늘릴 수 없다.
 - PUBLIC repo: .env, 토큰, 모델 가중치, 비밀 프롬프트/고객 자료·민감 소스/DB/개인 경로·실제 실행 로그 원본 업로드 금지. 외부 데이터 업로드·원본 덮어쓰기 금지.
 - 작업 결과는 실제 SHA, PASS/FAIL/SKIP/NOT_RUN, 근거 환경, 차단/복구, 다음 READY로 기록. 공식 검증률은 사용자 승인 가중치 없으면 UNASSESSED. 구현 후보와 검증 완료/출시 승인 구별.
@@ -33,3 +34,13 @@ High: 최초 전체 설계·REQ 전수·보안·BE/FE·DB/API·비용/복구·�
 - AX Dev Factory: `hibi89/Freelancer@tools/ax-dev-factory-local`, 기준 SHA `5ab94180471c7ea86344b691fc77ad5c29989071`
 - my_local_ai main 최초 bootstrap SHA `960621d6207e6beb22a7e9480e524988196f3d44`
 이 기준 SHA는 설계 확인 기록이며 이식 코드의 검증 SHA가 아니다.
+
+
+---
+
+## 2026-11-17 High V1.1 설계 확장: 탈부착형 모델 워커 (설계만)
+- 필독: `docs/FINAL_BLUEPRINT.md`의 H항, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json` — Hydrogen은 **선택형 독립 병렬 코딩 워커**, 단순 검증자도 EAI의 필수 판단 엔진도 아니다.
+- 로컬 Qwen/AX Dev Factory 계열 core 우선, 공급자 OFF·무료 quota 종료·유료 전환에도 기존 30 REQ 구현 흐름 유지. 웹 Instant 세션 자동 API 호출을 보장하지 않는다. Codex는 별도 구현/후행 독립 감사.
+- 새 ProviderPort는 기본 OFF/네트워크 DENY/비용 0. 실제 API·비공개 코드·고객 자료 전송, SDK 계정 활성화·유료 결제·GitHub PR/main·권한·Production은 별도 사용자 GO. mock만 설계·안전 구현 후보 가능.
+- 여러 워커의 동시 코딩은 다른 READY, disjoint `allowed_paths`, exact source/plan SHA, worktree·lease·F18 독립 trust verifier를 지켜야 하며, 모델 셀프 PASS를 VERIFIED로 간주 금지.
+- 원래 `INSTANT_TASK_QUEUE.json` 28개/REQ-01~30/P1 구현률 분모 30 및 `WORK_PHASE_GATES.json` P2 LOCKED를 **절대 임의 변경하지 않는다**. 확장은 별도 설계/선택형 큐로 추적. 현재 작업중인 dev Instant 소스·STATUS·큐는 설계 브랜치 파일로 덮어쓰지 않는다.
