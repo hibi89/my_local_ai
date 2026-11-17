@@ -270,14 +270,14 @@ def _read_existing_current_user_dpapi_key() -> bytearray:
         encrypted = (ctypes.c_ubyte * len(sealed)).from_buffer_copy(sealed)
         input_blob = _DataBlob(len(sealed), encrypted)
         output_blob = _DataBlob()
-        crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+        crypt32 = ctypes.WinDLL("crypt32.dll", use_last_error=True, winmode=0x00000800)
         crypt32.CryptUnprotectData.argtypes = [
             ctypes.POINTER(_DataBlob), ctypes.c_void_p,
             ctypes.POINTER(_DataBlob), ctypes.c_void_p,
             ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(_DataBlob),
         ]
         crypt32.CryptUnprotectData.restype = wintypes.BOOL
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32.dll", use_last_error=True, winmode=0x00000800)
         kernel32.LocalFree.argtypes = [ctypes.c_void_p]
         kernel32.LocalFree.restype = ctypes.c_void_p
         try:
@@ -353,3 +353,161 @@ def inspect_owner_local_plan_windows_dpapi(
     finally:
         for i in range(len(key)):
             key[i] = 0
+
+
+# MLA-SWU-008: actual owner-side Windows token posture observation.
+# This is a read-only *diagnostic*, not an owner signer, ACL attestation,
+# authenticated role separation, F18 reviewer or capability to run AI code.
+@_dataclass(frozen=True)
+class WindowsOwnerTokenObservation:
+    """Redacted current-process token observations, never trust evidence."""
+
+    source: str
+    elevated: bool | None
+    appcontainer: bool | None
+    restricted: bool | None
+    job_member: bool | None
+    state: str = "TOKEN_OBSERVATION_NOT_PROTECTED_OWNER_IDENTITY"
+    owner_principal_protected: bool = False
+    key_custody_attested: bool = False
+    coder_reviewer_separated: bool = False
+    network_egress_denied: bool = False
+    independent_f18_verified: bool = False
+    can_issue_owner_grant: bool = False
+    can_run_worker: bool = False
+    can_modify_os: bool = False
+
+    def __post_init__(self) -> None:
+        flags = ("elevated", "appcontainer", "restricted", "job_member")
+        if (self.source not in (
+                "WINDOWS_TOKEN_QUERIED", "WINDOWS_TOKEN_UNAVAILABLE", "NON_WINDOWS"
+            )
+            or self.state != "TOKEN_OBSERVATION_NOT_PROTECTED_OWNER_IDENTITY"
+            or any(type(getattr(self, key)) not in (bool, type(None))
+                   for key in flags)
+            or (self.source != "WINDOWS_TOKEN_QUERIED"
+                and any(getattr(self, key) is not None for key in flags))
+            or any(getattr(self, key) is not False for key in (
+                "owner_principal_protected", "key_custody_attested",
+                "coder_reviewer_separated", "network_egress_denied",
+                "independent_f18_verified", "can_issue_owner_grant",
+                "can_run_worker", "can_modify_os",
+            ))):
+            raise ValueError("UNTRUSTED_OWNER_TOKEN_OBSERVATION")
+
+    def to_redacted_dict(self) -> dict[str, object]:
+        """Never reveal SID, logon name, privileges, handles or key material."""
+        return {
+            "source": self.source,
+            "elevated_observed": self.elevated,
+            "appcontainer_observed": self.appcontainer,
+            "restricted_token_observed": self.restricted,
+            "job_membership_observed": self.job_member,
+            "owner_principal": "NOT_ATTESTED",
+            "owner_key_custody": "NOT_ATTESTED",
+            "coder_reviewer_separation": "NOT_ATTESTED",
+            "network_egress": "NOT_ATTESTED",
+            "f18": "NOT_VERIFIED",
+            "owner_grant_issued": False,
+            "os_changed": False,
+            "execution_allowed": False,
+            "p2": "LOCKED",
+        }
+
+
+def inspect_windows_current_token_read_only() -> WindowsOwnerTokenObservation:
+    """Current host process -> Windows TOKEN_QUERY -> redacted posture.
+
+    Never impersonates, duplicates tokens, accesses protected keys, allocates a
+    Job Object, creates an AppContainer, starts a process or modifies Windows.
+    Positive elevation, restricted-token or AppContainer flags do NOT prove
+    that a protected owner signer exists or that worker egress is denied.
+    """
+    import os
+    if os.name != "nt":
+        return WindowsOwnerTokenObservation("NON_WINDOWS", None, None, None, None)
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        system32_only = 0x00000800  # LOAD_LIBRARY_SEARCH_SYSTEM32
+        advapi = ctypes.WinDLL("advapi32.dll", use_last_error=True,
+                              winmode=system32_only)
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True,
+                              winmode=system32_only)
+        kernel.GetCurrentProcess.argtypes = ()
+        kernel.GetCurrentProcess.restype = wintypes.HANDLE
+        advapi.OpenProcessToken.argtypes = (
+            wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)
+        )
+        advapi.OpenProcessToken.restype = wintypes.BOOL
+        advapi.GetTokenInformation.argtypes = (
+            wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p,
+            wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)
+        )
+        advapi.GetTokenInformation.restype = wintypes.BOOL
+        advapi.IsTokenRestricted.argtypes = (wintypes.HANDLE,)
+        advapi.IsTokenRestricted.restype = wintypes.BOOL
+        kernel.IsProcessInJob.argtypes = (
+            wintypes.HANDLE, wintypes.HANDLE, ctypes.POINTER(wintypes.BOOL)
+        )
+        kernel.IsProcessInJob.restype = wintypes.BOOL
+        kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel.CloseHandle.restype = wintypes.BOOL
+
+        process = kernel.GetCurrentProcess()  # Pseudohandle; never close.
+        token = wintypes.HANDLE()
+        if not advapi.OpenProcessToken(process, 0x0008, ctypes.byref(token)):
+            return WindowsOwnerTokenObservation(
+                "WINDOWS_TOKEN_UNAVAILABLE", None, None, None, None
+            )
+        try:
+            def query_dword(token_class: int) -> bool | None:
+                value = wintypes.DWORD()
+                received = wintypes.DWORD()
+                ok = advapi.GetTokenInformation(
+                    token, token_class, ctypes.byref(value),
+                    ctypes.sizeof(value), ctypes.byref(received)
+                )
+                if not ok or received.value != ctypes.sizeof(value):
+                    return None
+                if value.value not in (0, 1):
+                    return None
+                return bool(value.value)
+
+            # TOKEN_INFORMATION_CLASS: TokenElevation=20,
+            # TokenIsAppContainer=29. Values are observations, not claims.
+            elevation = query_dword(20)
+            appcontainer = query_dword(29)
+            ctypes.set_last_error(0)
+            restricted_value = bool(advapi.IsTokenRestricted(token))
+            restricted = (
+                None if ctypes.get_last_error() != 0 else restricted_value
+            )
+            in_job = wintypes.BOOL()
+            in_job_ok = kernel.IsProcessInJob(
+                process, None, ctypes.byref(in_job)
+            )
+            job_member = bool(in_job.value) if in_job_ok else None
+            return WindowsOwnerTokenObservation(
+                "WINDOWS_TOKEN_QUERIED",
+                elevation, appcontainer, restricted, job_member
+            )
+        finally:
+            kernel.CloseHandle(token)
+    except (OSError, AttributeError, ValueError, TypeError, OverflowError):
+        return WindowsOwnerTokenObservation(
+            "WINDOWS_TOKEN_UNAVAILABLE", None, None, None, None
+        )
+
+
+def _owner_token_read_only_main() -> int:
+    """Explicit non-executing diagnostic: python -m my_local_ai.state.consent"""
+    import json
+    report = inspect_windows_current_token_read_only()
+    print(json.dumps(report.to_redacted_dict(), sort_keys=True))
+    return 0  # Diagnostic completed, NOT a signer/OS isolation PASS.
+
+
+if __name__ == "__main__":
+    raise SystemExit(_owner_token_read_only_main())
