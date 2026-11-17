@@ -160,3 +160,55 @@ class BenchmarkAggregationTests(unittest.TestCase):
         with self.assertRaises(mod.BenchmarkHold) as err:
             self.mock(BadModel())
         self.assertEqual(err.exception.code, "BAD_OBSERVATION")
+
+
+
+class BenchmarkObservationHardeningTests(unittest.TestCase):
+    def test_fake_clock_boolean_is_not_elapsed_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(mod.BenchmarkHold) as ctx:
+                mod.run_mock_benchmark(
+                    mod.BenchmarkPlan("qwen3:4b-instruct",SOURCE,PLAN),
+                    fake_model=FakeModel(), prompt="synthetic",
+                    model_lock=OneModelLock(tmp),
+                    budget=BudgetGuard(ModelBudget()),
+                    clock=iter([True,2]).__next__,
+                )
+        self.assertEqual(ctx.exception.code,"BAD_OBSERVATION")
+
+    def test_forged_observation_sha_and_duration_fail_safely(self):
+        from dataclasses import replace
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline=mod.run_mock_benchmark(
+                mod.BenchmarkPlan("qwen3:4b-instruct",SOURCE,PLAN),
+                fake_model=FakeModel(),prompt="synthetic",
+                model_lock=OneModelLock(tmp),
+                budget=BudgetGuard(ModelBudget()),
+                clock=iter([1.,2.]).__next__,
+            )[0]
+        for field in ({"elapsed_seconds":True},
+                      {"output_sha256":None},
+                      {"source_sha":"bad"},
+                      {"plan_sha256":"bad"}):
+            with self.subTest(field=field),self.assertRaises(mod.BenchmarkHold):
+                replace(baseline,**field)
+
+    def test_mock_output_consumes_budget_checks_before_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            clock=iter([0.,2.]).__next__
+            limit=BudgetGuard(ModelBudget(max_seconds=1),clock=lambda:0.)
+            class SlowBudget(BudgetGuard):
+                def __init__(self):
+                    self.t=0
+                    super().__init__(ModelBudget(max_seconds=1),clock=lambda:self.t)
+                def check(self, **kwargs):
+                    self.t+=0.6
+                    return super().check(**kwargs)
+            with self.assertRaises(mod.BenchmarkHold) as ctx:
+                mod.run_mock_benchmark(
+                    mod.BenchmarkPlan("qwen3:4b-instruct",SOURCE,PLAN),
+                    fake_model=FakeModel(),prompt="synthetic",
+                    model_lock=OneModelLock(tmp),budget=SlowBudget(),
+                    clock=clock,
+                )
+            self.assertEqual(ctx.exception.code,"RESOURCE_LIMIT")

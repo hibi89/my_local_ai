@@ -158,3 +158,32 @@ class SQLiteStateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class SqliteLexicalPathAndIdentityTests(unittest.TestCase):
+    def test_reject_parent_traversal_even_if_it_normalizes_to_same_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            path=root/"local.sqlite3"
+            initialize_state(path)
+            before=path.read_bytes()
+            with self.assertRaises(ValueError):
+                initialize_state(root/"sub"/".."/"local.sqlite3")
+            self.assertEqual(path.read_bytes(),before)
+
+    def test_state_header_read_uses_nofollow_and_consistent_inode(self):
+        import my_local_ai.state.sqlite_store as store
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"local.sqlite3"
+            initialize_state(path)
+            original_open=store.os.open
+            def swapped_open(target,flags,*args,**kwargs):
+                if Path(target)==path:
+                    path.rename(path.with_suffix(".old"))
+                    path.write_bytes(b"not-an-owner-database")
+                return original_open(target,flags,*args,**kwargs)
+            with patch.object(store.os,"open",side_effect=swapped_open):
+                with self.assertRaises(ValueError):
+                    store._inspect_existing(path)

@@ -100,3 +100,36 @@ class QueueFailClosedHardeningTests(unittest.TestCase):
         self.assertFalse(candidate.runnable)
         with self.assertRaises(dataclasses.FrozenInstanceError):
             candidate.runnable = True
+
+
+
+class QueueIterableBoundednessTests(unittest.TestCase):
+    def test_infinite_task_generator_is_bounded_before_validation(self):
+        produced=[]
+        def infinite():
+            while True:
+                produced.append(1)
+                yield task("TASK-001")
+        with self.assertRaises(ValueError):
+            QueuePolicy(infinite(), PLAN)
+        self.assertEqual(len(produced),513)
+
+    def test_infinite_trusted_and_lease_generators_rejected(self):
+        q=QueuePolicy((task("TASK-001"),),PLAN)
+        states={"TASK-001":"READY"}
+        for arg in ("independently_verified","active_leases"):
+            produced=[]
+            def ids():
+                while True:
+                    produced.append(1)
+                    yield "TASK-001"
+            with self.subTest(arg=arg),self.assertRaises(ValueError):
+                q.propose_ready(states,**{arg:ids()})
+            self.assertEqual(len(produced),2)
+
+    def test_nonhashable_id_or_status_is_controlled_rejection(self):
+        q=QueuePolicy((task("TASK-001"),),PLAN)
+        with self.assertRaises(ValueError):
+            q.propose_ready({"TASK-001":[]})
+        with self.assertRaises(ValueError):
+            q.propose_ready({"TASK-001":"READY"},active_leases=[["TASK-001"]])

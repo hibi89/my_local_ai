@@ -84,9 +84,14 @@ class BenchmarkObservation:
 
     def __post_init__(self):
         if (self.evidence_level not in ("MOCK_ONLY", "LOCAL_MEASURED_P2_UNVERIFIED")
+            or type(self.elapsed_seconds) not in (int,float)
             or not math.isfinite(self.elapsed_seconds) or self.elapsed_seconds < 0
             or type(self.output_bytes) is not int or self.output_bytes < 0
-            or not _SHA64.fullmatch(self.output_sha256) or self.status != "UNVERIFIED_CANDIDATE"
+            or not isinstance(self.output_sha256,str)
+            or not _SHA64.fullmatch(self.output_sha256)
+            or not isinstance(self.source_sha,str) or not _SHA40.fullmatch(self.source_sha)
+            or not isinstance(self.plan_sha256,str) or not _SHA64.fullmatch(self.plan_sha256)
+            or self.fixture_id != _FIXTURE or self.status != "UNVERIFIED_CANDIDATE"
             or any(v is not None for v in (self.tokens_generated, self.peak_ram_mb,
                                           self.peak_vram_mb, self.power_watts,
                                           self.accepted_req_per_hour))):
@@ -113,10 +118,15 @@ def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
     records = []
     for _ in range(plan.repetitions):
         try:
-            start = float(clock())
+            budget.check()
+            start = clock()
+            if type(start) not in (int,float) or not math.isfinite(start):
+                raise BenchmarkHold("BAD_OBSERVATION")
             result = model.generate(prompt, model_lock=model_lock,
                                     budget=budget, allow_generation=True)
-            end = float(clock())
+            end = clock()
+            if type(end) not in (int,float) or not math.isfinite(end):
+                raise BenchmarkHold("BAD_OBSERVATION")
         except ProviderHold as error:
             raise BenchmarkHold(classify_benchmark_failure(error)) from None
         except BudgetExceeded:
@@ -135,6 +145,10 @@ def _observe(plan: BenchmarkPlan, *, model: LocalModel, prompt: str,
             raise BenchmarkHold("BAD_OBSERVATION") from None
         if len(raw) > budget.limits.max_output_bytes:
             raise BenchmarkHold("RESOURCE_LIMIT")
+        try:
+            budget.check(output_bytes=len(raw))
+        except BudgetExceeded:
+            raise BenchmarkHold("RESOURCE_LIMIT") from None
         records.append(BenchmarkObservation(
             model=plan.model, source_sha=plan.source_sha, plan_sha256=plan.plan_sha256,
             fixture_id=plan.fixture_id, evidence_level=level, elapsed_seconds=end-start,

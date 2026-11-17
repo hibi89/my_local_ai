@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import hashlib
 import re
 from typing import Iterable
+from itertools import islice
 
 from my_local_ai.contracts.task import TaskSpec
 
@@ -31,7 +32,12 @@ class QueuePolicy:
     """Validate an immutable DAG and produce non-executing READY candidates."""
 
     def __init__(self, tasks: Iterable[TaskSpec], plan_sha: str):
-        values = tuple(tasks)
+        if isinstance(tasks, (str, bytes)):
+            raise ValueError("task collection required")
+        try:
+            values = tuple(islice(iter(tasks), 513))
+        except (TypeError, ValueError):
+            raise ValueError("invalid task collection") from None
         if (not isinstance(plan_sha, str) or not _SHA256.fullmatch(plan_sha)
             or not 1 <= len(values) <= 512):
             raise ValueError("bounded tasks and SHA256 plan digest required")
@@ -72,18 +78,30 @@ class QueuePolicy:
         """
         if not isinstance(states, dict) or set(states) != set(self._tasks):
             raise ValueError("missing or unknown task states")
-        if any(state not in _STATES for state in states.values()):
+        if any(not isinstance(state, str) or state not in _STATES for state in states.values()):
             raise ValueError("invalid queue state")
         if isinstance(independently_verified, (str, bytes)):
             raise ValueError("trusted ID collection required")
-        trusted = set(independently_verified)
+        try:
+            trusted_items = tuple(islice(iter(independently_verified), len(self._tasks)+1))
+            trusted = set(trusted_items)
+        except (TypeError, ValueError):
+            raise ValueError("invalid trusted ID collection") from None
+        if len(trusted_items) > len(self._tasks):
+            raise ValueError("unbounded trusted ID collection")
         if not trusted.issubset(self._tasks):
             raise ValueError("unknown trusted dependency")
         if any(states[tid] != "VERIFIED" for tid in trusted):
             raise ValueError("inconsistent trusted dependency")
         if isinstance(active_leases, (str, bytes)):
             raise ValueError("active lease ID collection required")
-        active = set(active_leases)
+        try:
+            active_items = tuple(islice(iter(active_leases), len(self._tasks)+1))
+            active = set(active_items)
+        except (TypeError, ValueError):
+            raise ValueError("invalid lease ID collection") from None
+        if len(active_items) > len(self._tasks):
+            raise ValueError("unbounded active lease ID collection")
         if not active.issubset(self._tasks):
             raise ValueError("unknown active lease")
         result = []

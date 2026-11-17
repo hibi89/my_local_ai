@@ -15,3 +15,12 @@ P2 later: validate exact model/version + workload SHA; run bounded trials on own
 \`summarize_observations\` only accepts 1–3 schema-valid observations with identical model, source SHA, plan SHA256, synthetic fixture ID and evidence level. A mixed mock/real or different-source batch is rejected; the redacted summary includes only count/min/max/total duration, not prompts, generated text, invented tokens/sec or accepted REQ/hour. Exceptions use redacted policy/resource/model-unavailable/observation reason codes.
 
 **No live benchmark has run.** Injected model fakes are local test fixtures; mock durations have zero hardware evidentiary weight. The P2 entrypoint remains non-CLI, owner-consent and exact-SHA gated and Windows-only. OS-enforced F18, Windows real device and trusted metric collectors remain NOT_RUN.
+
+
+## 2026-11-17 P1 model harness hardening (source-only)
+
+The offline mocked benchmark now guards clock types, validates exact source/plan
+SHA and output hash before recording a result, and checks the remaining resource
+budget both before and after each mocked generation. Any elapsed-time or output
+anomaly returns HOLD. Real Qwen/Ollama and 24-hour Windows performance have
+**not** been measured; no benchmark result means owner-device acceptance.

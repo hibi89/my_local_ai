@@ -47,6 +47,8 @@ def _reject_link_or_alias(path: Path) -> None:
 
 def _safe_db_path(value: str | Path) -> Path:
     path = Path(value).absolute()
+    if ".." in path.parts:
+        raise ValueError("lexical parent traversal in state path")
     if path.suffix != ".sqlite3" or not path.parent.is_dir():
         raise ValueError("database must be a .sqlite3 file in an existing directory")
     for part in (path, *path.parents):
@@ -102,8 +104,19 @@ def _check_v1_schema(db: sqlite3.Connection) -> None:
 
 def _inspect_existing(path: Path) -> int:
     # First verify the header without letting sqlite3 create/modify unknown DBs.
-    with path.open("rb") as handle:
+    # Do not follow a file replacement between lstat and the read.
+    original = path.lstat()
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    descriptor = os.open(path, flags)
+    with os.fdopen(descriptor, "rb") as handle:
+        opened = os.fstat(handle.fileno())
+        if (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+            or (opened.st_dev, opened.st_ino) != (original.st_dev, original.st_ino)):
+            raise ValueError("existing state identity changed")
         header = handle.read(100)
+    after = path.lstat()
+    if (after.st_dev, after.st_ino) != (original.st_dev, original.st_ino):
+        raise ValueError("state path changed during inspection")
     if len(header) != 100 or header[:16] != b"SQLite format 3\x00":
         raise ValueError("refusing unknown/non-SQLite existing state")
     app_id = int.from_bytes(header[68:72], "big")
