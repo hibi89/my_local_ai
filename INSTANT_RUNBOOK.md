@@ -1,3 +1,6 @@
+> **[2026-11-18 CURRENT RESPONSIBILITY OVERRIDE — CENTRAL §0J/§0E]**
+`ACTIVE_P1_IMPLEMENTER=WEB_GPT6_SOL_HIGH` before confirmed December policy change and explicit owner transfer. This `INSTANT_RUNBOOK.md` is retained for queue/technical/attempt history; legacy 'Instant current main implementer' text is future-target only. Read `AGENTS.md` latest header first. 39 SWUs/30 REQ and 2+2 history unchanged. Latest dev HEAD must be checked. No safe READY exists as of 2026-11-18; 008/015/021/031 are BLOCKED_TRUST. Do not invent READY or interpret security intents as completed runtime code.
+
 ## 사용자 지정 Sol Max 요청 경로 선택 (2026-11-17 KST)
 
 - **요청 책임:** 실제 SWU를 수행 중인 해당 제품 개발 작업자. 해총은 공통 정책만 유지한다.
