@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .path_guard import ScopePreflight, preflight_paths
+from .path_guard import ScopePreflight, ScopeHold, preflight_paths
 import re
 
 _TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
@@ -267,3 +267,114 @@ def audit_linked_worktree_metadata(intent: WorktreeIntent) -> LinkedGitdirPrefli
         if isinstance(exc, GitInventoryHold):
             raise
         raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
+
+
+# Source-only lifecycle contract. The protected runner is intentionally absent:
+# generating/validating these intents never creates or removes a Git worktree.
+from hashlib import sha256 as _sha256
+import json as _json
+
+
+@_dataclass(frozen=True)
+class WorktreeLifecyclePreview:
+    task_id: str
+    source_sha: str
+    main_sha: str
+    original_checkout: str
+    disposable_worktree: str
+    scope_sha256: str
+    stage: str = "HOLD_PROTECTED_WORKTREE_LIFECYCLE_RUNNER"
+    created: bool = False
+    cleaned_up: bool = False
+    original_modified: bool = False
+    may_run_git: bool = False
+    may_delete_paths: bool = False
+    may_write_original: bool = False
+
+
+@_dataclass(frozen=True)
+class WorktreeCleanupPreview:
+    task_id: str
+    scope_sha256: str
+    stage: str = "HOLD_PROTECTED_CLEANUP_RUNNER"
+    cleanup_performed: bool = False
+    may_delete_paths: bool = False
+    may_update_main: bool = False
+
+
+def plan_disposable_lifecycle(
+    intent: WorktreeIntent, snapshot: GitInventorySnapshot,
+) -> WorktreeLifecyclePreview:
+    """Bind preflight, baseline and main-ref snapshot to a non-executable intent.
+
+    Trusted OS owner must re-attest inode/reparse identities and read back exact
+    Git HEAD/index/config immediately before any creation or cleanup. A guest
+    supplied snapshot (or this digest) is not trusted evidence.
+    """
+    if not isinstance(intent, WorktreeIntent) or not isinstance(snapshot, GitInventorySnapshot):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    if (intent.state != "PLAN_ONLY_NO_GIT_EXECUTION"
+        or intent.source_modified is not False
+        or intent.trusted_reviewer_present is not False
+        or not isinstance(intent.preflight, ScopePreflight)
+        or intent.preflight.status != "PRECHECK_ONLY"
+        or intent.preflight.writes_allowed is not False
+        or intent.preflight.git_verified is not False
+        or intent.preflight.reviewer_verified is not False):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    try:
+        current = plan_disposable(
+            task_id=intent.task_id, worktree=intent.preflight.worktree,
+            original_checkout=intent.preflight.original_checkout,
+            baseline_sha=intent.baseline_sha,
+            allowed_paths=intent.preflight.allowed_paths,
+        )
+    except (ValueError, ScopeHold, OSError):
+        raise GitInventoryHold("UNSAFE_GIT_PATH") from None
+    if current != intent:
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    inspected = audit_disposable_git_inventory(intent, snapshot)
+    if inspected.may_run_coder or inspected.may_write_worktree or inspected.may_update_git_ref:
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    identity = {
+        "task_id": intent.task_id,
+        "source_sha": inspected.source_sha,
+        "main_sha": inspected.main_sha,
+        "original": intent.preflight.original_checkout,
+        "disposable": intent.preflight.worktree,
+        "allowed_paths": intent.preflight.allowed_paths,
+    }
+    digest = _sha256(
+        b"mla-worktree-lifecycle/v1|" + _json.dumps(
+            identity, sort_keys=True, ensure_ascii=True, separators=(",", ":"),
+        ).encode("ascii")
+    ).hexdigest()
+    return WorktreeLifecyclePreview(
+        intent.task_id, inspected.source_sha, inspected.main_sha,
+        intent.preflight.original_checkout, intent.preflight.worktree, digest,
+    )
+
+
+def plan_disposable_cleanup(
+    lifecycle: WorktreeLifecyclePreview, intent: WorktreeIntent,
+    current_snapshot: GitInventorySnapshot,
+) -> WorktreeCleanupPreview:
+    """Only preview cleanup for a still-clean, exact-pinned disposable tree.
+
+    Never delete a dirty checkout, unrelated directory, original or main.
+    No OS/Git effects; real owner-controlled cleanup needs a new protected
+    readback and separate runtime permission after F18/phase gates.
+    """
+    if (not isinstance(lifecycle, WorktreeLifecyclePreview)
+        or lifecycle.stage != "HOLD_PROTECTED_WORKTREE_LIFECYCLE_RUNNER"
+        or lifecycle.created is not False
+        or lifecycle.cleaned_up is not False
+        or lifecycle.original_modified is not False
+        or lifecycle.may_run_git is not False
+        or lifecycle.may_delete_paths is not False
+        or lifecycle.may_write_original is not False):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    fresh = plan_disposable_lifecycle(intent, current_snapshot)
+    if fresh != lifecycle:
+        raise GitInventoryHold("STALE_GIT_SOURCE")
+    return WorktreeCleanupPreview(lifecycle.task_id, lifecycle.scope_sha256)

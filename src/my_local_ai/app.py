@@ -85,3 +85,40 @@ def safe_code_request_card(preview: object) -> dict:
         "network_allowed": False,
         "real_device_test": "NOT_RUN",
     }
+
+
+@dataclass(frozen=True)
+class AppReviewHandoff:
+    """P1 BE→FE composite card; never gives the browser trusted capabilities."""
+    candidate: object
+
+    def to_public_dict(self) -> dict:
+        from my_local_ai.orchestrator import ControllerReviewHandoff
+        from my_local_ai.review.trusted_runner import redact_isolated_review_intent
+        if (not isinstance(self.candidate, ControllerReviewHandoff)
+            or self.candidate.stage != "P1_F18_REQUEST_PREPARED_ONLY"
+            or self.candidate.model_executed or self.candidate.reviewer_executed
+            or self.candidate.trusted_receipt_issued
+            or self.candidate.owner_go_verified or self.candidate.may_promote
+            or self.candidate.may_publish):
+            raise ValueError("unsafe P1 review handoff")
+        code = safe_code_request_card(self.candidate.code)
+        review = redact_isolated_review_intent(self.candidate.review)
+        if (code["task_id"] != review["task_id"]
+            or code["plan_sha256"] != review["plan_sha256"]
+            or code["baseline_sha"] != review["source_sha"]
+            or review["candidate_sha"] == code["baseline_sha"]
+            or code["execution_allowed"] is not False
+            or review["f18_verified"] is not False):
+            raise ValueError("mismatched source and F18 review chain")
+        return {
+            "worker":code,
+            "independent_review":review,
+            "stage":"P1_F18_REQUEST_PREPARED_ONLY",
+            "read_only":True,
+            "execution_allowed":False,
+            "owner_go_verified":False,
+            "candidate_trusted":False,
+            "may_promote":False,
+            "may_publish":False,
+        }

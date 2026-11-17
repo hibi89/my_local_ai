@@ -173,3 +173,72 @@ def preview_local_code_request(
         len(prepared.allowed_paths), _sha256(identity).hexdigest(),
         advisory_status=proposed.advisory_status,
     )
+
+
+# Pure Controller -> prepared local coder -> independent F18 *HOLD* contract.
+# A caller's candidate SHA is merely a proposed value, never a reviewed Git ref.
+from my_local_ai.review.trusted_runner import (
+    IsolatedReviewerIntent, build_reviewer_policy, prepare_review_request,
+    plan_isolated_reviewer,
+)
+
+
+@dataclass(frozen=True)
+class ControllerReviewHandoff:
+    code: ControllerCodePreview
+    review: IsolatedReviewerIntent
+    stage: str = "P1_F18_REQUEST_PREPARED_ONLY"
+    model_executed: bool = False
+    reviewer_executed: bool = False
+    trusted_receipt_issued: bool = False
+    owner_go_verified: bool = False
+    may_promote: bool = False
+    may_publish: bool = False
+
+
+def preview_f18_review_handoff(
+    *, plan_json: str, protected_states: dict[str, str], task_id: str,
+    disposable_worktree: str | _Path, original_checkout: str | _Path,
+    candidate_sha: str, run_id: str, lease_epoch: int,
+    reviewer_binary_sha256_claim: str,
+    active_leases: Iterable[str] = (),
+    advisory_json: str | None = None,
+    optional_eai_envelope_json: str | None = None,
+) -> ControllerReviewHandoff:
+    """Compose typed data-only worker and independent reviewer requests.
+
+    This performs no model call, Git readback, guest process launch, signing,
+    owner approval, OS verification or trusted receipt creation. A fake
+    candidate SHA is never accepted as an attested diff.
+    """
+    code = preview_local_code_request(
+        plan_json=plan_json,protected_states=protected_states,
+        task_id=task_id,disposable_worktree=disposable_worktree,
+        original_checkout=original_checkout,active_leases=active_leases,
+        advisory_json=advisory_json,
+        optional_eai_envelope_json=optional_eai_envelope_json,
+    )
+    if (code.owner_signed_go or code.real_isolation_verified
+        or code.candidate_verified or code.code_worker_executed
+        or code.may_execute or code.may_write_git):
+        raise ValueError("untrusted Controller-to-F18 handoff")
+    policy = build_reviewer_policy()
+    required = tuple(item.check_id for item in policy.checks)
+    request = prepare_review_request(
+        task_id=code.task_id,run_id=run_id,candidate_sha=candidate_sha,
+        source_sha=code.baseline_sha,plan_sha256=code.plan_sha256,
+        lease_epoch=lease_epoch,trusted_required_argv_ids=required,
+    )
+    review = plan_isolated_reviewer(
+        request,policy,
+        protected_reviewer_binary_sha256=reviewer_binary_sha256_claim,
+        trusted_source_sha=code.baseline_sha,
+        trusted_plan_sha256=code.plan_sha256,
+        trusted_candidate_sha=candidate_sha,
+    )
+    if (review.executable or review.can_issue_trusted_receipt or review.host_fallback
+        or review.task_id != code.task_id
+        or review.source_sha != code.baseline_sha
+        or review.plan_sha256 != code.plan_sha256):
+        raise ValueError("untrusted F18 handoff output")
+    return ControllerReviewHandoff(code,review)

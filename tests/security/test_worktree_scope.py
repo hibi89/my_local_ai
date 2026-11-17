@@ -148,6 +148,47 @@ class TrackedGitMetadataTests(ScopePreflightTests):
         self.assertFalse(v.may_write_worktree)
         self.assertFalse(v.may_update_git_ref)
 
+    def test_lifecycle_and_cleanup_intents_do_not_run_git(self):
+        from my_local_ai.gitops.worktree import plan_disposable_lifecycle,plan_disposable_cleanup
+        intent=self.make_intent()
+        snapshot=self.inventory()
+        started=plan_disposable_lifecycle(intent,snapshot)
+        cleaned=plan_disposable_cleanup(started,intent,snapshot)
+        self.assertEqual(len(started.scope_sha256),64)
+        self.assertEqual(started.stage,"HOLD_PROTECTED_WORKTREE_LIFECYCLE_RUNNER")
+        self.assertFalse(started.may_run_git)
+        self.assertFalse(started.may_write_original)
+        self.assertFalse(cleaned.cleanup_performed)
+        self.assertFalse(cleaned.may_delete_paths)
+        self.assertEqual(sorted(x.name for x in self.worktree.iterdir()),["src"])
+
+    def test_lifecycle_snapshot_and_cleanup_races_fail_shut(self):
+        from my_local_ai.gitops.worktree import plan_disposable_lifecycle,plan_disposable_cleanup
+        intent=self.make_intent()
+        accepted=plan_disposable_lifecycle(intent,self.inventory())
+        for changed in (
+            self.inventory(main_ref_sha="e"*40),
+            self.inventory(original_head_sha="f"*40),
+            self.inventory(dirty_paths=("src/main.py",)),
+            self.inventory(ignored_paths=(".env",)),
+        ):
+            with self.subTest(changed=changed),self.assertRaises(GitInventoryHold):
+                plan_disposable_cleanup(accepted,intent,changed)
+        with self.assertRaises(GitInventoryHold):
+            plan_disposable_cleanup(replace(accepted,may_delete_paths=True),intent,self.inventory())
+        with self.assertRaises(GitInventoryHold):
+            plan_disposable_cleanup(replace(accepted,disposable_worktree=str(self.original)),intent,self.inventory())
+
+    def test_forged_lifecycle_flags_and_scope_are_refused(self):
+        from my_local_ai.gitops.worktree import plan_disposable_lifecycle
+        intent=self.make_intent()
+        with self.assertRaises(GitInventoryHold):
+            plan_disposable_lifecycle(replace(intent,source_modified=True),self.inventory())
+        with self.assertRaises(GitInventoryHold):
+            plan_disposable_lifecycle(replace(intent,baseline_sha="f"*40),self.inventory())
+        with self.assertRaises(GitInventoryHold):
+            plan_disposable_lifecycle(replace(intent,preflight=replace(intent.preflight,writes_allowed=True)),self.inventory())
+
     def test_original_main_or_disposable_ref_race_is_hold(self):
         for bad in (
             {"source_commit_sha": "f"*40},

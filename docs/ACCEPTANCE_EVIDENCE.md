@@ -128,3 +128,23 @@ At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory A
 - Code SHA: `045c3959dca08a6f2c03ce7655c5c738db82bdd3`; synthetic GitHub Actions run `44056170817`: compile PASS, 166 unit + 108 synthetic integration + 191 security = **465 PASS / 0 FAIL**.
 - Changed source: `MLA-002/021/023/024` (contract repo/path defense, UI P1 gate mismatch HOLD, path-inventory-bound remote preview/action digest, negative fixture tests).
 - This is **P1 synthetic source evidence**, not trusted F18 review, genuine Windows model, UI browser acceptance, owner remote GO or runtime deployment. `P2=LOCKED`, `verified=UNASSESSED`, `P1=5/30` unchanged.
+
+
+---
+
+## MLA-025 P2 evidence schema authored in P1 — owner runner NOT_RUN
+
+Do not run browser, Windows Sandbox, 24-hour load or real model tests until P1 30/30 source candidate, High exact-SHA gate and separate owner runner. Source-only fixtures in `tests/e2e/test_owner_journey.py` and `tests/windows/test_windows_acceptance.py` describe **13 browser/owner** and **10 owner Windows** scenarios. These are requirements for later execution, not PASS receipts.
+
+| Required evidence field | Acceptance rule |
+|---|---|
+| exact_implementation_sha | Full 40-character Git SHA; must match protected P1 candidate and P2 gate |
+| scenario_id | Predeclared P2-E2E/P2-WIN identifier; no arbitrary guest scenario substitution |
+| owner_runner_identity | Independent owner-controlled Windows/browser runner; guest text is not proof |
+| source_and_main_sha | Trusted readback before/after; main and original unchanged |
+| local_model_provenance | Pinned local Ollama/Qwen/OpenCode binaries/model versions; real invocation evidence |
+| independent_f18_attestation | Separate protected reviewer and key; guest receipt is invalid |
+| console_network_a11y | Browser Console/Network, keyboard/a11y/responsive outcomes only from actual run |
+| run_started_ended_and_artifacts | On-device timestamp, exit codes, hashes, logs with secrets redacted |
+
+All P1 fixture fields for actual outcomes remain `NOT_RUN`; no authorization, Git operations, live HTTP, OS elevation, model calls or browser runs are performed by creating this schema. `P2=LOCKED` and official verification `UNASSESSED` until separately proved.
