@@ -592,7 +592,7 @@ def prepare_sandbox_readonly_patch_import(
     for item in files:
         if (not isinstance(item,tuple) or len(item)!=2
             or not isinstance(item[0],str) or not isinstance(item[1],str)
-            or "\\x00" in item[1]):
+            or "\x00" in item[1]):
             raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
         try:
             path=_safe_path(item[0])
