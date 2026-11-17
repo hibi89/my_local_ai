@@ -1073,9 +1073,10 @@
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "NONE",
+      "retry_stage": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
       "retry_evidence": [],
-      "owner_go": false
+      "owner_go": false,
+      "implementation_blocker": "PROTECTED_OS_EXECUTOR_AND_INDEPENDENT_F18_REVIEWER_NOT_PROVEN"
     },
     {
       "task_id": "CS-SWU-015",
@@ -1213,5 +1214,22 @@
     "f18": "SECURITY_HOLD",
     "runtime_authorized": false,
     "nonprogress_attempts_added": 0
+  },
+  "sol_max_escalation": {
+    "status": "IMMEDIATE_OWNER_REQUEST_PENDING",
+    "task_id": "CS-SWU-014",
+    "related_tasks": [
+      "CS-SWU-007",
+      "CS-SWU-012"
+    ],
+    "selected_surface": "CODEX",
+    "selected_model": "GPT-6.1 Sol Max",
+    "reason": "protected Windows execution boundary, independent F18 signer/reviewer and fail-closed Controller dispatch are code/security review tasks; Work GUI/browser mode not needed",
+    "owner_go_required": true,
+    "source_head": "a592769cff85227fe706236af741ed65983ff425",
+    "failure_attempts_not_consumed": true,
+    "allow_untrusted_host_execution": false,
+    "allow_owner_authority_expansion": false,
+    "reviewer_actual_execution": "NOT_RUN"
   }
 }
