@@ -776,3 +776,132 @@ def infer_host_qwen_public_synthetic(
     # This response is still model-supplied untrusted code. A real candidate
     # must run in an isolated guest and pass *separate* trusted F18 review.
     return decode_untrusted_host_qwen_files(raw,request,transport)
+
+
+
+# SWU-015: bounded real filesystem staging, NOT a Sandbox launcher or grant.
+# The owner's original checkout is never touched. An independently protected
+# broker must still provision/attest the DACL, run a separate Windows guest,
+# enforce egress and extract/verifiably attribute results before F18.
+import os as _os
+
+
+@dataclass(frozen=True)
+class StagedUntrustedSandboxInput:
+    task_id: str
+    run_id: str
+    source_sha: str
+    plan_sha256: str
+    manifest_sha256: str
+    manifest_size: int
+    state: str = "PUBLIC_SYNTHETIC_SCRATCH_WRITTEN_UNTRUSTED"
+    protected_owner_principal_verified: bool = False
+    scratch_acl_attested: bool = False
+    sandbox_started: bool = False
+    network_egress_attested: bool = False
+    independent_f18_verified: bool = False
+    original_modified: bool = False
+    can_execute: bool = False
+    may_promote: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.state != "PUBLIC_SYNTHETIC_SCRATCH_WRITTEN_UNTRUSTED"
+            or type(self.manifest_size) is not int
+            or not 1 <= self.manifest_size <= 196608
+            or not _SHA64.fullmatch(self.manifest_sha256)
+            or any(getattr(self, name) is not False for name in (
+                "protected_owner_principal_verified", "scratch_acl_attested",
+                "sandbox_started", "network_egress_attested",
+                "independent_f18_verified", "original_modified",
+                "can_execute", "may_promote",
+            ))):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+
+
+def _pinned_existing_stage_dir(path: Path) -> tuple[tuple[int, int, int], ...]:
+    """Reject links/junctions on the full fixed scratch path, before/after IO."""
+    identities = []
+    for segment in (path, *path.parents):
+        info = segment.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
+            or getattr(info, "st_file_attributes", 0) & _REPARSE):
+            raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+        identities.append((info.st_dev, info.st_ino, info.st_mode))
+    return tuple(identities)
+
+
+def write_disposable_sandbox_manifest(
+    plan: SandboxReadOnlyPatchImport, *,
+    profile: WindowsNoEgressProfile,
+    proposed_files: UntrustedHostQwenFiles,
+) -> StagedUntrustedSandboxInput:
+    """Write an untrusted public/synthetic JSON manifest to preexisting scratch.
+
+    Real caller→IO→readback path. It NEVER creates directories, mutates owner
+    source, starts guest tools, changes ACLs or treats filesystem success as
+    trustworthy OS isolation. A protected owner process must separately create
+    and attest the run directory with safe Windows DACLs before using this.
+    Missing scratch or an existing file means HOLD rather than overwriting.
+    """
+    if _os.name != "nt":
+        raise WindowsIsolationHold("WINDOWS_HOST_ISOLATION_NOT_ATTESTED")
+    audit_sandbox_readonly_patch_import(
+        plan, profile=profile, proposed_files=proposed_files,
+    )
+    if (not isinstance(plan.manifest_bytes, bytes)
+        or not 0 < len(plan.manifest_bytes) <= 196608
+        or sha256(b"mla-model-import/v1|" + plan.manifest_bytes).hexdigest()
+            != plan.manifest_sha256
+        or plan.run_id != profile.run_id or not _ID.fullmatch(plan.run_id)):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    fixed = _PureWindowsPath(r"C:\MLA_Disposable") / plan.run_id / "input"
+    if (str(fixed) != plan.host_scratch_input_dir
+        or not fixed.is_absolute() or fixed.drive.upper() != "C:"):
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    directory = Path(str(fixed))
+    manifest_path = directory / "manifest.json"
+    try:
+        before = _pinned_existing_stage_dir(directory)
+        # Exclusive write: never replace a previous run's input, or a link.
+        # A separate protected broker must prevent concurrent untrusted
+        # mutation (Windows DACLs/handles); this code does not claim that.
+        with _os.scandir(directory) as contents:
+            if next(contents, None) is not None:
+                raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+        flags = (_os.O_WRONLY | _os.O_CREAT | _os.O_EXCL
+                 | getattr(_os, "O_BINARY", 0)
+                 | getattr(_os, "O_NOFOLLOW", 0))
+        fd = _os.open(manifest_path, flags, 0o600)
+        with _os.fdopen(fd, "wb") as stream:
+            stream.write(plan.manifest_bytes)
+            stream.flush()
+            _os.fsync(stream.fileno())
+            written = _os.fstat(stream.fileno())
+        after = _pinned_existing_stage_dir(directory)
+        current = manifest_path.lstat()
+        if (before != after or not stat.S_ISREG(current.st_mode)
+            or current.st_nlink != 1
+            or getattr(current, "st_file_attributes", 0) & _REPARSE
+            or (written.st_dev, written.st_ino, written.st_size)
+              != (current.st_dev, current.st_ino, current.st_size)
+            or current.st_size != len(plan.manifest_bytes)):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        # Read back exact bytes, reject replacement; no parsing or execution.
+        with manifest_path.open("rb") as stream:
+            read_back = stream.read(196609)
+            read_id = _os.fstat(stream.fileno())
+        if (read_back != plan.manifest_bytes
+            or (read_id.st_dev, read_id.st_ino, read_id.st_size)
+              != (written.st_dev, written.st_ino, written.st_size)
+            or _pinned_existing_stage_dir(directory) != before):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    except WindowsIsolationHold:
+        raise
+    except (OSError, ValueError, OverflowError):
+        # Do not delete a file after a TOCTOU failure; an untrusted path may
+        # have been redirected. The owner-protected cleanup is separate.
+        raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE") from None
+    return StagedUntrustedSandboxInput(
+        plan.task_id, plan.run_id, plan.source_sha,
+        plan.plan_sha256, plan.manifest_sha256, len(plan.manifest_bytes),
+    )
