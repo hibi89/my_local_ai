@@ -150,6 +150,32 @@ def _bounded_source_sha256(path: Path) -> str | None:
         return None
 
 
+def _reject_guest_semgrep_ignores(worktree: Path, paths: tuple[str, ...]) -> None:
+    """Prevent per-project ignore/config directives from silently skipping files.
+
+    Git ignore is disabled in fixed argv; Semgrep's own ignore files remain a
+    separate attack surface until a native broker can verify tool behavior.
+    """
+    for name in paths:
+        parent = (worktree / name).parent
+        while True:
+            for ignored in (".semgrepignore", ".semgrep.yml", ".semgrep.yaml"):
+                target = parent / ignored
+                try:
+                    target.lstat()
+                except FileNotFoundError:
+                    continue
+                except OSError:
+                    raise CodeShieldHold("UNSAFE_PATH") from None
+                else:
+                    raise CodeShieldHold("UNSAFE_PATH")
+            if parent == worktree:
+                break
+            if parent == parent.parent or worktree not in parent.parents:
+                raise CodeShieldHold("UNSAFE_PATH")
+            parent = parent.parent
+
+
 def prepare_protected_semgrep_request(
     context: CodeShieldContext, *, executable: str | Path,
     local_rules: str | Path, disposable_worktree: str | Path,
@@ -203,6 +229,7 @@ def prepare_protected_semgrep_request(
     if (_digest(exe, max_size=_MAX_BINARY) != pin.binary_sha256
         or _digest(rules, max_size=_MAX_RULES) != pin.rules_sha256):
         raise CodeShieldHold("UNPINNED_SCANNER")
+    _reject_guest_semgrep_ignores(root, changed_paths)
     digests = []
     for name in changed_paths:
         actual = _bounded_source_sha256(root / name)
@@ -214,7 +241,8 @@ def prepare_protected_semgrep_request(
     # Request only; the caller cannot use or change these argv to run a tool.
     argv = (
         str(exe), "scan", "--config", str(rules), "--metrics=off",
-        "--disable-version-check", "--json", "--error", "--",
+        "--disable-version-check", "--no-git-ignore", "--disable-nosem",
+        "--jobs=1", "--max-target-bytes=262144", "--json", "--error", "--",
         *(str(root / name) for name in changed_paths),
     )
     return SemgrepBrokerRequest(
