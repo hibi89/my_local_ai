@@ -393,3 +393,72 @@ def persist_untrusted_candidate_run(
             )
         return UntrustedRunEvent(run_id,plan_id,task_id,candidate_sha,old is None)
     return _write_owned_transaction(value,change)
+
+
+@dataclass(frozen=True)
+class UntrustedRepairOffer:
+    run_id: str
+    task_id: str
+    offer_sha256: str
+    newly_recorded: bool
+    protected_owner_granted: bool = False
+    may_execute_repair: bool = False
+
+
+def persist_local_repair_offer(
+    value: str | Path, *, plan_id: str, task_id: str, run_id: str,
+    plan_sha256: str, baseline_sha: str, candidate_sha: str,
+    failure_sha256: str, strategy: str,
+) -> UntrustedRepairOffer:
+    """Record second-attempt proposal only. Task remains HOLD, not executable.
+
+    This does not manufacture owner signature, lease generation or F18 PASS.
+    Actual improvement execution requires a later protected decision.
+    """
+    if (not all(isinstance(x,str) and _MLA_ID.fullmatch(x)
+                for x in (plan_id,task_id,run_id))
+        or not isinstance(plan_sha256,str) or not _MLA_SHA64.fullmatch(plan_sha256)
+        or not isinstance(baseline_sha,str) or not _MLA_SHA40.fullmatch(baseline_sha)
+        or not isinstance(candidate_sha,str) or not _MLA_SHA40.fullmatch(candidate_sha)
+        or not isinstance(failure_sha256,str) or not _MLA_SHA64.fullmatch(failure_sha256)
+        or strategy not in {
+            "LIMITED_SYNTAX_REPAIR","ISOLATED_UNIT_FIX",
+            "NARROW_PERMISSION_FIX","CONTRACT_SCOPE_CORRECTION",
+            "REDUCE_BATCH_MEMORY",
+        }):
+        raise ValueError("invalid source repair offer")
+    digest=hashlib.sha256((
+        "mla-repair-offer/v1|" + plan_sha256 + "|" + run_id + "|" +
+        candidate_sha + "|" + failure_sha256 + "|" + strategy
+    ).encode("ascii")).hexdigest()
+    label="UNTRUSTED_OFFER_HOLD_" + digest
+
+    def change(db):
+        row=db.execute(
+            "SELECT r.plan_id,r.task_id,r.baseline_sha,r.candidate_sha,"
+            "t.state,p.plan_sha FROM runs r "
+            "JOIN tasks t ON t.plan_id=r.plan_id AND t.task_id=r.task_id "
+            "JOIN plans p ON p.plan_id=r.plan_id WHERE r.run_id=?",
+            (run_id,),
+        ).fetchone()
+        if row != (plan_id,task_id,baseline_sha,candidate_sha,"HOLD",plan_sha256):
+            raise ValueError("stale run or protected state")
+        first=db.execute("SELECT state FROM attempts WHERE run_id=? AND attempt_number=1",
+                         (run_id,)).fetchone()
+        if first is None or first[0] != "UNTRUSTED_CANDIDATE":
+            raise ValueError("unrecorded first attempt")
+        previous=db.execute("SELECT state FROM attempts WHERE run_id=? AND attempt_number=2",
+                            (run_id,)).fetchone()
+        if previous is not None and previous[0] != label:
+            raise ValueError("repair offer replay with different evidence")
+        if previous is None:
+            db.execute(
+                "INSERT INTO attempts(run_id,attempt_number,state) VALUES(?,?,?)",
+                (run_id,2,label),
+            )
+            db.execute(
+                "INSERT INTO events(plan_id,event_kind,safe_summary) VALUES(?,?,?)",
+                (plan_id,"REPAIR_OFFER_HELD","NO_OWNER_GO_NO_F18"),
+            )
+        return UntrustedRepairOffer(run_id,task_id,digest,previous is None)
+    return _write_owned_transaction(value,change)

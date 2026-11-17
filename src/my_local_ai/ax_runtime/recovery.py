@@ -195,7 +195,7 @@ def route_failed_review_to_hold(
     execution. A stale/missing source/lease fails before any local state write.
     """
     from my_local_ai.ax_runtime.queue import QueuePolicy
-    from my_local_ai.state.sqlite_store import persist_local_source_task
+    from my_local_ai.state.sqlite_store import (persist_local_source_task, persist_local_repair_offer)
 
     if (not isinstance(policy,QueuePolicy) or
         not isinstance(checkpoint,RecoveryCheckpoint) or
@@ -239,6 +239,15 @@ def route_failed_review_to_hold(
     )
     if receipt.state != "HOLD" or next_states[checkpoint.task_id] != "HOLD":
         raise ValueError("failed review did not HOLD")
+    if pending is not None:
+        # Durable untrusted proposal, NOT a runnable retry or second lease.
+        persist_local_repair_offer(
+            state_path, plan_id=plan_id, task_id=checkpoint.task_id,
+            run_id=checkpoint.run_id, plan_sha256=checkpoint.plan_sha,
+            baseline_sha=source_sha, candidate_sha=checkpoint.candidate_sha,
+            failure_sha256=failure_fingerprint_sha256,
+            strategy=pending.new_strategy,
+        )
     return FailedReviewRouting(
         checkpoint.task_id, receipt.state,
         tuple(candidate.task_id for candidate in candidates),
