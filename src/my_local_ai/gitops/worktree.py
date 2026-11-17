@@ -174,3 +174,85 @@ def audit_disposable_git_inventory(
         len(tracked),
         tuple(sorted(set(intent.preflight.allowed_paths) & tracked)),
     )
+
+
+# Linked Git worktrees use .git *files*, pointing to an owner checkout's
+# .git/worktrees/<id> metadata. Compare both directions after lstat.
+# This read-only check is not OS isolation and cannot authorize integration.
+from pathlib import Path as _Path
+import stat as _stat
+
+
+@_dataclass(frozen=True)
+class LinkedGitdirPreflight:
+    worktree_gitfile: str
+    original_worktrees_root: str
+    status: str = "READ_ONLY_LINK_MATCHED_NOT_OS_PROVEN"
+    independent_f18_verified: bool = False
+    may_write_git: bool = False
+
+
+def _read_unique_metadata(path: _Path, *, max_bytes: int = 4096) -> str:
+    try:
+        before = path.lstat()
+        if (not _stat.S_ISREG(before.st_mode)
+            or before.st_nlink != 1
+            or getattr(before, "st_file_attributes", 0)
+            & getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            or before.st_size > max_bytes):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        with path.open("rb") as f:
+            raw = f.read(max_bytes + 1)
+        after = path.lstat()
+        if (len(raw) > max_bytes or before.st_ino != after.st_ino
+            or before.st_dev != after.st_dev or before.st_size != after.st_size
+            or before.st_mtime_ns != after.st_mtime_ns):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        return raw.decode("utf-8").strip()
+    except (UnicodeError, OSError):
+        raise GitInventoryHold("UNSAFE_GIT_METADATA") from None
+
+
+def audit_linked_worktree_metadata(intent: WorktreeIntent) -> LinkedGitdirPreflight:
+    """Require a bidirectional Gitdir file match under the known original.
+
+    A protected owner runner MUST re-check this immediately before work, along
+    with Git HEAD/index/ignored/filter inventory and OS ACLs. Do not promote.
+    """
+    if not isinstance(intent, WorktreeIntent):
+        raise GitInventoryHold("UNTRUSTED_GIT_INVENTORY")
+    work = _Path(intent.preflight.worktree)
+    original = _Path(intent.preflight.original_checkout)
+    root = original / ".git" / "worktrees"
+    marker = work / ".git"
+    # All paths must be resolved only after checking parent symlink/reparse.
+    try:
+        for folder in (original/".git", root,work, original):
+            st=folder.lstat()
+            if (not _stat.S_ISDIR(st.st_mode)
+                or _stat.S_ISLNK(st.st_mode)
+                or getattr(st, "st_file_attributes", 0)
+                & getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+                raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        link = _read_unique_metadata(marker)
+        if not link.startswith("gitdir: "):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        target=_Path(link[8:])
+        if not target.is_absolute() or target == root:
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        # Prevent symlink/reparse escapes, including path traversal.
+        if target.parent != root or target.name in ("", ".", ".."):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        st=target.lstat()
+        if (not _stat.S_ISDIR(st.st_mode) or _stat.S_ISLNK(st.st_mode)
+            or getattr(st, "st_file_attributes", 0)
+            & getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        back=_read_unique_metadata(target/"gitdir")
+        if back != str(marker):
+            raise GitInventoryHold("UNSAFE_GIT_METADATA")
+        return LinkedGitdirPreflight(str(marker),str(root))
+    except (OSError, ValueError) as exc:
+        if isinstance(exc, GitInventoryHold):
+            raise
+        raise GitInventoryHold("UNSAFE_GIT_METADATA") from None

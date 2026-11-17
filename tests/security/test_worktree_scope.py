@@ -201,5 +201,63 @@ class TrackedGitMetadataTests(ScopePreflightTests):
             audit_disposable_git_inventory(self.make_intent(), self.inventory(index_entries=entries))
 
 
+from my_local_ai.gitops.worktree import audit_linked_worktree_metadata
+
+
+class LinkedGitdirAttackTests(ScopePreflightTests):
+    def install_link(self, *, target_override=None, back_override=None):
+        root=self.original/".git"/"worktrees"
+        root.mkdir(parents=True,exist_ok=True)
+        selected=root/"w014"
+        selected.mkdir()
+        marker=self.worktree/".git"
+        marker.write_text("gitdir: "+str(target_override or selected)+"\n",encoding="utf-8")
+        (selected/"gitdir").write_text(str(back_override or marker)+"\n",encoding="utf-8")
+        return marker,selected
+
+    def intent(self):
+        return plan_disposable(
+            task_id="TASK-014",worktree=self.worktree,
+            original_checkout=self.original,baseline_sha=SHA,
+            allowed_paths=("src/new.py",),
+        )
+
+    def test_bidirectional_gitdir_is_read_only_evidence(self):
+        marker,gitdir=self.install_link()
+        v=audit_linked_worktree_metadata(self.intent())
+        self.assertEqual(v.worktree_gitfile,str(marker))
+        self.assertFalse(v.may_write_git)
+        self.assertFalse(v.independent_f18_verified)
+        self.assertTrue(gitdir.exists())
+
+    def test_external_and_relative_gitdir_redirect_hold(self):
+        root=self.root/"attacker"
+        root.mkdir()
+        self.install_link(target_override=root)
+        with self.assertRaises(GitInventoryHold):
+            audit_linked_worktree_metadata(self.intent())
+
+    def test_gitdir_backlink_redirect_hold(self):
+        self.install_link(back_override=self.original/".git")
+        with self.assertRaises(GitInventoryHold):
+            audit_linked_worktree_metadata(self.intent())
+
+    def test_symlinked_gitfile_never_followed(self):
+        marker,target=self.install_link()
+        marker.unlink()
+        try:
+            marker.symlink_to(target/"gitdir")
+        except OSError:
+            self.skipTest("no symlink privileges")
+        with self.assertRaises(GitInventoryHold):
+            audit_linked_worktree_metadata(self.intent())
+
+    def test_missing_gitdir_files_or_unknown_metadata_hold(self):
+        self.install_link()
+        (self.original/".git"/"worktrees"/"w014"/"gitdir").unlink()
+        with self.assertRaises(GitInventoryHold):
+            audit_linked_worktree_metadata(self.intent())
+
+
 if __name__ == "__main__":
     unittest.main()
