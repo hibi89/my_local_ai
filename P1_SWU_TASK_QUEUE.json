@@ -712,8 +712,8 @@
       "inherited_attempts_by_legacy": {
         "MLA-009": 0
       },
-      "attempts_used": 2,
-      "attempts_note": "Earlier one substantive source attempt retained; second 2026-11-18 source improvement: actual read-only Windows current-user DPAPI REG_BINARY unprotect->LOCAL_PLAN MAC/current SQLite inspection. Both source progress, neither evidenced nonprogress failure nor established independent owner OS principal.",
+      "attempts_used": 3,
+      "attempts_note": "Original source attempts retained. 2026-11-18 source fix at d7e7304f74b36bf8643507786d97c859c66b15cc makes ConsentLedger live-grant query reject concurrent SQLite WAL append/replacement and PRAGMA data_version drift. Genuine security correction, NOT a 2+2 nonprogress failure; independent owner signer and OS principal still unavailable.",
       "evidence_sha_by_legacy": {
         "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985"
       },
@@ -737,11 +737,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
+      "partial_source_sha": "d7e7304f74b36bf8643507786d97c859c66b15cc",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity.",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed.",
       "runtime_gap": "Separate Windows owner principal, ACL/key custody with actual protected signer and one-shot owner action grants remain absent. New Windows current-user DPAPI MAC check is an advisory real crypto path only; does not establish independent signer or F18 and cannot execute/merge/publish. Protected owner service requires separately authorized provisioning and real Windows security evidence.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -752,7 +752,7 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "SOURCE_PROGRESS_PROTECTED_OWNER_BROKER_HOLD",
+      "retry_stage": "SOURCE_PROGRESS_WAL_REVOCATION_RACE_GUARDED_OWNER_BROKER_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
       "retry_evidence": [
@@ -761,6 +761,14 @@
           "evidence_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
           "method": "Windows current-user DPAPI key unseal to existing live LOCAL_PLAN consent MAC validation with deny-only authority contract",
           "outcome": "POSITIVE_SOURCE_PROGRESS_RUNTIME_TRUST_STILL_BLOCKED",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261118-SOURCE-3",
+          "method": "Fix actual live consent revocation race by comparing complete WAL/SHM identities and SQLite data_version across approval query",
+          "evidence_sha": "d7e7304f74b36bf8643507786d97c859c66b15cc",
+          "result": "PASS_REQUIRED_GITHUB_ACTIONS_AND_STANDALONE_SQLITE_VERSION_RACE_SMOKE",
+          "outcome": "POSITIVE_SECURITY_SOURCE_PROGRESS_PROTECTED_PRINCIPAL_STILL_BLOCKED",
           "nonprogress_failure": false
         }
       ],
@@ -5625,32 +5633,32 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
+    "source_sha": "d7e7304f74b36bf8643507786d97c859c66b15cc",
     "branch": "dev/instant-implementation-v1",
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-015",
-      "MLA-SWU-021"
+      "MLA-SWU-008"
     ],
     "commits": [
-      "4fa8c8939db05211c9ffca681aa3d1014cf587da",
-      "12091f75d73566cb4ca50eacb70bec84067a853a"
+      "d7e7304f74b36bf8643507786d97c859c66b15cc"
     ],
     "source_complete_count": 35,
     "source_incomplete_count": 4,
     "feature_progress_delta": 0,
-    "syntax": "PASS_GITHUB_ACTIONS_COMPILE_SYNTAX",
-    "targeted_unit": "PASS_GITHUB_ACTIONS_SYNTHETIC_UNIT",
-    "synthetic_f18_security": "PASS_GITHUB_ACTIONS_SYNTHETIC_F18_CONTRACT",
+    "syntax": "PASS_MANDATORY_ACTIONS_COMPILE_SYNTAX",
+    "targeted_unit": "PASS_MANDATORY_ACTIONS_SYNTHETIC_UNIT",
+    "synthetic_f18_security": "PASS_MANDATORY_ACTIONS_SYNTHETIC_F18_CONTRACT",
+    "sqlite_revocation_race": "PASS_STANDALONE_SQLITE_SMOKE_NOT_REPOSITORY_INTEGRATION",
     "real_windows": "NOT_RUN",
-    "real_sandbox": "NOT_RUN",
-    "real_egress": "NOT_RUN",
-    "independent_f18": "NOT_RUN",
     "protected_os_signer": "NOT_RUN",
+    "independent_f18": "NOT_RUN",
+    "original_modification": "NONE",
+    "os_permission_changes": "NONE",
     "p2": "LOCKED",
     "owner_go": false,
     "solmax_executed": false,
-    "nonprogress_failures_added": 0
+    "nonprogress_failures_added": 0,
+    "speed_effect": "UNMEASURED"
   },
   "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
   "legacy_retry_policy_before_20261117": {
@@ -5752,7 +5760,7 @@
     },
     "worker_triage_20261118": {
       "triaged_by": "MLA_P1_WEB_GPT6_SOL_HIGH",
-      "reason": "Current 015/021 actual code made meaningful progress and mandatory Actions passed, no evidenced nonprogress failures. Continue source progress only when safe; hold installed OS signer/F18 principal/egress proof without owner authorization. Aggregate Sol Max when owner 2+2 nonprogress criteria met.",
+      "reason": "Genuine SWU-008 source correctness fix and required CI PASS; no new evidence of 2+2 nonprogress failures, 35/39 still blocked on separately provisioned Windows trust roots. Owner requests batch only after evidenced 2+2 failures.",
       "status": "DEFERRED_OWNER_2PLUS2_FIRST",
       "requested_surface": "CODEX",
       "model": "GPT-6.1 Sol Max",
@@ -5769,7 +5777,7 @@
       "protected_os_owner_go": false,
       "actual_codex_execution": "NOT_RUN",
       "authorization_scope": "TECHNICAL_SOURCE_CODE_REVIEW_ONLY_NO_OS_PRIVILEGE_NO_PRODUCTION_NO_MAIN_NO_SECRETS",
-      "latest_source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a"
+      "latest_source_sha": "d7e7304f74b36bf8643507786d97c859c66b15cc"
     }
   },
   "policy_only_change_adds_implementation_progress": false,
@@ -5798,7 +5806,7 @@
     "owner_go": false
   },
   "cpaa_critical_path_20261118": {
-    "verified_source_head": "12091f75d73566cb4ca50eacb70bec84067a853a",
+    "verified_source_head": "d7e7304f74b36bf8643507786d97c859c66b15cc",
     "blocked_ids": [
       "MLA-SWU-008",
       "MLA-SWU-015",
@@ -5824,7 +5832,7 @@
       ]
     ],
     "estimated_time": "UNMEASURED",
-    "blockers": "Protected owner OS principal 008 and actual independent OS coder/reviewer 015/021 unavailable; staged manifest recheck and F18 unsigned outbox context binding implemented, still not F18/egress proof.",
+    "blockers": "LIVE_SQLITE_CONSENT_REVOKE_RACE_GUARDED; AUTHENTICATED_INDEPENDENT_OWNER_OS_PRINCIPAL_KEY_CUSTODY_SIGNER_STILL_MISSING; 015/021/031 OS_EXECUTION_F18_EGRESS_HOLD",
     "code_only_ready": [],
     "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
     "no_ready_fabrication": true
