@@ -155,7 +155,8 @@ def read_reconcile_state(
                 observed_run_id=run_id,observed_epoch=info[1],
             )):
                 raise ReconcileHold("STALE_LEASE")
-            if info[2] not in ("REVIEW_PENDING","INTERRUPTED","HOLD","CODING","REPAIR_ONCE"):
+            if info[2] not in ("LEASE_RESERVED_UNVERIFIED","REVIEW_PENDING",
+                               "INTERRUPTED","HOLD","CODING","REPAIR_ONCE"):
                 raise ReconcileHold("BAD_STATE")
             if epochs and epoch != max(epochs):
                 raise ReconcileHold("STALE_LEASE")
