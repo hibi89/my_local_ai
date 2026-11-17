@@ -1,9 +1,11 @@
+> **OWNER-RETRY-2+2-SOLMAX-ESCALATION (2026-11-17 KST, latest):** P1 기능 SWU는 실제 개선 1회 완료 목표. 같은 원인 초기 최대 2회 의미 있는 무진전 실패→해당 SWU만 `ISOLATED_REDESIGN_PENDING` 격리하고 독립 READY 계속→원인/설계 변경 뒤 추가 최대 2회 다른 방법으로 재시도→누적 4회 실패 시 `SOLMAX_BATCH_PENDING`에 원인/SHA/실패 증거/안전 재현을 모아 Codex GPT-6.1 Sol Max 일괄 이관. 핵심 의존성·필수불가결/안전 우회 위험은 소진을 기다리지 않고 즉시 소유자에게 Sol Max 요청(`IMMEDIATE_OWNER_SOLMAX_REQUEST`). `ㄱ`·조회·문서·CI 조회·같은 방법 반복은 실패 시도에 미포함, 기존 누적 시도/원본 증거는 유지하고 과거 1~2회가 실제 실패였다고 추측하지 않는다. 과거 일반 2회·예외 3회 종료 규칙은 본 최신 지시로 대체. **P2 LOCK/F18·소유자 GO/원본·권한/비밀/필수 CI·신뢰 검증은 그대로**. 정본 [해총 2+2 SWU](https://github.com/hibi89/hackathon-command-center-2026/blob/kmong-productization/docs/strategy/GPT6_HIGH_STANDARD_WORK_UNIT_20261117.md) 및 [EAI 최초 적용](https://github.com/hibi89/EAI/blob/feature/kmong-eai-85-p31-20261112/docs/EAI_P1_SWU_RUNBOOK.md).
+
 > **[OWNER SWU REESTIMATE · 2026-11-17 · ACTIVE P1]** Read `P1_SWU_TASK_QUEUE.json` and `docs/SWU_REESTIMATION_20261117.md` first. **28 legacy tasks → 39 High-sized P1 source SWUs; 23 source-code candidates, 3 next READY (DAG-limited).** `INSTANT_TASK_QUEUE.json.tasks/first_ready` exists only for old CLI/guard and evidence history. `ㄱ` executes new `P1_SWU_TASK_QUEUE.json.first_ready` instead. All test/fixture/full CI/browser/E2E/F18/real model validation belongs P2 (old mandatory CI and immediate high-risk safety checks remain). Product code, final blueprint, 30-REQ denominator, trust/owner/remote hold and P2 lock unchanged.
 
 ## SWU source-only actual implementation queue
 
 - **AUTHORITATIVE P1:** `P1_SWU_TASK_QUEUE.json` → `first_ready` = MLA-SWU-016, MLA-SWU-024, MLA-SWU-039. Only 3 independent READY after this wave; code DAG and protected owner/F18 holds prevent inventing a fourth. Old `INSTANT_TASK_QUEUE.json.first_ready` is legacy compatibility only, NOT active implementation dispatch.
-- Web Sol High-sized 1 SWU = one actual caller→callee code path + outcome and failure; 1 coding attempt target, 2 default max, 3 only High+owner approved exceptional, 2 nonimproving failures HOLD and continue other ready. Batch 4–6 disjoint sources per `ㄱ`.
+- Web Sol High-sized 1 SWU = one actual caller→callee code path + outcome and failure; 1 coding attempt completion target; 2 evidenced same-cause nonprogress attempts → isolate; redesign then up to 2 additional genuinely different attempts; 4 failures → Sol Max batch; indispensable blocker → immediate owner Sol Max request; other READY continue. Batch 4–6 disjoint sources per `ㄱ`.
 - Do not redo 18 source-complete candidates or count source-evidence SHA/test-only work as REQ acceptance. Complete SWU after actual source edit with exact SHA and accepted local safety checks; P2 remains NOT_RUN.
 - New test harness/full CI/browser/Win11/Qwen/F18 exhaustive verification is P2 `VERIFICATION_TASK_QUEUE.json`. **Keep existing mandatory CI and immediate auth/secret/rights/original/DB/F18 risk checks.** Never unlock owner runtime, remote writes, original checkout or verified status from queue JSON.
 - 28 old task IDs, SHA and attempts remain in new `legacy_mapping` and existing old queue, which is not deleted. Consult `docs/SWU_REESTIMATION_20261117.md` for original task↔SWU↔REQ mapping.
@@ -35,7 +37,7 @@
 3. 모델 실행/시크릿/네트워크/권한/원본 파일에 영향 있는 변경은 그 즉시 국소 test/fail-closed 검사, 기본 전체 CI 대기는 하지 않는다.
 4. 각 변경 뒤 실제 SHA와 소스 경로/기능 근거 기록, STATUS/HANDOFF는 주요 단계에서만 갱신. 전체 분모/가중 근거 없는 +1%p 금지.
 5. 기존 안전 기능·F18 HOLD는 유지; 누락되거나 위조 가능한 VERIFIED는 CODE_CANDIDATE_UNVERIFIED로 격하.
-6. 모델/보안/원본/구조 고위험 또는 두 번째 진전 없는 실패는 High 판단; 다른 독립 READY 계속.
+6. **최신 2+2:** 필수불가결/핵심 의존성/안전 우회 위험은 즉시 사용자에게 Codex GPT-6.1 Sol Max 요청; 일반 무진전 2회면 해당 SWU만 `ISOLATED_REDESIGN_PENDING` 격리하고 다른 READY 계속, 원인 재설계 후 추가 2회 실제 방법 변경, 총 4회 실패 `SOLMAX_BATCH_PENDING` 묶음 이관. 고위험 안전/권한·원본 GO는 불변.
 7. 32 REQ 코드 후보 전수 준비 시 P2 전체 Linux/Windows CI·실사용/보안·회귀로 진입; P3 독립 감사, P4 High 인수/사용자 GO.
 
 ## P1 브라우저 실행 최적화 — 모든 구현 담당 공통
