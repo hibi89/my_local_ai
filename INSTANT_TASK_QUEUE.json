@@ -19,7 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-025"
+    "MLA-014",
+    "MLA-015",
+    "MLA-017"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -489,10 +491,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
-      ]
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-015",
@@ -527,10 +528,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "REMAINING_RUNTIME_OR_COMPLETENESS_GATES"
-      ]
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-016",
@@ -602,10 +602,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
-      "p1_code_blockers": [
-        "REMAINING_FULL_ACCEPTANCE_RUNTIME_GATES"
-      ]
+      "p1_code_status": "READY_CODE_ONLY",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 2
     },
     {
       "task_id": "MLA-018",
@@ -895,8 +894,10 @@
       "safety_checks": "EXACT_SHA;REAL_HOST_DISTINCT",
       "risk": "HIGH",
       "status": "BLOCKED_DEPENDENCY",
-      "evidence_sha": null,
-      "blockers": [],
+      "evidence_sha": "20e81dea7abb78769a3311f378f43f7e96b9273a",
+      "blockers": [
+        "P1 browser/Windows test code authored; actual browser and owner real device verification NOT_RUN"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN",
@@ -911,8 +912,10 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [
+        "REAL_WINDOWS_E2E_AND_BROWSER_DEFERRED_TO_P2"
+      ]
     },
     {
       "task_id": "MLA-028",
@@ -1036,13 +1039,13 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "705a139d5ed8a3f363eb58c4c12a31e71b761542",
-    "run_id": 44016649399,
+    "head_sha": "20e81dea7abb78769a3311f378f43f7e96b9273a",
+    "run_id": 44018595764,
     "python_compile": "PASS",
-    "unit_tests_pass": 75,
-    "benchmark_mock_tests_pass": 8,
-    "security_contract_tests_pass": 61,
-    "scope": "SYNTHETIC_P1_ONLY_NOT_P2_VERIFICATION"
+    "unit_tests_pass": 88,
+    "synthetic_integration_tests_pass": 36,
+    "security_contract_tests_pass": 85,
+    "scope": "P1_ONLY_SYNTHETIC_NO_BROWSER_NO_REAL_MODEL_NO_WINDOWS_F18"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
   "operational_ready": [],
@@ -1055,9 +1058,9 @@
       "MLA-030"
     ],
     "planned_next_wave": [
-      "MLA-014",
-      "MLA-015",
-      "MLA-017"
+      "MLA-008",
+      "MLA-016",
+      "MLA-018"
     ],
     "source_rights": "NO_ORIGINAL_SOURCE_IMPORT",
     "protected_owner_signer": "HOLD",
@@ -1066,7 +1069,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-025"
+      "MLA-014",
+      "MLA-015",
+      "MLA-017"
     ],
     "completed_code_waves": [
       [
@@ -1085,7 +1090,15 @@
         "MLA-022",
         "MLA-024",
         "MLA-029"
+      ],
+      [
+        "MLA-025"
       ]
     ]
+  },
+  "p1_source_evidence_coverage": {
+    "tasks_with_code_evidence_sha": 28,
+    "total_tasks": 28,
+    "means": "SOURCE_PATH_TOUCH_ONLY_NOT_REQUIREMENTS_ACCEPTANCE"
   }
 }

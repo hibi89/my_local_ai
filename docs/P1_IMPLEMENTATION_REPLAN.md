@@ -56,3 +56,7 @@ P1 5/30 = 16.67% completed REQ code candidates (REQ-04/08/10/18/29). Newly autho
 - MLA-024 denied-by-default action-specific remote publish gate `4fe0adc1b8c1e54ea358ce311c88550cd548de1a`; no network/PR/push.
 - MLA-029 Windows F18 owner-test harness and evidence ledger `a426c690d25c29c6e96fff7e2d226e23a75de51a`; actual Windows owner and F18 independent isolation `NOT_RUN`.
 - Next P1 code READY MLA-025: write E2E and Windows test **source**, not browser or hardware execution. Full runtime status remains blocked. After this wave, prioritize strengthening real P1 gap modules rather than mistaking file evidence for complete REQs.
+
+## End of first P1 code-only source wave, second hardening wave opened
+
+All 28/28 task entries have code evidence SHAs (not completion). `MLA-025` P2-gated source SHA `20e81dea7abb78769a3311f378f43f7e96b9273a`. Next code READY `MLA-014`, `MLA-015`, `MLA-017` for protected Git worktree, reviewer issuer and SQLite lease transaction hardening. Original runtime status `BLOCKED_DEPENDENCY` and source rights/F18/owner P2 holds remain. See STATUS for exact 209/209 synthetic test breakdown and why REQ implementation is still 5/30.

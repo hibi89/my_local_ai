@@ -27,3 +27,7 @@ The `INSTANT_TASK_QUEUE.json` `p1_code_status` fields track source writing only.
 - `tests/e2e/test_owner_journey.py` enumerates 10 owner E2E scenarios covering Controller/app/EAI-off/GO/F18/CAS/recovery/remote/keyboard. Its actual test class refuses to run without `p2.status=P2_VERIFICATION`, documented `30/30` code candidate and exact High-approved SHA, and **still requires an independent owner-runner implementation**. Nothing is labeled PASS here.
 - `tests/windows/test_windows_acceptance.py` enumerates 10 real Windows checks: genuine Sandbox isolation, protected signer, no egress, lease/crash/original SHA, model, RAM/VRAM/temperature and 24h. All real owner hardware tests are unconditionally skipped in this P1 candidate. `NOT_RUN` is authoritative; passing Python3.11 compile alone does not certify them.
 - These two files are authored source only, **not placed in mandatory P1 unit or synthetic integration test discovery**. Full Playwright/browser E2E, Windows hardware, 24h, provider, independent reviewers and operational release remain P2/P3/P4.
+
+## Last P1 synthetic CI evidence
+
+GitHub Actions `44018595764` at `20e81dea7abb78769a3311f378f43f7e96b9273a`: Python compile PASS; unit 88/88 PASS; synthetic integration 36/36 PASS; synthetic security 85/85 PASS. Real owner Windows, P2 browser and 24-hour tests not executed and not implied. The `p1_code_status` dual graph is authoring-only; 5/30 full REQ implementation candidates remain. 
