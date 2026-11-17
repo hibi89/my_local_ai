@@ -127,14 +127,15 @@
       "req_ids": [
         "REQ-CS-06"
       ],
-      "code_status": "SOURCE_BROKER_FALLBACK_CONFIG_IMPLEMENTED_UNVERIFIED_OS_HOLD",
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": false,
-      "integrated_into_dev": false,
-      "implementation_evidence_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
+      "integrated_into_dev": true,
+      "implementation_evidence_sha": "930174209e5085c3acd7e3f23880b27e476f2181",
       "allowed_paths": [
         "src/my_local_ai/security/semgrep_adapter.py",
         "src/my_local_ai/security/rules/codeshield.yaml"
-      ]
+      ],
+      "zero_vm_source_observation": "Fixed ProgramFiles Semgrep.exe pinned binary/rule/SHA, public-synthetic only, local argv, bounded stdout and coverage, failure HOLD; real Windows no-egress NOT_RUN"
     },
     {
       "id": "CS-SWU-008",
@@ -222,17 +223,18 @@
         "REQ-CS-09",
         "REQ-CS-10"
       ],
-      "code_status": "REBASELINE_REWORK_REQUIRED",
+      "code_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "source_candidate_on_feature": false,
-      "integrated_into_dev": false,
-      "implementation_evidence_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
+      "integrated_into_dev": true,
+      "implementation_evidence_sha": "2509904c772b4151797a05d4a077d4151af1dfeb",
       "allowed_paths": [
         "src/my_local_ai/controller/codeshield.py",
         "src/my_local_ai/orchestrator.py"
       ],
       "zero_vm_pre_rebaseline_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
       "code_present_in_dev": true,
-      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5"
+      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
+      "zero_vm_source_observation": "Controller and Orchestrator Windows Sandbox WSB fallback preview exports removed; typed guard/hard stop still connected"
     },
     {
       "id": "CS-SWU-015",
@@ -274,7 +276,7 @@
   "safety_note": "Nonexecuting status metadata only. No Git/OS/runtime/owner/F18/egress permission, and no P2 admission.",
   "integration_scope": "OWNER_APPROVED_SELECTIVE_SOURCE_TRANSFER_ONLY",
   "integration_approved_by_owner": true,
-  "code_shield_source_candidates_integrated": 13,
+  "code_shield_source_candidates_integrated": 15,
   "active_dev_source_candidates_after_integration": 49,
   "unimplemented_required_swu_after_integration": 6,
   "source_candidate_implementation_percent_after_integration": 89.09,
@@ -327,12 +329,12 @@
       "percent": 89.09
     },
     "current": {
-      "mla": 34,
-      "code_shield": 13,
-      "completed": 47,
+      "mla": 35,
+      "code_shield": 15,
+      "completed": 50,
       "total": 55,
-      "percent": 85.45,
-      "remaining": 8
+      "percent": 90.91,
+      "remaining": 5
     },
     "demoted_due_design": [
       "MLA-SWU-038",
@@ -352,6 +354,22 @@
     "independent_f18": "NOT_VERIFIED",
     "current_design": "PURE_TYPED_PLAYER_NONEXECUTING_ZERO_VM_CONTAINER",
     "historical_snapshots_preserved": true,
-    "notes": "The former 49/55 remains historical; two completed candidate source surfaces still expose prohibited Sandbox fallback. This reconciliation is NOT functional source completion."
+    "notes": "The former 49/55 remains historical; two completed candidate source surfaces still expose prohibited Sandbox fallback. This reconciliation is NOT functional source completion.",
+    "source_wave": {
+      "source_sha": "930174209e5085c3acd7e3f23880b27e476f2181",
+      "prior_wave_sha": "2509904c772b4151797a05d4a077d4151af1dfeb",
+      "swus_completed": [
+        "MLA-SWU-038",
+        "CS-SWU-007",
+        "CS-SWU-014"
+      ],
+      "windows_semgrep_not_run": true,
+      "independent_f18": "NOT_VERIFIED",
+      "p2": "LOCKED",
+      "ci_runs": [
+        "44152457880",
+        "44153119018"
+      ]
+    }
   }
 }

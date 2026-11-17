@@ -1,3 +1,5 @@
+> **[2026-11-18 KST · IMPLEMENTATION WAVE UPDATE]** Current final-design P1 **50/55 = 90.91%** (MLA 35/39; CodeShield 15/16); remaining **5 SWU** (MLA-SWU-008/015/021/031, CS-SWU-012). Implemented `MLA-038/CS-014` at `2509904c` and `CS-007` at `93017420`; exact-SHA GitHub CI `44152457880`, `44153119018` PASS. Semgrep fixed native scanner is **source candidate only**; actual Windows scanning, no-egress, independent F18, owner grant, original/Git promotion remain NOT_RUN/HOLD. Prior 47/55 table below is the **historical rebaseline snapshot**, not today's current score. No VM/container fallback. SWU IDs/REQ/DAG/2+2 preserved.
+
 # My Local AI V1.3 — Zero VM/Windows container P1 SWU rebaseline
 
 **기준:** 2026-11-18 KST. **설계 SHA:** `05f51849c0efe7303bf57cb78dff576e441063f5`; **실제 검토한 개발 소스 SHA:** `e09b72c9b4cf1ad1ed23312662c655b70446d455`. P1 기능 코드 후보만 판정했으며 P2/실운영을 검증한 것이 아니다.

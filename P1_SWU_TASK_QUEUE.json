@@ -20,12 +20,11 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 34,
-  "source_incomplete_swu_count": 5,
+  "source_complete_swu_count": 35,
+  "source_incomplete_swu_count": 4,
   "status_counts": {
-    "SOURCE_COMPLETE_P2_PENDING": 34,
-    "BLOCKED_TRUST": 4,
-    "REBASELINE_REWORK_REQUIRED": 1
+    "SOURCE_COMPLETE_P2_PENDING": 35,
+    "BLOCKED_TRUST": 4
   },
   "first_ready": [],
   "operational_ready": [],
@@ -3626,7 +3625,7 @@
       "caller_to_callee": "Controller>coder>F18>task state",
       "observable_outcome": "safe one-cycle result and HOLD",
       "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_TRUST_AND_OWNER_HOLD",
-      "code_status": "REBASELINE_REWORK_REQUIRED",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-011",
         "MLA-SWU-023",
@@ -3705,10 +3704,10 @@
         "MLA-SWU-023",
         "MLA-SWU-027"
       ],
-      "source_dependency_review": "The HOLD-only native Controller→coder request→F18 request→SQLite transition consumes existing typed source-only request contracts, and does not execute isolated coder/reviewer SWU-015/021; original runtime dependencies stay unchanged.",
+      "source_dependency_review": "Controller/App Pure Player PLAN_SCOPE_REVIEW/STATIC_AST_REVIEW connects plan scope -> static source parsing -> dispatch HOLD; Windows Sandbox preview exports removed; independent F18/owner/real Git CAS still HOLD.",
       "original_missing_function": "preview/handoff only, no state transition",
       "actual_source_implemented": true,
-      "latest_code_sha": "d89935921853fd7d20c6e7c6bf40ddae6dabd3ca",
+      "latest_code_sha": "2509904c772b4151797a05d4a077d4151af1dfeb",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
       "runtime_gap": "Real coder execution, independent F18 review, trusted receipt and completed coding-review loop remain blocked on Windows protected runner/reviewer.",
@@ -3727,7 +3726,8 @@
       "legacy_attempts_used_are_not_necessarily_failures": true,
       "zero_vm_pre_rebaseline_status": "SOURCE_COMPLETE_P2_PENDING",
       "zero_vm_design_gap": "orchestrator.preview_codeshield_sandbox_fallback is still exported; no Pure Player typed-op lifecycle wired",
-      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5"
+      "zero_vm_design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
+      "zero_vm_design_status": "SOURCE_REPAIRED_IMPLEMENTED_UNVERIFIED"
     },
     {
       "id": "MLA-SWU-039",
@@ -5891,7 +5891,7 @@
     "design_sha": "05f51849c0efe7303bf57cb78dff576e441063f5",
     "reviewed_source_sha": "e09b72c9b4cf1ad1ed23312662c655b70446d455",
     "previous_source_candidates": 35,
-    "current_source_candidates": 34,
+    "current_source_candidates": 35,
     "demoted": [
       "MLA-SWU-038"
     ],
@@ -5899,18 +5899,22 @@
       "MLA-SWU-008",
       "MLA-SWU-015",
       "MLA-SWU-021",
-      "MLA-SWU-031",
-      "MLA-SWU-038"
+      "MLA-SWU-031"
     ],
-    "code_only_rework_candidate": [
-      "MLA-SWU-038"
-    ],
+    "code_only_rework_candidate": [],
     "trust_hold": [
       "MLA-SWU-008",
       "MLA-SWU-015",
       "MLA-SWU-021",
       "MLA-SWU-031"
     ],
-    "note": "first_ready stays empty until CPAA verifies exact source/allowed paths; original 2+2, REQ and DAG retained. No VM or container fallback."
+    "note": "first_ready stays empty until CPAA verifies exact source/allowed paths; original 2+2, REQ and DAG retained. No VM or container fallback.",
+    "repaired_source": [
+      "MLA-SWU-038"
+    ],
+    "source_commits": [
+      "2509904c772b4151797a05d4a077d4151af1dfeb",
+      "930174209e5085c3acd7e3f23880b27e476f2181"
+    ]
   }
 }
