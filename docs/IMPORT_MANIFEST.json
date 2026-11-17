@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "checked_at_kst": "2026-11-17",
+  "repository": "hibi89/my_local_ai",
+  "policy": "NO_COPY_UNTIL_LICENSE_AND_OWNER_REVIEW",
+  "sources": [
+    {
+      "source_repo": "hibi89/EAI",
+      "source_branch": "feature/kmong-eai-85-p31-20261112",
+      "commit_sha": "5186cb1aa7928054d56b1cd0a40ea5943a5b3892",
+      "root_license": "NOT_FOUND_AT_PINNED_ROOT",
+      "third_party_notice": "NOT_REVIEWED",
+      "ownership_review": "PENDING",
+      "candidate_files": [
+        {
+          "path": "eai/decision_engine.py",
+          "blob_sha": "119d112d7d756dc320adfcda9e12214b6c534fb2"
+        },
+        {
+          "path": "eai/resource_schedule.py",
+          "blob_sha": "1324f96da2f20ded0c2903bc24e3619537c72f4c"
+        }
+      ]
+    },
+    {
+      "source_repo": "hibi89/Freelancer",
+      "source_branch": "tools/ax-dev-factory-local",
+      "commit_sha": "5ab94180471c7ea86344b691fc77ad5c29989071",
+      "root_license": "NOT_FOUND_AT_PINNED_ROOT",
+      "third_party_notice": "NOT_REVIEWED",
+      "ownership_review": "PENDING",
+      "candidate_files": [
+        {
+          "path": "axdev/core.py",
+          "blob_sha": "c4fc2f4c5f5547e7225566a1baa9ee0e3ccada07"
+        },
+        {
+          "path": "axdev/opencode_guard.py",
+          "blob_sha": "170478dd45e97f809ed11085b295f9528005df2f"
+        },
+        {
+          "path": "axdev/windows_sandbox_runtime.py",
+          "blob_sha": "421951b3658a7f72e2889ded6a54c1f5bfacb02f"
+        }
+      ]
+    }
+  ],
+  "imports": [],
+  "import_decision": "BLOCKED_PROVENANCE",
+  "review_notes": "Root contents checked at exact pinned SHA. No root LICENSE found; this does NOT prove no licensing rights. Third-party and owner rights not established. No copied source in my_local_ai."
+}
