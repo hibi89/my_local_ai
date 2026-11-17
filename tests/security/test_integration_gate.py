@@ -224,3 +224,21 @@ class SyntheticRefIdentityAndReplayTests(unittest.TestCase):
             store.synthetic_compare_swap(first,expected_main_sha=store.main_sha)
         self.assertEqual(exc.exception.code,"SHA_MISMATCH")
         self.assertEqual(store.read(ref),SHA0)
+
+
+
+class SyntheticCASMalformedTaskIdTests(unittest.TestCase):
+    def test_nonstring_or_injected_task_never_causes_ref_update(self):
+        from my_local_ai.gitops.local_integration import SyntheticIsolatedRefStore
+        ref="refs/heads/mla/isolated/TASK-018"
+        store=SyntheticIsolatedRefStore(
+            {ref:SHA0},owner_original_sha=SHA1,main_sha="d"*40
+        )
+        baseline=LocalCASIntent(ref,SHA0,CAND,SHA1,"TASK-018")
+        for task_id in (None,False,123,"TASK-018/../main","TASK-999"):
+            with self.subTest(task_id=task_id),self.assertRaises(IntegrationHold):
+                store.synthetic_compare_swap(
+                    replace(baseline,task_id=task_id),
+                    expected_main_sha=store.main_sha,
+                )
+        self.assertEqual(store.read(ref),SHA0)

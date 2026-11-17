@@ -159,7 +159,9 @@ class SyntheticIsolatedRefStore:
             or intent.executable or intent.may_write_ref or intent.may_write_original
             or intent.may_push_remote):
             raise IntegrationHold("UNTRUSTED_REVIEW")
-        if (not isinstance(intent.target_local_ref, str)
+        if (not isinstance(intent.task_id, str)
+            or not _TASK.fullmatch(intent.task_id)
+            or not isinstance(intent.target_local_ref, str)
             or not _ISOLATED.fullmatch(intent.target_local_ref)
             or intent.target_local_ref != "refs/heads/mla/isolated/" + intent.task_id
             or ".." in intent.target_local_ref
