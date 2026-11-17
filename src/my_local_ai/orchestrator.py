@@ -479,3 +479,35 @@ def preview_codeshield_controller_dispatch_hold(
         or payload["can_publish_remote"] is not False):
         raise ValueError("unsafe CodeShield controller dispatch state")
     return payload
+
+
+# Explicit opt-in *preview* only: Windows Sandbox networking disabled config.
+# This never opens a Sandbox, exports host file paths or generates an owner GO.
+from my_local_ai.controller.codeshield import (
+    preview_semgrep_sandbox_fallback as _preview_semgrep_sandbox_fallback,
+)
+
+
+def preview_codeshield_sandbox_fallback(
+    *, context: _CodeShieldContext, executable: str | _Path,
+    local_rules: str | _Path, disposable_worktree: str | _Path,
+    original_checkout: str | _Path, changed_paths: tuple[str, ...],
+    minimal_staging_folder: str | _Path,
+) -> dict[str, object]:
+    result = _preview_semgrep_sandbox_fallback(
+        context, executable=executable, local_rules=local_rules,
+        disposable_worktree=disposable_worktree,
+        original_checkout=original_checkout, changed_paths=changed_paths,
+        minimal_staging_folder=minimal_staging_folder,
+    )
+    if (result.get("stage") != "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
+        or result.get("networking_requested") != "Disable"
+        or result.get("readonly_mapping_requested") is not True
+        or result.get("logon_command_present") is not False
+        or result.get("may_launch_sandbox") is not False
+        or result.get("may_run_scanner") is not False
+        or result.get("os_isolation_attested") is not False
+        or result.get("f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False):
+        raise ValueError("unsafe CodeShield Sandbox preview")
+    return result
