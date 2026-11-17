@@ -14,3 +14,18 @@
 8. **원본/보안/복구:** EAI/AX 원본 repo/main 보존, 고객 DB/.env/모델/프롬프트/토큰 Git 업로드 0. Git history로 문서 rollback; 향후 SQLite·실기기 백업은 설계만.
 9. **다음 READY:** 승인 시 MLA-001(원본/라이선스), MLA-002(contract schemas), MLA-003(F18 threat/reviewer), MLA-004(synthetic tests/CI), MLA-005(local benchmark schema)를 묶어 수행. 그 후 각 depends_on/allowed_paths/acceptance/safety_checks로 다음 작업. 코드/수용 SHA 없으면 VERIFIED 금지.
 10. **갱신:** 2026-11-17 KST; 설계 기반 검토/문서 저장만, 실기기·모델·독립 감사 NOT_RUN. 최신 디자인 docs/FINAL_BLUEPRINT·REQUIREMENTS·INSTANT_TASK_QUEUE가 작업 정본이며 이 HANDOFF는 이전 정책을 덮지 않는다.
+
+---
+
+# 2026-11-17 KST P1 구현 실적 — 최신 인수인계 (위 P0 이력보다 우선)
+
+1. **목표·확정 요구:** My Local AI 독립 고유 Controller + 선택 EAI advisor + 격리 코딩 워커. REQ-01~30 구현 분모, REQ-31/32 후행 감사/GO. P1 구현 우선, P2 전체 검증 잠금 유지.
+2. **완료 코드:** `MLA-002` TaskSpec/PlanSpec/계획 SHA256·DAG·경로·예산·scope claimed 승인 구분; `MLA-004` Python 3.11 합성 CI scaffold; `MLA-005` 명시적 SYNTHETIC 모델 성능 placeholder 및 테스트; `MLA-001` 원본별 5개 blob SHA manifest+오프라인 읽기 전용 감사 코드 (원본 이식은 BLOCKED_PROVENANCE). 실제 source 최종 SHA `7814996f9ee0f8e6243be38a5a63284665227c85`.
+3. **테스트 명령·증거:** `python -m compileall -q src scripts tests`; `PYTHONPATH=src python -m unittest discover -s tests/unit -p 'test_*.py' -v`; GitHub Actions `44003823329` at `7814996...` **21 PASS / 0 FAIL / 0 SKIP, syntax PASS**. 직전 `44003728366` **FAIL** (64자리 plan SHA vs 40자리 Git SHA), 수정으로 재검증 성공. P2 풀 CI/Windows/실모델/24h **NOT_RUN**.
+4. **진행·차단:** 소스 구현 완료 3개 P1 task/28개 (`MLA-002/004/005 IMPLEMENTED_UNVERIFIED`). **구현완료율 1/30=3.33%** (`REQ-04` 전체 스키마 코딩 완료로 산입). `MLA-001` provenance/라이선스 **BLOCKED**; F18 independent reviewer **SECURITY_HOLD**. P2 `LOCKED`, 공식 검증률 `UNASSESSED`, 실사용 `HOLD`.
+5. **오류·시도·대안:** 1회 synthetic CI 실패의 원인은 SHA 유형 혼동; `task.plan_sha`는 SHA256 64 hex, `source_sha`는 Git commit 40 hex로 수정. EAI/AX 루트 LICENSE 부재 → 권리 미확정; 원본 복사 금지, 별도 자체 코드 구현.
+6. **저장소·브랜치·SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`, 코드 `7814996...`; 큐 진행 기록 `acaf61e1195168220d349e03ca5946933cf1a542`; 단계 잠금 `bac35a249a081a4098ab5416c6ae35e1f54d77ae`. HEAD는 재개 시 재조회. `main`, EAI, AX Dev Factory 원본 변경 없음.
+7. **Production/환경:** 로컬 개발 도구, Production/Vercel 없음. GitHub Actions Ubuntu Python3.11 합성 테스트만 실행; 실제 사용자 Windows11 GTX1050Ti/Ollama/Qwen/OpenCode **NOT_RUN**.
+8. **보안·권한·복구:** 공개 repo에 비밀/고객 DB·모델 가중치/개인 경로 업로드 없음. Git 이력 보존; 원격 PR/merge, OS startup, 유료 API, 외부 전송/실운영 권한 별도 GO. F18 self-receipt 절대 신뢰 금지.
+9. **다음 READY 및 인수 기준:** `MLA-003` F18 fail-closed 구분, `MLA-006` CLI dry-run 및 `MLA-007` SQLite 합성 기반. `MLA-001`은 출처/라이선스 해결 전 원본 이식 불허. 추가 REQ 전체 코딩 경로 완성 시에만 완료 분자 증가. 전체 CI 수동 반복 대기 금지, 위험 경계 즉시검사는 유지.
+10. **갱신·검증 범위:** 2026-11-17 KST. 소스 근거 `7814996...`, PASS는 `44003823329` synthetic scope. P2 공식 검증·보안 OS 경계·운영/출시 `NOT_RUN/HOLD`. 후속 채팅은 이 문단 및 실제 HEAD/현행 AGENTS·PHASE_GATES를 우선하며 구형 P0 `코드 미구현` 스냅샷을 그대로 신뢰하지 않는다.
