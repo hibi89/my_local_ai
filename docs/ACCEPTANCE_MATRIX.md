@@ -4,7 +4,6 @@
 
 | REQ | 구체 수용 대상 | 최소 증거 수준 | 설계 작업 ID | 실제 결과 |
 |---|---|---|---|---|
-| REQ-ID | 요구사항: 수용조건(간략) | 정확 SHA 합성+연동 증거 |  | NOT_RUN |
 | REQ-01 | 원본 provenance: EAI·AX 정확 브랜치/소스·라이선스·파일 SHA manifest 생성 | 정확 SHA 합성+연동 증거 | MLA-001 | NOT_RUN |
 | REQ-02 | 최종설계 전수 추적: High REQ-ID→소스→테스트→증거 SHA 전수 매핑 | 정확 SHA 합성+연동 증거 | MLA-001 | NOT_RUN |
 | REQ-03 | 불변 High 작업 승인: PlanSpec 버전+SHA+승인 scope 강제, 갱신 시 재승인 | 정확 SHA 합성+연동 증거 | MLA-002 | NOT_RUN |
