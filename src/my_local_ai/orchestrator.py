@@ -369,3 +369,41 @@ def persist_controller_review_hold_cycle(
         )
 
     return _write_owned_transaction(owned_db, transition)
+
+# V1.3: static risk decision, not the real OS/code execution path.
+# Keep the public call explicitly nonexecuting. Actual dispatch must also
+# enforce the protected F18/owner/sandbox safety gate in later SWUs.
+from my_local_ai.security.codeshield_contracts import (
+    CodeShieldContext as _CodeShieldContext,
+    ScannerEvidence as _ScannerEvidence,
+    ActionKind as _ActionKind,
+)
+from my_local_ai.controller.codeshield import (
+    evaluate_codeshield_candidate as _evaluate_codeshield_candidate,
+    read_only_decision_status as _read_only_decision_status,
+)
+
+
+def preview_codeshield_static(
+    *, context: _CodeShieldContext,
+    candidate_python_sources: dict[str, bytes | str],
+    scanner_evidence: tuple[_ScannerEvidence, ...] = (),
+    action: _ActionKind = _ActionKind.STATIC_READ,
+) -> dict[str, object]:
+    """Controller-facing read-only static code preflight; never runs code.
+
+    Returned fields are redacted and cannot issue F18 receipts, grant owner
+    scope, modify Git, or launch a checker/executable themselves.
+    """
+    reviewed = _evaluate_codeshield_candidate(
+        context, candidate_python_sources=candidate_python_sources,
+        scanner_evidence=scanner_evidence, action=action,
+    )
+    result = _read_only_decision_status(reviewed)
+    if (result["execution_allowed"] is not False
+        or result["owner_go_verified"] is not False
+        or result["f18_verified"] is not False
+        or result["can_write_git"] is not False
+        or result["can_publish_remote"] is not False):
+        raise ValueError("unsafe CodeShield preview")
+    return result
