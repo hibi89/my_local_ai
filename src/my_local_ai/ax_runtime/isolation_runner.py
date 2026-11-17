@@ -1038,3 +1038,132 @@ def recheck_disposable_sandbox_manifest(
         raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
     # Re-read exact bytes; never promote a caller-supplied status to GO.
     return staged
+
+
+# MLA-SWU-015 source progress: *read-only* owner-device capability
+# observation for choosing an OS-isolation implementation. Neither the
+# presence of native APIs nor a supported CPU proves enforced isolation.
+# Microsoft IsProcessorFeaturePresent: SLAT=20, firmware virtualization=21.
+# CreateAppContainerProfile availability is inspected, never invoked.
+@dataclass(frozen=True)
+class WindowsHostCapabilityObservation:
+    host: str
+    windows_build: int | None
+    slat_observed: bool | None
+    firmware_virtualization_observed: bool | None
+    appcontainer_api_exported: bool | None
+    restricted_token_api_exported: bool | None
+    job_object_api_exported: bool | None
+    sandbox_feature_enabled: bool | None = None
+    state: str = "READ_ONLY_CAPABILITIES_NOT_OS_ATTESTATION"
+    protected_owner_principal_verified: bool = False
+    sandbox_runtime_attested: bool = False
+    network_egress_denied_attested: bool = False
+    independent_f18_verified: bool = False
+    os_configuration_changed: bool = False
+    may_start_worker: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.host not in ("WINDOWS_LOCAL_OBSERVED", "WINDOWS_PROBE_UNAVAILABLE",
+                              "NON_WINDOWS")
+            or self.state != "READ_ONLY_CAPABILITIES_NOT_OS_ATTESTATION"
+            or (self.windows_build is not None
+                and (type(self.windows_build) is not int or
+                     not 10000 <= self.windows_build <= 100000))
+            or any(type(getattr(self, key)) not in (bool, type(None))
+                   for key in (
+                       "slat_observed", "firmware_virtualization_observed",
+                       "appcontainer_api_exported", "restricted_token_api_exported",
+                       "job_object_api_exported", "sandbox_feature_enabled",
+                   ))
+            or self.sandbox_feature_enabled is not None
+            or (self.host != "WINDOWS_LOCAL_OBSERVED"
+                and any(getattr(self, key) is not None for key in (
+                    "windows_build", "slat_observed",
+                    "firmware_virtualization_observed", "appcontainer_api_exported",
+                    "restricted_token_api_exported", "job_object_api_exported",
+                )))
+            or any(getattr(self, key) is not False for key in (
+                "protected_owner_principal_verified", "sandbox_runtime_attested",
+                "network_egress_denied_attested", "independent_f18_verified",
+                "os_configuration_changed", "may_start_worker",
+            ))):
+            raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+
+    def to_redacted_dict(self) -> dict[str, object]:
+        """No host identity, process list, paths or secrets in the report."""
+        return {
+            "host": self.host,
+            "windows_build": self.windows_build,
+            "slat_observed": self.slat_observed,
+            "firmware_virtualization_observed": (
+                self.firmware_virtualization_observed
+            ),
+            "appcontainer_api_exported": self.appcontainer_api_exported,
+            "restricted_token_api_exported": self.restricted_token_api_exported,
+            "job_object_api_exported": self.job_object_api_exported,
+            "sandbox_feature_enabled": "UNASSESSED",
+            "isolation_policy": "NOT_ATTESTED",
+            "host_egress": "NOT_ATTESTED",
+            "independent_f18": "NOT_VERIFIED",
+            "owner_go": False,
+            "os_settings_changed": False,
+            "execution_allowed": False,
+            "p2": "LOCKED",
+        }
+
+
+def inspect_windows_host_capabilities_read_only() -> WindowsHostCapabilityObservation:
+    """Read actual Windows CPU/API capability indicators, never modify OS.
+
+    The returned observations are advisory and not permission to create an
+    AppContainer, launch a process, enable Sandbox/Hyper-V or execute code.
+    API exports do not prove usable security boundaries; Windows Sandbox
+    optional-feature state is intentionally UNKNOWN, not inferred from a DLL.
+    This is suitable for an explicit future *owner-side* read-only inspection.
+    """
+    import os
+    import sys
+    if os.name != "nt":
+        return WindowsHostCapabilityObservation("NON_WINDOWS", None, None,
+                                                 None, None, None, None)
+    try:
+        import ctypes
+
+        # LOAD_LIBRARY_SEARCH_SYSTEM32; do not resolve DLLs from cwd/PATH.
+        system32_only = 0x00000800
+        kernel = ctypes.WinDLL("kernel32.dll", winmode=system32_only)
+        userenv = ctypes.WinDLL("userenv.dll", winmode=system32_only)
+        advapi = ctypes.WinDLL("advapi32.dll", winmode=system32_only)
+
+        observed = kernel.IsProcessorFeaturePresent
+        observed.argtypes = (ctypes.c_uint,)
+        observed.restype = ctypes.c_int
+        slat = bool(observed(20))
+        virt = bool(observed(21))
+        build = int(sys.getwindowsversion().build)
+        return WindowsHostCapabilityObservation(
+            "WINDOWS_LOCAL_OBSERVED", build, slat, virt,
+            hasattr(userenv, "CreateAppContainerProfile"),
+            hasattr(advapi, "CreateRestrictedToken"),
+            hasattr(kernel, "CreateJobObjectW"),
+        )
+    except (OSError, AttributeError, TypeError, ValueError, OverflowError):
+        # No fallback to environment variables, subprocess, DISM, PowerShell
+        # or auto-enabling optional OS features.
+        return WindowsHostCapabilityObservation(
+            "WINDOWS_PROBE_UNAVAILABLE", None, None, None, None, None, None,
+        )
+
+
+def _capabilities_read_only_main() -> int:
+    """No-args, nonprivileged diagnostic: python -m my_local_ai.ax_runtime.isolation_runner."""
+    import json
+    observation = inspect_windows_host_capabilities_read_only()
+    print(json.dumps(observation.to_redacted_dict(), sort_keys=True))
+    # Exit 0 means the read-only diagnostic ran, NOT that isolation passed.
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_capabilities_read_only_main())
