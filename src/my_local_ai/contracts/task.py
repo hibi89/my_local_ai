@@ -8,7 +8,7 @@ _SHA = re.compile(r"[0-9a-f]{40}\Z")
 _PLAN_SHA = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{2,63}\Z")
 _REQ = re.compile(r"REQ-[0-9]{2}\Z")
-_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
+_RESERVED = {"con", "prn", "aux", "nul", "conin$", "conout$", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
 _FORBIDDEN_PARTS = {".git", ".env", ".ssh", ".aws", ".config", "__pycache__"}
 
 def safe_path(path: str) -> str:
@@ -75,9 +75,10 @@ class TaskSpec:
             raise ValueError("invalid dependency")
         for path in paths:
             safe_path(path)
-        if not isinstance(obj["goal"], str) or not (1 <= len(obj["goal"]) <= 4000):
+        if (not isinstance(obj["goal"], str) or not (1 <= len(obj["goal"]) <= 4000)
+            or "\\x00" in obj["goal"]):
             raise ValueError("goal")
-        if any(not isinstance(v, str) or not (1 <= len(v) <= 2000) for v in acceptance):
+        if any(not isinstance(v, str) or not (1 <= len(v) <= 2000) or "\\x00" in v for v in acceptance):
             raise ValueError("acceptance")
         parsed_checks = []
         for argv in checks:

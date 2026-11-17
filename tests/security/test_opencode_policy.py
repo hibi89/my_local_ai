@@ -265,3 +265,45 @@ class OpenCodePolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OpenCodeAncestorGuardTests(unittest.TestCase):
+    def test_parent_symlink_cannot_redirect_disposable_worktree(self):
+        with tempfile.TemporaryDirectory() as root:
+            parent = Path(root)
+            target = parent / "physical"
+            target.mkdir()
+            (target / "guest").mkdir()
+            original = parent / "original"
+            original.mkdir()
+            alias = parent / "alias"
+            try:
+                alias.symlink_to(target, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlink parent unsupported")
+            with self.assertRaises(WorkerHold) as ctx:
+                prepare_opencode_run(
+                    task(), plan_sha256=PLAN, source_sha=SOURCE,
+                    disposable_worktree=str(alias / "guest"),
+                    original_checkout=str(original), prompt="synthetic only")
+            self.assertEqual(ctx.exception.code, "UNSAFE_WORKTREE")
+
+    def test_parent_symlink_cannot_redirect_original_checkout(self):
+        with tempfile.TemporaryDirectory() as root:
+            parent = Path(root)
+            guest = parent / "guest"
+            guest.mkdir()
+            actual = parent / "actual"
+            actual.mkdir()
+            (actual / "original").mkdir()
+            alias = parent / "alias"
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlink parent unsupported")
+            with self.assertRaises(WorkerHold):
+                prepare_opencode_run(
+                    task(), plan_sha256=PLAN, source_sha=SOURCE,
+                    disposable_worktree=str(guest),
+                    original_checkout=str(alias / "original"),
+                    prompt="synthetic only")

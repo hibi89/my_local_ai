@@ -95,3 +95,20 @@ class ContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowsHostilePathContractTests(unittest.TestCase):
+    def test_windows_device_aliases_are_refused(self):
+        for name in ("CONIN$", "conout$.txt", "com0.log", "lpt0", "src/COM9", "src/LPT1.txt"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                safe_path(name)
+
+    def test_null_bytes_rejected_in_task_goal_and_acceptance(self):
+        for field in ("goal", "acceptance"):
+            spec = sample()["tasks"][0]
+            if field == "goal":
+                spec["goal"] = "safe\x00hostile"
+            else:
+                spec["acceptance"] = ["pass\x00forge"]
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                TaskSpec.parse(spec)

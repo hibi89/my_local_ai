@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import stat
 from typing import Callable, Protocol
 
 from my_local_ai.contracts.approval import OwnerGrant, authorize_claim
@@ -23,6 +24,17 @@ _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _SHA64 = re.compile(r"[0-9a-f]{64}\Z")
 _MAX_MESSAGE = 16_384
 _MAX_OUTPUT = 262_144
+_REPARSE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+
+
+def _no_alias_ancestors(path: Path) -> None:
+    # resolve() by itself hides a symlinked parent. Attestation still belongs
+    # to the independent protected sandbox, not this lexical/host preflight.
+    for part in (path.absolute(), *path.absolute().parents):
+        info = part.lstat()
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & _REPARSE:
+            raise ValueError("worktree ancestor is symlink or junction")
+
 
 
 class WorkerHold(RuntimeError):
@@ -138,6 +150,10 @@ def prepare_opencode_run(
         if not isinstance(disposable_worktree, str) or not isinstance(original_checkout, str):
             raise ValueError("invalid path types")
         worktree, original = Path(disposable_worktree), Path(original_checkout)
+        if not worktree.is_absolute() or not original.is_absolute():
+            raise ValueError("absolute paths required")
+        _no_alias_ancestors(worktree)
+        _no_alias_ancestors(original)
         if (not worktree.is_absolute() or not original.is_absolute()
             or not worktree.is_dir() or not original.is_dir()
             or worktree.is_symlink() or original.is_symlink()

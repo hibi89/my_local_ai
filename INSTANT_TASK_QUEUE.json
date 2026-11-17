@@ -19,9 +19,9 @@
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-010",
-    "MLA-011",
-    "MLA-012"
+    "MLA-002",
+    "MLA-004",
+    "MLA-013"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -100,7 +100,7 @@
       "p1_code_depends_on": [],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -157,7 +157,7 @@
       "p1_code_depends_on": [],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -355,7 +355,7 @@
       "safety_checks": "DEPENDENCY_VERIFIED_ONLY;NO_DOUBLE_EXECUTION",
       "risk": "HIGH",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "4bdff24db9d2a0a3ab37036225df1ff0aa6fe846",
+      "evidence_sha": "0e755c17a141794be95c96882d1283e0ceb2dfdb",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
@@ -366,8 +366,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 1
     },
     {
       "task_id": "MLA-011",
@@ -387,7 +388,7 @@
       "safety_checks": "ONE_MODEL;RAM_BUDGET;FENCING",
       "risk": "HIGH",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "75d441ed163b3d91b271653c5e3fc5dae40ece96",
+      "evidence_sha": "0e755c17a141794be95c96882d1283e0ceb2dfdb",
       "blockers": [
         "Real OpenCode/Qwen worker integration, Windows lock/ACL P2 evidence pending"
       ],
@@ -399,8 +400,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 1
     },
     {
       "task_id": "MLA-012",
@@ -421,7 +423,7 @@
       "safety_checks": "LOOPBACK_ONLY;NO_CLOUD;NO_DOWNLOAD",
       "risk": "HIGH",
       "status": "IMPLEMENTED_UNVERIFIED",
-      "evidence_sha": "1d29951f5a0b0fdbb0585a98b523842a917df6e8",
+      "evidence_sha": "0e755c17a141794be95c96882d1283e0ceb2dfdb",
       "blockers": [
         "Owner Windows/Qwen and true OS egress/F18 isolation NOT_RUN; caller consent integration MLA-013 pending"
       ],
@@ -434,8 +436,9 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "READY_CODE_ONLY",
-      "p1_code_blockers": []
+      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_blockers": [],
+      "p1_hardening_round": 1
     },
     {
       "task_id": "MLA-013",
@@ -466,7 +469,7 @@
       ],
       "runtime_dependencies_preserved": true,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
-      "p1_code_status": "IMPLEMENTED_UNVERIFIED",
+      "p1_code_status": "READY_CODE_ONLY",
       "p1_code_blockers": []
     },
     {
@@ -1073,12 +1076,12 @@
   "p1_browser_verification_rule": "FE/BE implementations and mock/unit/synthetic HTTP smoke required. Real browser/Playwright visual/interaction/a11y/Console/Network deferred to MLA-V007 in P2. Exception: minimal security-critical browser check only if indispensable, record reason and exact SHA; no broad browser test loop.",
   "p2_browser_verification_task": "MLA-V007",
   "last_p1_local_ci": {
-    "head_sha": "fcdd0371eab25691a9c1e97f1575875f31c5b079",
-    "run_id": 44025805677,
+    "head_sha": "0e755c17a141794be95c96882d1283e0ceb2dfdb",
+    "run_id": 44026734085,
     "python_compile": "PASS",
-    "unit_tests_pass": 120,
+    "unit_tests_pass": 127,
     "synthetic_integration_tests_pass": 75,
-    "security_contract_tests_pass": 130,
+    "security_contract_tests_pass": 133,
     "scope": "P1_SYNTHETIC_ONLY_NOT_OWNER_WINDOWS_OS_F18"
   },
   "p1_ready_mode": "CODE_ONLY_NOT_RUNTIME",
@@ -1103,9 +1106,9 @@
     "p2": "LOCKED",
     "code_req_denominator": 30,
     "current_wave": [
-      "MLA-010",
-      "MLA-011",
-      "MLA-012"
+      "MLA-002",
+      "MLA-004",
+      "MLA-013"
     ],
     "completed_code_waves": [
       [
@@ -1153,6 +1156,11 @@
         "MLA-020",
         "MLA-007",
         "MLA-017"
+      ],
+      [
+        "MLA-010",
+        "MLA-011",
+        "MLA-012"
       ]
     ]
   },
