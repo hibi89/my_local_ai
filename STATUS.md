@@ -55,3 +55,14 @@
 - New base design: docs/FINAL_BLUEPRINT.md J, docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md, docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json (CS-01..08, 0/8 design only).
 - This design commit does not ship scanners, install Defender tools, provision AppContainer, execute untrusted code, issue protected signed F18 or change protected Git refs. P1 baseline history 35/39 candidates in dev at the reviewed SHA; formal REQ 5/30, P2 LOCKED, official verification UNASSESSED. No implementation rate increase.
 - Dev file sync must preserve dev actual HEAD, 39 source queue/WORK_PHASE_GATES, existing F18 security design and status. Feature branch starts from dev after selective docs sync; owner runtime GO is still false. Reference branch HEAD in exact corresponding implementation handoff rather than a stale design SHA.
+
+
+---
+
+## 2026-11-17 V1.3 Design final branch topology confirmed
+
+- High design base updated at c9eb919bab83e782e53f8d4d6bf3e5f179715e27, 9c416a22aa061aa9bdb2641713b9d3c3a924aa15, 0ea09e21fa560575d2c5126c240c586d60ed4417. Exact current HEAD must be fetched before additional writes.
+- Dedicated feature/code-shield-lightweight-v1 branch was actually created from existing dev commit **59caaf21625e8c06affb824b15f0ca0cb306e61c**; it contains selectively synced V1.2 Experience and V1.3 CodeShield design. Source code, original queues, mandatory CI, existing SWU evidence and P2/owner gates left unchanged.
+- Core design: docs/FINAL_BLUEPRINT.md J + docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md; queue 8 source CS tasks; acceptance docs/CODE_SHIELD_ACCEPTANCE_MATRIX.md. Actual CodeShield core implement 0/8, tests NOT_RUN, Windows/AppContainer/Defender actual configuration unchanged.
+- **Active dev/instant-implementation-v1 had concurrent HEAD movement twice** while attempting an exact-lease documentation sync. No overwritten/misaligned commits; selective design sync made on isolated feature instead. Dev branch retains its own latest code and status. Never overwrite dev history or import stale design STATUS/HANDOFF. Subsequent integration requires exact latest SHA and conflict-aware review; main untouched.
+- Owner 2+2 retry rule is current, initial 2 failures isolate/replan, second improved attempts 2, cumulated 4 unresolved to Sol Max, critical trust blocker immediate owner request. Existing historical code attempts are not automatically failures.
