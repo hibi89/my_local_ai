@@ -166,5 +166,26 @@ class WindowsNoNetworkReadOnlyImportTests(unittest.TestCase):
             )
 
 
+    def test_forged_file_inventory_never_reaches_guest_import(self):
+        profile,transport,request=_bundle()
+        original=runner.decode_untrusted_host_qwen_files(
+            _model_result([{"path":"src/demo.py","content":"print(42)\n"}]),
+            request,transport,
+        )
+        for bogus in (
+            replace(original,files=(("../.env","leak"),)),
+            replace(original,files=(("src/other.py","exfil"),)),
+            replace(original,files=(("src/demo.py","tampered"),)),
+            replace(original,files=(("src/demo.py","print(42)\x00"),)),
+            replace(original,files_sha256="f"*64),
+        ):
+            with self.subTest(files=bogus.files):
+                with self.assertRaises(runner.WindowsIsolationHold):
+                    runner.prepare_sandbox_readonly_patch_import(
+                        profile=profile,proposed_files=bogus,
+                        scratch_root=r"C:\MLA_Disposable",
+                    )
+
+
 if __name__=="__main__":
     unittest.main()
