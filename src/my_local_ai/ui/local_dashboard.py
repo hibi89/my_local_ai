@@ -25,6 +25,7 @@ def origin_allowed(origin: str | None, port: int) -> bool:
 def render_html(snapshot: StatusSnapshot) -> bytes:
     state = snapshot.to_public_dict()
     percent = state["implementation_percent"]
+    code_ready_names = ", ".join(escape(name) for name in state["p1_code_ready_ids"]) or "없음"
     text = f"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -47,11 +48,13 @@ a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
 <progress max="100" value="{percent:.2f}" aria-label="구현완료율 {percent:.2f}퍼센트"></progress>
 <p class="muted">구현 코드 후보와 실제 검증 통과는 다릅니다.</p></section>
 <section class="cards" aria-label="작업 집계">
-<div class="panel"><h2>READY</h2><strong class="value">{state['ready_tasks']}</strong></div>
+<div class="panel"><h2>코드 작성 READY (P1)</h2><strong class="value">{state['p1_code_ready_tasks']}</strong></div>
+<div class="panel"><h2>실행 READY</h2><strong class="value">{state['ready_tasks']}</strong></div>
 <div class="panel"><h2>HOLD/차단</h2><strong class="value">{state['hold_tasks']}</strong></div>
 <div class="panel"><h2>코드 작성 후보</h2><strong class="value">{state['implemented_tasks']}</strong></div>
 <div class="panel"><h2>전체 작업</h2><strong class="value">{state['task_total']}</strong></div></section>
 <section class="panel" aria-labelledby="security"><h2 id="security">안전 게이트</h2>
+<p>코드 작성 대기 작업: <strong>{code_ready_names}</strong> (실행 허가 아님)</p>
 <p>단계: <strong>{escape(state['phase'])}</strong></p>
 <p>실사용 승인: <strong>{"승인됨" if state["owner_real_use_go"] else "미승인"}</strong></p>
 <p>중지·재개 제어: <strong>미연결 · 조회 전용</strong></p>

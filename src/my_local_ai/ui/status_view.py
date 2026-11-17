@@ -18,6 +18,7 @@ class StatusSnapshot:
     ready_tasks: int
     hold_tasks: int
     implemented_tasks: int
+    code_ready_task_ids: tuple[str, ...] = ()
     p2_locked: bool = True
     verification: str = "UNASSESSED"
     owner_real_use_go: bool = False
@@ -31,6 +32,8 @@ class StatusSnapshot:
             "implementation_percent": round(self.completed_req * 100 / self.total_req, 2),
             "task_total": self.task_total,
             "ready_tasks": self.ready_tasks,
+            "p1_code_ready_tasks": len(self.code_ready_task_ids),
+            "p1_code_ready_ids": list(self.code_ready_task_ids),
             "hold_tasks": self.hold_tasks,
             "implemented_tasks": self.implemented_tasks,
             "p2_locked": self.p2_locked,
@@ -81,10 +84,31 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
         if not isinstance(task, dict) or not isinstance(task.get("status"), str) or not _STATE_KEY.fullmatch(task["status"]):
             raise ValueError("untrusted task status")
         statuses.append(task["status"])
+    # P1 code authoring READY is deliberately not runtime/execution READY.
+    # Treat any inconsistency as an unavailable dashboard, never grant access.
+    ids = queue.get("first_ready", [])
+    if not isinstance(ids, list) or len(ids) != len(set(ids)) or len(ids) > 10:
+        raise ValueError("invalid P1 code-ready list")
+    if queue.get("p1_ready_mode") != "CODE_ONLY_NOT_RUNTIME":
+        raise ValueError("unsupported P1 code-readiness contract")
+    tasks_by_id = {task.get("task_id"):task for task in tasks}
+    if (len(tasks_by_id) != len(tasks) or set(ids) != {
+        task.get("task_id") for task in tasks
+        if task.get("p1_code_status") == "READY_CODE_ONLY"
+    }):
+        raise ValueError("code ready mismatch")
+    for tid in ids:
+        record = tasks_by_id.get(tid)
+        if (not isinstance(tid,str) or not _STATE_KEY.fullmatch(tid.replace("-","_"))
+            or not isinstance(record,dict)
+            or record.get("status") != "BLOCKED_DEPENDENCY"
+            or record.get("runtime_authorization") != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"):
+            raise ValueError("unsafe READY representation")
     return StatusSnapshot(
         phase=phase, completed_req=done, total_req=total,
         task_total=len(tasks), ready_tasks=sum(s == "READY" for s in statuses),
         hold_tasks=sum("HOLD" in s or "BLOCKED" in s for s in statuses),
         implemented_tasks=sum(s == "IMPLEMENTED_UNVERIFIED" for s in statuses),
+        code_ready_task_ids=tuple(ids),
         owner_real_use_go=p4.get("owner_go") is True,
     )

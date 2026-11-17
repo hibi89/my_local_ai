@@ -21,6 +21,21 @@ class StatusUiTests(unittest.TestCase):
         self.assertEqual(public["provider_remote"], "OFF_NOT_APPROVED")
         self.assertNotIn("secret", json.dumps(public).lower())
 
+    def test_code_only_ready_is_distinct_from_runtime_ready(self):
+        result=load_snapshot(ROOT).to_public_dict()
+        self.assertEqual(result["p1_code_ready_ids"], ["MLA-019","MLA-023"])
+        self.assertEqual(result["p1_code_ready_tasks"], 2)
+        self.assertEqual(result["ready_tasks"], 0)
+        self.assertFalse(result["operation_allowed"])
+
+    def test_dashboard_does_not_confuse_p1_code_ready_and_execution(self):
+        html=render_html(load_snapshot(ROOT)).decode("utf-8")
+        self.assertIn("코드 작성 READY",html)
+        self.assertIn("실행 READY",html)
+        self.assertIn("MLA-019",html)
+        self.assertIn("실행 허가 아님",html)
+        self.assertNotIn("<script",html)
+
     def test_accessible_static_html_has_no_script_or_actions(self):
         html = render_html(load_snapshot(ROOT)).decode("utf-8")
         self.assertIn('lang="ko"', html)
