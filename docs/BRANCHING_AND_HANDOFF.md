@@ -20,3 +20,11 @@ My Local AI는 EAI 자체를 개발하는 저장소가 아니다. EAI의 제한�
 
 ## 재개 시 읽기
 repo+branch+최신 HEAD→AGENTS→HANDOFF→STATUS→REQUIREMENTS+FINAL_BLUEPRINT→소스/테스트/INSTANT_TASK_QUEUE→next READY. 구형 개발 지침이나 문서-only SHA가 현재 안전 정책/기능 증거를 덮지 않음.
+
+
+---
+
+## V1.1 설계의 dev 안전 동기화
+- 설계 브랜치 \`design/final-blueprint-v1\`의 Hydrogen 탈부착 워커 **설계 문서와 확장 큐**를 기준으로 한다. \`dev/instant-implementation-v1\`는 P1 소스를 구현 중이므로 기존 P1 큐·STATUS/HANDOFF·코드를 설계 브랜치의 구형 스냅샷으로 덮어쓰지 않는다.
+- dev 담당자는 최신 design HEAD의 \`docs/FINAL_BLUEPRINT.md H\`, \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`, \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\`을 참조하고, High가 정확 SHA·allowed_paths·의존성을 확인한 뒤에만 확장 작업을 시작한다. 문서 동기화 시 dev HEAD와 파일 충돌 점검.
+- Hydrogen은 별도의 API 개발 워커로서 **수동 웹 Instant 세션을 자동 구동한다고 가정하지 않는다**. 원격 API·외부 데이터/결제·PR/권한 변경은 계속 별도 GO.
