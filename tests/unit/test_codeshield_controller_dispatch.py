@@ -201,13 +201,15 @@ class ControllerCodeShieldDispatchTests(unittest.TestCase):
             ctx, operator_id="STATIC_AST_REVIEW",
             proposed_files={"src/sample.py": "x = 1"},
         )
-        for forged in (
-            replace(candidate, payload_sha256="f"*64),
-            replace(candidate, network_egress_attested=True),
-            replace(candidate, git_promotion_allowed=True),
-        ):
-            with self.subTest(forged=forged.payload_sha256), self.assertRaises(CodeShieldHold):
-                run_pure_player_nonexecuting_candidate(ctx, forged)
+        with self.assertRaises(CodeShieldHold):
+            run_pure_player_nonexecuting_candidate(
+                ctx, replace(candidate, payload_sha256="f"*64),
+            )
+        # The frozen constructor itself rejects forged trust booleans.
+        from my_local_ai.ax_runtime.isolation_runner import WindowsIsolationHold
+        for flag in ("network_egress_attested", "git_promotion_allowed"):
+            with self.subTest(flag=flag), self.assertRaises(WindowsIsolationHold):
+                replace(candidate, **{flag: True})
 
     def test_controller_exports_no_banned_sandbox_preview_port(self):
         import my_local_ai.controller.codeshield as controller
