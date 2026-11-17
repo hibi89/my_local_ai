@@ -20,14 +20,12 @@
   "legacy_task_count": 28,
   "req_count": 30,
   "legacy_accepted_req_count": 5,
-  "source_complete_swu_count": 31,
-  "source_incomplete_swu_count": 8,
+  "source_complete_swu_count": 34,
+  "source_incomplete_swu_count": 5,
   "status_counts": {
     "BLOCKED_PROVENANCE": 1,
-    "SOURCE_COMPLETE_P2_PENDING": 31,
-    "BLOCKED_TRUST": 4,
-    "PENDING_CODE_DEPENDENCY": 2,
-    "BLOCKED_APPROVAL": 1
+    "SOURCE_COMPLETE_P2_PENDING": 34,
+    "BLOCKED_TRUST": 4
   },
   "first_ready": [],
   "operational_ready": [],
@@ -1929,11 +1927,10 @@
       ],
       "caller_to_callee": "trusted F18+readback>isolated ref CAS",
       "observable_outcome": "only independently verified ref promoted",
-      "missing_function": "synthetic memory CAS only",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_TRUST_AND_OWNER_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-019",
-        "MLA-SWU-021",
         "MLA-SWU-024"
       ],
       "complexity": {
@@ -1961,8 +1958,8 @@
         "MLA-015": 0,
         "MLA-018": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "P1 feature authoring + narrow immediate security CI; inherited attempts retained",
       "evidence_sha_by_legacy": {
         "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd",
         "MLA-018": "9933c4f591a70b64dbc397735f521bd0900cd3a8"
@@ -1990,7 +1987,19 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "original_code_depends_on": [
+        "MLA-SWU-019",
+        "MLA-SWU-021",
+        "MLA-SWU-024"
+      ],
+      "source_dependency_review": "F18 protected reviewer SWU-021 is required to authorize real local ref CAS, not to author fixed-argv CAS source; external trusted reviewer port is still absent and the current V1 OS_CHANGE grant is denied.",
+      "original_missing_function": "synthetic memory CAS only",
+      "actual_source_implemented": true,
+      "latest_code_sha": "c080c7e816f9494d626c940bf9dd6a41f2bd1af8",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
+      "runtime_gap": "Cannot perform a real Git ref update without independent F18, protected action-bound OS_CHANGE signer, owner-selected original checkout, and exact Git/index attestation."
     },
     {
       "id": "MLA-SWU-028",
@@ -2072,10 +2081,9 @@
       ],
       "caller_to_callee": "separate owner grant>draft GitHub PR",
       "observable_outcome": "approved draft only, never main merge",
-      "missing_function": "only intent, remote action unavailable",
-      "code_status": "BLOCKED_APPROVAL",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_TRUST_AND_OWNER_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
-        "MLA-SWU-008",
         "MLA-SWU-027",
         "MLA-SWU-028"
       ],
@@ -2104,8 +2112,8 @@
         "MLA-009": 0,
         "MLA-024": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "P1 feature authoring + narrow immediate security CI; inherited attempts retained",
       "evidence_sha_by_legacy": {
         "MLA-009": "d0cc3a6005de3b084d2954699440cdcfff23f985",
         "MLA-024": "045c3959dca08a6f2c03ce7655c5c738db82bdd3"
@@ -2129,7 +2137,19 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "original_code_depends_on": [
+        "MLA-SWU-008",
+        "MLA-SWU-027",
+        "MLA-SWU-028"
+      ],
+      "source_dependency_review": "The REMOTE_PR signer SWU-008 remains a hard precondition for real remote publication but not for authoring a protected, fail-closed draft PR source path; V1 REMOTE_PR grant is categorically denied.",
+      "original_missing_function": "only intent, remote action unavailable",
+      "actual_source_implemented": true,
+      "latest_code_sha": "b4e49d79cf8c1b8b01e4f5db5ff5bc15b4900857",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
+      "runtime_gap": "Actual push, draft PR, network egress, independent F18, and action-specific owner consent NOT_RUN / not authorized; partial remote state recovery pending P2."
     },
     {
       "id": "MLA-SWU-030",
@@ -2751,12 +2771,10 @@
       ],
       "caller_to_callee": "Controller>coder>F18>task state",
       "observable_outcome": "safe one-cycle result and HOLD",
-      "missing_function": "preview/handoff only, no state transition",
-      "code_status": "PENDING_CODE_DEPENDENCY",
+      "missing_function": "NONE_SOURCE_CODING_CANDIDATE_P2_PENDING_TRUST_AND_OWNER_HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "code_depends_on": [
         "MLA-SWU-011",
-        "MLA-SWU-015",
-        "MLA-SWU-021",
         "MLA-SWU-023",
         "MLA-SWU-027"
       ],
@@ -2787,8 +2805,8 @@
         "MLA-010": 0,
         "MLA-019": 0
       },
-      "attempts_used": 0,
-      "attempts_note": "No post-policy feature coding attempt proven for inherited task",
+      "attempts_used": 1,
+      "attempts_note": "P1 feature authoring + narrow immediate security CI; inherited attempts retained",
       "evidence_sha_by_legacy": {
         "MLA-008": "920b6675083277448be7c20e0f3fa341d1df60ae",
         "MLA-010": "675a7c772866709d626bf5e1001b454e98647f9d",
@@ -2818,7 +2836,21 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "original_code_depends_on": [
+        "MLA-SWU-011",
+        "MLA-SWU-015",
+        "MLA-SWU-021",
+        "MLA-SWU-023",
+        "MLA-SWU-027"
+      ],
+      "source_dependency_review": "The HOLD-only native Controller→coder request→F18 request→SQLite transition consumes existing typed source-only request contracts, and does not execute isolated coder/reviewer SWU-015/021; original runtime dependencies stay unchanged.",
+      "original_missing_function": "preview/handoff only, no state transition",
+      "actual_source_implemented": true,
+      "latest_code_sha": "d89935921853fd7d20c6e7c6bf40ddae6dabd3ca",
+      "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
+      "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
+      "runtime_gap": "Real coder execution, independent F18 review, trusted receipt and completed coding-review loop remain blocked on Windows protected runner/reviewer."
     },
     {
       "id": "MLA-SWU-039",
@@ -4737,24 +4769,34 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "16fc27079b24fcc8fa61c86646b2fe71616cacc1",
+    "source_sha": "ea974b586b374a9f5a996777f62f4b4f91bd7f8f",
     "source_commits": [
-      "da6f7364f981e12f38ab60257c93e9a9311380f1",
-      "16fc27079b24fcc8fa61c86646b2fe71616cacc1"
+      "c080c7e816f9494d626c940bf9dd6a41f2bd1af8",
+      "636fb1317eb3278b1edb059263d65b7a20871df0",
+      "b4e49d79cf8c1b8b01e4f5db5ff5bc15b4900857",
+      "d89935921853fd7d20c6e7c6bf40ddae6dabd3ca",
+      "ea974b586b374a9f5a996777f62f4b4f91bd7f8f"
     ],
     "swus": [
-      "MLA-SWU-036"
+      "MLA-SWU-027",
+      "MLA-SWU-038",
+      "MLA-SWU-029"
     ],
     "mandatory_actions_runs": [
-      44072510121,
-      44072707066
+      44077269094,
+      44077424278,
+      44077596361,
+      44077661541,
+      44077847221
     ],
-    "mandatory_ci": "SUCCESS_AT_BOTH_SOURCE_SHAS",
-    "immediate_safety": "OWNED_SQLITE_IDLE_HOLD_IDEMPOTENCE_AND_NO_OWNER_GRANT_PASS_GITHUB_ACTIONS",
-    "actual_owner_signer": "NOT_IMPLEMENTED_HOLD",
-    "windows_os_f18": "NOT_RUN",
+    "mandatory_ci": "PASS_AT_ALL_SOURCE_SHAS",
+    "immediate_safety": "DEFAULT_OS_CHANGE_AND_REMOTE_PR_DENY_BEFORE_CALLBACK; CONTROLLER_SQLITE_HOLD_NO_LEASE_NO_F18_GITHUB_ACTIONS_PASS",
+    "local_git_write": "NOT_RUN_V1_OS_CHANGE_DENY",
+    "remote_publish": "NOT_RUN_V1_REMOTE_PR_DENY",
+    "real_coder_and_f18": "SECURITY_HOLD",
+    "real_windows": "NOT_RUN",
     "p2": "LOCKED",
     "owner_go": false
   },
-  "next_wave_exception_reason": "No independent code-only READY. Remaining SWU-001 external rights, SWU-008/015/021/031 protected signer/OS trust, SWU-029 owner remote approval, SWU-027/038 blocked by trusted review/Git dependencies. High review needed for safe trust-root implementation and provenance; no runtime authorization."
+  "next_wave_exception_reason": "Remaining 5 source SWUs: 001 external rights/provenance, 008 owner OS-protected action signer, 015 separate OS isolated coder, 021 independent OS F18 reviewer, 031 network egress denial. No fake signer, host fallback, license clearance or P2 GO. High trust boundary/owner OS environment review required."
 }
