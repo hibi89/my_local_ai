@@ -1,7 +1,7 @@
 """P2 owner Windows F18 checklist harness. NOT_RUN by default.
 
 This file is authored in P1 as a contract. It does not switch Windows
-features, launch Sandbox, run binaries, touch secrets or claim F18 PASS.
+features, use VM/containers, run generated binaries, touch secrets or claim F18 PASS.
 Synthetic arguments cannot prove independently protected OS principals.
 """
 from __future__ import annotations
@@ -22,9 +22,10 @@ class OwnerWindowsAttestationInputs:
     coder_principal: str
     reviewer_principal: str
     owner_signer_principal: str
-    windows_sandbox_available: bool
-    network_egress_denied: bool
-    guest_readback_of_signer_denied: bool
+    pure_player_nonexecuting: bool
+    vm_container_dependency: bool
+    typed_operator_network_denied: bool
+    model_can_read_signer: bool
     actual_owner_test_executed: bool
 
 
@@ -54,30 +55,33 @@ def precheck_owner_windows_boundary(data: OwnerWindowsAttestationInputs) -> Wind
     if len({x.casefold() for x in principals})!=3:
         problems.append("PRINCIPAL_SEPARATION")
     if any(type(x) is not bool for x in (
-        data.windows_sandbox_available, data.network_egress_denied,
-        data.guest_readback_of_signer_denied, data.actual_owner_test_executed
+        data.pure_player_nonexecuting, data.vm_container_dependency,
+        data.typed_operator_network_denied, data.model_can_read_signer,
+        data.actual_owner_test_executed
     )):
         raise ValueError("untrusted Windows control type")
-    if data.windows_sandbox_available is not True:
-        problems.append("ISOLATED_SANDBOX")
-    if data.network_egress_denied is not True:
-        problems.append("EGRESS_ISOLATION")
-    if data.guest_readback_of_signer_denied is not True:
+    if data.pure_player_nonexecuting is not True:
+        problems.append("PURE_PLAYER_NONEXECUTING")
+    if data.vm_container_dependency is not False:
+        problems.append("ZERO_VM_CONTAINER_POLICY")
+    if data.typed_operator_network_denied is not True:
+        problems.append("TYPED_OPERATOR_EGRESS_DENY")
+    if data.model_can_read_signer is not False:
         problems.append("OWNER_SIGNER_PROTECTION")
     if data.actual_owner_test_executed is not True:
         problems.append("OWNER_WINDOWS_REAL_TEST")
-    # A guest can fabricate every field above. The controller still needs a
-    # separately authenticated OS test transcript and protected signer check.
+    # Model data can fabricate every field above. The Controller still needs
+    # separately authenticated OS attestations and protected owner/F18 proofs.
     return WindowsBoundaryPrecheck(tuple(problems))
 
 
 class OwnerWindowsRealF18Tests(unittest.TestCase):
-    @unittest.skip("P2_LOCKED: owner Windows Sandbox actual independent F18 NOT_RUN")
-    def test_real_isolated_coder_cannot_read_signer_or_reviewer(self):
+    @unittest.skip("P2_LOCKED: owner Windows zero-VM independent F18 NOT_RUN")
+    def test_real_pure_player_cannot_read_signer_or_reviewer(self):
         self.fail("Requires separately approved owner Windows OS test runner")
 
     @unittest.skip("P2_LOCKED: independent verifier and protected ref CAS NOT_RUN")
-    def test_real_guest_receipt_replay_and_host_ref_promotion(self):
+    def test_real_model_receipt_replay_and_host_ref_promotion(self):
         self.fail("Requires actual protected environment and exact SHA evidence")
 
 
@@ -93,8 +97,9 @@ class WindowsBoundaryContractTests(unittest.TestCase):
             coder_principal="NT-USER-CODER",
             reviewer_principal="NT-USER-REVIEWER",
             owner_signer_principal="NT-OWNER-SIGNER",
-            windows_sandbox_available=True,network_egress_denied=True,
-            guest_readback_of_signer_denied=True,actual_owner_test_executed=True,
+            pure_player_nonexecuting=True,vm_container_dependency=False,
+            typed_operator_network_denied=True,model_can_read_signer=False,
+            actual_owner_test_executed=True,
         )
         opts.update(changes)
         return OwnerWindowsAttestationInputs(**opts)
@@ -119,8 +124,10 @@ class WindowsBoundaryContractTests(unittest.TestCase):
             {"plan_sha256":"f"},
             {"coder_principal":"NT-USER-CODER\nOTHER"},
             {"reviewer_principal":" reviewer "},
-            {"windows_sandbox_available":1},
-            {"network_egress_denied":"true"},
+            {"pure_player_nonexecuting":1},
+            {"vm_container_dependency":1},
+            {"typed_operator_network_denied":"true"},
+            {"model_can_read_signer":"false"},
         ):
             with self.subTest(variant=variant),self.assertRaises(ValueError):
                 precheck_owner_windows_boundary(self.sample(**variant))
