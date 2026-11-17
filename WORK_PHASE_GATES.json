@@ -7,7 +7,7 @@
     "status": "IN_PROGRESS",
     "implementation_complete_candidate": false,
     "code_req_total": 30,
-    "code_req_completed": 1,
+    "code_req_completed": 3,
     "implementation_sha": null,
     "high_approved_candidate": false
   },

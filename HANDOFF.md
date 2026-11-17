@@ -29,3 +29,18 @@
 8. **보안·권한·복구:** 공개 repo에 비밀/고객 DB·모델 가중치/개인 경로 업로드 없음. Git 이력 보존; 원격 PR/merge, OS startup, 유료 API, 외부 전송/실운영 권한 별도 GO. F18 self-receipt 절대 신뢰 금지.
 9. **다음 READY 및 인수 기준:** `MLA-003` F18 fail-closed 구분, `MLA-006` CLI dry-run 및 `MLA-007` SQLite 합성 기반. `MLA-001`은 출처/라이선스 해결 전 원본 이식 불허. 추가 REQ 전체 코딩 경로 완성 시에만 완료 분자 증가. 전체 CI 수동 반복 대기 금지, 위험 경계 즉시검사는 유지.
 10. **갱신·검증 범위:** 2026-11-17 KST. 소스 근거 `7814996...`, PASS는 `44003823329` synthetic scope. P2 공식 검증·보안 OS 경계·운영/출시 `NOT_RUN/HOLD`. 후속 채팅은 이 문단 및 실제 HEAD/현행 AGENTS·PHASE_GATES를 우선하며 구형 P0 `코드 미구현` 스냅샷을 그대로 신뢰하지 않는다.
+
+---
+
+## 2026-11-17 KST 최신 구현 인수인계 — P1 10.00% (위 3.33% 이력 이후)
+
+1. **목표/확정 요구:** My Local AI 자체 Controller 중심, EAI advisor 선택형, 원본 소스 권리 확인 후만 이식. P1 REQ-01~30, P2 검증 별도 LOCKED.
+2. **코드 기능:** MLA-007 SQLite 소유 파일 제한/백업/WAL/FK, MLA-006 CLI read-only doctor/plan validate/status/queue, MLA-010 순수 DAG/READY 후보 큐, MLA-003 F18 계약/적대 fixture. 이전 MLA-001/002/004/005 유지.
+3. **실제 실행 테스트:** GitHub Actions `44004810339` 코드 SHA `4bdff24db9d2a0a3ab37036225df1ff0aa6fe846`. Python 3.11 compile PASS; unit **41/41 PASS**, synthetic F18 security **5/5 PASS**. 전체 P2 CI/Windows 실기기/실 Ollama/Qwen/OpenCode/24h **NOT_RUN**.
+4. **진행/차단:** P1 완료 REQ **3/30=10.00%** (REQ-04/08/18, 검증 전 코드 구현만); 구현 task 6/28 SOURCE_IMPLEMENTED_UNVERIFIED; MLA-003 PARTIAL F18 HOLD, MLA-001 BLOCKED_PROVENANCE. REQ-28은 CLI 일부만, 완료로 산입하지 않음.
+5. **위험/대안:** F18 guest forged PASS/receipt는 증거 아님, 독립 OS reviewer 필요; 고객 DB·원본 손상 방지를 위해 SQLite APP_ID 거부/backup. EAI/AX 원본 루트 LICENSE 미확인 상태이므로 소스 이식 유보.
+6. **브랜치·정확 SHA:** `hibi89/my_local_ai@dev/instant-implementation-v1`. 작업 코드 SHA `4bdff24db9d2a0a3ab37036225df1ff0aa6fe846`, 큐·상태 문서 커밋은 최신 HEAD 재확인. Main EAI AX 무변경.
+7. **Production/환경:** 배포 미적용, 사용자 PC 사용 불필요. 합성 GitHub Actions Ubuntu Python 3.11만 PASS.
+8. **보안·복구:** 원격 publish/OS startup/유료/고객원본 사용 없음. 미검증 코드 자동 승격 금지, SQLite 임시 데이터 기반 테스트뿐. P2 LOCKED/검증률 UNASSESSED.
+9. **다음 READY:** MLA-009 owner GO/consent revocation, MLA-011 1 model lock/resource fencing, MLA-021 로컬 상태 보드. MLA-010 pure scheduler 실제 dispatch/검증 연동은 MLA-019 등 후행.
+10. **갱신 기준:** 2026-11-17 KST, `44004810339` synthetic scope, F18 실제 OS 검증 NOT_RUN. 위 P0 및 구현 3.33% 스냅샷보다 최신 실행 이력을 우선.

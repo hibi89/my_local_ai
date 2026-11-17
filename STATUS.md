@@ -27,3 +27,17 @@
 - **P2/P3/P4:** P2 `LOCKED`, 공식 검증률 `UNASSESSED`, Windows/Ollama/OpenCode 실측 `NOT_RUN`, 24h `NOT_RUN`, 외부 감사 `NOT_RUN`, 운영 `HOLD`.
 - **다음 구현 묶음:** MLA-003(F18 fail-closed 경계 설계/적대 테스트), MLA-006(로컬 CLI read-only/dry-run), MLA-007(SQLite 합성 DB·백업/마이그레이션). 계약 source SHA를 참조하고 새 REQ는 실제 전체 경로가 완성될 때만 분자에 산입.
 - **기준:** 본 갱신은 이전 `제품 코드 미구현` 문장의 P0 역사적 스냅샷을 대체한다. 사용자 승인된 고정 분모 30, 검증 가중치 미승인 `UNASSESSED`.
+
+---
+
+## P1 2026-11-17 KST 구현 5차 결과 (이전 1/30 상태를 대체)
+
+- 구현완료율: **3/30 = 10.00%**. P1 소스 구현 후보의 분자: REQ-04 (TaskSpec 계약), REQ-08 (결정론적 DAG/READY 후보 필터), REQ-18 (SQLite WAL/FK/원본 보호/마이그레이션 백업). 이 수치는 P2 검증완료율이 아님.
+- 신규 구현 경로: `src/my_local_ai/state/{migrations.py,sqlite_store.py}`, `src/my_local_ai/{cli.py,__main__.py}`, `src/my_local_ai/ax_runtime/queue.py`; `tests/unit/{test_state.py,test_cli.py,test_queue_dag.py}`. F18 디자인 `docs/TRUST_BOUNDARY_DESIGN.md`, `tests/security/test_receipt_forgery.py`, 제한된 security synthetic runner 추가.
+- MLA-006 CLI doctor/plan validate/status/queue status는 **읽기 전용**으로만 구현. 실제 start/stop/resume/evidence CLI 및 REQ-28 전체는 후속 MLA-019 등에서 구현.
+- MLA-007 SQLite는 **자체 APP_ID 파일만** 허용, WAL/FK, 0→1 migration 시 먼저 자체 DB 백업, 알 수 없는 고객 DB/심볼릭 링크 거부. 사용자 실제 DB 접근 및 OS 원자성/Windows reparse 테스트는 NOT_RUN.
+- MLA-010 큐 순환·부재 의존성 거부, `VERIFIED` 라벨만으로 READY 승인 금지, 별도 trusted verifier가 제공한 검증 집합을 필수로 요구하며 **후보만 출력**. 실제 디스패치·승격은 미구현, 보안 HOLD.
+- MLA-003 F18 불신 경계 디자인/게스트 위조 합성 테스트만 구현; 독립 reviewer host·실 격리 미구현/CRITICAL SECURITY_HOLD. REQ-15/23/24 완료 카운트 제외.
+- **합성 GitHub Actions 증거:** `44004810339` at code SHA `4bdff24db9d2a0a3ab37036225df1ff0aa6fe846`: Python3.11 syntax PASS, unit **41 PASS**, security contract **5 PASS**, FAIL 0. 이는 P2 전체 검증·실 Windows·실 Ollama/Qwen/OpenCode·24h 증거가 아님.
+- P1 task 작성 완료 후보: MLA-002/004/005/006/007/010 **6/28**, MLA-003 `PARTIAL_F18_SECURITY_HOLD`, MLA-001 `BLOCKED_PROVENANCE`. 다음 READY: MLA-009, MLA-011, MLA-021.
+- P2 공식 검증완료율 UNASSESSED, P2 LOCKED, F18 HOLD, Windows/실모델/24h NOT_RUN, 사용자 실운용 GO 없음. 원본 EAI·AX Dev Factory/main 무변경.
