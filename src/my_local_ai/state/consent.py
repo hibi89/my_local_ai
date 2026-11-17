@@ -32,6 +32,27 @@ def _check_safe_owned_file(path: Path) -> tuple[int, int, int, int]:
         raise ValueError("state must be a unique regular file")
     return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
 
+def _safe_sidecar_identity(path: Path) -> tuple[tuple[str, int, int, int, int], ...]:
+    """Check WAL and SHM alongside the owner DB, not just its main inode.
+
+    A symlinked WAL can spoof current consent even when the main DB is pinned.
+    Both sidecar files must be ordinary unique local files if present.
+    """
+    result = []
+    for suffix in ("-wal", "-shm"):
+        sibling = Path(str(path) + suffix)
+        try:
+            info = sibling.lstat()
+        except FileNotFoundError:
+            continue
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+            or getattr(info, "st_file_attributes", 0) & _REPARSE):
+            raise ValueError("unsafe SQLite sidecar")
+        result.append((suffix, info.st_dev, info.st_ino,
+                       info.st_size, info.st_mtime_ns))
+    return tuple(result)
+
+
 class ConsentLedger:
     def __init__(self, owned_path: str | Path):
         self._path = Path(owned_path).absolute()
@@ -52,6 +73,7 @@ class ConsentLedger:
             before = _check_safe_owned_file(self._path)
             if before[:2] != self._origin_identity:
                 return False
+            sidecars_before = _safe_sidecar_identity(self._path)
             uri = self._path.as_uri() + "?mode=ro"
             with sqlite3.connect(uri, uri=True, timeout=1.0) as db:
                 db.execute("PRAGMA query_only=ON")
@@ -66,7 +88,8 @@ class ConsentLedger:
             # Detect file replacement or mutation during a consent decision.
             # This is defense in depth, NOT a substitute for protected ACLs.
             after = _check_safe_owned_file(self._path)
-            return (before == after and len(matches) == 1
-                    and matches[0][0] == "APPROVED")
+            sidecars_after = _safe_sidecar_identity(self._path)
+            return (before == after and sidecars_before == sidecars_after
+                    and len(matches) == 1 and matches[0][0] == "APPROVED")
         except (OSError, sqlite3.Error, ValueError):
             return False

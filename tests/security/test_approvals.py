@@ -85,6 +85,18 @@ class ConsentTests(unittest.TestCase):
         os.replace(other, self.path)
         self.assertFalse(original_is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
 
+    def test_symlinked_wal_or_shared_memory_sidecar_denied(self):
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(str(self.path) + suffix)
+            if sidecar.exists():
+                sidecar.unlink()
+            try:
+                sidecar.symlink_to(self.path)
+            except OSError:
+                self.skipTest("symlink permissions not available")
+            self.assertFalse(self.ledger.is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN"))
+            sidecar.unlink()
+
     def test_deleted_or_renamed_state_is_fail_closed(self):
         moved = Path(self.tmp.name) / "old.sqlite3"
         self.path.rename(moved)

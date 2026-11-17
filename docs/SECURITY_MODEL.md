@@ -42,3 +42,9 @@
 - **유료·무료 변경:** 0원 약속을 토큰 호출 수만으로 보장 불가, 계정 tier/권한·원격 데이터 계약 확인이 되지 않으면 자체적으로 off. 계정 우회/키 회전/추가 결제 절대 자동 금지.
 - **fallback:** quota/장애 발생 중간 worktree는 유효성을 재검증하기 전 승격·재사용 금지. candidate_sha/approval/lease 정확성 대조 후 새 Qwen task epoch만 생성. 완료 이력은 불변.
 - 적용 범위는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 현재 상태는 설계만 / 실제 보안·외부 API 실행 NOT_RUN.
+
+## 2026-11-17 P1 신규 즉시 보안 하네스 범위
+
+- `MLA-009` 라이브 consent checker에 현재 SQLite main DB 파일 정체성 pin 및 WAL/SHM sidecar 검사 추가. 파일 교체와 구 DB WAL 접근이 재사용 가능한 승인으로 연결되지 않도록 실패 닫기. 실제 OS ACL/재시작 동작은 P2 검증 전 미보증.
+- 계획 단위 `LOCAL_PLAN` scope 이외 고위험 승인(REMOTE_PR/OS_CHANGE/PAID_API/CUSTOMER_DATA/PRODUCTION/NETWORK_EGRESS)은 **action-bound protected signer** 개발 전 상태로 보류. 일괄 재사용 가능한 plan 서명 하나로 해당 승인 성공 금지.
+- `MLA-003` 게스트-자체 VERIFIED 선행 상태 위조, forged lease/receipt schema 삽입, claimed APPROVED 자기 인증을 합성 테스트에서 거부. F18 실제 독립 reviewer 코드·OS 경계는 MLA-015/P2 대기. 수용 증거 과장 금지.

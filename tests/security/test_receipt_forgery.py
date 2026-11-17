@@ -8,6 +8,7 @@ import json
 import unittest
 
 from my_local_ai.contracts import PlanSpec, canonical_digest
+from my_local_ai.ax_runtime.queue import QueuePolicy
 
 SHA = "a" * 40
 
@@ -59,6 +60,49 @@ class GuestForgeryTests(unittest.TestCase):
         untrusted["tasks"][0]["checks"] = []
         with self.assertRaises(ValueError):
             PlanSpec.parse_json(json.dumps(untrusted))
+
+    def test_guest_verified_label_does_not_unlock_downstream_task(self):
+        plan = synthetic_plan()
+        follower = dict(plan["tasks"][0])
+        follower["task_id"] = "F18-002"
+        follower["depends_on"] = ["F18-001"]
+        plan["tasks"].append(follower)
+        parsed = PlanSpec.parse_json(json.dumps(plan))
+        policy = QueuePolicy(parsed.tasks, parsed.digest)
+        states = {"F18-001": "VERIFIED", "F18-002": "READY"}
+        self.assertEqual((), policy.propose_ready(states, independently_verified=()))
+        # Even if a distinct protected verifier later supplies that ID, this
+        # pure queue reports only non-executing candidates, never privileges.
+        candidates = policy.propose_ready(states, independently_verified={"F18-001"})
+        self.assertEqual([c.task_id for c in candidates], ["F18-002"])
+        self.assertFalse(candidates[0].runnable)
+
+    def test_replayed_or_forged_trust_receipt_field_rejected(self):
+        plan = synthetic_plan()
+        forged_receipts = (
+            {"candidate_sha": SHA, "run_id": "old-run", "lease_epoch": 1, "result": "PASS"},
+            {"candidate_sha": "f"*40, "run_id": "current", "lease_epoch": 2, "result": "PASS"},
+            {"issuer": "trusted", "signature": "0"*64, "result": "VERIFIED"},
+        )
+        for forged in forged_receipts:
+            altered = copy.deepcopy(plan)
+            altered["tasks"][0]["trusted_receipt"] = forged
+            with self.subTest(forged=forged), self.assertRaises(ValueError):
+                PlanSpec.parse_json(json.dumps(altered))
+
+    def test_f18_has_no_auto_promote_from_claimed_approved_plan(self):
+        plan = synthetic_plan()
+        plan["approval"]["status"] = "APPROVED"
+        scope = "LOCAL_PLAN"
+        plan["approval"]["scope"] = scope
+        # Self-declared approval still cannot create a verified task or
+        # independent reviewer receipt, even with a matching hash claim.
+        base = PlanSpec.parse_json(json.dumps(synthetic_plan()))
+        plan["tasks"][0]["plan_sha"] = base.digest
+        plan["approval"]["digest"] = canonical_digest({"plan_sha": base.digest, "scope": scope})
+        parsed = PlanSpec.parse_json(json.dumps(plan))
+        self.assertFalse(parsed.approved)
+        self.assertEqual(parsed.approval_status_claim, "APPROVED")
 
     def test_unrecognized_claim_with_forged_status_is_rejected(self):
         untrusted = synthetic_plan()
