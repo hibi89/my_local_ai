@@ -45,13 +45,13 @@ No arbitrary shell. No auto PR/remote push, payment, Windows startup, external H
 
 ## v1.1 선택형 MultiProvider WorkerPort 계약 (확장 설계)
 
-\`PlanSpec\`/ \`TaskSpec\`/ \`TrustedReceiptV1\` 권한·수용·F18 경계는 위의 원래 계약 그대로다. ProviderPort는 작업 **구현 수단**이며 새로운 작업 승인권이나 TrustedReceipt 생성권이 아니다.
+`PlanSpec`/ `TaskSpec`/ `TrustedReceiptV1` 권한·수용·F18 경계는 위의 원래 계약 그대로다. ProviderPort는 작업 **구현 수단**이며 새로운 작업 승인권이나 TrustedReceipt 생성권이 아니다.
 
-- \`ProviderCapabilitiesV1\`: \`provider_id\`, \`model_id\`, \`supports_code\`, \`tool_capabilities\`, \`cost_mode\`, \`transport\`, \`availability\`. 실 모델의 기능은 탐지·실증 전 UNKNOWN.
-- \`WorkerRequestV1\`: \`version\`, \`run_id\`, \`task_id\`, \`req_ids\`, \`plan_sha256\`, \`source_git_sha\`, \`approval_digest\`, \`allowed_paths\`, \`data_class\`, \`input_manifest_sha256\`, \`worker_epoch\`, \`deadline\`, \`max_calls\`, \`max_output_bytes\`, \`max_spend_usd=0\`. source_sha와 plan_sha는 반드시 길이·해시 종류를 구분.
-- \`WorkerResponseV1\`: \`candidate_id\`, \`provider_id\`, \`model_id\`, \`model_version\`, \`request_digest\`, \`candidate_diff_sha256\`, \`declared_files\`, \`usage\`, \`finish_reason\`, \`error_code\`, \`untrusted=true\`. 모델이 \`VERIFIED\`, owner GO, high approval, 권한 범위, GitHub remote authorizations을 자체 추가하면 거부.
-- Resolver: only approved READY, disjoint write/dependency graph, exact baseline, one worktree per worker, lease fencing, provider availability/cost/egress gate. Remote OFF 시 \`local_qwen\`만으로 정상 동작하고 화면/큐에 Web Instant 재할당 **제안**만 표시한다.
-- 무료 한도 소진/유료/계정 인증 문제: \`QUOTA_HOLD/POLICY_HOLD/AUTH_HOLD/OWNER_OFF\`, 원격 신규 요청 없음, safe checkpoint 재검토, 중복 코드 적용 금지.
-- 입력 데이터: 별도 owner 승인된 \`PUBLIC_NON_SENSITIVE/SYNTHETIC\` 이외 outbound 송신 금지. remote 모델에는 원본 customer/private repo/secret/evidence payload 보내지 않음. 실제 API key, billing, quota 읽기는 각각 별도 권한/승인; \`max_spend_usd=0\`을 넘길 가능성 미확인 시 호출 금지.
-- TrustedReviewBoundary가 후보 diff를 독립 판정하기 전에는 \`INTEGRATION_VERIFIED\` 금지. Codex 후행 기술 감사/Astra UI 감사는 Hydrogen 코드 생성과 무관하게 그대로 실행.
-- 정확 테스트 HYD-AC-01~10 및 schema/상태/롤백은 \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`. **기존 P1/P2 완료율 분모와 검증 잠금 불변**.
+- `ProviderCapabilitiesV1`: `provider_id`, `model_id`, `supports_code`, `tool_capabilities`, `cost_mode`, `transport`, `availability`. 실 모델의 기능은 탐지·실증 전 UNKNOWN.
+- `WorkerRequestV1`: `version`, `run_id`, `task_id`, `req_ids`, `plan_sha256`, `source_git_sha`, `approval_digest`, `allowed_paths`, `data_class`, `input_manifest_sha256`, `worker_epoch`, `deadline`, `max_calls`, `max_output_bytes`, `max_spend_usd=0`. source_sha와 plan_sha는 반드시 길이·해시 종류를 구분.
+- `WorkerResponseV1`: `candidate_id`, `provider_id`, `model_id`, `model_version`, `request_digest`, `candidate_diff_sha256`, `declared_files`, `usage`, `finish_reason`, `error_code`, `untrusted=true`. 모델이 `VERIFIED`, owner GO, high approval, 권한 범위, GitHub remote authorizations을 자체 추가하면 거부.
+- Resolver: only approved READY, disjoint write/dependency graph, exact baseline, one worktree per worker, lease fencing, provider availability/cost/egress gate. Remote OFF 시 `local_qwen`만으로 정상 동작하고 화면/큐에 Web Instant 재할당 **제안**만 표시한다.
+- 무료 한도 소진/유료/계정 인증 문제: `QUOTA_HOLD/POLICY_HOLD/AUTH_HOLD/OWNER_OFF`, 원격 신규 요청 없음, safe checkpoint 재검토, 중복 코드 적용 금지.
+- 입력 데이터: 별도 owner 승인된 `PUBLIC_NON_SENSITIVE/SYNTHETIC` 이외 outbound 송신 금지. remote 모델에는 원본 customer/private repo/secret/evidence payload 보내지 않음. 실제 API key, billing, quota 읽기는 각각 별도 권한/승인; `max_spend_usd=0`을 넘길 가능성 미확인 시 호출 금지.
+- TrustedReviewBoundary가 후보 diff를 독립 판정하기 전에는 `INTEGRATION_VERIFIED` 금지. Codex 후행 기술 감사/Astra UI 감사는 Hydrogen 코드 생성과 무관하게 그대로 실행.
+- 정확 테스트 HYD-AC-01~10 및 schema/상태/롤백은 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. **기존 P1/P2 완료율 분모와 검증 잠금 불변**.
