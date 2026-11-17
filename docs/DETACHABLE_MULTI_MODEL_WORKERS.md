@@ -102,3 +102,7 @@ P1 기존 28 task/REQ-01~30는 **그대로**. 이 문서의 확장은 `docs/OPTI
 
 ## 변경·되돌리기
 이 확장은 문서·큐만 추가. 런타임 코딩/SDK 설치/API 호출/GitHub 권한/원본 수정/Production 배포는 하지 않는다. 향후 실제 구현 시 `remote_enabled=false`가 안전 rollback. Git 복구는 해당 문서 변경 전 HEAD로 되돌릴 수 있으나 기존 커밋 이력을 강제 수정하지 않는다. 설계 브랜치→개발 브랜치 반영은 정확 SHA 및 dev HEAD 확인 후 별도 동기화; 진행 중 Instant 코드/큐 상태 덮어쓰기 금지.
+
+
+## P1/P2 브라우저 검사 최적화 — 2026-11-17 추가
+Hydrogen/Qwen/Instant/Codex 등 **모든 코딩 워커**는 P1에서 BE+FE 실제 코드와 테스트 하네스를 작성하고 문법·타입·최소 빌드·국소 smoke 및 위험 변경의 즉시 안전 검사만 수행한다. 브라우저/Playwright E2E·시각/반응형/a11y 반복 검증은 기본 `DEFERRED_TO_P2`다. 다만 구현 자체에 불가피하거나 인증/권한/비밀/원본 손실/F18 같은 고위험 검사에 필요한 **최소** 브라우저 시나리오를 예외적으로 실행할 수 있으며 정확 SHA/사유/결과를 남긴다. P1 후보는 `IMPLEMENTED_UNVERIFIED`이며 실제 브라우저 PASS를 의미하지 않는다. P2는 기존 High phase gate 이후 전체 E2E/실브라우저/회귀 검증을 수행한다. 기존 필수 CI·안전 정책·선택형 Hydrogen 외부 승인/무료 한도는 변하지 않는다.
