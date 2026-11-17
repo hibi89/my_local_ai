@@ -236,10 +236,14 @@
         "docs/UI_UX.md",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "Execute CLI/optional dashboard status, keyboard/accessibility/Host/CSRF UX acceptance; actual browser proof separate",
+      "acceptance": "P2 ONLY after exact P1 candidate+High gate: execute actual supported browser/Playwright E2E for optional local dashboard (status/approve/HOLD, buttons/forms), keyboard/a11y/responsive and Console/Network, Host/CSRF/security; document exact SHA, browser/runtime, PASS/FAIL/SKIP/NOT_RUN and reverify affected flows after fixes. CLI-only path: document NOT_APPLICABLE; do not convert unavailable browser or P1 code/HTTP evidence to browser PASS. Keep mandatory CI and P1 high-risk immediate safety checks.",
       "safety_checks": [
         "NO_EXTERNAL_UI",
-        "NO_RAW_SECRETS"
+        "NO_RAW_SECRETS",
+        "P2_BROWSER_ONLY",
+        "P1_LOCAL_SMOKE_EXCEPTION_IF_SECURITY_CRITICAL",
+        "EXACT_SHA",
+        "NO_FALSE_BROWSER_PASS"
       ],
       "risk": "MEDIUM",
       "status": "BLOCKED_BY_P1_GATE",
