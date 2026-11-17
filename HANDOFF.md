@@ -513,3 +513,12 @@
 8. **Preservation:** main/dev/other repos untouched by this round; exact code/source and queue history retained; original scope/F18/owner/mandatory CI/P2 locks maintained.
 9. **Next:** The feature queue has no independent unblocked SWUs; request **Codex GPT-6.1 Sol Max** for critical 014/related 007 code+security review, not Work GUI. High design approval and owner GO still required for any protected execution. After review, complete 010/007/014 source, leave 012 optional scan held until grant.
 10. **Basis:** 2026-11-17 KST; this is GitHub-only source authoring, not Windows functional verification.
+---
+
+## 2026-11-17 KST — Latest owner decision, supersedes premature Sol Max escalation
+
+- P1 CodeShield remains `12/16 IMPLEMENTED_UNVERIFIED`; legacy MLA 35/39 and formal REQ 5/30 unchanged. Current branch: `feature/code-shield-lightweight-v1`.
+- **2+2 is the default:** initial two distinct meaningful failed code attempts → isolate SWU, continue independent READY → redesign + two further distinct attempts → only after four evidenced nonprogress failures prepare Codex GPT-6.1 Sol Max batch.
+- **Early Sol Max ONLY if indispensable actual P1 development deadlock** (no safe independent READY or viable safe redesign), or proceeding would require violating safety. A mere CRITICAL label, F18 execution HOLD or expected P2 Windows evidence absence is not automatically an early escalation.
+- Prior immediate status for `CS-SWU-014` is revoked in the active queue, now `DEFERRED_CONDITIONAL_2_PLUS_2`; continue source-ready `CS-SWU-010` offline dependency work. `CS-SWU-007/010/012/014` are still high-risk review/implementation gaps; owner runtime/OS scanner invocation, F18 trusted signer, P2 remain HOLD. No Codex review has run.
+- Policy evidence: queue `43658d275da49710ab7cba6523ee97609ce89760`, AGENTS `f3269736a5821776f78685bdce24c5b86c1113cb`, STATUS `ebad9483c84bb35bf8aefb9e222c9851b23e367a`; final HEAD re-read after this handoff update. This policy turn has no Python code edits, syntax/smoke/Windows validation NOT_RUN, 2+2 failure count unchanged.
