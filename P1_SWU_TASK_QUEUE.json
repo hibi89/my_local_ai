@@ -1069,8 +1069,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
+      "attempts_used": 2,
+      "attempts_note": "Source attempts 2/2: (1) fixed OpenCode/WSB offline transport; (2) real host-local Qwen JSON inference source, strict untrusted file parser and one-run read-only guest import configuration. Both improved source; real isolated guest execution/result extraction and independent owner/F18 remain blocked. High review needed before any further attempt.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -1096,13 +1096,13 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "a2f181e6bae1b3ee1b100ba8d78c037cad543486",
+      "partial_source_sha": "0cdec8816b53d072bf776db1ac6cfec827e0ea2f",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_description": "Fixed-argv OpenCode Qwen worker request bound to no-network WSB profile plus strictly bounded untrusted guest output decoder; no model invocation or host original writes.",
-      "runtime_gap": "A protected, separately installed offline Windows guest model/runtime and OS broker required. Host 127.0.0.1 Ollama is unreachable from network-disabled Sandbox; real coder execution NOT_RUN.",
-      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
+      "partial_source_description": "Host Qwen generates candidate files via fixed localhost-only Ollama /api/generate under explicit PUBLIC_SYNTHETIC_ONLY scope and BudgetGuard; output is strictly untrusted, bounded and allowlisted. Exact no-network WSB and read-only host scratch import plan bind task/run/SHA. No guest invocation, host file writes, model execution evidence, owner signer or F18 receipt.",
+      "runtime_gap": "Missing installed protected Windows guest executor and safe guest result extraction; real owner ACL and no-egress runtime verification. Independent F18 reviewer/owner action GO remain HOLD. Read-only scratch mapping does not attest OS boundary. Windows CLI/WinApp tools not installed/probed; WinApp may enable Developer Mode/inbound firewall, requiring separate approval.",
+      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN."
     },
     {
       "id": "MLA-SWU-016",
@@ -2307,8 +2307,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "One meaningful source attempt: strict Windows Sandbox no-network and no-share WSB config generator, exact policy audit and default execution HOLD. Actual host network enforcement not implemented or attested; remains BLOCKED_TRUST.",
+      "attempts_used": 2,
+      "attempts_note": "Source attempts 2/2: (1) hard no-network/no-clipboard/no-mount WSB config; (2) exact read-only one-run scratch input mapping with no writable host mapping, no LogonCommand, policy tamper rejection. Improvements are NOT OS enforcement or measured egress denial; High review needed before additional code attempts.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -2333,12 +2333,13 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "67f0de110d34a77c4d040cdad3915a51349e6bbe",
+      "partial_source_sha": "0cdec8816b53d072bf776db1ac6cfec827e0ea2f",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_safety": "MANDATORY_GITHUB_ACTIONS_44083456680_44083565677_PASS; mutated WSB policy/guest launch denial synthetic security tests PASS",
-      "runtime_gap": "Windows Sandbox CLI cannot return guest program stdout, so an independently protected no-network result broker is required. No actual OS sandbox launch, network probe, coder/reviewer invocation, signed F18 output, or owner OS_CHANGE GO. Remains BLOCKED_TRUST."
+      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
+      "runtime_gap": "Host-attested network egress denial remains unimplemented and NOT_RUN; Windows Sandbox feature/ACL/DACL, actual guest network probe, independent reviewers across OS principals, and post-run evidence not tested. WSB profile is not proof. High review required.",
+      "partial_source_description": "Network disabled and protected WSB options retained, plus immutable readonly host source/import mapping, restricted C:\\MLA_Disposable\\RUN\\input naming, no host-writeable guest mapped folder. Config XML and manifest hashes are exact but only source policy claims."
     },
     {
       "id": "MLA-SWU-032",
@@ -4806,38 +4807,41 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "ee211e6025f4dc6389224c73d9439764a46dbdec",
-    "source_commits": [
-      "0d651c61ff02e73cb10139b7e17a08d9ec3450db",
-      "2c0c047052c2d7b76f9dbd0feb9090cab69536cd",
-      "bae4a8afb08dcf1ba64dbfd18e0af70d798ccc43",
-      "a2f181e6bae1b3ee1b100ba8d78c037cad543486",
-      "ee211e6025f4dc6389224c73d9439764a46dbdec"
-    ],
+    "source_sha": "0cdec8816b53d072bf776db1ac6cfec827e0ea2f",
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-008",
       "MLA-SWU-015",
-      "MLA-SWU-021"
+      "MLA-SWU-031"
     ],
-    "swu_031": "PARTIAL_SOURCE_FROM_PRIOR_WAVE_UNCHANGED",
+    "commits": [
+      "65fd39f757adce3dd7cd208b3fc81c95aa63ed4a",
+      "37da28ea106feaf494a474bb70c2a4f08760c079",
+      "b57eba27a3ace88a801df5087dbc85555cdd6229",
+      "28f165fd9db58e2ee514aca073ac4530af1b5b53",
+      "0ae92611f4e5910ed89dbe2980dfddae8bb7964d",
+      "ef0319f11fbdb300f792b4e709ecae1e06b87850",
+      "0cdec8816b53d072bf776db1ac6cfec827e0ea2f"
+    ],
     "mandatory_actions_runs": [
-      44090617033,
-      44090757495,
-      44091036151,
-      44091094939,
-      44091236138
+      44092737158,
+      44092893068,
+      44093131862,
+      44093278923,
+      44093552149,
+      44093631184,
+      44093747671
     ],
-    "mandatory_ci": "SUCCESS_ALL",
+    "ci": "SUCCESS_ALL",
     "source_complete_count": 35,
     "source_incomplete_count": 4,
+    "os_signer": "NOT_PROVISIONED",
+    "host_qwen": "IMPLEMENTED_SOURCE_CALL_NOT_EXECUTED",
+    "windows_sandbox": "NOT_RUN",
+    "independent_reviewer": "NOT_RUN",
+    "real_windows_egress": "NOT_RUN",
     "p2": "LOCKED",
-    "real_windows": "NOT_RUN",
     "owner_go": false,
-    "host_ollama_guest_access": "BLOCKED_BY_SANDBOX_NETWORK_DISABLE",
-    "f18_independent_reviewer": "NOT_RUN",
-    "signer_key": "NOT_PROVISIONED",
-    "remote_writes": "NONE"
+    "remote_actions": "NONE"
   },
-  "next_wave_exception_reason": "All 4 remaining P1 SWUs are protected trust-root capabilities, not simple code-only interfaces. WSB Networking=Disable isolates guest from host local Ollama, so runnable coder needs independent offline guest model or High-approved network-only design; owner key/OS identity protected signer and F18 independent reviewer require actual separate Windows principals. Do not promote partial source to SOURCE_COMPLETE. High to decide architecture and owner-go before risky Windows OS changes. No unsanctioned network, secret creation, host fallback."
+  "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%."
 }

@@ -39,3 +39,17 @@ Only fake synthetic plans/diffs are allowed for P1 tests; no paid models, actual
 - 원본 소스 파일 경로·후속 SHA·lease epoch·nonce·owner grant 등은 protected side로부터 재계산되어야 한다. 현재 어떤 격리 프로세스도 보호된 독립 신뢰 서명자가 되었음을 입증하지 않았다.
 - `MLA-009`는 `LOCAL_PLAN` reusable grant만 최소 검증 가능; 다른 원격/지불/권한 scope는 Action별 1회 GO/trust root 설계 전 강제 DENY. `ConsentLedger`의 SQLite main inode·WAL/SHM sidecar도 변조/교체 검사하나 이것은 Windows ACL 보호 실증이 아니다.
 - 시스템은 F18 `SECURITY_HOLD` 및 P2 `LOCKED` 유지, 실제 실 Windows/격리/24h `NOT_RUN`.
+
+---
+
+## 2026-11-17 P1 High-review candidate: host Ollama vs disconnected Windows guest
+
+This candidate does **not** alter the frozen `docs/FINAL_BLUEPRINT.md` or approve Windows OS changes.
+
+| Option | Performance/cost on GTX 1050 Ti / RAM 16GB | Security/maintainability | Decision |
+|---|---|---|---|
+| A. Host Qwen inference only, sealed untrusted file proposal, read-only disposable WSB guest import, separate independent reviewer | Reuses installed host Qwen; no second model copy; zero paid API, additional temporary WSB RAM | Keeps guest networking disabled; needs protected OS principal, scratch ACL+reparse checks, separate guest generation and safe result broker | **Preferred implementation candidate**, source transport authored, Windows execution HOLD |
+| B. Qwen/OpenCode copied into standalone network-disabled Sandbox | Extra guest RAM/storage, potentially heavy for current laptop and model packaging rights | Avoids host inference broker but doubles runtime; still needs independent OS reviewer and result bridge | Alternative only; unverified |
+| C. Enable Sandbox virtual network route to host Ollama | Avoids model duplication, network path simpler | Violates default no-egress; Windows firewall/network policy changes and external reachability assessment | **REJECT before separate owner GO**, not implemented |
+
+Current source functions cannot launch WSB, run untrusted code in guest, attest network denial or issue signed F18 PASS. Microsoft docs report WinApp CLI Sandbox provisioning can add Developer Mode and inbound firewall rule; that is a separate OS security change needing explicit owner approval. Do not install or run it by default. Existing default Python/SQLite review and protected grant HOLD remain as-is.
