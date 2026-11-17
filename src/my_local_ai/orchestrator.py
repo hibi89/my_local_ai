@@ -511,3 +511,74 @@ def preview_codeshield_sandbox_fallback(
         or result.get("git_promotion_allowed") is not False):
         raise ValueError("unsafe CodeShield Sandbox preview")
     return result
+
+
+def inspect_codeshield_controller_action_scoped(
+    *, plan_json: str, context: _CodeShieldContext,
+    protected_states: dict[str, str],
+    worktree: str | _Path, original_checkout: str | _Path,
+    changed_python_paths: tuple[str, ...],
+    action: _ActionKind = _ActionKind.UNTRUSTED_EXECUTION,
+    active_leases: tuple[str, ...] = (),
+    ruff_binary: str | _Path | None = None,
+    gitleaks_binary: str | _Path | None = None,
+    semgrep_binary: str | _Path | None = None,
+    local_semgrep_rules: str | _Path | None = None,
+    local_osv_cache: str | _Path | None = None,
+    offline_database_pin: _OfflineDatabasePin | None = None,
+) -> dict[str, object]:
+    """Actual P1 request -> immutable Controller -> static scan -> deny.
+
+    Fail closed on stale task/plan/source/allowed paths BEFORE reading files or
+    consulting optional pinned scanners. Native scanner execution never
+    authorizes untrusted candidate execution, owner action, F18, or Git.
+    """
+    from my_local_ai.contracts.plan import PlanSpec
+    from my_local_ai.controller.codeshield import (
+        deny_codeshield_controller_plan_action,
+    )
+
+    if not isinstance(plan_json, str):
+        raise ValueError("untrusted CodeShield plan")
+    plan = PlanSpec.parse_json(plan_json)
+    # First check task/source/lease/allowed-path shape. This is intentionally
+    # a denial, and is never treated as an owner-approved authorization.
+    initial = deny_codeshield_controller_plan_action(
+        plan, context, states=protected_states, audit=None,
+        action=action, active_leases=active_leases,
+    )
+    if (initial.may_launch_untrusted is not False
+        or initial.may_promote_git is not False
+        or initial.owner_consent_verified is not False):
+        raise ValueError("untrusted Controller state")
+    audited = _audit_scoped_sources(
+        context, worktree=worktree, original_checkout=original_checkout,
+        changed_python_paths=changed_python_paths,
+        ruff_binary=ruff_binary, gitleaks_binary=gitleaks_binary,
+        semgrep_binary=semgrep_binary, local_semgrep_rules=local_semgrep_rules,
+        local_osv_cache=local_osv_cache,
+        offline_database_pin=offline_database_pin,
+    )
+    final = deny_codeshield_controller_plan_action(
+        plan, context, states=protected_states, audit=audited,
+        action=action, active_leases=active_leases,
+    ).to_redacted_dict()
+    if (final["stage"] != "P1_CONTROLLER_DISPATCH_DENIED"
+        or any(final[flag] is not False for flag in (
+            "owner_consent_verified", "isolated_runtime_attested",
+            "f18_independently_verified", "git_cas_verified",
+            "execution_allowed", "can_modify_original",
+            "can_promote_git", "can_publish_remote",
+        ))):
+        raise ValueError("untrusted Controller dispatch")
+    return {
+        "static_audit": audited.to_redacted_dict(),
+        "controller_dispatch": final,
+        "protected_os_broker": "HOLD",
+        "independent_f18": "HOLD",
+        "owner_grant": "HOLD",
+        "phase": "P1_SOURCE_ONLY",
+        "execution_allowed": False,
+        "owner_go_verified": False,
+        "p2": "LOCKED",
+    }

@@ -484,3 +484,61 @@ def preview_semgrep_sandbox_fallback(
         or result.get("git_promotion_allowed") is not False):
         raise CodeShieldHold("UNTRUSTED_DECISION")
     return result
+
+
+def deny_codeshield_controller_plan_action(
+    plan, context: CodeShieldContext, *, states: dict[str, str],
+    audit: LocalStaticAudit | None = None,
+    action: ActionKind = ActionKind.UNTRUSTED_EXECUTION,
+    active_leases: tuple[str, ...] = (),
+) -> ProtectedDispatchHold:
+    """Concrete P1 Controller -> static-stage -> protected-dispatch denial.
+
+    This is the real application entry/callee for CS-SWU-014, NOT a second
+    executor. Both PlanSpec and CodeShieldContext may be guest-controlled
+    data; agreement between them proves only shape, not owner/OS trust.
+    Actual owner grant verification, native isolation, independent F18 and
+    Git compare-and-swap remain inaccessible and always HOLD.
+    """
+    from my_local_ai.contracts.plan import PlanSpec
+    from my_local_ai.controller.decision import Controller
+
+    if (not isinstance(plan, PlanSpec)
+        or plan.repo != "hibi89/my_local_ai"
+        or plan.approved is not False
+        or not isinstance(context, CodeShieldContext)
+        or not isinstance(action, ActionKind)
+        or context.repository != plan.repo
+        or context.plan_sha256 != plan.digest
+        or context.source_git_sha != plan.blueprint_sha
+        or not isinstance(states, dict)
+        or type(active_leases) is not tuple):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    tasks = {task.task_id: task for task in plan.tasks}
+    if (len(tasks) != len(plan.tasks)
+        or context.task_id not in tasks
+        or set(states) != set(tasks)
+        or len(active_leases) != len(set(active_leases))
+        or any(not isinstance(tid, str) or tid not in tasks for tid in active_leases)):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    target = tasks[context.task_id]
+    if (target.source_sha != context.source_git_sha
+        or len(target.allowed_paths) != len(context.allowed_paths)
+        or set(target.allowed_paths) != set(context.allowed_paths)
+        or len({p.casefold() for p in target.allowed_paths}) != len(target.allowed_paths)):
+        raise CodeShieldHold("UNSAFE_PATH")
+    try:
+        proposed = Controller(plan).propose(
+            states, independently_verified=(), active_leases=active_leases,
+        )
+    except (ValueError, TypeError):
+        raise CodeShieldHold("UNTRUSTED_DECISION") from None
+    if (proposed.owner_go is not False or proposed.verified is not False
+        or proposed.execution_allowed is not False
+        or any(d.runnable is not False for d in proposed.decisions)):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    # Even a target in a model-claimed READY state cannot run. Stale/missing
+    # scanner results and simulated PASS all use the same protected HOLD.
+    return preview_protected_dispatch_hold(
+        context, audit=audit, action=action,
+    )
