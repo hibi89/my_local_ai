@@ -579,6 +579,41 @@ def prepare_sandbox_readonly_patch_import(
         or not isinstance(scratch_root,str)
         or not scratch_root.isascii()):
         raise WindowsIsolationHold("INVALID_SANDBOX_SCOPE")
+    # Reject forged dataclasses and stale/broad paths before creating even a
+    # read-only import request. Guest/model file lists never define authority.
+    files = proposed_files.files
+    if (not isinstance(files,tuple) or not 1 <= len(files) <= 16
+        or not isinstance(proposed_files.files_sha256,str)
+        or not _SHA64.fullmatch(proposed_files.files_sha256)):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    checked=[]
+    seen=set()
+    total=0
+    for item in files:
+        if (not isinstance(item,tuple) or len(item)!=2
+            or not isinstance(item[0],str) or not isinstance(item[1],str)
+            or "\\x00" in item[1]):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        try:
+            path=_safe_path(item[0])
+            encoded=item[1].encode("utf-8")
+        except (ValueError,TypeError,UnicodeError):
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG") from None
+        if path.casefold() in seen:
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+        seen.add(path.casefold())
+        checked.append((path,item[1]))
+        total += len(encoded)
+        if total > 131072:
+            raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
+    checked.sort(key=lambda entry:entry[0])
+    canonical_files=_json.dumps(
+        checked,ensure_ascii=True,sort_keys=True,separators=(",",":")
+    ).encode("utf-8")
+    if (tuple(checked)!=files or
+        sha256(b"mla-untrusted-host-files/v1|"+canonical_files).hexdigest()
+        != proposed_files.files_sha256):
+        raise WindowsIsolationHold("UNSAFE_GUEST_CONFIG")
     audit_no_egress_profile(
         profile,expected_task_id=profile.task_id,
         expected_run_id=profile.run_id,expected_role="CODER",
