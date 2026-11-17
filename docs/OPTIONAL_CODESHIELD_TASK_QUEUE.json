@@ -23,9 +23,13 @@
   "auto_remote_calls": false,
   "counting_rule": "Track CS source as a separate 0/8 extension until High-approved rebaseline. A document commit never increases 35/39 baseline implementation candidates or 5/30 accepted REQ. Entire final blueprint cannot be called implemented if CS extension is not assessed.",
   "failure_policy": {
-    "max_non_improving_attempts": 2,
-    "then": "ISOLATE_HOLD_AND_CONTINUE_INDEPENDENT_READY",
-    "high_escalation": "REQUIRED_FOR_PROTECTED_WINDOWS_F18_EXECUTION"
+    "initial_non_improving_failures": 2,
+    "on_initial_failure": "ISOLATED_REDESIGN_PENDING_CONTINUE_INDEPENDENT_READY",
+    "additional_attempts_after_meaningFUL_REDESIGN": 2,
+    "on_cumulative_four_non_improving_failures": "SOLMAX_BATCH_PENDING_WITH_SHA_CAUSE_EVIDENCE",
+    "critical_path_or_safety_blocker": "IMMEDIATE_OWNER_SOLMAX_REQUEST_WITHOUT_WAITING",
+    "counting": "Only genuine different meaningful implementation attempts with no improvement count; document-only/CI/status does not consume attempts. Preserve inherited previous evidence.",
+    "safe_gates": "No F18/owner/OS/remote approval relaxation."
   },
   "tasks": [
     {
