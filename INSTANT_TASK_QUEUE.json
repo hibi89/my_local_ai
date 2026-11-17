@@ -7,23 +7,21 @@
   "prepared_at_kst": "2026-11-17",
   "canonical_design_branch": "design/final-blueprint-v1",
   "implementation_branch": "dev/instant-implementation-v1",
-  "owner_design_approval": "AWAITING_EXPLICIT_GO",
-  "implementation_candidate_status": "NOT_STARTED",
+  "owner_design_approval": "OWNER_P1_NEXT_READY_GO_VIA_CHAT_2026-11-17",
+  "implementation_candidate_status": "IN_PROGRESS",
   "implementation_req_ids": "REQ-01..REQ-30",
   "not_code_req_ids": [
     "REQ-31",
     "REQ-32"
   ],
   "total_code_req": 30,
-  "code_completed_req": 0,
+  "code_completed_req": 1,
   "official_verification": "UNASSESSED",
   "task_count": 28,
   "first_ready": [
-    "MLA-001",
-    "MLA-002",
     "MLA-003",
-    "MLA-004",
-    "MLA-005"
+    "MLA-006",
+    "MLA-007"
   ],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
@@ -55,9 +53,11 @@
       "acceptance": "Pin exact EAI/AX source/branch/blob SHA, audit owned/third-party licenses; no source copy until approved",
       "safety_checks": "SOURCE_READ_ONLY;LICENSE_REVIEW;NO_EXTERNAL_DATA",
       "risk": "HIGH",
-      "status": "READY_AFTER_OWNER_DESIGN_GO",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "BLOCKED_PROVENANCE",
+      "evidence_sha": "aa626dc11c96135439d369cdf211ac9055e17550",
+      "blockers": [
+        "Root LICENSE/third-party notices not yet verified; no source copied"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -78,12 +78,12 @@
       "acceptance": "Strict canonical immutable PlanSpec/TaskSpec parse, SHA, duplicates, path/glob, dependency constraints and owner approval separation",
       "safety_checks": "NO_EXECUTION;NO_SECRET;PLAN_HASH",
       "risk": "HIGH",
-      "status": "READY_AFTER_OWNER_DESIGN_GO",
-      "evidence_sha": null,
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "7814996f9ee0f8e6243be38a5a63284665227c85",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
     },
     {
       "task_id": "MLA-003",
@@ -101,7 +101,7 @@
       "acceptance": "Design F18 separate trusted reviewer contract, build fail-closed source and adversarial synthetic tests; no claim of actual independent-host PASS",
       "safety_checks": "NO_HOST_UNTRUSTED_TEST;F18_HOLD",
       "risk": "CRITICAL",
-      "status": "READY_AFTER_OWNER_DESIGN_GO",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
@@ -123,12 +123,12 @@
       "acceptance": "Safe synthetic test harness Python 3.11+; low permission CI read-only, no model/network/secret checkout; baseline test exact SHA",
       "safety_checks": "NO_PAID_RUNNER;NO_SECRET;NO_PRIVILEGED_WORKFLOW",
       "risk": "MEDIUM",
-      "status": "READY_AFTER_OWNER_DESIGN_GO",
-      "evidence_sha": null,
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "0645c540728001208aff9d796e9bbc384a2844c5",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
     },
     {
       "task_id": "MLA-005",
@@ -145,12 +145,12 @@
       "acceptance": "Synthetic metric record schema, no false real speed; 3B/4B comparisons planned but no model invoked by default",
       "safety_checks": "NO_MODEL_DOWNLOAD;NO_PRIVATE_SOURCE;NO_COST",
       "risk": "LOW",
-      "status": "READY_AFTER_OWNER_DESIGN_GO",
-      "evidence_sha": null,
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "a219efc9d33f8eb76feb453639c74b640611356d",
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
-      "verification_status": "NOT_RUN"
+      "verification_status": "P1_LOCAL_SYNTHETIC_ONLY_NOT_P2"
     },
     {
       "task_id": "MLA-006",
@@ -168,7 +168,7 @@
       "acceptance": "Doctor/plan-validate/status dry-run and rejection semantics, no real execution side effect",
       "safety_checks": "CLI_NO_SIDE_EFFECTS;NO_REMOTE",
       "risk": "LOW",
-      "status": "BLOCKED_DEPENDENCY",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
@@ -191,7 +191,7 @@
       "acceptance": "SQLite one-writer WAL FK, backup-on-migration and schema receipts; no user DB opened",
       "safety_checks": "SYNTHETIC_DB_ONLY;NO_DESTRUCTIVE_MIGRATION",
       "risk": "HIGH",
-      "status": "BLOCKED_DEPENDENCY",
+      "status": "READY",
       "evidence_sha": null,
       "blockers": [],
       "phase": "P1_IMPLEMENTATION",
