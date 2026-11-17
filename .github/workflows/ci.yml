@@ -20,5 +20,7 @@ jobs:
         run: python -m compileall -q src scripts tests
       - name: Synthetic unit tests
         run: PYTHONPATH=src python -m unittest discover -s tests/unit -p 'test_*.py' -v
+      - name: P1 fake-only benchmark harness smoke (no real model)
+        run: PYTHONPATH=src python -m unittest discover -s tests/integration -p 'test_real_model_gate.py' -v
       - name: Synthetic F18 security contract tests (local-only)
         run: PYTHONPATH=src python -m unittest discover -s tests/security -p 'test_*.py' -v
