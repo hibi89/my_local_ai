@@ -36,3 +36,12 @@
 - 반영 파일: `docs/FINAL_BLUEPRINT.md F-1`, `docs/PHASE_GATES.md`, `AGENTS.md`, `INSTANT_RUNBOOK.md`, `REQUIREMENTS.md`, `docs/ACCEPTANCE_MATRIX.md`, `VERIFICATION_TASK_QUEUE.json MLA-V007`, `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`.
 - 이번 변경은 **설계·문서/P2 큐 수용조건만 수정**, GitHub에 소스 실행/브라우저 테스트/CI 재실행은 하지 않았다. 구현완료율 상승 0, 공식 검증률 `UNASSESSED`, P2 `LOCKED`, F18 `SECURITY_HOLD`. 기존 dev Instant 작업 결과·진척은 현재 dev HEAD를 다시 읽어야 정확하며 이 설계 브랜치 기록은 실적 대체가 아니다.
 - 개발 브랜치 코드/큐/STATUS, main, EAI, AX 원본, 유료/외부 API·권한·원격 PR/Production 미변경. 다음: 설계 SHA 기준 dev에 안전 동기화 후 기존 P1 READY 지속; P2 실제 브라우저 검증은 P1 100% 후보와 High 판정 이후.
+
+---
+
+## 2026-11-17 KST — V1.2 Experience Learning Engine 설계 변경
+- **사용자 의사결정:** 변수 수백·수천 개 하드코딩 또는 Sol Max 답변 대량 수집/모델 증류 대신, **MLA 자신이 승인받아 수행한 개발 작업의 실패·수정·독립 테스트·복구 결과를 분석하여 적응형 스킬/전략 추천을 구축**한다. Model-output 자체가 실검증 PASS/학습 정답이 아님.
+- **설계 반영 파일:** `docs/EXPERIENCE_LEARNING_ENGINE.md`(대안 비교/BE·FE/API/DB/보안/F18/기억 검색·선별·평가·rollback/EXP-AC-01..10), `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`(EXT-EXP-01..07 설계 only), `docs/FINAL_BLUEPRINT.md I`, `docs/ARCHITECTURE.md`, `REQUIREMENTS.md`, `docs/INTEGRATION_CONTRACT.md`, `docs/SECURITY_MODEL.md`, `docs/ACCEPTANCE_MATRIX.md`, `docs/PHASE_GATES.md`, `AGENTS.md`, `INSTANT_RUNBOOK.md`, `HANDOFF.md`.
+- **강제 불변:** 원래 P1 REQ-01..30/28 작업·P2 8검증/LOCKED·F18 CRITICAL HOLD·브라우저 후행, Hydrogen extension 기본 OFF, EAI/AX 원본 보존. 실제 P1 구현완료율/공식 검증률 상승 **0**(이번 설계 변경 기준); 경험학습 구현·실모델·실Windows·소유자 데이터 수집·A/B·CI/브라우저 테스트 **NOT_RUN**.
+- **dev 브랜치:** 확인 당시 `dev/instant-implementation-v1@51f4885a44540890996943bc058621d747325c50`. 이 설계 브랜치 변경으로 dev의 코드·큐·진척·STATUS를 덮지 않는다. 가장 최근 실적은 dev HEAD/코드/증거 재조회 필요. AXNODE는 미래 typed-graph export 대상이지 최초 구현 필수 아님.
+- **차단/다음:** 확장 큐는 `DESIGN_ONLY_NOT_READY`; 별도 구현 범위·source path 충돌·적법 데이터 권리/동의·F18 신뢰/owner GO 확인 전 실행 안 함. 기존 dev `MLA-012` 등 본선 안전 READY 계속.
