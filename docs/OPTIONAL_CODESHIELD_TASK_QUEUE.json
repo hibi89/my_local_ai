@@ -2,7 +2,7 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_13_OF_16_PARTIAL_012_014_2PLUS2_NO_FAILURE",
+  "state": "P1_13_OF_16_SWU007_SANDBOX_FALLBACK_CONFIG_WRITTEN_UNVERIFIED_OS_HOLD",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
@@ -704,27 +704,36 @@
       "p2_deferred_tests": [
         "real Windows/pinned binary verification",
         "adversarial F18 and OS egress checks",
-        "full CI integration/security/regression"
+        "full CI integration/security/regression",
+        "Windows 11 WSB networking disabled effective-policy probe, readonly mapping, stage inventory changes and owner GO",
+        "AppContainer vs Sandbox true OS principal/egress proof, resource impact, independent F18"
       ],
       "risk": "HIGH",
-      "source_status": "SOURCE_BROKER_CONTRACT_IMPLEMENTED_UNVERIFIED_OS_HOLD",
-      "implementation_evidence_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
+      "source_status": "SOURCE_BROKER_FALLBACK_CONFIG_IMPLEMENTED_UNVERIFIED_OS_HOLD",
+      "implementation_evidence_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
       "redesign_nonimproving_failures": 0,
-      "retry_stage": "PROGRESS_OS_BROKER_PENDING",
+      "retry_stage": "PROGRESS_OS_BROKER_NOT_YET_PROVEN",
       "retry_evidence": [],
       "owner_go": false,
       "code_only_work_allowed": true,
       "code_only_scope": "Implement protected broker interface and refusal state only; do not enable Semgrep native execution before independent OS principal and egress evidence",
-      "code_only_progress": "Pinned file/rule/hash/argv request plus strict untrusted JSON parser wired into Semgrep hold adapter; scanner invocation removed. Real OS network-isolated principal broker remains missing, so not completed SWU.",
+      "code_only_progress": "Fixed Semgrep request/JSON guard + bounded on-demand Windows Sandbox fallback WSB config with Networking Disable, Clipboard Disable, ReadOnly minimal staging SHA inventory, no LogonCommand, no file writes or launch; Controller+orchestrator expose redacted preview. Effective OS egress isolation, protected execution and F18 remain unverified and NOT IMPLEMENTED; full SWU not complete.",
       "code_only_attempts": [
         {
           "attempt_id": "CS007-20261118-A1",
           "method": "Replace bypass-prone direct subprocess with bounded protected-broker request/strict JSON reader and ignore guards",
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "7a59087ced72d747f8c8741ad4dbf3129f0f4c32",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS007-20261118-A2",
+          "method": "Add on-demand Windows Sandbox fallback config from exact pinned source inventory, bound staging enumeration, connect redacted controller->orchestrator preview",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
           "nonprogress_failure": false
         }
       ]
@@ -1249,23 +1258,25 @@
   ],
   "last_source_wave": {
     "branch": "feature/code-shield-lightweight-v1",
-    "source_sha": "d1d5ce135cf1e1a8f27e9c08380615b00755a46f",
+    "source_sha": "190ed21624a615ce5c05be2bb6ddb4335bca1487",
     "task_ids": [
-      "CS-SWU-012",
-      "CS-SWU-014"
+      "CS-SWU-007",
+      "CS-SWU-014_LINKED_PREVIEW"
     ],
-    "status": "SOURCE_PARTIAL_PROGRESS_UNVERIFIED_CRITICAL_RUNTIME_HOLD",
+    "status": "PARTIAL_SOURCE_PROGRESS_CONFIG_ONLY_OS_ISOLATION_UNPROVEN",
     "checks": {
-      "github_file_readback": "PASS",
-      "source_hard_stop_markers": "PASS_STATIC_READBACK_ONLY",
-      "python_syntax": "NOT_RUN_NO_LOCAL_SOURCE_CHECKOUT",
-      "targeted_smoke": "NOT_RUN",
-      "native_windows": "NOT_RUN",
+      "github_source_readback": "PASS",
+      "static_contract_markers": "PASS",
+      "python_syntax": "NOT_RUN_NO_MOUNTED_GITHUB_SOURCE",
+      "targeted_smoke": "NOT_RUN_NO_MOUNTED_GITHUB_SOURCE",
+      "windows_sandbox": "NOT_RUN",
+      "semgrep_native": "NOT_RUN",
+      "os_egress": "NOT_RUN",
       "independent_f18": "NOT_RUN",
-      "full_ci": "DEFERRED_TO_P2"
+      "full_ci": "P2_LOCKED"
     },
     "owner_go": false,
-    "untrusted_execution": false,
+    "guest_execution": false,
     "nonprogress_failures_added": 0
   },
   "sol_max_escalation": {
@@ -1278,7 +1289,7 @@
     ],
     "selected_surface": "CODEX",
     "selected_model": "GPT-6.1 Sol Max",
-    "reason": "SWU-012 owner-scope preview and SWU-014 fail-closed Controller source implementations progressed. Missing trusted broker is not yet a demonstrated unavoidable P1 deadlock. Continue 007 safe code-only redesign with unchanged 2+2 counters.",
+    "reason": "CS007 native configuration/fallback source progressed with no unproductive failures. Windows/OS principal verification not attempted, owner GO absent. Do not request until 4 evidenced failures or actual indispensable coding deadlock.",
     "trigger": "ACTUAL_UNAVOIDABLE_MANDATORY_BLOCKAGE_OR_FOUR_EVIDENCED_NONPROGRESS_FAILURES",
     "owner_go_required": true,
     "source_head": "aeb058a10b77d1c4e68892b5b1614afda7642f31",
@@ -1304,5 +1315,5 @@
       "NO_ORIGINAL_OR_MAIN_WRITE"
     ]
   },
-  "next_safe_code_only_ready_reason": "Progress in 012 owner-scope request and 014 hard-stop Controller; remaining safe source work on 007 protected OS broker design. No untrusted host scan, no ACL/firewall/owner action change."
+  "next_safe_code_only_ready_reason": "Actual protected native Windows AppContainer/Job Object egress broker remains source gap; continue code-only implementation without host launch, do not fake OS attestation. If code route deadlocks with no safe alternative, apply owner 2+2/High exception."
 }
