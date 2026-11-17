@@ -13,8 +13,8 @@
     6
   ],
   "one_swu_attempt_goal": 1,
-  "default_max_attempts": 2,
-  "max3_requires_prior_high_and_owner_go": true,
+  "default_max_attempts": 4,
+  "max3_requires_prior_high_and_owner_go": false,
   "nonimproving_two_failures_hold": true,
   "swu_count": 39,
   "legacy_task_count": 28,
@@ -70,10 +70,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-001": 0
@@ -105,7 +112,20 @@
       "source_completed_from": "ACTUAL_READ_ONLY_PUBLIC_PINNED_SOURCE_AUDIT",
       "source_safety": "MANDATORY_GITHUB_ACTIONS_44082730630_44082973608_PASS; synthetic forged tree/branch drift/unavailable/NOTICE cases fail closed; live CLI on Windows NOT_RUN",
       "runtime_gap": "GitHub pinned historical commit/tree does not determine copyright ownership or third-party rights. Current EAI feature branch has diverged from pinned commit; source imports remain zero, license reuse BLOCKED_PROVENANCE. Independent rights review/owner GO required.",
-      "source_dependency_review": "Offline + optional public GitHub immutable commit/tree/current branch checks can be written without clearance. Rights decision is reliably BLOCKED until separate review; no runtime source migration grant."
+      "source_dependency_review": "Offline + optional public GitHub immutable commit/tree/current branch checks can be written without clearance. Rights decision is reliably BLOCKED until separate review; no runtime source migration grant.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-002",
@@ -144,10 +164,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-001": 0,
@@ -180,7 +207,20 @@
       "actual_source_implemented": true,
       "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
-      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-003",
@@ -215,10 +255,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-002": 0
@@ -239,7 +286,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-004",
@@ -274,10 +334,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-002": 0
@@ -300,7 +367,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-005",
@@ -340,10 +420,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-008": 0,
@@ -375,7 +462,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-006",
@@ -414,10 +514,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-008": 0,
@@ -445,7 +552,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-007",
@@ -486,10 +606,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-009": 0,
@@ -520,7 +647,20 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-008",
@@ -557,10 +697,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-009": 0
@@ -596,7 +743,20 @@
       ],
       "partial_source_description": "Owner-local existing grant MAC and live SQLite ledger read with strict LOCAL_PLAN scope and redacted result. No key provisioning, signer, protected Windows principal or authority issuance.",
       "runtime_gap": "Protected OS identity and key custody, real signer broker, independently confirmed owner grant; current inspection cannot authorize execution.",
-      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
+      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-009",
@@ -635,10 +795,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-010": 0,
@@ -668,7 +835,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-010",
@@ -705,10 +885,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-007": 0
@@ -733,7 +920,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-011",
@@ -772,10 +972,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-007": 0,
@@ -811,7 +1018,20 @@
       "actual_source_implemented": true,
       "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
-      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-012",
@@ -849,10 +1069,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-011": 0
@@ -878,7 +1105,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-013",
@@ -918,10 +1158,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-012": 0
@@ -948,7 +1195,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-014",
@@ -987,10 +1247,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-013": 0
@@ -1019,7 +1286,20 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-015",
@@ -1060,10 +1340,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-003": 0,
@@ -1102,7 +1389,20 @@
       ],
       "partial_source_description": "Host Qwen generates candidate files via fixed localhost-only Ollama /api/generate under explicit PUBLIC_SYNTHETIC_ONLY scope and BudgetGuard; output is strictly untrusted, bounded and allowlisted. Exact no-network WSB and read-only host scratch import plan bind task/run/SHA. No guest invocation, host file writes, model execution evidence, owner signer or F18 receipt.",
       "runtime_gap": "Missing installed protected Windows guest executor and safe guest result extraction; real owner ACL and no-egress runtime verification. Independent F18 reviewer/owner action GO remain HOLD. Read-only scratch mapping does not attest OS boundary. Windows CLI/WinApp tools not installed/probed; WinApp may enable Developer Mode/inbound firewall, requiring separate approval.",
-      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN."
+      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "UNASSESSED_BLOCKED_NO_FAILURE_INFERENCE",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-016",
@@ -1140,10 +1440,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-014": 0
@@ -1179,7 +1486,20 @@
       "latest_code_sha": "4843d5ea94fd898b537265e8c58b45cb48e100af",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
-      "runtime_gap": "V1_OS_CHANGE_OWNER_SIGNER_ALWAYS_DENIES; protected runner and real Git creation NOT_RUN"
+      "runtime_gap": "V1_OS_CHANGE_OWNER_SIGNER_ALWAYS_DENIES; protected runner and real Git creation NOT_RUN",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-017",
@@ -1216,10 +1536,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-014": 0
@@ -1248,7 +1575,20 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-018",
@@ -1285,10 +1625,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-014": 0
@@ -1324,7 +1671,20 @@
       "latest_code_sha": "ea1a5dd31ca7108d28d6da0f9fea91ad66b21203",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_ACTIONS_SUCCESS_AT_SOURCE_SHA; NEW_RUNTIME_AND_ADVERSARIAL_TESTS_NOT_RUN",
-      "runtime_gap": "OS_CHANGE_SIGNER_V1_DENIES; no real cleanup or filesystem deletion; Windows/P2 pending"
+      "runtime_gap": "OS_CHANGE_SIGNER_V1_DENIES; no real cleanup or filesystem deletion; Windows/P2 pending",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-019",
@@ -1363,10 +1723,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-014": 0
@@ -1403,7 +1770,20 @@
       "latest_code_sha": "b4881a2b9fb935a1f9ba067be6a89bf6b282741d",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_ACTIONS_SUCCESS_AT_SOURCE_SHA; NEW_RUNTIME_AND_ADVERSARIAL_TESTS_NOT_RUN",
-      "runtime_gap": "Protected read-only callback requires OS provenance; real Git HEAD/index P2 NOT_RUN, no F18 attestation"
+      "runtime_gap": "Protected read-only callback requires OS provenance; real Git HEAD/index P2 NOT_RUN, no F18 attestation",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-020",
@@ -1445,10 +1825,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-003": 0,
@@ -1480,7 +1867,20 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-021",
@@ -1520,10 +1920,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-003": 0,
@@ -1563,7 +1970,20 @@
       ],
       "partial_source_description": "Independent review transcript validates exact fixed policy/check IDs, timing, timeout, zero exit, context SHA and immutable untrusted digest. No signer key or independent receipt issuance.",
       "runtime_gap": "Separate Windows OS reviewer security principal, tamper-resistant reviewer binary and policy, protected nonce/key issuer and F18 receipts.",
-      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model."
+      "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-022",
@@ -1600,10 +2020,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-016": 0
@@ -1629,7 +2056,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-023",
@@ -1671,10 +2111,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-010": 0,
@@ -1709,7 +2156,20 @@
       "actual_source_implemented": true,
       "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
-      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-024",
@@ -1749,10 +2209,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-017": 0
@@ -1787,7 +2254,20 @@
       "latest_code_sha": "f4c27902b8fc9461339dfa5f1f6fe69f60fc707f",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
-      "runtime_gap": "PROTECTED_OWNER_KEY_AND_LOCAL_DB_RUNTIME_NOT_RUN; no coder execute grant"
+      "runtime_gap": "PROTECTED_OWNER_KEY_AND_LOCAL_DB_RUNTIME_NOT_RUN; no coder execute grant",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-025",
@@ -1826,10 +2306,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-007": 0,
@@ -1860,7 +2347,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-026",
@@ -1901,10 +2401,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-017": 0
@@ -1939,7 +2446,20 @@
       "latest_code_sha": "d08cc7f57a0e6dc4b84189791e3a20408abedea5",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_ACTIONS_SUCCESS_AT_SOURCE_SHA; NEW_RUNTIME_AND_ADVERSARIAL_TESTS_NOT_RUN",
-      "runtime_gap": "Real crash/Windows/SQLite WAL recovery P2 NOT_RUN; retained lease fences new runs"
+      "runtime_gap": "Real crash/Windows/SQLite WAL recovery P2 NOT_RUN; retained lease fences new runs",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-027",
@@ -1979,10 +2499,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-015": 0,
@@ -2029,7 +2556,20 @@
       "latest_code_sha": "c080c7e816f9494d626c940bf9dd6a41f2bd1af8",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
-      "runtime_gap": "Cannot perform a real Git ref update without independent F18, protected action-bound OS_CHANGE signer, owner-selected original checkout, and exact Git/index attestation."
+      "runtime_gap": "Cannot perform a real Git ref update without independent F18, protected action-bound OS_CHANGE signer, owner-selected original checkout, and exact Git/index attestation.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-028",
@@ -2066,10 +2606,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-023": 0
@@ -2093,7 +2640,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-029",
@@ -2133,10 +2693,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-009": 0,
@@ -2179,7 +2746,20 @@
       "latest_code_sha": "b4e49d79cf8c1b8b01e4f5db5ff5bc15b4900857",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
-      "runtime_gap": "Actual push, draft PR, network egress, independent F18, and action-specific owner consent NOT_RUN / not authorized; partial remote state recovery pending P2."
+      "runtime_gap": "Actual push, draft PR, network egress, independent F18, and action-specific owner consent NOT_RUN / not authorized; partial remote state recovery pending P2.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-030",
@@ -2221,10 +2801,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-003": 0,
@@ -2258,7 +2845,20 @@
         "NO_UNAPPROVED_ORIGINAL_WRITE",
         "KEEP_MANDATORY_CI",
         "F18_OWNER_HOLD"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-031",
@@ -2298,10 +2898,17 @@
       "sizing_rationale": "One trust-sensitive code transition; High safety review, runtime HOLD",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-003": 0,
@@ -2339,7 +2946,20 @@
       ],
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
       "runtime_gap": "Host-attested network egress denial remains unimplemented and NOT_RUN; Windows Sandbox feature/ACL/DACL, actual guest network probe, independent reviewers across OS principals, and post-run evidence not tested. WSB profile is not proof. High review required.",
-      "partial_source_description": "Network disabled and protected WSB options retained, plus immutable readonly host source/import mapping, restricted C:\\MLA_Disposable\\RUN\\input naming, no host-writeable guest mapped folder. Config XML and manifest hashes are exact but only source policy claims."
+      "partial_source_description": "Network disabled and protected WSB options retained, plus immutable readonly host source/import mapping, restricted C:\\MLA_Disposable\\RUN\\input naming, no host-writeable guest mapped folder. Config XML and manifest hashes are exact but only source policy claims.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "UNASSESSED_BLOCKED_NO_FAILURE_INFERENCE",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-032",
@@ -2378,10 +2998,17 @@
       "sizing_rationale": "Single caller-visible source result; no test-harness workload",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-011": 0,
@@ -2417,7 +3044,20 @@
       "actual_source_implemented": true,
       "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
-      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-033",
@@ -2455,10 +3095,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-022": 0
@@ -2491,7 +3138,20 @@
       "latest_code_sha": "6745975ff13ba7c8d54302bdf3f6fd02592c56cb",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_ACTIONS_SUCCESS_AT_SOURCE_SHA; NEW_RUNTIME_AND_ADVERSARIAL_TESTS_NOT_RUN",
-      "runtime_gap": "Real supervisor/24h/thermal measurements and owner runtime P2 NOT_RUN; code-only checkpoint"
+      "runtime_gap": "Real supervisor/24h/thermal measurements and owner runtime P2 NOT_RUN; code-only checkpoint",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-034",
@@ -2531,10 +3191,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-011": 0,
@@ -2569,7 +3236,20 @@
       "actual_source_implemented": true,
       "latest_code_sha": "ecf9f491980a30d50f7539e12a00c30f64bcce0e",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
-      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS"
+      "source_safety": "MANDATORY_CI_SYNTHETIC_PASS_485_NO_NEW_FEATURE_TESTS",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-035",
@@ -2608,10 +3288,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-006": 1
@@ -2636,7 +3323,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-036",
@@ -2676,10 +3376,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-006": 1,
@@ -2720,7 +3427,20 @@
       "latest_code_sha": "16fc27079b24fcc8fa61c86646b2fe71616cacc1",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "AUTO_CI_SUCCESS_44072707066; NARROW_DURABLE_HOLD_SAFETY_TESTS_PASS_IN_ACTIONS; REAL_OWNER_SIGNER_F18_WINDOWS_NOT_RUN",
-      "runtime_gap": "Signed owner start/resume, F18 independent review, OS worker stop and true process signal are BLOCKED; new CLI request always HOLD; idle task local DB HOLD is not worker termination."
+      "runtime_gap": "Signed owner start/resume, F18 independent review, OS worker stop and true process signal are BLOCKED; new CLI request always HOLD; idle task local DB HOLD is not worker termination.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-037",
@@ -2759,10 +3479,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-021": 0
@@ -2788,7 +3515,20 @@
       "immediate_safety": [
         "MINIMUM_LOCAL_SYNTAX_SMOKE",
         "KEEP_MANDATORY_CI"
-      ]
+      ],
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-038",
@@ -2833,10 +3573,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-008": 0,
@@ -2888,7 +3635,20 @@
       "latest_code_sha": "d89935921853fd7d20c6e7c6bf40ddae6dabd3ca",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "SYNTAX_UNIT_SYNTHETIC_INTEGRATION_F18_CI_PASS_SOURCE_SHAS_44077269094_44077424278_44077596361_44077661541_44077847221; REAL_OS_F18_P2_NOT_RUN",
-      "runtime_gap": "Real coder execution, independent F18 review, trusted receipt and completed coding-review loop remain blocked on Windows protected runner/reviewer."
+      "runtime_gap": "Real coder execution, independent F18 review, trusted receipt and completed coding-review loop remain blocked on Windows protected runner/reviewer.",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
       "id": "MLA-SWU-039",
@@ -2931,10 +3691,17 @@
       "sizing_rationale": "One existing local interface integration with safe failure handling",
       "attempt_policy": {
         "target": 1,
-        "default_max": 2,
-        "exceptional_max": 3,
+        "default_max": 4,
+        "exceptional_max": 4,
         "exception_allowed": false,
-        "hold_on_two_nonimproving_failures": true
+        "hold_on_two_nonimproving_failures": true,
+        "isolate_on_two_nonprogress": true,
+        "initial_nonprogress_limit": 2,
+        "post_isolation_nonprogress_limit": 2,
+        "total_nonprogress_limit": 4,
+        "after_four": "SOLMAX_BATCH_PENDING",
+        "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+        "requires_changed_method_after_isolation": true
       },
       "inherited_attempts_by_legacy": {
         "MLA-006": 1,
@@ -2976,7 +3743,20 @@
       "latest_code_sha": "f4c27902b8fc9461339dfa5f1f6fe69f60fc707f",
       "source_completed_from": "ACTUAL_P1_FUNCTION_CODE_AUTHORING",
       "source_safety": "MANDATORY_CI_PASS_BUT_NEW_RUNTIME_SCENARIOS_NOT_RUN",
-      "runtime_gap": "EXACT_GIT_ANCESTRY_INDEPENDENT_ATTESTATION_AND_HIGH_ACCEPTANCE_NOT_RUN"
+      "runtime_gap": "EXACT_GIT_ANCESTRY_INDEPENDENT_ATTESTATION_AND_HIGH_ACCEPTANCE_NOT_RUN",
+      "legacy_attempt_policy_20261117": {
+        "target": 1,
+        "default_max": 2,
+        "exceptional_max": 3,
+        "exception_allowed": false,
+        "hold_on_two_nonimproving_failures": true
+      },
+      "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
+      "retry_stage": "NOT_TRIGGERED_SOURCE_WRITTEN",
+      "initial_nonprogress_attempts": null,
+      "post_isolation_nonprogress_attempts": null,
+      "retry_evidence": [],
+      "legacy_attempts_used_are_not_necessarily_failures": true
     }
   ],
   "legacy_mapping": [
@@ -4843,5 +5623,57 @@
     "owner_go": false,
     "remote_actions": "NONE"
   },
-  "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%."
+  "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
+  "legacy_retry_policy_before_20261117": {
+    "default_max_attempts": 2,
+    "max3_requires_prior_high_and_owner_go": true,
+    "nonimproving_two_failures_hold": true,
+    "archive_only": true
+  },
+  "attempt_budget_interpretation": "INITIAL_2_FAILED_SUBSTANTIVE_ATTEMPTS_THEN_ISOLATE_REDESIGN_PLUS_2_MORE_FAILED_SUBSTANTIVE_ATTEMPTS_THEN_SOLMAX_BATCH",
+  "retry_escalation_policy": {
+    "schema": "mla.p1.retry.isolate.solmax.v1",
+    "owner_order_date": "2026-11-17 KST",
+    "source_of_truth": "INSTANT_RUNBOOK.md + docs/P1_FAST_IMPLEMENTATION_RUNBOOK.md",
+    "target_one_coding_round": true,
+    "initial_nonprogress_limit": 2,
+    "isolation_after_initial_nonprogress": true,
+    "requires_documented_root_cause_and_materially_changed_method": true,
+    "post_isolation_nonprogress_limit": 2,
+    "total_nonprogress_limit": 4,
+    "after_four": "SOLMAX_BATCH_PENDING",
+    "essential_critical_path": "IMMEDIATE_OWNER_SOLMAX_REQUEST",
+    "count_only_actual_meaningful_code_or_remediation_with_evidence": true,
+    "ignore_read_doc_CI_poll_chat_g_and_identical_repeats": true,
+    "historical_attempts_used_not_assumed_failures": true,
+    "no_task_id_or_chat_reset": true,
+    "initial_attempts_do_not_auto_expand_permissions": true,
+    "project_security_F18_owner_signer_P2_LOCK_unchanged": true
+  },
+  "sol_max_escalation": {
+    "immediate_request_candidates": [
+      {
+        "task_id": "MLA-SWU-008",
+        "root_cause": "protected owner signer/OS identity unavailable; 015 and 021 depend on this SWU",
+        "request_status": "OWNER_REQUEST_REQUIRED",
+        "actual_failed_attempts": "UNASSESSED",
+        "sol_max_executed": false
+      },
+      {
+        "task_id": "MLA-SWU-021",
+        "root_cause": "independent F18 OS-separated reviewer/protected issuer absent; 031 depends on trust chain",
+        "request_status": "OWNER_REQUEST_REQUIRED",
+        "actual_failed_attempts": "UNASSESSED",
+        "sol_max_executed": false
+      }
+    ],
+    "related_blocked_dependencies": [
+      "MLA-SWU-015",
+      "MLA-SWU-031"
+    ],
+    "deferred_batch": [],
+    "model_review_execution": "NOT_RUN",
+    "no_implicit_permission_approval": true
+  },
+  "policy_only_change_adds_implementation_progress": false
 }
