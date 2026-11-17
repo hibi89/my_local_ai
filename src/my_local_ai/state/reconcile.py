@@ -112,7 +112,8 @@ def read_reconcile_state(
             if (not isinstance(run_id,str) or not _ID.fullmatch(run_id)
                 or not isinstance(source,str) or source!=trusted_source_sha
                 or type(epoch) is not int or epoch<=0 or epoch in epochs
-                or state not in ("REVIEW_PENDING","INTERRUPTED","HOLD",
+                or state not in ("LEASE_RESERVED_UNVERIFIED","UNTRUSTED_CANDIDATE",
+                                 "REVIEW_PENDING","INTERRUPTED","HOLD",
                                  "CODING","REPAIR_ONCE","VERIFIED")
                 or (candidate_sha is not None and (
                     not isinstance(candidate_sha,str) or not _SHA40.fullmatch(candidate_sha)))):
@@ -193,4 +194,75 @@ def read_reconcile_state(
             return ReconcileDecision(task_id,"HOLD_PLAN_NOT_APPROVED")
         return ReconcileDecision(task_id,"HOLD_NO_ACTIVE_LEASE")
     except sqlite3.Error:
+        raise ReconcileHold("BAD_STATE") from None
+
+
+@dataclass(frozen=True)
+class DurableRecoveryResult:
+    task_id: str
+    decision: str
+    checkpoint_written: bool
+    run_id: str | None = None
+    generation: int | None = None
+    execution_allowed: bool = False
+    new_lease_allowed: bool = False
+    may_change_git_ref: bool = False
+    independently_verified: bool = False
+
+
+def reconcile_owned_crash_checkpoint(
+    db_path, *, plan_id: str, task_id: str, trusted_plan_sha: str,
+    trusted_source_sha: str, protected_ref_sha: str | None,
+    interrupted_run_id: str | None = None,
+    interrupted_generation: int | None = None,
+) -> DurableRecoveryResult:
+    """Read exact owned state and optionally persist one interruption HOLD.
+
+    The Git ref value must originate from an owner-protected reader. Supplying
+    it does not make this routine an independent reviewer or grant a resume.
+    No clean ref or unchanged DB can be upgraded into a verified receipt.
+    """
+    from contextlib import closing
+    from pathlib import Path
+    from my_local_ai.state.sqlite_store import (
+        _safe_db_path, _inspect_existing, _identity,
+        persist_owned_interrupted_checkpoint,
+    )
+
+    try:
+        path = _safe_db_path(db_path)
+        if not path.exists() or _inspect_existing(path) != SCHEMA_VERSION:
+            raise ReconcileHold("BAD_STATE")
+        before = _identity(path)
+        with closing(sqlite3.connect(
+            path.as_uri() + "?mode=ro", uri=True, timeout=5.0,
+        )) as db:
+            db.execute("PRAGMA query_only=ON")
+            decision = read_reconcile_state(
+                db, plan_id=plan_id, task_id=task_id,
+                trusted_plan_sha=trusted_plan_sha,
+                trusted_source_sha=trusted_source_sha,
+                protected_ref_sha=protected_ref_sha,
+            )
+        if _identity(path) != before:
+            raise ReconcileHold("BAD_STATE")
+        if (interrupted_run_id is None) != (interrupted_generation is None):
+            raise ReconcileHold("STALE_LEASE")
+        if interrupted_run_id is None:
+            return DurableRecoveryResult(task_id, decision.status, False)
+        if decision.status != "HOLD_INTERRUPTED_LEASE" or protected_ref_sha is not None:
+            raise ReconcileHold("INCOMPLETE_TRUST_EVIDENCE")
+        checkpoint = persist_owned_interrupted_checkpoint(
+            path, plan_id=plan_id, task_id=task_id,
+            run_id=interrupted_run_id,
+            plan_sha256=trusted_plan_sha, baseline_sha=trusted_source_sha,
+            expected_generation=interrupted_generation,
+        )
+        return DurableRecoveryResult(
+            task_id, checkpoint.status, checkpoint.changed,
+            checkpoint.run_id, checkpoint.lease_generation,
+        )
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        if isinstance(exc, ReconcileHold):
+            raise
         raise ReconcileHold("BAD_STATE") from None

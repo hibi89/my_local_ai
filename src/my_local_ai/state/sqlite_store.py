@@ -589,3 +589,101 @@ def persist_owned_lease_cas(
         return _write_owned_transaction(value, change)
     except sqlite3.IntegrityError:
         raise LeaseHold("LEASE_FENCED") from None
+
+
+# SWU-026: owner-owned crash checkpoint. This fences old workers and records
+# interruption durably; it does not reissue a lease or certify F18 results.
+@dataclass(frozen=True)
+class InterruptedCheckpoint:
+    plan_id: str
+    task_id: str
+    run_id: str
+    lease_generation: int
+    changed: bool
+    status: str = "HOLD_INTERRUPTED_LEASE_REQUIRES_PROTECTED_RECONCILIATION"
+    lease_reused: bool = False
+    resume_allowed: bool = False
+    independent_f18_verified: bool = False
+    protected_ref_modified: bool = False
+
+
+def persist_owned_interrupted_checkpoint(
+    value: str | Path, *, plan_id: str, task_id: str, run_id: str,
+    plan_sha256: str, baseline_sha: str, expected_generation: int,
+) -> InterruptedCheckpoint:
+    """Atomic interruption: hold task/run, *retain* active lease as a fence.
+
+    Only existing versioned MLA-owned DBs; never delete/renew a lease, change
+    Git refs, approve a plan, or turn an untrusted candidate into VERIFIED.
+    A later independent recovery workflow must reconcile SQLite with Git.
+    """
+    if (not all(isinstance(x, str) and _MLA_ID.fullmatch(x)
+                for x in (plan_id, task_id, run_id))
+        or not isinstance(plan_sha256, str) or not _MLA_SHA64.fullmatch(plan_sha256)
+        or not isinstance(baseline_sha, str) or not _MLA_SHA40.fullmatch(baseline_sha)
+        or type(expected_generation) is not int
+        or not 0 < expected_generation < 2**63):
+        raise ValueError("invalid interrupted checkpoint identity")
+
+    def change(db):
+        plan = db.execute(
+            "SELECT plan_sha,blueprint_sha FROM plans WHERE plan_id=?",
+            (plan_id,),
+        ).fetchone()
+        task = db.execute(
+            "SELECT source_sha,state FROM tasks WHERE plan_id=? AND task_id=?",
+            (plan_id,task_id),
+        ).fetchone()
+        lease = db.execute(
+            "SELECT generation,run_id FROM leases WHERE plan_id=? AND task_id=?",
+            (plan_id,task_id),
+        ).fetchone()
+        run = db.execute(
+            "SELECT plan_id,task_id,baseline_sha,lease_epoch,state,candidate_sha "
+            "FROM runs WHERE run_id=?", (run_id,),
+        ).fetchone()
+        highest = db.execute(
+            "SELECT MAX(lease_epoch) FROM runs WHERE plan_id=? AND task_id=?",
+            (plan_id,task_id),
+        ).fetchone()[0]
+        if (plan is None or plan[0] != plan_sha256 or plan[1] != baseline_sha
+            or task is None or task[0] != baseline_sha
+            or task[1] not in ("LEASED","CODING","REVIEW_PENDING",
+                               "REPAIR_ONCE","INTERRUPTED","HOLD")
+            or lease != (expected_generation, run_id)
+            or run is None
+            or run[:4] != (plan_id,task_id,baseline_sha,expected_generation)
+            or run[4] not in ("LEASE_RESERVED_UNVERIFIED","REVIEW_PENDING",
+                              "CODING","REPAIR_ONCE","INTERRUPTED","HOLD")
+            or run[5] is not None
+            or highest != expected_generation):
+            raise ValueError("stale or untrusted interruption state")
+        # An attached reviewer/integration is not recoverable by simple HOLD.
+        if (db.execute("SELECT 1 FROM reviews WHERE run_id=?", (run_id,)).fetchone()
+            or db.execute(
+                "SELECT 1 FROM integrations i JOIN reviews v ON "
+                "i.review_id=v.review_id WHERE v.run_id=?", (run_id,),
+            ).fetchone()):
+            raise ValueError("review/integration must be independently reconciled")
+        already = task[1] == "HOLD" and run[4] == "INTERRUPTED"
+        if not already:
+            db.execute(
+                "UPDATE tasks SET state='HOLD' WHERE plan_id=? AND task_id=? "
+                "AND source_sha=? AND state=?",
+                (plan_id,task_id,baseline_sha,task[1]),
+            )
+            db.execute(
+                "UPDATE runs SET state='INTERRUPTED' WHERE run_id=? "
+                "AND lease_epoch=? AND state=?",
+                (run_id,expected_generation,run[4]),
+            )
+            db.execute(
+                "INSERT INTO events(plan_id,event_kind,safe_summary) VALUES(?,?,?)",
+                (plan_id,"CRASH_CHECKPOINT_HELD",
+                 "ACTIVE_LEASE_RETAINED_NO_RUNTIME_OR_F18"),
+            )
+        return InterruptedCheckpoint(
+            plan_id,task_id,run_id,expected_generation,not already,
+        )
+
+    return _write_owned_transaction(value, change)
