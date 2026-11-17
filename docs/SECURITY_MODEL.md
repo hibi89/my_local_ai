@@ -30,3 +30,15 @@
 ## F18 P1 MLA-003 보안 계약 갱신
 
 \`docs/TRUST_BOUNDARY_DESIGN.md\`가 reviewer principal/비신뢰 게스트/보호된 attestation/lease 재사용 방어와 promotion HOLD 규칙의 상세 정본이다. \`tests/security/test_receipt_forgery.py\`는 **합성 PlanSpec 권한 위조 거부**만 검사하며 실제 trusted reviewer, Windows 격리, independent PASS, 원본 자동 승격의 성공을 주장하지 않는다. 기존 F18 보안 HOLD를 유지하며 다음 구현은 MLA-015·MLA-018에서 수행한다.
+
+
+---
+
+## Hydrogen 외부 coder 위험 추가 (V1.1 설계)
+- **외부 전송 = 별도 승인 위험:** API가 무료여도 클라우드로 보낸 내용은 외부 제공자 정책의 영향을 받는다. PUBLIC_NON_SENSITIVE/SYNTHETIC로 승인된 최소 입력만; 비공개 repo, 고객 원본/계약, 키/.env, 해커톤 비공개 자료, GitHub App 서명, 내부 프롬프트·개인 로그 송신 거부. API 계정·요금 정책 및 데이터 사용 조건은 실제 활성화 전에 재확인.
+- **기본 차단:** remote_enabled=false, network_egress=deny, max_spend_usd=0, 무료 tier·실비용 위험 UNKNOWN이면 호출 0. 빈 키·429·401/403·paid-only·timeout/OFF 시 remote를 HOLD하고 다른 안전 READY만 계속.
+- **코딩 워커의 권한:** Gemini/Hydrogen 출력은 패치 제안이며 shell/테스트 실행/GitHub commit/approval/owner consent/TrustedReceipt 자체 권한 없음. 실행 경로는 별도 sandbox executor, validation과 file allowlist, SHA/epoch fence, Git worktree isolation을 통과해야 한다.
+- **F18 강화:** 다른 모델 사용은 독립 검증이 아니다. 원격 코드+영수증도 동일한 비신뢰 입력으로 처리한다. trusted verifier host OS 경계 실증 전 protected ref 승격 금지.
+- **유료·무료 변경:** 0원 약속을 토큰 호출 수만으로 보장 불가, 계정 tier/권한·원격 데이터 계약 확인이 되지 않으면 자체적으로 off. 계정 우회/키 회전/추가 결제 절대 자동 금지.
+- **fallback:** quota/장애 발생 중간 worktree는 유효성을 재검증하기 전 승격·재사용 금지. candidate_sha/approval/lease 정확성 대조 후 새 Qwen task epoch만 생성. 완료 이력은 불변.
+- 적용 범위는 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`, 현재 상태는 설계만 / 실제 보안·외부 API 실행 NOT_RUN.

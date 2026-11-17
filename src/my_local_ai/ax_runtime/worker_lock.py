@@ -86,17 +86,18 @@ class OneModelLock:
                     raise ModelLockUnsafe("lock file reparse detected")
                 if (current_info.st_dev, current_info.st_ino) != (fd_info.st_dev, fd_info.st_ino):
                     raise ModelLockUnsafe("lock inode changed")
-                if handle.seek(0, 2) == 0:
-                    handle.write(b"0")
-                    handle.flush()
-                    os.fsync(handle.fileno())
                 try:
+                    # Lock before first write to avoid a concurrent startup race.
                     _os_lock(handle)
                     locked = True
                 except (BlockingIOError, OSError) as error:
                     if isinstance(error, BlockingIOError) or getattr(error, "errno", None) in (errno.EACCES, errno.EAGAIN):
                         raise ModelLockBusy("another local model owns the lock") from None
                     raise
+                if handle.seek(0, 2) == 0:
+                    handle.write(b"0")
+                    handle.flush()
+                    os.fsync(handle.fileno())
                 handle.seek(0)
                 raw = handle.read(32)
                 if not raw or len(raw) > 20 or not raw.isdigit():

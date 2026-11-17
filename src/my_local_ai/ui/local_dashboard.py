@@ -53,6 +53,8 @@ a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
 <div class="panel"><h2>전체 작업</h2><strong class="value">{state['task_total']}</strong></div></section>
 <section class="panel" aria-labelledby="security"><h2 id="security">안전 게이트</h2>
 <p>단계: <strong>{escape(state['phase'])}</strong></p>
+<p>실사용 승인: <strong>{"승인됨" if state["owner_real_use_go"] else "미승인"}</strong></p>
+<p>중지·재개 제어: <strong>미연결 · 조회 전용</strong></p>
 <p>P2 전체 검증: <strong>LOCKED</strong></p>
 <p>공식 검증률: <strong>UNASSESSED</strong></p>
 <p>Hydrogen 원격 워커: <strong>OFF (미승인)</strong></p>
@@ -79,7 +81,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy",
                          "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
-        self.send_header("Access-Control-Allow-Origin", "null-invalid-no-cors")
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(payload)

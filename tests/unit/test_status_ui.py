@@ -25,6 +25,8 @@ class StatusUiTests(unittest.TestCase):
         html = render_html(load_snapshot(ROOT)).decode("utf-8")
         self.assertIn('lang="ko"', html)
         self.assertIn('aria-label=', html)
+        self.assertIn("실사용 승인:", html)
+        self.assertIn("중지·재개 제어:", html)
         self.assertIn("<progress", html)
         self.assertNotIn("<script", html)
         self.assertNotIn("<form", html)
