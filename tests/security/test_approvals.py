@@ -43,10 +43,14 @@ class ConsentTests(unittest.TestCase):
                        ("SYNTH-GRANT-0001",PLAN,"LOCAL_PLAN","APPROVED"))
         self.ledger = ConsentLedger(self.path)
         self.claim = make_claim()
-        # An initial SQLite read may create WAL/SHM sidecars. ConsentLedger
-        # correctly HOLDs that first read rather than trusting new files.
-        # Prime the synthetic fixture; positive checks require stable identity.
-        self.ledger.is_live("SYNTH-GRANT-0001", PLAN, "LOCAL_PLAN")
+        # P1 consent reads refuse WAL/SHM that first appear mid-check.
+        # Keep a trusted synthetic SQLite connection open during checks,
+        # so the tests inspect stable sidecar identities (never a runtime GO).
+        self._synthetic_wal_anchor = sqlite3.connect(self.path)
+        self._synthetic_wal_anchor.execute(
+            "SELECT count(*) FROM owner_consents"
+        ).fetchone()
+        self.addCleanup(self._synthetic_wal_anchor.close)
 
     def test_signed_and_unrevoked_synthetic_claim(self):
         self.assertTrue(check(self.claim,self.ledger))
