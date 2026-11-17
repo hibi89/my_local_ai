@@ -1407,13 +1407,13 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
+      "partial_source_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch.",
+      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished. Additional source code at 12091f75d73566cb4ca50eacb70bec84067a853a: reopened scratch input integrity check to validate exact manifest, inode/size/mtime and entire directory inventory before any OS broker use; no trust/guest launch. Additional source 09064c611c9460cbe3d81d66b16f2466e7f9cabf: native Windows read-only isolation capability observer and no-args CLI diagnostic; reports OS feature/API hints but never OS attestation, security policy, or runtime rights. Owner-device execution NOT_RUN.",
       "runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
-      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
+      "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN. | GitHub Actions 44139329888 SUCCESS Python compile, synthetic unit/integration/F18 contract; targeted owner Windows probe NOT_RUN; no OS config, host guest, F18 or egress proof.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
         "default_max": 2,
@@ -1438,6 +1438,13 @@
           "method": "Read-only staged public/synthetic input reopening verifies fixed scratch directory inventory, manifest bytes, inode/mtime and deny-only state",
           "evidence_sha": "12091f75d73566cb4ca50eacb70bec84067a853a",
           "outcome": "SOURCE_PROGRESS_REAL_SCRATCH_RECHECK_NO_OS_BROKER",
+          "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "MLA-SWU-015-20261118-SRC-5",
+          "method": "Windows 11 read-only native CPU SLAT/firmware virtualization and system32-restricted AppContainer/restricted-token/Job Object API export probe, callable as a no-args local module diagnostic, bounded redacted output, fail-shut capability-only status",
+          "evidence_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
+          "outcome": "REAL_READ_ONLY_HOST_CAPABILITY_PROBE_SOURCE_ADDED_OWNER_DEVICE_NOT_RUN",
           "nonprogress_failure": false
         }
       ],
@@ -5641,23 +5648,25 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "44fe02a560feb776351737d53f13b5d5c18c415b",
+    "source_sha": "09064c611c9460cbe3d81d66b16f2466e7f9cabf",
     "branch": "dev/instant-implementation-v1",
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-008"
+      "MLA-SWU-015"
     ],
     "commits": [
-      "44fe02a560feb776351737d53f13b5d5c18c415b"
+      "09064c611c9460cbe3d81d66b16f2466e7f9cabf"
     ],
     "source_complete_count": 35,
     "source_incomplete_count": 4,
+    "feature_integrated_source_count": 13,
+    "required_total_swu": 55,
+    "active_dev_source_candidates": 48,
     "feature_progress_delta": 0,
-    "syntax": "PASS_MANDATORY_GITHUB_ACTIONS",
-    "targeted_unit": "PASS_SYNTHETIC_ACTIONS",
-    "synthetic_f18_security": "PASS_SYNTHETIC_ACTIONS",
-    "explicit_sqlite_close": "PASS_ISOLATED_LOCAL_SQLITE_SMOKE",
-    "independent_os_owner_signer": "NOT_RUN",
+    "syntax": "PASS_MANDATORY_GITHUB_ACTIONS_44139329888",
+    "targeted_unit": "PASS_SYNTHETIC_ACTIONS_44139329888",
+    "synthetic_f18_security": "PASS_SYNTHETIC_ACTIONS_44139329888",
+    "owner_device_capability_probe": "NOT_RUN_OWNER_PC",
     "real_windows": "NOT_RUN",
     "sandbox_guest": "NOT_RUN",
     "no_egress": "NOT_RUN",
