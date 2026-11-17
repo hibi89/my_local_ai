@@ -55,3 +55,13 @@ No arbitrary shell. No auto PR/remote push, payment, Windows startup, external H
 - 입력 데이터: 별도 owner 승인된 `PUBLIC_NON_SENSITIVE/SYNTHETIC` 이외 outbound 송신 금지. remote 모델에는 원본 customer/private repo/secret/evidence payload 보내지 않음. 실제 API key, billing, quota 읽기는 각각 별도 권한/승인; `max_spend_usd=0`을 넘길 가능성 미확인 시 호출 금지.
 - TrustedReviewBoundary가 후보 diff를 독립 판정하기 전에는 `INTEGRATION_VERIFIED` 금지. Codex 후행 기술 감사/Astra UI 감사는 Hydrogen 코드 생성과 무관하게 그대로 실행.
 - 정확 테스트 HYD-AC-01~10 및 schema/상태/롤백은 `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`. **기존 P1/P2 완료율 분모와 검증 잠금 불변**.
+
+---
+
+## V1.2 Experience Learning 계약 — 권한 없는 관측·추천
+- `ExperienceEventV1`: id, run/task/REQ, exact source/plan SHA, tool/environment fingerprint, rights_tag/data_class, redacted observation, runner/test exit metadata, independent trusted_receipt_ref(없으면 UNVERIFIED), hypothesized_cause vs verified_cause, timestamp, retention_scope.
+- `ExperienceSuggestionV1`: retrieved_record_ids, applicability/version/risk constraints, conflict list, evidence_tier, uncertainty, skill_sha/version, rationale, expiry, `approved=false`. 어떠한 출력을 생성해도 WorkOrder/owner GO/VERIFIED/allowed_paths/remote tools를 변경할 수 없다.
+- Stage `OBSERVED_UNTRUSTED → CURATION_PENDING → SYNTHETIC_TESTED → TRUSTED_EVIDENCE_CHECKED → OWNER_APPROVED_ACTIVE`; 모델 자기 PASS, 위조된 시험 영수증, 계약/권리 불명은 QUARANTINED/HOLD. F18 OS 분리 안전 근거가 없으면 자동 활성/승격 불가.
+- 같은 task/baseline/plan SHA에서 safe top3 skill hints만 read-only 전달; 충돌·outdated·missing FTS5/DB면 no-memory Qwen 기본 흐름. controller의 결정론적 안전조건은 learned suggestions보다 항상 우선.
+- 미승인 외부 Sol Max 답변 자동 import, 대체 모델 학습용 training signals/rubrics, hidden reasoning 추출, 고객자료/토큰/원본 프롬프트 저장/송신 금지. 실험은 소유 합성·공개 허용 소스에 한정.
+- 수용 `EXP-AC-01..10` / 독립 큐 `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`. 기존 정본 REQ/P1-P2/Browser/Hydrogen/CI·권한 게이트 변경 없음.
