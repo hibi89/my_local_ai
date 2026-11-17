@@ -64,3 +64,12 @@
 9. **다음 READY/GO:** Instant는 현재 dev의 원래 `MLA-012` 등 본선 P1 구현을 계속. EXP-01..07은 High가 충돌 없는 경로/REQ/허용 범위/의존성을 현재 dev SHA와 검토하고 확장 구현 범위 GO를 받은 뒤 별도 시작. owner 실제 데이터 수집·새 provider·API/billing·AI 모델 학습/소스 송신/원격 push/권한·Production 작업에는 각각 명시적 승인 필요. P2·브라우저/Windows/보안 독립 검수는 100% 구현 후보+High 게이트 후.
 10. **기준:** 2026-11-17 KST. 최종설계 V1.2 확장 **DESIGN_ONLY**, 코드/실사용/공식 수용 미검증. 최종설계 브랜치 SHA를 재조회하고 dev STATUS/HANDOFF의 실제 최신 실적을 우선한다.
 
+
+---
+
+## V1.3 High final design update (2026-11-17 KST)
+
+- User-authorized source design change: default host Qwen 1 + CodeShield static audit; permanent VM/Sandbox dependency removed from nonexecuting work. Untrusted executable code must still use attested OS isolation + independent F18 before any actual run/promotion; no unisolated host fallback.
+- New base design: docs/FINAL_BLUEPRINT.md J, docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md, docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json (CS-01..08, 0/8 design only).
+- This design commit does not ship scanners, install Defender tools, provision AppContainer, execute untrusted code, issue protected signed F18 or change protected Git refs. P1 baseline history 35/39 candidates in dev at the reviewed SHA; formal REQ 5/30, P2 LOCKED, official verification UNASSESSED. No implementation rate increase.
+- Dev file sync must preserve dev actual HEAD, 39 source queue/WORK_PHASE_GATES, existing F18 security design and status. Feature branch starts from dev after selective docs sync; owner runtime GO is still false. Reference branch HEAD in exact corresponding implementation handoff rather than a stale design SHA.

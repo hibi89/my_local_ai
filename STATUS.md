@@ -45,3 +45,13 @@
 - **강제 불변:** 원래 P1 REQ-01..30/28 작업·P2 8검증/LOCKED·F18 CRITICAL HOLD·브라우저 후행, Hydrogen extension 기본 OFF, EAI/AX 원본 보존. 실제 P1 구현완료율/공식 검증률 상승 **0**(이번 설계 변경 기준); 경험학습 구현·실모델·실Windows·소유자 데이터 수집·A/B·CI/브라우저 테스트 **NOT_RUN**.
 - **dev 브랜치:** 확인 당시 `dev/instant-implementation-v1@51f4885a44540890996943bc058621d747325c50`. 이 설계 브랜치 변경으로 dev의 코드·큐·진척·STATUS를 덮지 않는다. 가장 최근 실적은 dev HEAD/코드/증거 재조회 필요. AXNODE는 미래 typed-graph export 대상이지 최초 구현 필수 아님.
 - **차단/다음:** 확장 큐는 `DESIGN_ONLY_NOT_READY`; 별도 구현 범위·source path 충돌·적법 데이터 권리/동의·F18 신뢰/owner GO 확인 전 실행 안 함. 기존 dev `MLA-012` 등 본선 안전 READY 계속.
+
+
+---
+
+## V1.3 High final design update (2026-11-17 KST)
+
+- User-authorized source design change: default host Qwen 1 + CodeShield static audit; permanent VM/Sandbox dependency removed from nonexecuting work. Untrusted executable code must still use attested OS isolation + independent F18 before any actual run/promotion; no unisolated host fallback.
+- New base design: docs/FINAL_BLUEPRINT.md J, docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md, docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json (CS-01..08, 0/8 design only).
+- This design commit does not ship scanners, install Defender tools, provision AppContainer, execute untrusted code, issue protected signed F18 or change protected Git refs. P1 baseline history 35/39 candidates in dev at the reviewed SHA; formal REQ 5/30, P2 LOCKED, official verification UNASSESSED. No implementation rate increase.
+- Dev file sync must preserve dev actual HEAD, 39 source queue/WORK_PHASE_GATES, existing F18 security design and status. Feature branch starts from dev after selective docs sync; owner runtime GO is still false. Reference branch HEAD in exact corresponding implementation handoff rather than a stale design SHA.

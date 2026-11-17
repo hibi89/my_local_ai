@@ -48,3 +48,15 @@
 5. **과적합·성능 과장:** 동일 시작 SHA synthetic A/B, accepted REQ/hour와 보안/재작업·fail rate 같이 측정. 작은 샘플의 추정 성능이나 model 응답을 실제 Codex 대체/실 OS 안전 증거로 주장 금지.
 
 P1 즉시 검사(원본 손실/인증/권한/비밀/F18)는 유지하며 P2 브라우저/CI·실기기 전체 검증 후행. `docs/EXPERIENCE_LEARNING_ENGINE.md` 참고.
+
+
+---
+
+## V1.3 CodeShield: 사전검수와 독립 F18의 분리 (2026-11-17 승인 설계)
+
+- 기본은 호스트 Qwen 1개 + Python AST + pin된 Ruff(S) + 승인된 로컬 Semgrep CE rules + Gitleaks/OSV offline 조건부 + 기존 Windows Defender 상태. 컴퓨터 전체 PC Care 상시 엔진/VM 상시가 기본 아님.
+- 정적 검사, Defender PASS, Qwen 코드 리뷰와 GitHub Actions synthetic CI는 **OS 실행 격리의 증거도 F18 독립 검수 영수증도 아니다**. 실행권한이 없는 후보는 파일만 작성·분석하고 생성 코드/생성 테스트/스크립트/패키지/EXE 실행을 HOLD.
+- 유효한 AppContainer/제한 Windows principal/Job Object·DACL·egress deny·도구 분리를 실제 Windows에서 입증하기 전에는 VM을 대체하는 실행 게이트로 인정할 수 없다. 실패 시 on-demand Windows Sandbox (별도 owner 승인 및 Windows 기능 사용) 또는 해당 작업 HOLD.
+- Defender CFA 활성화/차단 정책 예외/타사 준백신 설치/비밀 업로드/임의 글로벌 npm·pip/OS 방화벽/보호된 키 저장소 변경: 승인 없이 금지. Defender off라면 단순 scanner PASS로 바이너리 실행 허가 금지.
+- 정책 결과 상태는 ALLOW_NON_EXECUTING, REQUIRES_ISOLATION_HOLD, HOLD_HIGH_RISK, UNKNOWN_HOLD로 제한. READY/VERIFIED/RECEIPT/PROMOTION은 독립 owner signer/F18/lease/Git readback 게이트가 별도로 판정한다.
+- 기술선택·성능/수용·공식 근거는 docs/CODE_SHIELD_LIGHTWEIGHT_SECURITY_V1_3.md. 구현 큐는 docs/OPTIONAL_CODESHIELD_TASK_QUEUE.json의 별도 0/8. 기존 P2 LOCKED/owner GO false를 유지한다.
