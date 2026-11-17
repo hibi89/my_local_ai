@@ -278,3 +278,62 @@ def scan_osv_offline(
         return _emit(context, "osv", ScanStatus.PASS, "OFFLINE_DEPENDENCY_SCAN_ONLY")
     except (OSError, ValueError, KeyError, UnicodeError, subprocess.TimeoutExpired):
         return _emit(context, "osv", ScanStatus.ERROR, "OSV_OFFLINE_UNAVAILABLE")
+
+@dataclass(frozen=True)
+class OfflineCacheInspection:
+    """Read-only cache identity snapshot; no OSV scanner or package execution."""
+    state: str
+    actual_zip_sha256: str | None
+    age_days: int | None
+    may_install: bool = False
+    may_execute_dependencies: bool = False
+    independently_verified: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.state not in {"CACHE_PIN_MATCH_STATIC_ONLY", "UNKNOWN_HOLD"}
+            or any(getattr(self, flag) is not False for flag in (
+                "may_install", "may_execute_dependencies", "independently_verified",
+            ))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+
+def inspect_osv_offline_cache(
+    pin: OfflineDatabasePin, *, cache_root: str | Path,
+    worktree: str | Path, original_checkout: str | Path,
+) -> OfflineCacheInspection:
+    """Read fixed-format OSV zip and compare hash/age without network access.
+
+    A caller-controlled CheckedAt timestamp or SHA is NOT independent evidence;
+    a protected owner verifier must supply these values for runtime trust.
+    """
+    if not isinstance(pin, OfflineDatabasePin):
+        raise CodeShieldHold("UNPINNED_SCANNER")
+    now = datetime.now(timezone.utc)
+    age = (now - pin.checked_at_utc.astimezone(timezone.utc)).total_seconds() / 86400
+    if age < 0 or age >= pin.maximum_age_days:
+        return OfflineCacheInspection("UNKNOWN_HOLD", None, None)
+    root = Path(cache_root)
+    work, original = Path(worktree), Path(original_checkout)
+    if (not root.is_absolute() or ".." in root.parts
+        or not work.is_absolute() or not original.is_absolute()
+        or any(root == path or root in path.parents or path in root.parents
+               for path in (work, original))):
+        return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
+    # Disallow a reparse/alias hop in any parent before reading a DB cache.
+    for part in (root, *root.parents):
+        try:
+            info = part.lstat()
+            if (not stat.S_ISDIR(info.st_mode)
+                or stat.S_ISLNK(info.st_mode)
+                or getattr(info, "st_file_attributes", 0) &
+                   getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+                return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
+        except (OSError, ValueError):
+            return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
+    file = root / "osv-scalibr" / pin.ecosystem / "all.zip"
+    result = _file_sha(file, _MAX_BINARY)
+    return OfflineCacheInspection(
+        "CACHE_PIN_MATCH_STATIC_ONLY" if result == pin.zip_sha256
+        else "UNKNOWN_HOLD",
+        result, int(age),
+    )
