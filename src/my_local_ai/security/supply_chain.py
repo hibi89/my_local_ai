@@ -296,7 +296,8 @@ def scan_osv_offline(
             or len(process.stderr) > _MAX_REPORT):
             return _emit(context, "osv", ScanStatus.ERROR, "OSV_EXIT_OR_SIZE")
         doc = json.loads(process.stdout.decode("utf-8"))
-        if not isinstance(doc, dict) or not isinstance(doc.get("results"), list):
+        if (not isinstance(doc, dict) or not isinstance(doc.get("results"), list)
+            or doc.get("errors")):
             return _emit(context, "osv", ScanStatus.ERROR, "OSV_INVALID_REPORT")
         # V2 results contain sources/packages; they are not vulnerability
         # counts. Only count package.vulnerabilities, and reject malformed,
@@ -386,6 +387,16 @@ def inspect_osv_offline_cache(
             if (not stat.S_ISDIR(info.st_mode)
                 or stat.S_ISLNK(info.st_mode)
                 or getattr(info, "st_file_attributes", 0) &
+                   getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+                return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
+        except (OSError, ValueError):
+            return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
+    for folder in (root / "osv-scalibr",
+                   root / "osv-scalibr" / pin.ecosystem):
+        try:
+            st = folder.lstat()
+            if (not stat.S_ISDIR(st.st_mode) or stat.S_ISLNK(st.st_mode)
+                or getattr(st, "st_file_attributes", 0) &
                    getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
                 return OfflineCacheInspection("UNKNOWN_HOLD", None, int(age))
         except (OSError, ValueError):
