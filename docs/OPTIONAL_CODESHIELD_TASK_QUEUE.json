@@ -2,17 +2,17 @@
   "version": 1,
   "project": "hibi89/my_local_ai",
   "design": "V1.3-CODESHIELD",
-  "state": "P1_SOURCE_3_OF_16_CONNECTED_UNVERIFIED_HIGH_REVIEW_PENDING",
+  "state": "P1_5_OF_16_SOURCE_CONNECTED_UNVERIFIED_HIGH_REVIEW_PENDING",
   "locked_to_existing_repo_branch": "dev/instant-implementation-v1",
   "protected_baseline_reqs": 30,
   "protected_baseline_legacy_tasks": 28,
   "protected_baseline_swu": 39,
   "baseline_source_complete_at_design": 35,
   "p1_source_swu_total": 16,
-  "p1_source_swu_implemented": 3,
+  "p1_source_swu_implemented": 5,
   "first_source_ready": [
-    "CS-SWU-015",
-    "CS-SWU-016"
+    "CS-SWU-003",
+    "CS-SWU-014"
   ],
   "p2_status": "LOCKED",
   "verified_rate": "UNASSESSED",
@@ -1116,15 +1116,15 @@
         "REAL_OS_BOUNDARY",
         "P2_PHASE_GATE"
       ],
-      "p1_source_acceptance": "CLI codeshield command -> controller status -> clear reasons/scanner versions/short SHA without secrets",
+      "p1_source_acceptance": "mla codeshield status -> guarded local queue status -> redacted JSON, fail closed",
       "p2_deferred_tests": [
         "real Windows/pinned binary verification",
         "adversarial F18 and OS egress checks",
         "full CI integration/security/regression"
       ],
       "risk": "MEDIUM",
-      "source_status": "READY_CODE_ONLY",
-      "implementation_evidence_sha": null,
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "08e83eaec19786f6a8b2e0db5d613656d7aa166d",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -1169,15 +1169,15 @@
         "REAL_OS_BOUNDARY",
         "P2_PHASE_GATE"
       ],
-      "p1_source_acceptance": "loopback status view -> controller decision -> redacted nonexec CodeShield status",
+      "p1_source_acceptance": "app.build_read_only_app -> load_codeshield_source_status -> redacted FE app payload (real dashboard HTML rendering deferred)",
       "p2_deferred_tests": [
         "real Windows/pinned binary verification",
         "adversarial F18 and OS egress checks",
         "full CI integration/security/regression"
       ],
       "risk": "MEDIUM",
-      "source_status": "READY_CODE_ONLY",
-      "implementation_evidence_sha": null,
+      "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
+      "implementation_evidence_sha": "0d5368a9a8c9c3ce4a58999f71a5d2d56e4aa678",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
