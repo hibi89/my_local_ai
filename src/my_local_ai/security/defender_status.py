@@ -159,3 +159,160 @@ class OptionalDownloadScanIntent:
 def plan_optional_download_scan(*, file_sha256: str, scope_ref: str) -> OptionalDownloadScanIntent:
     """Prepare a data-only request; actual scan requires protected owner GO."""
     return OptionalDownloadScanIntent(file_sha256, scope_ref)
+
+
+# CS-SWU-012: create a *non-executing* owner-action request. The Controller
+# cannot authenticate an owner grant or F18 with user/model-supplied booleans.
+from hashlib import sha256 as _sha256
+import stat as _stat
+
+from .codeshield_contracts import (
+    CodeShieldContext, checked_relative_path,
+)
+from .ast_preflight import preflight_changed_paths
+
+_MAX_OWNER_SCAN_BYTES = 64 * 1024 * 1024
+_ALLOWED_SCAN_EXTENSIONS = frozenset({
+    ".exe", ".dll", ".msi", ".zip", ".ps1", ".js", ".py",
+})
+
+
+@dataclass(frozen=True)
+class DefenderOwnerScanRequest:
+    """Redacted, data-only intent; NEVER a grant to call Start-MpScan."""
+    context_sha256: str
+    candidate_git_sha: str
+    consent_reference: str
+    relative_target_sha256: str
+    content_sha256: str
+    content_size: int
+    stage: str = "HOLD_OWNER_ACTION_AND_TRUSTED_BROKER_NOT_AVAILABLE"
+    owner_grant_verified: bool = False
+    os_identity_verified: bool = False
+    scan_started: bool = False
+    defender_policy_modified: bool = False
+    f18_verified: bool = False
+    execute_download_allowed: bool = False
+
+    def __post_init__(self) -> None:
+        for digest in (
+            self.context_sha256, self.relative_target_sha256,
+            self.content_sha256,
+        ):
+            if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+                raise CodeShieldHold("UNTRUSTED_DECISION")
+        if (not isinstance(self.candidate_git_sha, str)
+            or re.fullmatch(r"[0-9a-f]{40}", self.candidate_git_sha) is None
+            or not isinstance(self.consent_reference, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{2,63}",
+                                self.consent_reference)
+            or type(self.content_size) is not int
+            or not 1 <= self.content_size <= _MAX_OWNER_SCAN_BYTES
+            or self.stage != "HOLD_OWNER_ACTION_AND_TRUSTED_BROKER_NOT_AVAILABLE"
+            or any(getattr(self, name) is not False for name in (
+                "owner_grant_verified", "os_identity_verified",
+                "scan_started", "defender_policy_modified", "f18_verified",
+                "execute_download_allowed",
+            ))):
+            raise CodeShieldHold("UNTRUSTED_DECISION")
+
+    def to_redacted_dict(self) -> dict[str, object]:
+        return {
+            "stage": self.stage,
+            "context_sha256": self.context_sha256,
+            "candidate_git_sha": self.candidate_git_sha,
+            "relative_target_sha256": self.relative_target_sha256,
+            "content_sha256": self.content_sha256,
+            "content_size": self.content_size,
+            "owner_grant_verified": False,
+            "independent_f18": False,
+            "scan_started": False,
+            "defender_policy_modified": False,
+            "execution_allowed": False,
+        }
+
+
+def _read_bounded_untrusted_scan_target(path: Path) -> tuple[str, int]:
+    """Read only regular non-link bytes; re-check ancestry and inode/size/mtime."""
+    try:
+        for segment in (path, *path.parents):
+            info = segment.lstat()
+            if (_stat.S_ISLNK(info.st_mode)
+                or getattr(info, "st_file_attributes", 0)
+                   & getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+                raise CodeShieldHold("UNSAFE_PATH")
+        before = path.lstat()
+        if (not _stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+            or not 1 <= before.st_size <= _MAX_OWNER_SCAN_BYTES):
+            raise CodeShieldHold("UNSAFE_PATH")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+        fd = os.open(path, flags)
+        digest = _sha256()
+        with os.fdopen(fd, "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            identity = (before.st_dev, before.st_ino, before.st_size,
+                        before.st_mtime_ns)
+            if ((opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+                != identity):
+                raise CodeShieldHold("STALE_EVIDENCE")
+            size = 0
+            while size <= _MAX_OWNER_SCAN_BYTES:
+                chunk = stream.read(min(65536, _MAX_OWNER_SCAN_BYTES - size + 1))
+                if not chunk:
+                    break
+                size += len(chunk)
+                digest.update(chunk)
+            endfd = os.fstat(stream.fileno())
+        after = path.lstat()
+        if (size != before.st_size
+            or (endfd.st_dev, endfd.st_ino, endfd.st_size, endfd.st_mtime_ns)
+               != identity
+            or (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+               != identity):
+            raise CodeShieldHold("STALE_EVIDENCE")
+        return digest.hexdigest(), size
+    except CodeShieldHold:
+        raise
+    except (OSError, OverflowError, ValueError):
+        raise CodeShieldHold("UNSAFE_PATH") from None
+
+
+def preview_owner_scoped_defender_scan(
+    context: CodeShieldContext, *,
+    disposable_worktree: str | Path,
+    original_checkout: str | Path,
+    target_relative_path: str,
+    expected_content_sha256: str,
+) -> DefenderOwnerScanRequest:
+    """Prepare a read-only scoped Defender scan request, not a scan or OS GO.
+
+    The caller's consent *reference* is not verified owner consent. An
+    independently protected Windows broker must validate the signer, lease,
+    scope, file identity and issue a separate action-bound grant later.
+    """
+    if not isinstance(context, CodeShieldContext):
+        raise CodeShieldHold()
+    relative = checked_relative_path(target_relative_path)
+    if (relative not in context.allowed_paths
+        or Path(relative).suffix.casefold() not in _ALLOWED_SCAN_EXTENSIONS
+        or not isinstance(expected_content_sha256, str)
+        or re.fullmatch(r"[0-9a-f]{64}", expected_content_sha256) is None):
+        raise CodeShieldHold("UNSAFE_PATH")
+    scope = preflight_changed_paths(
+        context, worktree=disposable_worktree,
+        original_checkout=original_checkout,
+        changed_paths=(relative,),
+    )
+    if scope.may_write or scope.may_execute or scope.git_diff_verified:
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    root = Path(disposable_worktree)
+    if not root.is_absolute():
+        raise CodeShieldHold("UNSAFE_PATH")
+    actual, size = _read_bounded_untrusted_scan_target(root / relative)
+    if actual != expected_content_sha256:
+        raise CodeShieldHold("STALE_EVIDENCE")
+    return DefenderOwnerScanRequest(
+        context.fingerprint_sha256, context.candidate_git_sha,
+        context.owner_consent_ref, _sha256(relative.encode("utf-8")).hexdigest(),
+        actual, size,
+    )
