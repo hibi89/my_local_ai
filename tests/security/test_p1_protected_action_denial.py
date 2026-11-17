@@ -156,66 +156,23 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class WindowsNoEgressProfileSafetyTests(unittest.TestCase):
-    """WSB config request cannot claim actual host egress or F18 proof."""
-
-    def _profile(self):
-        from my_local_ai.ax_runtime.isolation_runner import (
-            prepare_windows_no_egress_profile,
-        )
-        return prepare_windows_no_egress_profile(
-            task_id="TEST-001",run_id="RUN-001",
-            role="CODER", source_sha=A, plan_sha256=F,
-        )
-
-    def _check(self, profile):
-        from my_local_ai.ax_runtime.isolation_runner import (
-            audit_no_egress_profile,
-        )
-        return audit_no_egress_profile(
-            profile,expected_task_id="TEST-001",
-            expected_run_id="RUN-001",expected_role="CODER",
-            expected_source_sha=A,expected_plan_sha256=F,
-        )
-
-    def test_exact_policy_disables_guest_egress_and_all_host_mounts(self):
-        p=self._profile()
-        self.assertIn("<Networking>Disable</Networking>",p.config_xml)
-        self.assertIn("<ClipboardRedirection>Disable</ClipboardRedirection>",p.config_xml)
-        self.assertNotIn("MappedFolders",p.config_xml)
-        self.assertNotIn("LogonCommand",p.config_xml)
-        self.assertEqual(self._check(p),
-                         "POLICY_EXACT_MATCH_HOST_EGRESS_NOT_ATTESTED")
-        self.assertFalse(p.host_egress_attested)
-        self.assertFalse(p.sandbox_started)
-        self.assertFalse(p.may_start_worker)
-
-    def test_profile_mutation_and_role_switch_are_hard_holds(self):
-        from dataclasses import replace
-        from my_local_ai.ax_runtime.isolation_runner import WindowsIsolationHold
-        p=self._profile()
-        for mutated in (
-            replace(p,config_xml=p.config_xml.replace(
-                "<Networking>Disable</Networking>",
-                "<Networking>Enable</Networking>")),
-            replace(p,config_xml=p.config_xml.replace(
-                "</Configuration>","<MappedFolders></MappedFolders></Configuration>")),
-            replace(p,host_egress_attested=True),
-            replace(p,role="REVIEWER"),
+class ZeroVMPolicySafetyTests(unittest.TestCase):
+    def test_no_vm_container_profile_or_launch_api(self):
+        from my_local_ai.ax_runtime import isolation_runner as runner
+        for deprecated in (
+            "WindowsNoEgressProfile","prepare_windows_no_egress_profile",
+            "prepare_offline_coder_transport","run_protected_coder",
+            "_hold_live_zero_network_appcontainer",
+            "prepare_sandbox_readonly_patch_import",
+            "write_disposable_sandbox_manifest",
+            "generate_and_stage_public_synthetic_coder_input",
         ):
-            with self.subTest(mutated=mutated.role),self.assertRaises(WindowsIsolationHold):
-                self._check(mutated)
+            with self.subTest(api=deprecated):
+                self.assertFalse(hasattr(runner,deprecated))
 
-    def test_launch_remains_hold_despite_valid_policy(self):
-        from my_local_ai.ax_runtime.isolation_runner import (
-            WindowsIsolationHold,inspect_windows_profile_for_execution,
-        )
-        p=self._profile()
-        with self.assertRaises(WindowsIsolationHold) as caught:
-            inspect_windows_profile_for_execution(
-                p,expected_task_id="TEST-001",expected_run_id="RUN-001",
-                expected_role="CODER",expected_source_sha=A,
-                expected_plan_sha256=F,
-            )
-        self.assertEqual(caught.exception.code,
-                         "WINDOWS_HOST_ISOLATION_NOT_ATTESTED")
+    def test_no_generated_execution_grant(self):
+        from my_local_ai.ax_runtime.isolation_runner import deny_pure_player_network_operation
+        from my_local_ai.security.codeshield_contracts import CodeShieldHold
+        for op in ("NETWORK","SHELL","PYTHON_EXEC","WINDOWS_SANDBOX","DOCKER"):
+            with self.subTest(op=op),self.assertRaises(CodeShieldHold):
+                deny_pure_player_network_operation(op)

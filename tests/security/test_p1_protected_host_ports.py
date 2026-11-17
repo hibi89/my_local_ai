@@ -11,12 +11,6 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from my_local_ai.ax_runtime.isolation_runner import (
-    WindowsIsolationHold, prepare_windows_no_egress_profile,
-    prepare_offline_coder_transport, decode_untrusted_coder_outbox,
-    require_host_isolated_coder_runner,
-)
-from my_local_ai.ax_runtime.opencode_worker import PreparedOpenCodeRun
 from my_local_ai.contracts.approval import OwnerGrant
 from my_local_ai.review.trusted_runner import (
     build_reviewer_policy, prepare_review_request, plan_isolated_reviewer,
@@ -112,64 +106,37 @@ class ProtectedReviewTranscriptSafetyTests(unittest.TestCase):
                 canonicalize_fixed_review_observations(intent,observations)
 
 
-class WindowsOfflineCoderSafetyTests(unittest.TestCase):
-    def _transport(self):
-        profile=prepare_windows_no_egress_profile(
-            task_id="TEST-001",run_id="RUN-001",
-            role="CODER",source_sha=A,plan_sha256=F,
+class NoVMPurePlayerSafetyTests(unittest.TestCase):
+    def _context(self):
+        from my_local_ai.security.codeshield_contracts import CodeShieldContext, DataClass
+        return CodeShieldContext(
+            repository="hibi89/my_local_ai",task_id="TEST-001",run_id="RUN-001",
+            owner_consent_ref="SYNTHETIC",
+            plan_sha256=F,source_git_sha=A,candidate_git_sha=B,lease_epoch=1,
+            nonce_sha256="c"*64,allowed_paths=("src/demo.py",),
+            data_class=DataClass.PUBLIC_SYNTHETIC,scanner_pins=(),
         )
-        prepared=PreparedOpenCodeRun(
-            task_id="TEST-001",plan_sha256=F,source_sha=A,
-            allowed_paths=("src/demo.py",),worktree="C:/mlaguest/scratch",
-            argv=("opencode","run","--standalone","--archived",
-                  "--agent","build","--model","ollama/qwen3:4b-instruct",
-                  "--format","json","SYNTHETIC"),
-            environment=(("OLLAMA_HOST","http://127.0.0.1:11434"),),
-            prompt="SYNTHETIC",
+
+    def test_pure_player_rejects_exec_and_network(self):
+        from my_local_ai.ax_runtime.isolation_runner import (
+            prepare_pure_player_candidate,run_pure_player_nonexecuting_candidate,
+            deny_pure_player_network_operation,
         )
-        return prepare_offline_coder_transport(profile=profile,prepared=prepared)
-
-    def test_guest_outbox_valid_shape_never_promotes(self):
-        transport=self._transport()
-        raw=json.dumps({
-            "version":1,"task_id":"TEST-001","run_id":"RUN-001",
-            "transport_sha256":transport.request_sha256,
-            "output_sha256":F,"declared_paths":["src/demo.py"],"exit_code":0,
-        }).encode()
-        result=decode_untrusted_coder_outbox(raw,transport)
-        self.assertEqual(result.state,"UNTRUSTED_CODER_OUTBOX_F18_REQUIRED")
-        self.assertFalse(result.candidate_independently_verified)
-        self.assertFalse(result.may_promote)
-        self.assertFalse(transport.model_executed)
-        with self.assertRaises(WindowsIsolationHold):
-            require_host_isolated_coder_runner(
-                transport,protected_broker={"owner":True}
-            )
-
-    def test_guest_cannot_expand_path_or_forge_transport_sha(self):
-        transport=self._transport()
-        payload={
-            "version":1,"task_id":"TEST-001","run_id":"RUN-001",
-            "transport_sha256":transport.request_sha256,
-            "output_sha256":F,"declared_paths":["src/demo.py"],"exit_code":0,
-        }
-        for override in (
-            {"declared_paths":["../owner/.env"]},
-            {"transport_sha256":A},
-            {"exit_code":1},
-            {"declared_paths":["src/demo.py","src/demo.py"]},
-        ):
-            mutated={**payload,**override}
-            with self.subTest(override=override), self.assertRaises(
-                WindowsIsolationHold
-            ):
-                decode_untrusted_coder_outbox(
-                    json.dumps(mutated).encode(),transport,
-                )
-        with self.assertRaises(WindowsIsolationHold):
-            decode_untrusted_coder_outbox(
-                b'{"version":1,"version":1}',transport,
-            )
+        from my_local_ai.security.codeshield_contracts import CodeShieldHold
+        context=self._context()
+        for op in ("RUN_PYTHON","NETWORK","APPCONTAINER","WINDOWS_SANDBOX"):
+            with self.assertRaises(CodeShieldHold):
+                deny_pure_player_network_operation(op)
+        result=run_pure_player_nonexecuting_candidate(
+            context,prepare_pure_player_candidate(
+                context,operator_id="STATIC_AST_REVIEW",
+                proposed_files={"src/demo.py":"x=1"},
+            ),
+        )
+        self.assertFalse(result["generated_code_executed"])
+        self.assertFalse(result["independent_f18_verified"])
+        self.assertFalse(result["host_network_isolation_attested"])
+        self.assertFalse(result["git_promotion_allowed"])
 
 
 if __name__=="__main__":
