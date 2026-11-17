@@ -53,3 +53,27 @@ Windows Sandbox 게스트의 outbox 값만으로 PASS 인증 금지; reviewer �
 
 ## CLI 목표 (미구현)
 `mla doctor`, `mla plan validate`, `mla plan approve`, `mla queue status`, `mla queue start`, `mla queue stop`, `mla queue resume`, `mla benchmark --synthetic`, `mla evidence export --redacted`. 임의 셸 명령 금지, 테스트 argv allowlist. 중요한 repo 대상으로 항상 사전 승인.
+
+
+---
+
+## V1.1 보조 병렬 coder lane (설계만, 기본 OFF)
+
+원래 단일 로컬 Qwen 상주(1050Ti/16GB)는 **그대로**다. 추가 remote Hydrogen lane은 독립 승인된 작업만 처리하며 로컬 GPU 동시상주 요구를 늘리지 않는다.
+
+\`\`\`text
+My Local AI Controller [owner/plan SHA, DAG/READY, status authority]
+  |-- EAI AdvisorPort [non-authoritative]
+  +-- ProviderRegistry + PrivacyBudgetGuard + LeaseScheduler
+       |-- LOCAL Qwen + OpenCode [DEFAULT ON when approved/local configured]
+       |-- REMOTE Gemini 4 Hydrogen API [DEFAULT OFF; explicit egress/tier GO]
+       +-- WEB Instant [EXTERNAL HUMAN LANE; not API-invocable]
+              each coding worker => own disposable worktree, disjoint paths
+              => untrusted CandidateDiff
+              => independently trusted reviewer (F18)
+              => guarded local ref / HOLD / SQLite checkpoint
+\`\`\`
+
+계획 경로: \`src/my_local_ai/providers/{base,registry,policy,hydrogen}.py\`, \`src/my_local_ai/controller/provider_scheduler.py\`, \`src/my_local_ai/state/provider_recovery.py\`, \`tests/security/test_provider_*.py\`. **기존 dev 소스/파일명 점검 후 최소 변경**한다. Hydrogen은 코딩과 수정 후보 생성; API 응답 자체는 신뢰 검증이 아니다. 서로 다른 allowed_paths여도 lockfile/공유 스키마/종속 변경 충돌 시 병렬 실행 금지. 429/paid/no key/off -> local-only; safe checkpoint + lease fencing + source SHA 대조 후에만 재배정, 독립 READY는 계속.
+
+전체 BE/API/DB/FE/안전/수용 명세는 \`docs/DETACHABLE_MULTI_MODEL_WORKERS.md\`. 선택적 확장 큐는 \`docs/OPTIONAL_PROVIDER_TASK_QUEUE.json\`; **P1 30개 REQ·기존 phase gate 불변**.
