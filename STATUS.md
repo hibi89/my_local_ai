@@ -406,3 +406,16 @@
 8. **Original/backups:** Existing dev Git SHA preserved, no force push or source rebase; original EAI/Freelancer untouched; no Windows OS settings/anti-virus changes, no signers provisioned. Secrets/credentials never committed.
 9. **Next READY & acceptance:** CS-01 policy/immutable evidence/negative authorization schema; next CS-02 AST/path scan; independent compatible tasks follow source queue. Full acceptance REQ-CS-01..12 in acceptance matrix. Implement CodeShield without changing legacy 39 SWU/P2 gate, mandatory CI/F18 HOLD. Real untrusted code execution requires independent attested OS confinement + owner GO and cannot be inferred from scanners.
 10. **Review/date:** 2026-11-17 KST, only design + Git branch/docs operations verified, verified product feature scope ZERO. No owner runtime authorization, no ready-to-release or final integration claimed.
+
+---
+
+## 2026-11-17 KST — V1.3 CodeShield P1 source round 1 (feature branch)
+
+- Branch: `feature/code-shield-lightweight-v1`; source base `0365db53a7fc72afcd48522dd39ada91e8cf5566`.
+- Source commits: CS-01 policy/evidence contract `d082901654a5bc14fe1bdb74bc8da5754d4e343b`; CS-02 read-only bounded AST/changed path preflight `ed8eb3c6f884da5929e1c273a105f961ada43723`; CS-06 Defender read-only query plus *nonexecuting* optional scan intent `05c085223b9743aeedc14d69c6510782312029c1`; CS-03 pinned native Ruff adapter `a6ae00d5b4f9098a558c1c6a690f6377e5a94dcf`.
+- Source candidates: **CS-01, CS-02, CS-03 = 3/8 IMPLEMENTED_UNVERIFIED**. CS-06 is **PARTIAL_IMPLEMENTED_UNVERIFIED**: Defender read-only status implemented; explicitly owner-scoped optional actual download scan remains HOLD/not implemented. Remaining CS-04/05/07/08 not implemented.
+- Existing MLA baseline unchanged: 35/39 (89.74%) source candidates, accepted P1 REQ 5/30 (16.67%). Additional CodeShield sources tracked separately; no product 100% inference.
+- Immediate evidence: GitHub source-blob readback PASS; Python compile/smoke **NOT_RUN** (no Python runner reachable from GitHub connector); GH Actions on this feature SHA **NOT_RUN/NO MATCHING RUN**. Actual Windows Defender/Ruff/Semgrep/OSV/Gitleaks/Qwen/F18/OS isolation **NOT_RUN**. Do not treat written source as security-tested or grant execution.
+- F18 trusted reviewer, protected owner signer, P2, original/main/remote execution remain HOLD; no environment/AV policy/permissions changed, no model-generated code executed, no paid or private data transmitted.
+- Next source READY: CS-04 Semgrep local rules; CS-05 offline Gitleaks/OSV; complete CS-06 owner-scoped *optional* scan adapter where an approved protected owner grant exists, otherwise retain HOLD. After those, CS-07 Controller gate and CS-08 CLI/FE.
+- Failure attempts: no repeated implementation failure or 2+2 escalation consumed. Direct GH source writes succeeded. Local code syntax verification environment unavailable and deferred, not counted as a failed implementation attempt.
