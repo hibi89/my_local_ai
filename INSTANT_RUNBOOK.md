@@ -1,3 +1,12 @@
+## 사용자 지정 Sol Max 요청 경로 선택 (2026-11-17 KST)
+
+- **요청 책임:** 실제 SWU를 수행 중인 해당 제품 개발 작업자. 해총은 공통 정책만 유지한다.
+- **Codex**: 소스/기술 설계/코드 결함 재현과 수정, 보안·F18 신뢰 경계, CI/테스트/PR 기반 코드 검수. 작업 원본은 정확 branch/SHA로 고정한다.
+- **ChatGPT Work**: 소유자 승인 범위의 실제 브라우저/로그인·GitHub/Vercel 콘솔·외부 서비스 UI·멀티스텝 현장 조사/검증. Work 실행 자체를 Codex GPT-6.1 Sol Max 실행으로 오인하지 않는다. 모델 가용성은 별도 확인, 불확실하면 `MODEL_UNVERIFIED`.
+- **혼합 사례**: 코드 수정을 Codex 1차, 브라우저 재현/실검증을 Work 2차처럼 범위와 검증 책임을 분리. 필요없는 양쪽 동시 요청 금지.
+- **사용자 요청 형식(필수):** `요청자=제품 실작업자; 장애종류=즉시 필수 차단|2+2 일괄; 실행수단=Codex|Work; 선택 근거; 모델=실제 사용 가능/미확인; repo@branch@SHA; SWU/REQ; 이전 실패 0–4회 증거; 요청 작업/수용기준; allowed_paths; 비용/원본/권한/Production 사전 승인 필요 여부; 다른 READY 진행 여부`.
+- **절대 금지:** 모델 실행 여부 과장, 자동 사용자 GO, F18/원본/인증/비밀/Production/필수 CI 우회, 정책 변경을 제품 구현 진척으로 산정.
+
 > **[OWNER ESCALATION RESPONSIBILITY CORRECTION · 2026-11-17 KST · CURRENT]** `IMMEDIATE_OWNER_SOLMAX_REQUEST` 판단·사용자 요청·인수인계 책임자는 **그 SWU를 실제 수행하는 MLA 개발 작업자(해당 채팅의 P1 실행자)**이다. MLA 작업자가 최신 HEAD/코드/큐/의존성/증거를 직접 재확인하여 필수불가결·핵심 차단이라고 판정한 경우에만 즉시 사용자에게 Codex GPT-6.1 Sol Max를 요청한다. 2+2회 소진에 따른 `SOLMAX_BATCH_PENDING` 누적 및 일괄 요청도 MLA 작업자가 책임진다. **해총은 공통 규칙 유지·전파만 담당하며 MLA 작업의 Sol Max 요청을 대신하거나 선제 승인/실행하지 않는다.** 해총이 식별한 `MLA-SWU-008/021`은 MLA 담당자가 재판정할 참고 후보이지 실제 4회 실패·독립 검수 완료·확정 즉시 요청이 아니다. 사용자 GO, F18, 원본, 인증/권한, P2 LOCK 유지.
 
 > **OWNER-RETRY-2+2-SOLMAX-ESCALATION (2026-11-17 KST, latest):** P1 기능 SWU는 실제 개선 1회 완료 목표. 같은 원인 초기 최대 2회 의미 있는 무진전 실패→해당 SWU만 `ISOLATED_REDESIGN_PENDING` 격리하고 독립 READY 계속→원인/설계 변경 뒤 추가 최대 2회 다른 방법으로 재시도→누적 4회 실패 시 `SOLMAX_BATCH_PENDING`에 원인/SHA/실패 증거/안전 재현을 모아 Codex GPT-6.1 Sol Max 일괄 이관. 핵심 의존성·필수불가결/안전 우회 위험은 소진을 기다리지 않고 즉시 소유자에게 Sol Max 요청(`IMMEDIATE_OWNER_SOLMAX_REQUEST`). `ㄱ`·조회·문서·CI 조회·같은 방법 반복은 실패 시도에 미포함, 기존 누적 시도/원본 증거는 유지하고 과거 1~2회가 실제 실패였다고 추측하지 않는다. 과거 일반 2회·예외 3회 종료 규칙은 본 최신 지시로 대체. **P2 LOCK/F18·소유자 GO/원본·권한/비밀/필수 CI·신뢰 검증은 그대로**. 정본 [해총 2+2 SWU](https://github.com/hibi89/hackathon-command-center-2026/blob/kmong-productization/docs/strategy/GPT6_HIGH_STANDARD_WORK_UNIT_20261117.md) 및 [EAI 최초 적용](https://github.com/hibi89/EAI/blob/feature/kmong-eai-85-p31-20261112/docs/EAI_P1_SWU_RUNBOOK.md).
