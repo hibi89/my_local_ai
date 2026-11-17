@@ -176,3 +176,32 @@ def build_controller_hold_cycle_card(cycle: object) -> dict:
         "may_publish":False,
         "p2":"LOCKED",
     }
+
+
+
+def build_pure_player_nonexecuting_card(
+    *, plan_json: str, context: object, protected_states: dict[str, str],
+    operator_id: str, candidate_python_sources: dict[str, bytes | str] | None = None,
+    active_leases: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """BE->FE Pure Player call, never an OS execution or owner capability."""
+    from my_local_ai.orchestrator import inspect_pure_player_nonexecuting_cycle
+    from my_local_ai.security.codeshield_contracts import CodeShieldContext
+    if not isinstance(context, CodeShieldContext):
+        raise ValueError("invalid Pure Player context")
+    result = inspect_pure_player_nonexecuting_cycle(
+        plan_json=plan_json, context=context, protected_states=protected_states,
+        operator_id=operator_id, candidate_python_sources=candidate_python_sources,
+        active_leases=active_leases,
+    )
+    if (result.get("stage") != "PURE_PLAYER_NONEXECUTING_HOLD"
+        or result.get("typed_operator_executed") is not True
+        or result.get("model_code_executed") is not False
+        or result.get("execution_allowed") is not False
+        or result.get("owner_go_verified") is not False
+        or result.get("independent_f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False
+        or result.get("network_egress_allowed") is not False
+        or result.get("p2") != "LOCKED"):
+        raise ValueError("unsafe Pure Player application response")
+    return result

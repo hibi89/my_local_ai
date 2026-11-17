@@ -12,6 +12,7 @@ from my_local_ai.controller.codeshield import (
     LocalStaticAudit, deny_codeshield_controller_plan_action,
 )
 from my_local_ai.orchestrator import inspect_codeshield_controller_action_scoped
+from my_local_ai.app import build_pure_player_nonexecuting_card
 
 SOURCE = "a" * 40
 CANDIDATE = "b" * 40
@@ -114,6 +115,64 @@ class ControllerCodeShieldDispatchTests(unittest.TestCase):
                 deny_codeshield_controller_plan_action(
                     plan, ctx, states=states, active_leases=leases, audit=audit,
                 )
+
+
+    def test_pure_player_plan_only_and_ast_are_nonexecuting(self):
+        raw, plan, ctx, audit = make_fixture()
+        scope = build_pure_player_nonexecuting_card(
+            plan_json=raw, context=ctx, protected_states={TASK: "READY"},
+            operator_id="PLAN_SCOPE_REVIEW",
+        )
+        self.assertTrue(scope["typed_operator_executed"])
+        self.assertIsNone(scope["static_review"])
+        self.assertFalse(scope["model_code_executed"])
+        self.assertEqual(
+            scope["controller_dispatch"]["checks"]["TYPED_OPERATOR_DENY_RUNTIME"],
+            "HOLD",
+        )
+        with patch("my_local_ai.orchestrator.preview_codeshield_static",
+                   return_value={
+                       "execution_allowed": False,
+                       "owner_go_verified": False,
+                       "f18_verified": False,
+                   }) as ast:
+            static = build_pure_player_nonexecuting_card(
+                plan_json=raw, context=ctx, protected_states={TASK: "READY"},
+                operator_id="STATIC_AST_REVIEW",
+                candidate_python_sources={"src/sample.py": "x = 1\\n"},
+            )
+            ast.assert_called_once()
+        self.assertIsNotNone(static["static_review"])
+        self.assertFalse(static["git_promotion_allowed"])
+        self.assertFalse(static["network_egress_allowed"])
+
+    def test_pure_player_rejects_unlisted_or_stale_operations_before_parse(self):
+        raw, plan, ctx, audit = make_fixture()
+        for operation in ("RUN_PYTHON", "WINDOWS_SANDBOX", "SHELL", "", None, True):
+            with self.subTest(operation=operation):
+                with patch("my_local_ai.orchestrator.preview_codeshield_static") as ast:
+                    with self.assertRaises(ValueError):
+                        build_pure_player_nonexecuting_card(
+                            plan_json=raw, context=ctx, protected_states={TASK: "READY"},
+                            operator_id=operation, candidate_python_sources={
+                                "src/sample.py": "import os"
+                            },
+                        )
+                    ast.assert_not_called()
+        with patch("my_local_ai.orchestrator.preview_codeshield_static") as ast:
+            with self.assertRaises((ValueError, CodeShieldHold)):
+                build_pure_player_nonexecuting_card(
+                    plan_json=raw, context=replace(ctx, source_git_sha="d" * 40),
+                    protected_states={TASK: "READY"}, operator_id="STATIC_AST_REVIEW",
+                    candidate_python_sources={"src/sample.py": "x = 1"},
+                )
+            ast.assert_not_called()
+
+    def test_controller_exports_no_banned_sandbox_preview_port(self):
+        import my_local_ai.controller.codeshield as controller
+        import my_local_ai.orchestrator as orchestration
+        self.assertFalse(hasattr(controller, "preview_semgrep_sandbox_fallback"))
+        self.assertFalse(hasattr(orchestration, "preview_codeshield_sandbox_fallback"))
 
 
 if __name__ == "__main__":

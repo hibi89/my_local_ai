@@ -306,7 +306,7 @@ def audit_scoped_sources(
 # This is never a trusted OS execution/signer/CAS implementation.
 _DISPATCH_STAGES = (
     "SOURCE_PLAN_LEASE", "WORKTREE_SCOPE", "STATIC_SCANNERS",
-    "OWNER_ACTION_GRANT", "WINDOWS_NO_EGRESS_BROKER",
+    "OWNER_ACTION_GRANT", "TYPED_OPERATOR_DENY_RUNTIME",
     "INDEPENDENT_F18", "GIT_CAS_PROMOTION",
 )
 
@@ -387,7 +387,7 @@ def preview_protected_dispatch_hold(
         "WORKTREE_SCOPE": "HOLD",
         "STATIC_SCANNERS": "HOLD",
         "OWNER_ACTION_GRANT": "HOLD",
-        "WINDOWS_NO_EGRESS_BROKER": "HOLD",
+        "TYPED_OPERATOR_DENY_RUNTIME": "HOLD",
         "INDEPENDENT_F18": "HOLD",
         "GIT_CAS_PROMOTION": "HOLD",
     }
@@ -435,55 +435,13 @@ def preview_protected_dispatch_hold(
         reasons.append("UNTRUSTED_EXECUTION_DENIED")
     else:
         reasons.append("STATIC_ONLY_NO_DISPATCH")
-    reasons.extend(("OWNER_ACTION_NOT_ATTESTED", "F18_OS_CAS_NOT_ATTESTED"))
+    reasons.extend(("OWNER_ACTION_NOT_ATTESTED", "F18_CAS_NOT_ATTESTED", "UNTRUSTED_CODE_AUTORUN_DISABLED"))
     return ProtectedDispatchHold(
         context.fingerprint_sha256, context.candidate_git_sha,
         action, outcome,
         tuple((stage, stages[stage]) for stage in _DISPATCH_STAGES),
         tuple(sorted(set(reasons))),
     )
-
-
-# CS-SWU-014 supporting port: expose the inert CS-SWU-007 offline fallback.
-# It is only a read-only planning path, not a Windows Sandbox launcher.
-from my_local_ai.security.semgrep_adapter import (
-    prepare_protected_semgrep_request as _prepare_semgrep_request,
-    prepare_on_demand_sandbox_fallback as _prepare_semgrep_sandbox_fallback,
-)
-
-
-def preview_semgrep_sandbox_fallback(
-    context: CodeShieldContext, *,
-    executable: str | _Path, local_rules: str | _Path,
-    disposable_worktree: str | _Path,
-    original_checkout: str | _Path,
-    changed_paths: tuple[str, ...],
-    minimal_staging_folder: str | _Path,
-) -> dict[str, object]:
-    """Controller => pinned static request => sealed no-network WSB preview.
-
-    It never writes a .wsb file, starts Sandbox, changes Windows features,
-    grants execution or signs a CodeShield decision. Outputs are redacted.
-    """
-    if not isinstance(context, CodeShieldContext):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    req = _prepare_semgrep_request(
-        context, executable=executable, local_rules=local_rules,
-        disposable_worktree=disposable_worktree,
-        original_checkout=original_checkout,
-        changed_paths=changed_paths,
-    )
-    preview = _prepare_semgrep_sandbox_fallback(
-        req, minimal_staging_folder=minimal_staging_folder,
-    )
-    result = preview.to_redacted_dict()
-    if (result.get("may_launch_sandbox") is not False
-        or result.get("may_run_scanner") is not False
-        or result.get("os_isolation_attested") is not False
-        or result.get("f18_verified") is not False
-        or result.get("git_promotion_allowed") is not False):
-        raise CodeShieldHold("UNTRUSTED_DECISION")
-    return result
 
 
 def deny_codeshield_controller_plan_action(
@@ -497,8 +455,8 @@ def deny_codeshield_controller_plan_action(
     This is the real application entry/callee for CS-SWU-014, NOT a second
     executor. Both PlanSpec and CodeShieldContext may be guest-controlled
     data; agreement between them proves only shape, not owner/OS trust.
-    Actual owner grant verification, native isolation, independent F18 and
-    Git compare-and-swap remain inaccessible and always HOLD.
+    Actual owner grant verification, independent F18 and Git CAS remain
+    unavailable and HOLD; VM/container fallback is forbidden.
     """
     from my_local_ai.contracts.plan import PlanSpec
     from my_local_ai.controller.decision import Controller

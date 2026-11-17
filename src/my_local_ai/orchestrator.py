@@ -372,7 +372,7 @@ def persist_controller_review_hold_cycle(
 
 # V1.3: static risk decision, not the real OS/code execution path.
 # Keep the public call explicitly nonexecuting. Actual dispatch must also
-# enforce the protected F18/owner/sandbox safety gate in later SWUs.
+# enforce the protected F18/owner/typed-operator safety gate in later SWUs.
 from my_local_ai.security.codeshield_contracts import (
     CodeShieldContext as _CodeShieldContext,
     ScannerEvidence as _ScannerEvidence,
@@ -481,38 +481,6 @@ def preview_codeshield_controller_dispatch_hold(
     return payload
 
 
-# Explicit opt-in *preview* only: Windows Sandbox networking disabled config.
-# This never opens a Sandbox, exports host file paths or generates an owner GO.
-from my_local_ai.controller.codeshield import (
-    preview_semgrep_sandbox_fallback as _preview_semgrep_sandbox_fallback,
-)
-
-
-def preview_codeshield_sandbox_fallback(
-    *, context: _CodeShieldContext, executable: str | _Path,
-    local_rules: str | _Path, disposable_worktree: str | _Path,
-    original_checkout: str | _Path, changed_paths: tuple[str, ...],
-    minimal_staging_folder: str | _Path,
-) -> dict[str, object]:
-    result = _preview_semgrep_sandbox_fallback(
-        context, executable=executable, local_rules=local_rules,
-        disposable_worktree=disposable_worktree,
-        original_checkout=original_checkout, changed_paths=changed_paths,
-        minimal_staging_folder=minimal_staging_folder,
-    )
-    if (result.get("stage") != "WINDOWS_SANDBOX_FALLBACK_CONFIG_ONLY"
-        or result.get("networking_requested") != "Disable"
-        or result.get("readonly_mapping_requested") is not True
-        or result.get("logon_command_present") is not False
-        or result.get("may_launch_sandbox") is not False
-        or result.get("may_run_scanner") is not False
-        or result.get("os_isolation_attested") is not False
-        or result.get("f18_verified") is not False
-        or result.get("git_promotion_allowed") is not False):
-        raise ValueError("unsafe CodeShield Sandbox preview")
-    return result
-
-
 def inspect_codeshield_controller_action_scoped(
     *, plan_json: str, context: _CodeShieldContext,
     protected_states: dict[str, str],
@@ -530,7 +498,7 @@ def inspect_codeshield_controller_action_scoped(
     """Actual P1 request -> immutable Controller -> static scan -> deny.
 
     Fail closed on stale task/plan/source/allowed paths BEFORE reading files or
-    consulting optional pinned scanners. Native scanner execution never
+    consulting optional pinned scanners. Pinned scanner execution never
     authorizes untrusted candidate execution, owner action, F18, or Git.
     """
     from my_local_ai.contracts.plan import PlanSpec
@@ -580,5 +548,85 @@ def inspect_codeshield_controller_action_scoped(
         "phase": "P1_SOURCE_ONLY",
         "execution_allowed": False,
         "owner_go_verified": False,
+        "p2": "LOCKED",
+    }
+
+
+
+# MLA-SWU-038: EAI-style Pure Player contract adapted to MLA's own Controller.
+# This registry deliberately offers ONLY trusted, in-process bounded CPU
+# preflight operations; it never dispatches model-written Python/JS/commands.
+_PURE_PLAYER_TYPED_OPERATIONS = frozenset({
+    "PLAN_SCOPE_REVIEW", "STATIC_AST_REVIEW",
+})
+
+
+def inspect_pure_player_nonexecuting_cycle(
+    *, plan_json: str, context: _CodeShieldContext,
+    protected_states: dict[str, str], operator_id: str,
+    candidate_python_sources: dict[str, bytes | str] | None = None,
+    active_leases: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """App -> immutable Controller -> fixed pure op -> safety HOLD result.
+
+    The caller supplies task/plan data, NOT an executable callback or argv.
+    No generated code/guest test/shell/OS/container/network action can run.
+    A valid static result is evidence about candidate text, not F18 or GO.
+    """
+    from my_local_ai.contracts.plan import PlanSpec
+    from my_local_ai.controller.codeshield import (
+        deny_codeshield_controller_plan_action,
+    )
+    if (type(operator_id) is not str
+        or operator_id not in _PURE_PLAYER_TYPED_OPERATIONS
+        or type(plan_json) is not str
+        or not isinstance(context, _CodeShieldContext)
+        or type(active_leases) is not tuple):
+        raise ValueError("unsupported Pure Player typed operator")
+    if (operator_id == "PLAN_SCOPE_REVIEW"
+        and candidate_python_sources is not None):
+        raise ValueError("plan-only operation cannot consume generated source")
+    if (operator_id == "STATIC_AST_REVIEW"
+        and (type(candidate_python_sources) is not dict
+             or not candidate_python_sources)):
+        raise ValueError("bounded candidate source required")
+    plan = PlanSpec.parse_json(plan_json)
+    # Check exact task/source/path/lease shape BEFORE any static source parse.
+    denial = deny_codeshield_controller_plan_action(
+        plan, context, states=protected_states,
+        audit=None, action=_ActionKind.STATIC_READ,
+        active_leases=active_leases,
+    ).to_redacted_dict()
+    if (denial["stage"] != "P1_CONTROLLER_DISPATCH_DENIED"
+        or denial["execution_allowed"] is not False
+        or denial["owner_consent_verified"] is not False
+        or denial["f18_independently_verified"] is not False
+        or denial["can_promote_git"] is not False):
+        raise ValueError("Pure Player Controller authority mismatch")
+    static = None
+    if operator_id == "STATIC_AST_REVIEW":
+        static = preview_codeshield_static(
+            context=context,
+            candidate_python_sources=candidate_python_sources,
+            action=_ActionKind.STATIC_READ,
+        )
+        if (static["execution_allowed"] is not False
+            or static["owner_go_verified"] is not False
+            or static["f18_verified"] is not False):
+            raise ValueError("untrusted Pure Player static result")
+    return {
+        "stage": "PURE_PLAYER_NONEXECUTING_HOLD",
+        "operator_id": operator_id,
+        "context_sha256": context.fingerprint_sha256,
+        "candidate_git_sha": context.candidate_git_sha,
+        "controller_dispatch": denial,
+        "static_review": static,
+        "typed_operator_executed": True,
+        "model_code_executed": False,
+        "owner_go_verified": False,
+        "independent_f18_verified": False,
+        "execution_allowed": False,
+        "git_promotion_allowed": False,
+        "network_egress_allowed": False,
         "p2": "LOCKED",
     }
