@@ -398,3 +398,45 @@ def preview_protected_dispatch_hold(
         tuple((stage, stages[stage]) for stage in _DISPATCH_STAGES),
         tuple(sorted(set(reasons))),
     )
+
+
+# CS-SWU-014 supporting port: expose the inert CS-SWU-007 offline fallback.
+# It is only a read-only planning path, not a Windows Sandbox launcher.
+from my_local_ai.security.semgrep_adapter import (
+    prepare_protected_semgrep_request as _prepare_semgrep_request,
+    prepare_on_demand_sandbox_fallback as _prepare_semgrep_sandbox_fallback,
+)
+
+
+def preview_semgrep_sandbox_fallback(
+    context: CodeShieldContext, *,
+    executable: str | _Path, local_rules: str | _Path,
+    disposable_worktree: str | _Path,
+    original_checkout: str | _Path,
+    changed_paths: tuple[str, ...],
+    minimal_staging_folder: str | _Path,
+) -> dict[str, object]:
+    """Controller => pinned static request => sealed no-network WSB preview.
+
+    It never writes a .wsb file, starts Sandbox, changes Windows features,
+    grants execution or signs a CodeShield decision. Outputs are redacted.
+    """
+    if not isinstance(context, CodeShieldContext):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    req = _prepare_semgrep_request(
+        context, executable=executable, local_rules=local_rules,
+        disposable_worktree=disposable_worktree,
+        original_checkout=original_checkout,
+        changed_paths=changed_paths,
+    )
+    preview = _prepare_semgrep_sandbox_fallback(
+        req, minimal_staging_folder=minimal_staging_folder,
+    )
+    result = preview.to_redacted_dict()
+    if (result.get("may_launch_sandbox") is not False
+        or result.get("may_run_scanner") is not False
+        or result.get("os_isolation_attested") is not False
+        or result.get("f18_verified") is not False
+        or result.get("git_promotion_allowed") is not False):
+        raise CodeShieldHold("UNTRUSTED_DECISION")
+    return result
