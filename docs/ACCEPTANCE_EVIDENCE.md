@@ -78,3 +78,8 @@ Latest P1 synthetic run `44018982422` on `471e4b601c0cb50fb8b0bd6de71fd79495ee18
 ## 2026-11-17 P1 benchmark/SQLite/recovery synthetic source evidence
 
 At code SHA \`fcdd0371eab25691a9c1e97f1575875f31c5b079\`, mandatory Actions \`44025805677\` SUCCESS: compile, 120 unit, 75 synthetic integration, 130 synthetic security = **325/325 PASS**. Prior \`bc01f347...\` 2 regression errors due empty TEMP metadata were corrected in the next code commit. MLA-005 fake workload cannot prove actual tokens/sec/accepted REQ/hour; MLA-020 real Qwen/Ollama never called; MLA-007/017 checks only disposable SQLite data, not user Windows ACL/physical recovery. Independent OS F18, owner signer, real model, 24h and browser remain NOT_RUN, official verification UNASSESSED, code REQ 5/30.
+
+
+## 2026-11-17 P1 3-wave accelerated source evidence (not P2)
+
+At exact last code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, mandatory Actions \`44027273837\` passed syntax, 133 unit, 77 synthetic integration, 135 synthetic security (**345/345 PASS**). Earlier source \`0e755c17...\` passed 335, \`1ee35c87...\` passed 341. MLA-010/011/012 source scheduler/lock/Ollama, MLA-002/004/013 contracts/OpenCode/safety CI, MLA-019/021/025 BE/FE redaction/queue consistency/P2 harness contract are code authoring only. All actual owner Windows, Qwen/OpenCode process, OS independent F18 reviewer, real 24h, Playwright/browser remain NOT_RUN. Code REQ 5/30 unchanged; official verification UNASSESSED, real use HOLD.

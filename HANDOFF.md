@@ -229,3 +229,19 @@
 8. **Rights/backup/security:** only own GitHub dev branch and disposable DB fixtures touched; Git history preserved. No actual owner DB/secret upload/remote PR/main/Production/paid APIs/signer policy changes.
 9. **Next READY:** \`MLA-010\` scheduler code, \`MLA-011\` model budget/lock code, \`MLA-012\` local Qwen provider code; P1 CODE_ONLY source/tests only. Do not run real model/OS/Git operations or lift blocked dependencies. Reconsider gaps with High if architectural/trust boundary changes needed.
 10. **Time/basis:** 2026-11-17 KST, source evidence exact SHA above and Actions \`44025805677\` results. Unexecuted checks NOT_RUN; final design unchanged.
+
+
+---
+
+# 2026-11-17 KST latest GPT-6 Instant P1 execution handoff (3 accelerated code waves)
+
+1. **Goal:** My Local AI independent offline-first controller, Qwen/Ollama/OpenCode local coding ports, optional EAI advisory only; 30 P1 code REQs/28 source tasks, P2 after High candidate exact SHA.
+2. **Code implemented:** MLA-010 DAG plan provenance/invalid ready, MLA-011 time budget/one-model lock inode race, MLA-012 local Ollama response validation; MLA-002 stricter Windows path/NUL TaskSpec, MLA-004 CI/read-only phase smoke, MLA-013 OpenCode ancestor symlink/reparse refusal; MLA-019 strict redacted BE/FE planning metadata, MLA-021 gate/queue consistency, MLA-025 explicitly NOT_RUN P2 evidence manifest. All nine source tasks strengthened across three coding waves.
+3. **Tests:** final CODE SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`, GitHub Actions \`44027273837\` SUCCESS, syntax PASS; **133 unit + 77 synthetic integration + 135 synthetic security = 345/345 PASS**. Prior completed CI \`44026734085\` 335/335 at \`0e755c17...\`, \`44027021594\` 341/341 at \`1ee35c87...\`. Real Windows/Qwen/OpenCode/OS F18/24h/browser **NOT_RUN**.
+4. **Progress:** P1 code REQ **5/30=16.67%** still, 28/28 task source evidence not full REQ acceptance; official P2 verification UNASSESSED, P2 LOCKED, REAL_USE HOLD, release not authorized.
+5. **Regressions and fixes:** null task.plan_sha is legitimate unsigned PlanSpec, fixed in wave 1; monotonic initial time may be finite negative, fixed erroneous test; escaped NUL literal bug fixed in wave 2. Latest exact code CI fully PASS. Remaining blockers: provenance MLA-001, F18 OS isolation MLA-003, protected owner signer MLA-009 and true Git/Windows integration.
+6. **Git:** \`hibi89/my_local_ai@dev/instant-implementation-v1\`; last confirmed code SHA \`6e3704aedea3a255bec6731ca46c3f468d729a91\`. HEAD advances when this documentation/queue commit lands; fetch exact HEAD before new work.
+7. **Production/owner hardware:** no Production or remote PR; only public owned dev GitHub branch and GitHub Ubuntu Python3.11 synthetic CI used. Owner Windows 11 GTX1050Ti/Qwen and live sandbox NOT_RUN.
+8. **Preservation:** original EAI/AX/main/F18 trust boundaries/owner credentials untouched; no secret/customer data/paid/cloud/network publishing, no actual execution, no owner DB writes or Git promotion. \`docs/FINAL_BLUEPRINT.md\` unchanged; runtime \`depends_on\`, REQ denominator, P2 lock retained.
+9. **Next READY:** P1 CODE_ONLY \`MLA-006\` CLI, \`MLA-008\` protected decision source, \`MLA-028\` optional EAI adapter. After source hardening, High should assess real remaining REQ gaps and F18 protected owner-signer OS design to prevent repeated path-hardening without REQ completion.
+10. **Basis:** 2026-11-17 KST, exact last code SHA and Actions \`44027273837\`; documentation commit SHA must be verified. No P2/independent reviewer verdict claimed.
