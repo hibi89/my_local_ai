@@ -18,10 +18,7 @@
   "code_completed_req": 5,
   "official_verification": "UNASSESSED",
   "task_count": 28,
-  "first_ready": [
-    "MLA-013",
-    "MLA-020"
-  ],
+  "first_ready": [],
   "verification_queue": "VERIFICATION_TASK_QUEUE.json",
   "phase_gate": "WORK_PHASE_GATES.json",
   "allowed_before_P1_candidate": [
@@ -357,9 +354,11 @@
       "acceptance": "Guard effective OpenCode tool permissions/config/argv and prompt injection; model edits approved disposable paths only",
       "safety_checks": "LOCAL_MODEL_ONLY;NO_UNTRUSTED_HOST_EXECUTION",
       "risk": "CRITICAL",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "748caecf30e680b2794fde287bbf674801c88079",
+      "blockers": [
+        "Concrete isolated OS sandbox runner, effective OpenCode runtime/version validation and safe worktree attachment are NOT_RUN / MLA-014, MLA-015 dependencies; no host fallback"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"
@@ -542,9 +541,11 @@
       "acceptance": "Code benchmark harness and mocked tests; actual owner Windows/Qwen benchmark deferred to P2",
       "safety_checks": "OWNER_DEVICE;NO_MODEL_DOWNLOAD;NO_BILLING",
       "risk": "MEDIUM",
-      "status": "READY",
-      "evidence_sha": null,
-      "blockers": [],
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "evidence_sha": "63995bfaa0d425d3b361cc9462bbdf37b8b63f5c",
+      "blockers": [
+        "Actual owner Windows/Qwen benchmark deferred to P2; tests/integration mock harness authored but not executed in mandatory CI"
+      ],
       "phase": "P1_IMPLEMENTATION",
       "completion_rule": "SOURCE_IMPLEMENTED_UNVERIFIED_WITH_REQ_PATH_AND_SHA_EVIDENCE",
       "verification_status": "NOT_RUN"

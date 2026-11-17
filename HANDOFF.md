@@ -89,3 +89,18 @@
 8. **원본/보안:** .env/고객 자료/토큰/모델/비공개 소스 GitHub 미반영. 로컬 HTTP 경로 `/api/tags`, `/api/generate` 외 차단. 사용자 승인 없는 OS 권한·원격 사용·main 병합 금지. 변경 취소는 기존 Git history에서 가능.
 9. **다음 READY:** `MLA-013` OpenCode worker 실행계약/권한/argv·environment·격리 fail-closed, `MLA-020` local benchmark **하네스만**; dependency/allowed_paths 재확인 후 독립 작업 묶음. 완료 후보의 정직한 REQ 단위 산정 및 고위험 국소 검사 필수.
 10. **갱신/검증 경계:** 2026-11-17 KST, source SHA `1d29951f5a0b0fdbb0585a98b523842a917df6e8`, GitHub Actions `44012906535`; P2/Windows/브라우저/실 OS F18는 미검증. 다음 `ㄱ`에서 최신 HEAD→AGENTS→queue→원본 코드 후 실제 구현 수행.
+
+---
+
+## 2026-11-17 KST P1 최신 실행 인수인계 — MLA-013+020
+
+1. 임무/기술: My Local AI 독자 로컬 Controller+Qwen/Ollama/OpenCode P1. 선택형 Hydrogen/Experience는 설계만, 기존 REQ 분모 30 불변.
+2. 완료 작업: MLA-013 security-gated OpenCode launch request/policy/attested sandbox port with guest self-PASS refusal (SHA `748caecf30e680b2794fde287bbf674801c88079`), MLA-020 mocked local benchmark harness/P2 real-call gate/evidence schema (SHA `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c`). 새 소스·테스트·문서 5파일만 추가.
+3. 테스트: GitHub Actions `44014035939` @ `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c` syntax PASS / unit 54 PASS / security 32 PASS. `tests/integration/test_real_model_gate.py`는 **작성만, NOT_RUN**; actual OpenCode/Ollama/Windows/independent F18/24h/Playwright NOT_RUN. 전체 P2 수용은 미실시.
+4. 구현완료율 **5/30 = 16.67% (변동 없음)**. MLA-013+020은 각각 `IMPLEMENTED_UNVERIFIED` 코드 후보, REQ-11/24/27 전수 구현 조건은 sandbox·전체 계측/실통합 부재로 완료 분자 제외. P1 code task 11/28 작성후보. P2 LOCKED, 공식 검증률 UNASSESSED.
+5. BLOCKER: F18 독립 OS 격리 및 forged receipt CRITICAL HOLD; owner protected signer/GO issuance HOLD; EAI/AX 원본 라이선스 권리 불명 BLOCKED_PROVENANCE. OpenCode native permission policy만으로 실제 host confinement 불가. `run_in_sandbox`는 기본 no-run, 외부 attested runner 없으면 HOLD.
+6. Repo `hibi89/my_local_ai`, branch `dev/instant-implementation-v1`; 소스 SHA `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c`; 상태/큐/문서 갱신 이후 HEAD 재확인. Design `design/final-blueprint-v1` last observed `e08e127dc372023d4ece477b176b99ac3b9d6412`.
+7. Windows device/실모델/배포: NOT_RUN/HOLD. Production 미적용. 합성 CI 통과만 확인.
+8. 비밀/원본/보안: no external API, no model pull, no main merge, no remote PR/permission changes. 원본 EAI/AX 미수정. Model prompt/output 원문은 benchmark evidence에 저장하지 않음.
+9. 다음 작업: 큐 `first_ready=[]` (2 READY 소진). 기존 `MLA-001` provenance·LICENSE 블록 및 `MLA-003`/009 F18/trust-root 블록을 High 설계 판단과 연결한 뒤 실제 의존성 해소 및 MLA-014 등 다음 READY 수행. 새 `ㄱ`마다 GitHub 최신 정책/HEAD와 blocked dependencies 확인; 사용자 PC 작업 금지.
+10. KST 2026-11-17, exact evidence sources 위 2 SHA, P1 소스 후보, P2 독립 검증 미실시. 과거 문서의 구형 READY 우선순위 대신 실제 최신 큐를 사용.

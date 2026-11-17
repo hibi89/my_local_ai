@@ -75,3 +75,14 @@
 - **합성 국소:** 별도 개발 컨테이너 Python 문법 검사 PASS, 10/10 mocked security tests PASS (기존 budgets/worker_lock은 로컬 합성 스텁으로 연결 테스트; GitHub CI는 실제 모듈에 실행). **GitHub 필수 CI** `44012906535` @ `1d29951f5a0b0fdbb0585a98b523842a917df6e8` **SUCCESS**, syntax/unit/security synthetic jobs PASS. 실제 Windows/Ollama/Qwen/OpenCode/real browser/independent OS F18/24h `NOT_RUN`.
 - 큐: MLA-012 `IMPLEMENTED_UNVERIFIED`; MLA-013 (OpenCode 정책 격리) 및 MLA-020 (benchmark 실행 하네스, 실모델 호출 P2) `READY`. MLA-001 `BLOCKED_PROVENANCE`, MLA-003 F18 `SECURITY_HOLD`, MLA-009 owner signer `HOLD` 유지.
 - **공식 검증완료율: UNASSESSED**, P2 `LOCKED`, 사용자 실사용 `HOLD`. 원본 EAI/AX/main 변경 없음. 설계 브랜치 신규 V1.2 경험학습 확장은 별도 설계로 유지하며 P1 30 REQ 분모에 산입하지 않음.
+
+---
+
+## 2026-11-17 KST P1 구현 8차 — MLA-013, MLA-020 (실제 2코드 작업)
+
+- **구현완료율 유지 5/30 = 16.67%** (REQ-04/08/10/18/29). 이번 2개 작업의 코딩 후보는 작성했으나 REQ-11 실 격리 runner·실 OpenCode 경로, REQ-24 F18/주입 전체, REQ-27 독립 계측과 실제 accepted REQ/hour 수용을 채우지 못해 신규 완결 REQ 분자 **0**. P1 과장된 증가 금지.
+- **MLA-013 코드 SHA `748caecf30e680b2794fde287bbf674801c88079`:** `src/my_local_ai/ax_runtime/opencode_worker.py`, `tests/security/test_opencode_policy.py`. OpenCode V2 explicit tool deny+allow exact edit/read, no shell/remote/auto privilege, fixed Qwen/Ollama argv, owner HMAC+revocation+plan/source SHA, one model lock/budget, disposable worktree request check. Injected attested sandbox port 외에는 launch 없음, output `REVIEW_PENDING` untrusted. 실제 OpenCode binary/version·protected OS sandbox runtime `NOT_RUN`, F18 security HOLD.
+- **MLA-020 코드 SHA `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c`:** `scripts/benchmark_real_local.py`, `tests/integration/test_real_model_gate.py`, `docs/LOCAL_MODEL_EVIDENCE.md`. mock-only evidence `MOCK_ONLY`, real-call path P2 owner grant/high/Windows/exact SHA guard, no live benchmark auto call, raw prompt/response 미저장. RAM/VRAM/power/accepted REQ/hour는 미실측 `null`. **tests/integration** mock tests **작성만, 실행 NOT_RUN**.
+- **GitHub 필수 합성 CI PASS** `44013825139` at `748caecf30e680b2794fde287bbf674801c88079`, `44014035939` at `63995bfaa0d425d3b361cc9462bbdf37b8b63f5c`. 최신 CI syntax PASS, unit **54/54 PASS**, security **32/32 PASS**. 이는 브라우저·실 Windows·실 모델·F18/24h/P2 전수 검증이 아님.
+- **P1 작업 작성 후보:** 이전 9/28 (MLA-012 포함) + MLA-013, MLA-020 = **11/28**; `MLA-001 BLOCKED_PROVENANCE`, `MLA-003 PARTIAL_F18_SECURITY_HOLD`, `MLA-009 PARTIAL_TRUST_ROOT_HOLD`. 다음 queue READY = 0 (잔여 작업이 의존성/보안 차단). High 판단 필요: 권리 미해결 시 원본 복사 없이 신규 코드 경로 승인, isolated F18 trust boundary 및 protected owner signer 설계·작업 차단 해소. 차단 항목과 무관한 범위만 재개.
+- **P2 `LOCKED`, 공식 검증완료율 `UNASSESSED`, 실사용 `HOLD`.** GitHub main, EAI, AX Dev Factory, 사용자 PC/OS/외부 API/Production 미변경.
