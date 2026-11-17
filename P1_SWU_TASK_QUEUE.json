@@ -1364,8 +1364,8 @@
         "MLA-003": 0,
         "MLA-013": 0
       },
-      "attempts_used": 2,
-      "attempts_note": "Source attempts 2/2: (1) fixed OpenCode/WSB offline transport; (2) real host-local Qwen JSON inference source, strict untrusted file parser and one-run read-only guest import configuration. Both improved source; real isolated guest execution/result extraction and independent owner/F18 remain blocked. High review needed before any further attempt.",
+      "attempts_used": 3,
+      "attempts_note": "Existing 2 source implementation improvements retained. 2026-11-18 further code wave produced real public/synthetic local Ollama -> exact file -> scratch one-shot IO; positive progress, not an initial or post-isolation nonprogress failure.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-013": "fbea29f35a47c9f87dc8e0eaaf0667fbf6cc4998"
@@ -1391,12 +1391,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "0cdec8816b53d072bf776db1ac6cfec827e0ea2f",
+      "partial_source_sha": "796f8e2bc365fad1116751d676759dd256be9f4f",
       "partial_source_paths": [
         "src/my_local_ai/ax_runtime/isolation_runner.py"
       ],
-      "partial_source_description": "Host Qwen generates candidate files via fixed localhost-only Ollama /api/generate under explicit PUBLIC_SYNTHETIC_ONLY scope and BudgetGuard; output is strictly untrusted, bounded and allowlisted. Exact no-network WSB and read-only host scratch import plan bind task/run/SHA. No guest invocation, host file writes, model execution evidence, owner signer or F18 receipt.",
-      "runtime_gap": "Missing installed protected Windows guest executor and safe guest result extraction; real owner ACL and no-egress runtime verification. Independent F18 reviewer/owner action GO remain HOLD. Read-only scratch mapping does not attest OS boundary. Windows CLI/WinApp tools not installed/probed; WinApp may enable Developer Mode/inbound firewall, requiring separate approval.",
+      "partial_source_description": "Real bounded public/synthetic host Qwen generation -> exact untrusted file validation -> pre-existing disposable Windows scratch manifest O_EXCL write + fsync + exact readback. Does not launch Sandbox, establish Windows DACL/OS principal, run guest or grant F18, original changes or public egress. Actual isolated coder SWU unfinished.",
+      "runtime_gap": "Windows Sandbox actual guest launch, independently protected DACL and principal, guest result extraction and native no-egress remain missing; public/synthetic scratch staging is real non-executing I/O only.",
       "partial_source_safety": "GitHub Actions 44092737158, 44092893068, 44093131862, 44093278923, 44093552149, 44093631184, 44093747671 SUCCESS: syntax/synthetic unit+integration+security tests; actual Windows/host Ollama NOT_RUN.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -1406,10 +1406,18 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "UNASSESSED_BLOCKED_NO_FAILURE_INFERENCE",
+      "retry_stage": "POSITIVE_SOURCE_PROGRESS_HOST_GUEST_BROKER_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
-      "retry_evidence": [],
+      "retry_evidence": [
+        {
+          "attempt_id": "MLA-SWU-015-20261118-SRC-3",
+          "method": "Write-once pre-existing Windows disposable scratch file and exact readback, connect actual public/synthetic Qwen response to staged guest input",
+          "evidence_sha": "796f8e2bc365fad1116751d676759dd256be9f4f",
+          "outcome": "PARTIAL_REAL_CODE_PROGRESS_NO_TRUST_BOUNDARY",
+          "nonprogress_failure": false
+        }
+      ],
       "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
@@ -1944,8 +1952,8 @@
         "MLA-003": 0,
         "MLA-015": 0
       },
-      "attempts_used": 1,
-      "attempts_note": "One post-policy source attempt on protected trust root. Partial code only; missing Windows-attested runnable capability so BLOCKED_TRUST retained. Independent F18/P2 remains unverified.",
+      "attempts_used": 2,
+      "attempts_note": "Earlier substantive reviewer transcript source attempt retained; second 2026-11-18 code wave implements actual bounded raw reviewer result ingress and strict check matching; not 2+2 failure.",
       "evidence_sha_by_legacy": {
         "MLA-003": "56c7b2f53a38178bbffe6ddadfe217758c6a69ff",
         "MLA-015": "306a01ef634ea0aa5e8d6eb160e5b28673fb87bd"
@@ -1972,12 +1980,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "0d651c61ff02e73cb10139b7e17a08d9ec3450db",
+      "partial_source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
       "partial_source_paths": [
         "src/my_local_ai/review/protected_reviewer.py"
       ],
-      "partial_source_description": "Independent review transcript validates exact fixed policy/check IDs, timing, timeout, zero exit, context SHA and immutable untrusted digest. No signer key or independent receipt issuance.",
-      "runtime_gap": "Separate Windows OS reviewer security principal, tamper-resistant reviewer binary and policy, protected nonce/key issuer and F18 receipts.",
+      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance.",
+      "runtime_gap": "Actual independently protected Windows reviewer principal, fixed check execution isolation, protected nonce/key issuer and signed F18 receipt still absent. Untrusted outbox parse is not attestation or F18 acceptance.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -1987,10 +1995,18 @@
         "hold_on_two_nonimproving_failures": true
       },
       "retry_policy": "OWNER_RETRY_2_PLUS_2_SOLMAX_20261117",
-      "retry_stage": "MLA_WORKER_CRITICALITY_TRIAGE_PENDING",
+      "retry_stage": "POSITIVE_SOURCE_PROGRESS_PROTECTED_REVIEWER_HOLD",
       "initial_nonprogress_attempts": null,
       "post_isolation_nonprogress_attempts": null,
-      "retry_evidence": [],
+      "retry_evidence": [
+        {
+          "attempt_id": "MLA-SWU-021-20261118-SRC-2",
+          "method": "Parse fixed external review result JSON with bounded bytes/closed fields/unique keys; canonicalize check observations; reject all credential/authority claims",
+          "evidence_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
+          "outcome": "PARTIAL_REAL_CODE_PROGRESS_NO_SIGNED_F18",
+          "nonprogress_failure": false
+        }
+      ],
       "legacy_attempts_used_are_not_necessarily_failures": true
     },
     {
@@ -5595,26 +5611,31 @@
     }
   ],
   "last_source_wave": {
-    "source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
+    "source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
     "branch": "dev/instant-implementation-v1",
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-008"
+      "MLA-SWU-015",
+      "MLA-SWU-021"
     ],
     "commits": [
-      "da7554454a46b0d1813770ffdfcdbf5f86509b10",
-      "aedc9dacb0932dd65bfd4abcd7e61cb83640573a"
+      "61791f7c36cc32d130bac24bb652a07670d35fd8",
+      "796f8e2bc365fad1116751d676759dd256be9f4f",
+      "3f74fcb0f3cccf00db233424f51ab3b0ae14da34"
     ],
+    "mandatory_actions": "AUTOMATIC_GITHUB_ACTIONS_SUCCESS_FOR_ALL_THREE_SOURCE_SHAS",
     "source_complete_count": 35,
     "source_incomplete_count": 4,
     "feature_progress_delta": 0,
-    "syntax": "MANDATORY_AUTO_ACTIONS_FIRST_COMMIT_SUCCESS_SECOND_COMMIT_RUNNING_AT_CHECK",
+    "syntax": "GITHUB_ACTIONS_SUCCESS",
     "windows_native": "NOT_RUN",
-    "p2": "LOCKED",
+    "protected_owner_signer": "NOT_RUN",
+    "protected_review": "NOT_RUN",
     "f18": "SECURITY_HOLD",
+    "p2": "LOCKED",
     "owner_go": false,
-    "os_policy_changes": "NONE",
-    "solmax_executed": false
+    "guest_execution": "NONE",
+    "nonprogress_failures_added": 0
   },
   "next_wave_exception_reason": "Last four SWUs 008/015/021/031 remain BLOCKED_TRUST. 015 and 031 have 2/2 meaningful source attempts and need High trust-boundary redesign/review before third; 008/021 still 1/2. Inference-only host loopback+read-only Windows guest mapping source is implemented; actual guest execution/return, source ACL and independent F18 issuance are NOT. Windows Sandbox only one active instance, and optional winapp transport provisioning changes Development Mode/firewall; separate owner GO before any OS changes. No fake 100%.",
   "legacy_retry_policy_before_20261117": {
@@ -5716,8 +5737,8 @@
     },
     "worker_triage_20261118": {
       "triaged_by": "MLA_P1_WEB_GPT6_SOL_HIGH",
-      "reason": "ACTUAL_INDISPENSABLE_CRITICAL_PATH_NO_INDEPENDENT_SAFE_READY",
-      "status": "IMMEDIATE_OWNER_REVIEW_REQUEST_PENDING",
+      "reason": "Owner directs further substantive High code efforts and per-SWU 2+2 evidence; batch unresolvable 4-failure SWUs to Sol Max, not immediate escalation. Current 015/021 made positive source progress; no evidenced nonprogress counts.",
+      "status": "DEFERRED_OWNER_2PLUS2_FIRST",
       "requested_surface": "CODEX",
       "model": "GPT-6.1 Sol Max",
       "model_availability": "MODEL_UNVERIFIED",
@@ -5733,7 +5754,7 @@
       "protected_os_owner_go": false,
       "actual_codex_execution": "NOT_RUN",
       "authorization_scope": "TECHNICAL_SOURCE_CODE_REVIEW_ONLY_NO_OS_PRIVILEGE_NO_PRODUCTION_NO_MAIN_NO_SECRETS",
-      "latest_source_sha": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a"
+      "latest_source_sha": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34"
     }
   },
   "policy_only_change_adds_implementation_progress": false,
@@ -5762,7 +5783,7 @@
     "owner_go": false
   },
   "cpaa_critical_path_20261118": {
-    "verified_source_head": "aedc9dacb0932dd65bfd4abcd7e61cb83640573a",
+    "verified_source_head": "3f74fcb0f3cccf00db233424f51ab3b0ae14da34",
     "blocked_ids": [
       "MLA-SWU-008",
       "MLA-SWU-015",
@@ -5788,7 +5809,7 @@
       ]
     ],
     "estimated_time": "UNMEASURED",
-    "blockers": "OWNER_PROTECTED_OS_PRINCIPAL_NOT_INSTALLED; DPAPI_CURRENT_USER_MAC_READ_AVAILABLE_SOURCE_ONLY; INDEPENDENT_F18_AND_NO_EGRESS_UNVERIFIED",
+    "blockers": "NATIVE_WINDOWS_SEPARATE_PRINCIPAL_F18_ISSUER_AND_EGRESS_UNVERIFIED; SOURCE_ONLY_QWEN_SCRATCH_WRITER_AND_REVIEW_OUTBOX_INGRESS_ARE_PARTIAL",
     "code_only_ready": [],
     "runtime_authorization": "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES",
     "no_ready_fabrication": true
