@@ -863,7 +863,7 @@
       ],
       "risk": "HIGH",
       "source_status": "SOURCE_CONNECTED_IMPLEMENTED_UNVERIFIED",
-      "implementation_evidence_sha": "4dd59cd5126d1bad085be86370fd15bd5584b8b5",
+      "implementation_evidence_sha": "bdccd9724f1c315a81eba61fb034bd707cfb6382",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -1207,7 +1207,7 @@
   ],
   "last_source_wave": {
     "branch": "feature/code-shield-lightweight-v1",
-    "source_sha": "4dd59cd5126d1bad085be86370fd15bd5584b8b5",
+    "source_sha": "bdccd9724f1c315a81eba61fb034bd707cfb6382",
     "task_ids": [
       "CS-SWU-010"
     ],
@@ -1219,7 +1219,8 @@
     "tool_cli_exact_version": "P2_NOT_RUN",
     "owner_go": false,
     "untrusted_execution": false,
-    "nonprogress_attempts_added": 0
+    "nonprogress_attempts_added": 0,
+    "source_safety_patch": "OSV database subdir reparse guard and JSON errors fail-closed"
   },
   "sol_max_escalation": {
     "status": "DEFERRED_CONDITIONAL_2_PLUS_2",
