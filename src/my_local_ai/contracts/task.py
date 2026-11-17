@@ -76,9 +76,9 @@ class TaskSpec:
         for path in paths:
             safe_path(path)
         if (not isinstance(obj["goal"], str) or not (1 <= len(obj["goal"]) <= 4000)
-            or "\\x00" in obj["goal"]):
+            or "\x00" in obj["goal"]):
             raise ValueError("goal")
-        if any(not isinstance(v, str) or not (1 <= len(v) <= 2000) or "\\x00" in v for v in acceptance):
+        if any(not isinstance(v, str) or not (1 <= len(v) <= 2000) or "\x00" in v for v in acceptance):
             raise ValueError("acceptance")
         parsed_checks = []
         for argv in checks:
