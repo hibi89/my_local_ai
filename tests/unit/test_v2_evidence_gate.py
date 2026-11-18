@@ -170,7 +170,7 @@ class V2NativeControllerGateTest(unittest.TestCase):
 
     def test_source_rule_dependency_drift_is_hard_hold(self):
         for changes in (
-            {"expected_rules_sha256":"f"*64},
+            {"expected_rules_sha256":"0"*64},
             {"expected_project_id":"other-project"},
         ):
             with self.subTest(changes=changes),self.assertRaises(ValueError):
