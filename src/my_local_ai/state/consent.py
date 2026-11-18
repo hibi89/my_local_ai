@@ -872,11 +872,9 @@ class _WindowsBrokerAPI:
 
     def transact(self, role: str, roots: dict, request: bytes, timeout: int) -> bytes:
         import time
-        # A service running under a different standard logon must authenticate
-        # the client token too. Grant only QUERY on OUR ephemeral identity;
-        # these are not impersonation, duplicate-token or mutation rights.
-        for peer in roots.values():
-            _WindowsProtectedServiceAPI._permit_controller_identity_query(self, peer[0])
+        # Peer PROCESS_QUERY_LIMITED_INFORMATION + TOKEN_QUERY must already
+        # be allowed by existing OS policy; never mutate any process or
+        # token DACL to manufacture connectivity (Owner OS approval required).
         c, w = self.c, self.w
         class Overlapped(c.Structure):
             _fields_ = [("internal", c.c_size_t), ("internal_high", c.c_size_t),
@@ -1405,7 +1403,8 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
         if self.process_sid(current()) != self.roots[role][0]:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         self.settings = self._settings()
-        self._permit_controller_identity_query()
+        # Do not silently widen live process/token DACLs. Peer TOKEN_QUERY
+        # access must already be authorized by the OS; otherwise fail closed.
         self.authority_path = _SERVICE_HOME / "authority.sqlite3"
         self.ledger_path = _SERVICE_HOME / role / "journal.sqlite3"
         self.pin_path(self.authority_path, writable=True)
@@ -1440,58 +1439,6 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
 
     def close(self):
         self.resources.close()
-
-    def _permit_controller_identity_query(self, query_sid=None):
-        """Grant only read-only identity queries on OUR process and token.
-
-        A standard Controller cannot otherwise query a different service logon
-        token. No token duplicate/impersonation/write right is granted, and no
-        caller-selected process, account, key or persistent ACL is modified.
-        """
-        c, w = self.c, self.w
-        class Trustee(c.Structure):
-            _fields_ = [("multiple", c.c_void_p), ("operation", c.c_int),
-                        ("form", c.c_int), ("kind", c.c_int), ("name", c.c_void_p)]
-        class Access(c.Structure):
-            _fields_ = [("permissions", w.DWORD), ("mode", c.c_int),
-                        ("inheritance", w.DWORD), ("trustee", Trustee)]
-        convert = self._bind(self.advapi, "ConvertStringSidToSidW",
-            [w.LPCWSTR, c.POINTER(c.c_void_p)], w.BOOL)
-        get = self._bind(self.advapi, "GetSecurityInfo", [w.HANDLE, c.c_int,
-            w.DWORD, c.c_void_p, c.c_void_p, c.POINTER(c.c_void_p), c.c_void_p,
-            c.POINTER(c.c_void_p)], w.DWORD)
-        merge = self._bind(self.advapi, "SetEntriesInAclW", [w.ULONG,
-            c.POINTER(Access), c.c_void_p, c.POINTER(c.c_void_p)], w.DWORD)
-        set_info = self._bind(self.advapi, "SetSecurityInfo", [w.HANDLE, c.c_int,
-            w.DWORD, c.c_void_p, c.c_void_p, c.c_void_p, c.c_void_p], w.DWORD)
-        current = self._bind(self.kernel, "GetCurrentProcess", [], w.HANDLE)()
-        token = w.HANDLE()
-        open_token = self._bind(self.advapi, "OpenProcessToken",
-            [w.HANDLE, w.DWORD, c.POINTER(w.HANDLE)], w.BOOL)
-        sid = c.c_void_p()
-        if not convert(query_sid if query_sid is not None else self.settings["ControllerSid"], c.byref(sid)):
-            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-        try:
-            if not open_token(current, 0x60008, c.byref(token)):
-                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-            for handle, permissions in ((current, 0x101000), (token, 8)):
-                dacl, descriptor, updated = c.c_void_p(), c.c_void_p(), c.c_void_p()
-                try:
-                    if get(handle, 6, 4, None, None, c.byref(dacl), None, c.byref(descriptor)) != 0 or not dacl.value:
-                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                    entry = Access(permissions, 1, 0, Trustee(None, 0, 0, 1, sid))
-                    if (merge(1, c.byref(entry), dacl, c.byref(updated)) != 0
-                        or set_info(handle, 6, 4, None, None, updated, None) != 0):
-                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                finally:
-                    if updated.value:
-                        self.kernel.LocalFree(updated)
-                    if descriptor.value:
-                        self.kernel.LocalFree(descriptor)
-        finally:
-            if token.value:
-                self.kernel.CloseHandle(token)
-            self.kernel.LocalFree(sid)
 
     def _settings(self) -> dict:
         import re
