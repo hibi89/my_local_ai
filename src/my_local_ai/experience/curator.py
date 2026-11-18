@@ -82,3 +82,74 @@ def candidate_fingerprint(event: ExperienceEventV1, *, strategy_digest: str) -> 
          + event.plan_sha256 + "|" + event.source_git_sha + "|"
          + strategy_digest).encode("ascii")
     ).hexdigest()
+
+
+def append_curation_decision(
+    conn: "sqlite3.Connection", *, decision_id: str,
+    result: CurationResult, created_at: int, expires_at: int,
+    expected_project: str, expected_source_sha: str, expected_scope: str,
+    conflict_digest: str | None = None,
+) -> bool:
+    """Persist a *non-authoritative* append-only shadow/quarantine decision.
+
+    Returns False for identical replay. A stale or mismatched event, earlier
+    timestamp, altered replay or any attempt at an ACTIVE grant fails closed.
+    No untrusted text, skill content, OS access or signed PASS is stored.
+    """
+    import sqlite3
+    import json
+    from my_local_ai.state.experience_migrations import require_experience_store
+    from .schema import _ID, _valid
+    if (not isinstance(result, CurationResult)
+        or not _valid(decision_id, _ID)
+        or not _valid(expected_project, _ID)
+        or not _valid(expected_scope, _ID)
+        or not isinstance(expected_source_sha, str)
+        or re.fullmatch(r"[0-9a-f]{40}", expected_source_sha) is None
+        or type(created_at) is not int or created_at <= 0
+        or type(expires_at) is not int or expires_at <= created_at
+        or (conflict_digest is not None
+            and (not isinstance(conflict_digest, str)
+                 or _SHA64.fullmatch(conflict_digest) is None))
+        or result.state not in _STATES):
+        raise ValueError("invalid curation persistence request")
+    require_experience_store(conn, require_v2=True)
+    with conn:
+        raw = conn.execute(
+            """SELECT redacted_json FROM experience_events WHERE
+               event_id=? AND project_id=? AND source_git_sha=? AND scope_ref=?""",
+            (result.event_id, expected_project, expected_source_sha, expected_scope),
+        ).fetchone()
+        if raw is None:
+            raise ValueError("curation event not in protected scope")
+        payload = json.loads(raw[0])
+        if (payload.get("evidence_stage") != "UNTRUSTED"
+            or payload.get("owner_approved") is not False):
+            raise ValueError("untrusted curation source")
+        latest = conn.execute(
+            """SELECT created_at FROM experience_curation_events
+               WHERE event_id=? ORDER BY sequence DESC LIMIT 1""",
+            (result.event_id,),
+        ).fetchone()
+        fields = (result.event_id, result.state, result.reason_codes[0],
+                  result.strategy_digest, conflict_digest, created_at, expires_at)
+        old = conn.execute(
+            """SELECT event_id,state,reason_code,strategy_digest,
+                      conflict_digest,created_at,expires_at
+               FROM experience_curation_events WHERE decision_id=?""",
+            (decision_id,),
+        ).fetchone()
+        if old is not None:
+            if old != fields:
+                raise ValueError("curation decision ID replay mismatch")
+            return False
+        if latest is not None and created_at < latest[0]:
+            raise ValueError("backdated curation decision")
+        conn.execute(
+            """INSERT INTO experience_curation_events
+               (decision_id,event_id,state,reason_code,strategy_digest,
+                conflict_digest,created_at,expires_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (decision_id, *fields),
+        )
+    return True
