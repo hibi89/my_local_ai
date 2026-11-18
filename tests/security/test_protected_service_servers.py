@@ -681,7 +681,7 @@ class ServerTests(unittest.TestCase):
         self.assertIn("check_acl(service", auth)
         self.assertNotIn("self.process_sid(process)", auth)
         server_pipe = inspect.getsource(c._serve_named_pipe)
-        self.assertIn("api.process_sid(peer) != sid", server_pipe)
+        self.assertIn("api.pipe_client_sid_after_read(pipe) != sid", server_pipe)
 
     def test_pipe_client_has_duplex_access_without_server_creation(self):
         # Generic write includes FILE_CREATE_PIPE_INSTANCE. The client must
