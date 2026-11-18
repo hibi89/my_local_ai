@@ -51,6 +51,45 @@ class ExperienceCanaryTest(unittest.TestCase):
             with self.assertRaises(sqlite3.DatabaseError):
                 self.db.execute(sql)
 
+    def test_identical_replay_across_separate_owned_connections(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "mesa.sqlite3"
+            writer = sqlite3.connect(target)
+            reader = sqlite3.connect(target)
+            try:
+                initialize_empty_experience_store(
+                    writer, explicit_new_owned_store=True)
+                raw = json.dumps(_EVENT)
+                params = dict(
+                    expected_project="project-001", expected_plan_sha="a"*64,
+                    expected_source_sha="b"*40,
+                    allowed_scope_refs=frozenset({"scope-001"}),
+                )
+                self.assertEqual(
+                    collect_observation(writer, raw, **params),
+                    ("event-001", True))
+                self.assertEqual(
+                    collect_observation(reader, raw, **params),
+                    ("event-001", False))
+                with self.assertRaises(ValueError):
+                    collect_observation(
+                        reader, json.dumps({**_EVENT, "outcome": "HOLD"}),
+                        **params)
+                self.assertEqual(reader.execute(
+                    "SELECT COUNT(*) FROM experience_events").fetchone()[0], 1)
+            finally:
+                reader.close()
+                writer.close()
+
+    def test_invalid_scoped_count_rejected(self):
+        for bad in ("../bad", "PRIVATE_CANARY", "f"*39):
+            with self.assertRaises(ValueError):
+                count_owned_observations(
+                    self.db, project_id="project-001",
+                    scope_ref="scope-001", source_git_sha=bad)
+
     def test_reused_id_with_different_outcome_refused(self):
         self.ingest(_EVENT)
         with self.assertRaises(ValueError):

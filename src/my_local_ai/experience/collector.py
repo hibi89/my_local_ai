@@ -47,41 +47,42 @@ def collect_observation(
     ))
     identity_key = hashlib.sha256(identity.encode("ascii")).hexdigest()
     with conn:
-        old = conn.execute(
+        # One SQL statement resolves the duplicate-insert race. OR IGNORE
+        # cannot edit an existing row and we check the *entire* canonical
+        # record before accepting any replay. Other unique-key collisions
+        # (or changed contents) are explicit failures.
+        inserted = conn.execute(
+            """INSERT OR IGNORE INTO experience_events
+               (event_id, idempotency_key, project_id, run_id, task_id,
+                plan_sha256, source_git_sha, scope_ref, rights_tag, outcome,
+                error_fingerprint, environment_digest, observed_at, redacted_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (record.event_id, identity_key, record.project_id,
+             record.run_id, record.task_id, record.plan_sha256,
+             record.source_git_sha, record.scope_ref, record.rights_tag,
+             record.outcome, record.error_fingerprint,
+             record.environment_digest, record.observed_at, encoded),
+        )
+        existing = conn.execute(
             "SELECT idempotency_key, redacted_json FROM experience_events WHERE event_id=?",
             (record.event_id,),
         ).fetchone()
-        if old is not None:
-            if old != (identity_key, encoded):
-                raise ValueError("event ID reused with changed evidence")
-            return (record.event_id, False)
-        try:
-            conn.execute(
-                """INSERT INTO experience_events
-                 (event_id, idempotency_key, project_id, run_id, task_id,
-                  plan_sha256, source_git_sha, scope_ref, rights_tag, outcome,
-                  error_fingerprint, environment_digest, observed_at, redacted_json)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (record.event_id, identity_key, record.project_id,
-                 record.run_id, record.task_id, record.plan_sha256,
-                 record.source_git_sha, record.scope_ref, record.rights_tag,
-                 record.outcome, record.error_fingerprint,
-                 record.environment_digest, record.observed_at, encoded),
-            )
-        except sqlite3.IntegrityError:
-            # Even a hash collision or concurrently reused ID must not
-            # overwrite or silently accept a different event.
-            raise ValueError("observation already exists") from None
-    return (record.event_id, True)
-
+        if existing != (identity_key, encoded):
+            raise ValueError("conflicting observation or identity collision")
+        if inserted.rowcount not in (0, 1):
+            raise ValueError("unexpected observation insertion result")
+        return (record.event_id, inserted.rowcount == 1)
 
 def count_owned_observations(
     conn: sqlite3.Connection, *, project_id: str, scope_ref: str,
     source_git_sha: str,
 ) -> int:
     require_experience_store(conn)
-    if any(not isinstance(x, str) for x in (project_id, scope_ref, source_git_sha)):
-        raise ValueError("invalid query")
+    from .schema import _valid, _ID, _SHA40
+    if (not _valid(project_id, _ID)
+        or not _valid(scope_ref, _ID)
+        or not _valid(source_git_sha, _SHA40)):
+        raise ValueError("invalid scoped observation count")
     return int(conn.execute(
         """SELECT count(*) FROM experience_events
          WHERE project_id=? AND scope_ref=? AND source_git_sha=?""",
