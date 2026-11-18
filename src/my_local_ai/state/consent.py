@@ -539,6 +539,9 @@ _BROKER_OPERATIONS = {
     "scanner": frozenset({"semgrep", "defender"}),
 }
 _BROKER_LIMIT = 2 * 1024 * 1024
+# Specific duplex data/attribute/control rights, excluding 0x4, which means
+# FILE_CREATE_PIPE_INSTANCE for pipes. GENERIC_WRITE would request that right.
+_BROKER_PIPE_CLIENT_ACCESS = 0x0012019B
 
 
 def _broker_canonical(value: object) -> bytes:
@@ -872,7 +875,7 @@ class _WindowsBrokerAPI:
         complete = self._bind(self.kernel, "GetOverlappedResult",
             [w.HANDLE, c.POINTER(Overlapped), c.POINTER(w.DWORD), w.BOOL], w.BOOL)
         # SECURITY_IDENTIFICATION prevents a pipe squatter impersonating us.
-        pipe = create(r"\\.\pipe\MyLocalAI.v1." + role, 0xC0000000, 0, None,
+        pipe = create(r"\\.\pipe\MyLocalAI.v1." + role, _BROKER_PIPE_CLIENT_ACCESS, 0, None,
                       3, 0x40000000 | 0x00110000, None)
         if pipe in (None, c.c_void_p(-1).value):
             raise ProtectedBrokerHold()
@@ -1762,7 +1765,7 @@ def _serve_named_pipe(api, server, stopped):
     # Specific read/write rights exclude FILE_CREATE_PIPE_INSTANCE (0x4).
     sid = api.settings["ControllerSid"]
     sddl = "D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;" + api.roots[api.role][0] + ")"
-    sddl += "(A;;0x0012019b;;;" + sid + ")"
+    sddl += "(A;;0x" + format(_BROKER_PIPE_CLIENT_ACCESS, "08x") + ";;;" + sid + ")"
     descriptor = c.c_void_p()
     if not convert(sddl, 1, c.byref(descriptor), None):
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")

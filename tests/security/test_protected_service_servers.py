@@ -317,6 +317,13 @@ class ServerTests(unittest.TestCase):
             with self.subTest(role=role), self.assertRaises(c.ProtectedBrokerHold):
                 c.protected_service_main(role)
 
+    def test_pipe_client_has_duplex_access_without_server_creation(self):
+        # Generic write includes FILE_CREATE_PIPE_INSTANCE. The client must
+        # request exactly the narrower rights granted by the server pipe DACL.
+        self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 3, 3)
+        self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 4, 0)
+        self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 0xC0000000, 0)
+
 
 class DefenderEvidenceTests(unittest.TestCase):
     def setUp(self):
