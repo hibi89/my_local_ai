@@ -634,32 +634,43 @@ def _defender_completion_evidence(events: list[dict], target: str, cursor: int) 
     """
     normalized = target.casefold()
     starts = []
-    detections = []
+    # Normalize only events captured AFTER the pre-scan cursor. A reused
+    # scan identifier from another resource cannot complete our custom scan.
     for event in events:
-        if event["record"] <= cursor:
+        if event["record"] <= cursor or event["id"] != 1000:
             continue
-        fields = event["fields"]
-        resource = fields.get("Scan Resources", "").strip().casefold()
+        resource = event["fields"].get("Scan Resources", "").strip().casefold()
         if resource.startswith("file:_"):
             resource = resource[6:]
-        if event["id"] == 1000 and resource == normalized and fields.get("Scan ID"):
+        if resource == normalized and event["fields"].get("Scan ID"):
             starts.append(event)
-        # An actual provider detection record for the unique private staged
-        # file is independent from MpCmdRun's overloaded exit code.
-        resource = fields.get("Path", "").strip().casefold()
-        if resource.startswith("file:_"):
-            resource = resource[6:]
-        if (event["id"] in (1006, 1116) and resource == normalized
-            and fields.get("Threat ID") and fields.get("Threat Name")):
-            detections.append(event["evidence_sha256"])
     if len(starts) != 1:
-        return False, detections
+        return False, []
     start = starts[0]
     scan_id = start["fields"]["Scan ID"]
+    if any(e["id"] == 1000 and e["record"] > cursor
+           and e["record"] != start["record"]
+           and e["fields"].get("Scan ID") == scan_id for e in events):
+        return False, []  # Ambiguous or reused scan ID.
     related = [e for e in events if e["record"] > start["record"]
                and e["fields"].get("Scan ID") == scan_id]
     completed = (sum(e["id"] == 1001 for e in related) == 1
                  and not any(e["id"] in (1002, 1005) for e in related))
+    detections = []
+    for event in events:
+        if event["record"] <= start["record"] or event["id"] not in (1006, 1116):
+            continue
+        fields = event["fields"]
+        resource = fields.get("Path", "").strip().casefold()
+        if resource.startswith("file:_"):
+            resource = resource[6:]
+        # Some Defender detection events omit Scan ID. A present ID must
+        # match this scan; no unrelated event may become evidence of malware
+        # for this owner's single file scan.
+        if (resource == normalized
+            and fields.get("Threat ID") and fields.get("Threat Name")
+            and fields.get("Scan ID", scan_id) == scan_id):
+            detections.append(event["evidence_sha256"])
     return completed, detections
 
 

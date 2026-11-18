@@ -362,6 +362,42 @@ class DefenderEvidenceTests(unittest.TestCase):
         self.assertEqual(self.classify(outcome="UNKNOWN", finding_count=None, scan_completed=False,
             engine_exit_code=2, scan_error_code="COMPLETION_NOT_PROVEN").state, "UNKNOWN_HOLD")
 
+    def test_scan_id_collision_and_old_detection_are_not_accepted(self):
+        target = r"C:\\private\\scan_123.py"
+        events = [
+            {"record": 5, "id": 1000,
+             "fields": {"Scan Resources": "file:_" + target,
+                        "Scan ID": "scan-1"}, "evidence_sha256": "a" * 64},
+            {"record": 6, "id": 1001,
+             "fields": {"Scan ID": "scan-1"}, "evidence_sha256": "b" * 64},
+        ]
+        unrelated_start = {"record": 7, "id": 1000,
+            "fields": {"Scan Resources": r"C:\\private\\other.py",
+                       "Scan ID": "scan-1"}, "evidence_sha256": "c" * 64}
+        self.assertEqual(
+            d._defender_completion_evidence(events + [unrelated_start], target, 4),
+            (False, []),
+        )
+        stale = {"record": 4, "id": 1116, "fields": {
+            "Path": target, "Threat ID": "T-1", "Threat Name": "Synthetic",
+            "Scan ID": "scan-1"}, "evidence_sha256": "d" * 64}
+        self.assertEqual(
+            d._defender_completion_evidence([stale] + events, target, 3),
+            (True, []),
+        )
+        foreign = {**stale, "record": 8, "fields": {
+            **stale["fields"], "Scan ID": "other-scan"}}
+        self.assertEqual(
+            d._defender_completion_evidence(events + [foreign], target, 4),
+            (True, []),
+        )
+        same = {**foreign, "fields": {
+            **foreign["fields"], "Scan ID": "scan-1"}}
+        self.assertEqual(
+            d._defender_completion_evidence(events + [same], target, 4),
+            (True, ["d" * 64]),
+        )
+
     def test_file_hash_policy_and_bool_count_spoofs_rejected(self):
         for changed in ({"content_sha256": "0" * 64}, {"content_size": 11},
                         {"policy_changed": True}, {"remediation": "ENABLED"},
