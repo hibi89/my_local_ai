@@ -77,9 +77,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "11eb20a5a9b9ce210224c3f12d076b06d7a7639e",
+      "source_code_commit_sha": "8a3fb3364b924ce358ee9bd6fa140a7e567564f1",
       "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
-      "source_code_note": "CI #44250828256 SUCCESS; only new MESA-owned schema, no existing DB migration or live data"
+      "source_code_note": "Atomic idempotent MESA event insertion across separate SQLite connections, exact record comparison/reject altered-ID collision and scoped count validation; CI #44257939776 PASS. No real user capture, existing DB migration or protected Owner/F18."
     },
     {
       "task_id": "EXT-EXP-03",
@@ -254,7 +254,7 @@
       "verification_status": "NOT_RUN"
     }
   ],
-  "last_code_wave_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
+  "last_code_wave_sha": "8a3fb3364b924ce358ee9bd6fa140a7e567564f1",
   "p1_source_candidate_ids_at_wave": [
     "EXT-EXP-01",
     "EXT-EXP-02",

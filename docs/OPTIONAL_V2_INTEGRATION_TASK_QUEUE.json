@@ -110,9 +110,9 @@
       },
       "status": "DESIGN_ONLY_AXZERO_DEPENDENCY",
       "evidence_sha": null,
-      "source_code_commit_sha": "1fdf3fdb5b775bcb6e8943981b6cfb733cbd89e5",
+      "source_code_commit_sha": "bb61d1d76d7cabddf4f97fe3d312061ad9a86e43",
       "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "AXZERO source repo product/ax-zero-local currently design-only at 3f55a831; source-only metadata preflight cannot confirm live capability. No product runtime integration or approved execute claim."
+      "source_code_note": "Read-only capability preflight now requires exact pinned artifact+policy+evidence SHA-256, otherwise Qwen-only fallback. CI #44257776999 PASS. AXZERO source is design-only, no signed evidence or operational integration."
     },
     {
       "id": "V2-AXZ-02",
@@ -236,7 +236,7 @@
       "source_code_note": "Task+experiment anchored persisted A/B scopes, fail closed UNMEASURED on mismatch or missing IDs; CI #44256751640 PASS after fixture repair. Protected real-task metrics feed NOT_RUN."
     }
   ],
-  "last_source_wave_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
+  "last_source_wave_sha": "8a3fb3364b924ce358ee9bd6fa140a7e567564f1",
   "extension_source_candidate_count_conservative": 4,
   "extension_source_candidate_out_of": 12
 }
