@@ -831,9 +831,16 @@ class _WindowsBrokerAPI:
                 if token.value:
                     self.kernel.CloseHandle(token)
         finally:
-            # Failure to revert is fatal: never run an Owner/reviewer/Defender
-            # action under a client token, even on an exception path.
+            # RevertToSelf failure can leave the service thread running as
+            # the untrusted client. SCM callback exceptions are not reliably
+            # propagated through ctypes.WINFUNCTYPE: a normal HOLD or return
+            # would leave the next request executing under the wrong token.
+            # Fail CLOSED by terminating only this service process. It is
+            # restarted exclusively by separately configured SCM policy.
             if not revert():
+                exit_process = self._bind(self.kernel, "ExitProcess",
+                    [w.UINT], None)
+                exit_process(1)  # non-returning native Windows API
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
 
     def authenticate_pipe(self, pipe, role: str, roots: dict, *, service_self=False):
