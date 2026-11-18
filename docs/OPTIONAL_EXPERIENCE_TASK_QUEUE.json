@@ -111,9 +111,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "00caa91df337039b078a39912531b9a1317e9a18",
+      "source_code_commit_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
       "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
-      "source_code_note": "Default-OFF indexed exact rights/plan/source/scope/expiry/revocation/conflict top3 with v1 fallback; CI #44254752546 PASS. No independent F18 or auto-activation."
+      "source_code_note": "Exact SHA+scope+rights+environment fingerprint required from Controller and read-only CLI. Missing/mismatched environment returns no hints; CI #44256929645 PASS. Runtime enablement/go false."
     },
     {
       "task_id": "EXT-EXP-04",
@@ -146,9 +146,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "00caa91df337039b078a39912531b9a1317e9a18",
+      "source_code_commit_sha": "b9bc77999fcc59c4a3d722f689b51e1c7bf1e88a",
       "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "Append-only shadow/quarantine/revocation persistence and version reference. Protected F18/Owner promotion, skill rollback and real user lifecycle remain HOLD; CI #44254752546 PASS."
+      "source_code_note": "Sticky revocation/quarantine and inert shadow previous-version resolver; CI #44256124087 PASS. Protected Owner approval, persisted skill activation/rollback/independent verification NOT_RUN."
     },
     {
       "task_id": "EXT-EXP-05",
@@ -181,9 +181,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "80c42b10b0f51a9ab5e92213ea77b8c569bd57e4",
+      "source_code_commit_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
       "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "CI #44251639635 SUCCESS; native Controller->MESA tie-ordering safe but protected READY/F18, curation dependency not complete"
+      "source_code_note": "Native Controller no-execute shadow tie ordering now requires exact environment digest before safe hint; CI #44256929645 PASS. Protected live READY not established."
     },
     {
       "task_id": "EXT-EXP-06",
@@ -216,9 +216,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "588aace73e9a566cf6843fe1a204649a0a3b9b2f",
+      "source_code_commit_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
       "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
-      "source_code_note": "CI #44251931066 SUCCESS; read-only status/search/inspect/redacted export CLI, mutation/owner controls remain HOLD"
+      "source_code_note": "Read-only MESA CLI search requires exact environment SHA, compare exact task + experiment ID; CI #44256929645 PASS. Mutation endpoints disabled."
     },
     {
       "task_id": "EXT-EXP-07",
@@ -254,7 +254,7 @@
       "verification_status": "NOT_RUN"
     }
   ],
-  "last_code_wave_sha": "00caa91df337039b078a39912531b9a1317e9a18",
+  "last_code_wave_sha": "dd6b2e03346cb036639b5f62900e04cf04f49aca",
   "p1_source_candidate_ids_at_wave": [
     "EXT-EXP-01",
     "EXT-EXP-02",
