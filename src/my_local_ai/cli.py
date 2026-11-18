@@ -105,6 +105,16 @@ def _parser() -> argparse.ArgumentParser:
             view.add_argument("--environment-sha", required=True)
             view.add_argument("--task-id", required=True)
             view.add_argument("--comparison-id", required=True)
+    recommend = experience_sub.add_parser(
+        "recommend", help="Offline MESA ordering of untrusted plan roots, no worker execution"
+    )
+    for opt in ("--project", "--plan-sha", "--source-sha", "--scope", "--rights"):
+        recommend.add_argument(opt, required=True)
+    recommend.add_argument("--db", type=Path, required=True)
+    recommend.add_argument("--plan-file", type=Path, required=True)
+    recommend.add_argument("--task-id", required=True)
+    recommend.add_argument("--fingerprint", required=True)
+    recommend.add_argument("--environment-sha", required=True)
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -656,6 +666,59 @@ def _preview_plan(
     }
 
 
+def _recommend_experience_read_only(args: argparse.Namespace) -> dict[str, object]:
+    """Plan-root hint lookup: a CLI preview, NOT verified Controller READY.
+
+    The plan/state inputs are untrusted. Always recompute the immutable plan
+    digest and refuse stale source, task or scope. No model, task, shell, DB
+    writes or owner privilege are used. Runtime P1/P2 gates remain unchanged.
+    """
+    from my_local_ai.controller.experience_selector import select_with_experience
+    from my_local_ai.ui.experience_status import open_mesa_readonly
+
+    _status()
+    raw = _read_bounded_regular(args.plan_file).decode("utf-8")
+    plan = PlanSpec.parse_json(raw)
+    if (args.plan_sha != plan.digest
+        or args.source_sha != plan.blueprint_sha
+        or args.task_id not in {t.task_id for t in plan.tasks}):
+        raise ValueError("MESA plan or source binding mismatch")
+    states = {task.task_id: "READY" for task in plan.tasks}
+    inputs = dict(
+        plan_json=raw, protected_states=states,
+        enabled=True, project_id=args.project, scope_ref=args.scope,
+        rights_tag=args.rights, environment_digest=args.environment_sha,
+        task_error_fingerprints={args.task_id: args.fingerprint},
+    )
+    try:
+        with open_mesa_readonly(args.db) as db:
+            result = select_with_experience(experience_conn=db, **inputs)
+    except FileNotFoundError:
+        # Optional absent memory must leave native code-only ordering intact.
+        result = select_with_experience(
+            experience_conn=None, **inputs,
+        )
+    if (result.execution_allowed or result.owner_go
+        or result.git_write_allowed or result.independent_f18_verified
+        or result.plan_sha256 != plan.digest
+        or result.source_git_sha != plan.blueprint_sha):
+        raise ValueError("untrusted MESA recommendation response")
+    return {
+        "action": "recommend", "state": result.status,
+        "plan_sha256": result.plan_sha256,
+        "source_sha": result.source_git_sha,
+        "candidate_task_ids": list(result.candidate_task_ids),
+        "shadow_experience_refs": list(result.experience_refs),
+        "scope": "UNTRUSTED_PLAN_ROOTS_PREVIEW",
+        "live_protected_states_read": False,
+        "active_leases_verified": False,
+        "model_calls_executed": 0, "read_only": True,
+        "owner_go": False, "independent_f18_verified": False,
+        "git_write_allowed": False, "execution_allowed": False,
+        "p2": "LOCKED",
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -715,6 +778,8 @@ def main(argv: list[str] | None = None) -> int:
                 "allow_code_execution": False,
                 "phase": "P1_SOURCE_ONLY",
             }
+        elif args.command == "experience" and args.experience_action == "recommend":
+            payload = _recommend_experience_read_only(args)
         elif args.command == "experience":
             from my_local_ai.ui.experience_status import (
                 open_mesa_readonly, experience_read_only_view,

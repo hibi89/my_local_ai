@@ -113,6 +113,98 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(mismatch["state"], "UNMEASURED")
 
+    def test_recommend_cli_binds_real_plan_and_remains_inert(self):
+        from my_local_ai.contracts.plan import PlanSpec
+
+        tasks = [
+            {
+                "task_id": name, "req_ids": ["REQ-05"], "depends_on": [],
+                "goal": "synthetic-only", "allowed_paths": [f"src/{name}.py"],
+                "acceptance": ["synthetic"], "checks": [], "risk": "LOW",
+                "resource_budget": {"max_calls": 1, "max_seconds": 10},
+                "safety_checks": ["NO_REMOTE"], "plan_sha": None,
+                "source_sha": "b"*40,
+            }
+            for name in ("TASK-A", "TASK-B")
+        ]
+        raw = json.dumps({
+            "version": 1, "plan_id": "MESA-CLI-SYNTH",
+            "blueprint": {
+                "repo": "hibi89/my_local_ai", "branch": "dev/instant-implementation-v1",
+                "sha": "b"*40,
+            },
+            "approval": {
+                "status": "NOT_APPROVED", "scope": "SYNTHETIC_ONLY", "digest": None,
+            },
+            "tasks": tasks,
+        })
+        plan = PlanSpec.parse_json(raw)
+        plan_file = Path(self.temp.name) / "synthetic.plan.json"
+        plan_file.write_text(raw, encoding="utf-8")
+
+        with sqlite3.connect(self.path) as conn:
+            data = {
+                "event_id": "event-002", "project_id": "project-001",
+                "run_id": "run-002", "task_id": "TASK-B",
+                "plan_sha256": plan.digest, "source_git_sha": "b"*40,
+                "scope_ref": "scope-001", "rights_tag": "PUBLIC_SYNTHETIC",
+                "outcome": "FAILED", "error_fingerprint": "c"*64,
+                "environment_digest": "d"*64, "observed_at": 1794000000,
+            }
+            collect_observation(
+                conn, json.dumps(data), expected_project="project-001",
+                expected_plan_sha=plan.digest, expected_source_sha="b"*40,
+                allowed_scope_refs=frozenset({"scope-001"}),
+            )
+            shadow = classify_experience(
+                ExperienceEventV1(**data), strategy_digest="3"*64,
+                proposed_action_digest="4"*64, expected_source_sha="b"*40,
+                expected_scope="scope-001", now=1794000010,
+                expires_at=2000000000,
+            )
+            append_curation_decision(
+                conn, decision_id="decision-002", result=shadow,
+                created_at=1794000010, expires_at=2000000000,
+                expected_project="project-001", expected_source_sha="b"*40,
+                expected_scope="scope-001",
+            )
+
+        args = [
+            "experience", "recommend", "--db", str(self.path),
+            "--project", "project-001", "--plan-sha", plan.digest,
+            "--source-sha", "b"*40, "--scope", "scope-001",
+            "--rights", "PUBLIC_SYNTHETIC", "--plan-file", str(plan_file),
+            "--task-id", "TASK-B", "--fingerprint", "c"*64,
+            "--environment-sha", "d"*64,
+        ]
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            status = main(args)
+        payload = json.loads(stream.getvalue())
+        self.assertEqual(status, 0)
+        self.assertEqual(payload["state"], "SHADOW_ADVICE_ONLY")
+        self.assertEqual(payload["candidate_task_ids"], ["TASK-B", "TASK-A"])
+        self.assertEqual(payload["shadow_experience_refs"], ["event-002"])
+        self.assertFalse(payload["execution_allowed"])
+        self.assertFalse(payload["live_protected_states_read"])
+
+        # Drift cannot select an old plan's memory or an executable path.
+        args[args.index("--plan-sha") + 1] = "0"*64
+        with contextlib.redirect_stdout(stream := io.StringIO()):
+            status = main(args)
+        self.assertEqual(status, 2)
+        self.assertEqual(json.loads(stream.getvalue())["status"], "HOLD")
+
+        args[args.index("--plan-sha") + 1] = plan.digest
+        self.path.unlink()
+        with contextlib.redirect_stdout(stream := io.StringIO()):
+            status = main(args)
+        payload = json.loads(stream.getvalue())
+        self.assertEqual(status, 0)
+        self.assertEqual(payload["candidate_task_ids"], ["TASK-A", "TASK-B"])
+        self.assertEqual(payload["shadow_experience_refs"], [])
+        self.assertFalse(self.path.exists())
+
     def test_unknown_or_tampered_db_returns_hold(self):
         self.path.unlink()
         code, result = self.cli("status")
