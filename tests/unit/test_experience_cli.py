@@ -142,7 +142,9 @@ class ExperienceCliTest(unittest.TestCase):
         plan_file = Path(self.temp.name) / "synthetic.plan.json"
         plan_file.write_text(raw, encoding="utf-8")
 
-        with sqlite3.connect(self.path) as conn:
+        # SQLite Connection.__exit__ commits, it does NOT close. Release
+        # Windows handles before the missing-DB fallback scenario below.
+        with contextlib.closing(sqlite3.connect(self.path)) as conn, conn:
             data = {
                 "event_id": "event-002", "project_id": "project-001",
                 "run_id": "run-002", "task_id": "TASK-B",
@@ -196,6 +198,12 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(json.loads(stream.getvalue())["status"], "HOLD")
 
         args[args.index("--plan-sha") + 1] = plan.digest
+        args[args.index("--fingerprint") + 1] = "bad"
+        with contextlib.redirect_stdout(stream := io.StringIO()):
+            status = main(args)
+        self.assertEqual(status, 2)
+        self.assertEqual(json.loads(stream.getvalue())["status"], "HOLD")
+        args[args.index("--fingerprint") + 1] = "c"*64
         self.path.unlink()
         with contextlib.redirect_stdout(stream := io.StringIO()):
             status = main(args)

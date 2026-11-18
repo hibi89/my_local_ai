@@ -675,8 +675,21 @@ def _recommend_experience_read_only(args: argparse.Namespace) -> dict[str, objec
     """
     from my_local_ai.controller.experience_selector import select_with_experience
     from my_local_ai.ui.experience_status import open_mesa_readonly
+    from my_local_ai.experience.schema import (
+        _valid as _mesa_valid, _ID as _mesa_id, _SHA64 as _mesa_sha64,
+        _RIGHTS as _mesa_rights,
+    )
 
     _status()
+    # Validate even when the optional store is absent. Otherwise a malformed
+    # scope or fingerprint could be presented as a legitimate Qwen fallback.
+    if (not _mesa_valid(args.project, _mesa_id)
+        or not _mesa_valid(args.scope, _mesa_id)
+        or not _mesa_valid(args.task_id, _mesa_id)
+        or not _mesa_valid(args.fingerprint, _mesa_sha64)
+        or not _mesa_valid(args.environment_sha, _mesa_sha64)
+        or args.rights not in _mesa_rights):
+        raise ValueError("invalid offline MESA recommendation scope")
     raw = _read_bounded_regular(args.plan_file).decode("utf-8")
     plan = PlanSpec.parse_json(raw)
     if (args.plan_sha != plan.digest
