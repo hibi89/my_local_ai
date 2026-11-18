@@ -85,10 +85,10 @@ dev HEAD 7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a에서 3개 Windows 보호 서�
 **A — 기존 MLA V1.3 보존/완성:** dev 최신 HEAD·실제 보호 서버/Windows 권한 오류 5·REQ-14 충돌 확인. 기존 55 SWU·30 REQ·8 P2/별도 감사 유지; 현재 52/55 후보, P2 LOCKED, UNASSESSED. 설계 승인 자체로 실제 서비스 GO 없음.
 **B — MESA 최소판:** 기존 EXT-EXP-01..07에서 schema→로컬 관측 수집→검색→전략 후보→Controller 비권한 연결→CLI/FE 조회. 원래 작업 이력/allowed_paths 보존. 순차 구현할 때 다른 유효 READY와 충돌 검사.
 **C — AXZERO 독립 개발:** AXZERO 원본의 AXZ-001/003/006부터 기존 18 SWU 큐 진행; MLA 작업자 임의 원본 변경 금지. MESA 수집은 AXZERO 완성 없이 가능.
-**D — 신규 V2 연결:** docs/OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json 4개 신규 수직 SWU: Evidence Gate(1), AXZERO read-only adapter(1), guarded typed-op bridge(1), A/B metrics(1). AXZERO 부재 시 해당 브리지만 HOLD, MESA/MLA 정상.
+**D — 신규 V2 연결:** docs/OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json 5개 신규 수직 SWU: Evidence Gate(1), AXZERO read-only adapter(1), 적격성·효과 판정(1), bounded typed-op bridge(1), A/B metrics(1). AXZERO 부재 시 해당 브리지만 HOLD, MESA/MLA 정상.
 **E — Hydrogen:** 기존 EXT-HYD-01..08 설계 재사용; mock transport부터. 실제 API·키·무료 티어/전송 승인은 별도.
 **F — AXNODE:** 후속 선택형 이동/패키징, 필수 의존성 아님.
-기존 경험학습 7 SWU + 신규 V2 접점 4 SWU = **별도 확장 11 SWU 계획**(기존 기본 55와 더하지 않음). Hydrogen 기존 8개는 또 다른 독립 선택형 큐. AXZERO 자체 18 SWU는 원본 repo 집계. 과거 28개 legacy task, 39 MLA SWU, 16 CodeShield SWU를 중복 합산하거나 변경하지 않는다.
+기존 경험학습 7 SWU + 신규 V2 접점 5 SWU = **별도 확장 12 SWU 계획**(기존 기본 55와 더하지 않음). Hydrogen 기존 8개는 또 다른 독립 선택형 큐. AXZERO 자체 18 SWU는 원본 repo 집계. 과거 28개 legacy task, 39 MLA SWU, 16 CodeShield SWU를 중복 합산하거나 변경하지 않는다.
 P1 V2 확장 소스가 READY 되려면 해당 확장 구현 범위·권한·보안 경계를 승인받고 별도 상태 전이한다. P2(기본·확장)는 실제 검증/결함 수정/Win11/F18/브라우저/복구를 독립 수행한다. 문서 저장·Mock/계약/테스트 수만으로 SWU 완료 처리 불가.
 
 ## 12. 수용조건/검증 표준

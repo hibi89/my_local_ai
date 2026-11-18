@@ -24,8 +24,8 @@
     "axzero_branch": "product/ax-zero-local",
     "axzero_swu_count": 18
   },
-  "new_v2_swu_count": 4,
-  "v2_extension_total_excluding_hydrogen_and_axzero": 11,
+  "new_v2_swu_count": 5,
+  "v2_extension_total_excluding_hydrogen_and_axzero": 12,
   "runtime_go": false,
   "model_live_api_approved": false,
   "windows_security_or_service_changes_approved": false,
@@ -124,17 +124,56 @@
         "NO_UNTRUSTED_CODE_EXECUTION"
       ],
       "allowed_paths": [
+        "src/my_local_ai/controller/axzero_eligibility.py",
+        "tests/security/test_v2_axzero_eligibility.py"
+      ],
+      "source_acceptance": "Controller->AXZERO signed capability reference + EvidenceGate + approved_effects/input_domain/budget/lease->immutable eligible/HOLD decision for an existing fixed Typed Operator; tampered digest/expired grant/candidate code/unknown effect denied; no execution in this SWU",
+      "p2_validation": [
+        "V2-AC-AXZERO-ELIGIBILITY",
+        "V2-AC-SCOPE-REVOKE"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 1,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_HIGH_RISK_OWNER_GO_REQUIRED",
+      "evidence_sha": null
+    },
+    {
+      "id": "V2-AXZ-03",
+      "req_ids": [
+        "V2-REQ-AXZ-03"
+      ],
+      "legacy_reuse": [],
+      "code_dependencies": [
+        "V2-GATE-01",
+        "V2-AXZ-01",
+        "V2-AXZ-02"
+      ],
+      "operational_dependencies": [
+        "AXZERO_TYPED_OPERATOR_IMPLEMENTED",
+        "TRUSTED_OWNER_F18_SCOPE",
+        "NO_UNTRUSTED_CODE_EXECUTION"
+      ],
+      "allowed_paths": [
         "src/my_local_ai/ax_runtime/axzero_bridge.py",
         "tests/security/test_v2_axzero_bridge.py"
       ],
-      "source_acceptance": "MLA Controller->scope/lease/fingerprint->only previously approved deterministic Typed Operator with bounded I/O/effects->result/denial; arbitrary generated code/shell/Git/permission changes are HOLD, never auto execute",
+      "source_acceptance": "Controller->fresh verified V2-AXZ-02 eligibility decision->previously owned fixed Typed Operator with bounded arguments and effects->recorded result or HOLD; untrusted generated code/shell/import/remote/original writes and stale source denied; no bypass of F18/CAS",
       "p2_validation": [
         "V2-AC-AXZERO-GUARDED",
         "V2-AC-ROLLBACK"
       ],
       "score_S_C_I_D_U": {
         "S": 1,
-        "C": 2,
+        "C": 1,
         "I": 1,
         "D": 1,
         "U": 1

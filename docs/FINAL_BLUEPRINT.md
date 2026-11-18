@@ -179,7 +179,7 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 4. **AXZERO**는 별도 repo/branch의 REQ 36/18 SWU를 보존한다. MLA는 증거가 있는 capability 참조/검증·고정 Typed Operator 호출만 선택형 어댑터로 연결한다. AXZERO 부재 시 Qwen/MLA 정상, 임의 생성 스크립트는 실행하지 않는다.
 5. **Hydrogen**은 기존 EXT-HYD-01..08을 보존한 기본 OFF 선택형 Advisor+독립 후보 코딩 워커다. 계정별 무료·실제 모델 ID·외부 송신/비밀·별도 Owner GO 미확인 시 실제 호출 DENY. **AXNODE**는 후속 선택적 패키징이며 필수 의존성이 아니다.
 6. **Owner UI 대안:** 기존 Windows WTSSendMessageW 오류 5를 포괄 권한 부여로 덮지 않는다. 별도 보호된 인터랙티브 Owner 세션의 명시적 승인 UI와 서명된 challenge/response를 비교 설계한다. 독립 SID/TPM 키/서비스 인증/nonce/lease·거절 기본값 및 복구·현장 별도 GO 필수. 관련 작업은 **기존 MLA-SWU-008/021 범위에 귀속**하며 새 SWU를 만들어 기존 완료율을 조작하지 않는다.
-7. **변경된 설계의 별도 신규 연결 작업은 4 SWU**([V2 추가 큐](OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json)): Gate, AXZERO 읽기전용 어댑터, 제한 실행 브리지, 효과 측정. V1.2 경험학습 7 SWU와 함께 별도 **V2 확장 계획 11 SWU**, 기존 P1 **39 MLA + 16 CodeShield = 55 SWU** 분모와 섞지 않는다. Hydrogen 8개, AXZERO 18개는 각자 기존 큐 유지.
+7. **변경된 설계의 별도 신규 연결 작업은 5 SWU**([V2 추가 큐](OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json)): Gate, AXZERO 읽기전용 어댑터, 적격성·효과 범위 판정, 제한 고정 연산 호출, 효과 측정. V1.2 경험학습 7 SWU와 함께 별도 **V2 확장 계획 12 SWU**, 기존 P1 **39 MLA + 16 CodeShield = 55 SWU** 분모와 섞지 않는다. Hydrogen 8개, AXZERO 18개는 각자 기존 큐 유지.
 8. **현재 확인된 개발 상태(관측):** dev/instant-implementation-v1@7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a의 기본 구현 후보 52/55(94.55%), 보호 서버 소스 존재, Owner 대화형 승인 오류 5, 실제 F18/Defender 실기기 미확인, P2 LOCKED/UNASSESSED. 이 설계 변경은 **코드 기능 +0, 신규 실행/설치/OS 권한/외부 송신 승인 없음**이다.
 
 **구현 순서:** 기존 V1.3 완성·인수 → MESA V1.2 승계 최소판 → 별도 AXZERO 핵심 → Evidence Gate/AXZERO V2 브리지 → 선택 Hydrogen → 선택 AXNODE. 일부 서로 독립적인 개발 작업은 별도 브랜치·책임자·충돌 없는 경로 확인 시 병행 가능. 기능·시간 개선은 실측 전 UNMEASURED. 임의 코드 자동실행 금지와 보호 OS 승인/F18 안전 경계는 어느 단계에서도 완화하지 않는다.
