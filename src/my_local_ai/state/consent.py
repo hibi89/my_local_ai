@@ -737,6 +737,61 @@ class _WindowsBrokerAPI:
         finally:
             self.kernel.CloseHandle(token)
 
+    @staticmethod
+    def _local_scm_account_name(configured: str, computer: str) -> str:
+        """Refuse domain, built-in, managed and ambiguous service accounts.
+
+        Only an explicit pre-provisioned local account can match the pinned
+        S-1-5-21 principal. No registration, credential or security write.
+        """
+        import re
+        if (type(configured) is not str or type(computer) is not str
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,14}", computer) is None
+            or "\\" not in configured):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        domain, sep, user = configured.partition("\\")
+        if (not sep or domain.casefold() not in (".", computer.casefold())
+            or re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}", user) is None
+            or user.endswith(".") or user.casefold() in {"system", "localsystem", "networkservice", "localservice"}):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        return computer + "\\" + user
+
+    def _scm_account_sid(self, configured: str) -> str:
+        """Resolve an existing *local* SCM service identity using read-only Win32.
+
+        Read-only SCM PID+own-process+immutable image+local account SID can
+        attest a different service without opening its cross-account token.
+        A Controller CLIENT still requires its own exact token SID check at
+        the protected server; this does not weaken that authentication.
+        """
+        c, w = self.c, self.w
+        computer = c.create_unicode_buffer(256)
+        computer_len = w.DWORD(len(computer))
+        get_computer = self._bind(self.kernel, "GetComputerNameW",
+                                 [w.LPWSTR, c.POINTER(w.DWORD)], w.BOOL)
+        if not get_computer(computer, c.byref(computer_len)):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        local_account = self._local_scm_account_name(configured, computer.value)
+        lookup = self._bind(self.advapi, "LookupAccountNameW",
+            [w.LPCWSTR, w.LPCWSTR, c.c_void_p, c.POINTER(w.DWORD),
+             w.LPWSTR, c.POINTER(w.DWORD), c.POINTER(w.DWORD)], w.BOOL)
+        sid_size, domain_size, kind = w.DWORD(), w.DWORD(), w.DWORD()
+        c.set_last_error(0)
+        if (lookup(None, local_account, None, c.byref(sid_size),
+                   None, c.byref(domain_size), c.byref(kind))
+            or c.get_last_error() != 122
+            or not 1 <= sid_size.value <= 512
+            or not 1 <= domain_size.value <= 256):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        sid = c.create_string_buffer(sid_size.value)
+        domain = c.create_unicode_buffer(domain_size.value)
+        if (not lookup(None, local_account, sid, c.byref(sid_size),
+                       domain, c.byref(domain_size), c.byref(kind))
+            or kind.value != 1  # SidTypeUser; not a group or service SID
+            or domain.value.casefold() != computer.value.casefold()):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        return self.sid_string(c.addressof(sid))
+
     def authenticate_pipe(self, pipe, role: str, roots: dict, *, service_self=False):
         """Hold the SCM/peer process handles until the transaction has ended."""
         c, w = self.c, self.w
@@ -760,9 +815,13 @@ class _WindowsBrokerAPI:
             if not process:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             stack.callback(self.kernel.CloseHandle, process)
-            if (self.process_sid(process) != roots[role][0]
-                or (self.process_sid(current()) != roots[role][0] if service_self
-                    else self.process_sid(current()) in {v[0] for v in roots.values()})):
+            # On client->service authentication the service's SCM own-process
+            # PID, pre-provisioned local logon SID and pinned image constitute
+            # the OS identity. Opening a foreign service token can require a
+            # DACL change, prohibited without the Owner's separate approval.
+            # On service-self startup still check the actual own token.
+            if (self.process_sid(current()) != roots[role][0] if service_self
+                else self.process_sid(current()) in {v[0] for v in roots.values()}):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             open_scm = self._bind(self.advapi, "OpenSCManagerW",
                                   [w.LPCWSTR, w.LPCWSTR, w.DWORD], w.HANDLE)
@@ -831,8 +890,11 @@ class _WindowsBrokerAPI:
             config = c.create_string_buffer(length.value)
             if not config_query(service, config, len(config), c.byref(length)):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-            binary = c.cast(config, c.POINTER(Config)).contents.binary
-            if binary not in (str(path), '"' + str(path) + '"'):
+            installed = c.cast(config, c.POINTER(Config)).contents
+            binary = installed.binary
+            if (installed.kind != 0x10 or installed.start not in (3, 4)
+                or binary not in (str(path), '"' + str(path) + '"')
+                or self._scm_account_sid(installed.account) != roots[role][0]):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             return stack
         except BaseException:
