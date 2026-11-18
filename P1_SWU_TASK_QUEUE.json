@@ -737,12 +737,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
+      "partial_source_sha": "64041221b1163598c74aa9f6267d39d7170dea73",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths.  Read-only protected authority scope now rejects repository/disposable path ancestor overlap, not just exact equality; owner consent UI not invoked on conflict.",
-      "runtime_gap": "Separate Windows owner principal, ACL/key custody with actual protected signer and one-shot owner action grants remain absent. New Windows current-user DPAPI MAC check is an advisory real crypto path only; does not establish independent signer or F18 and cannot execute/merge/publish. Protected owner service requires separately authorized provisioning and real Windows security evidence.",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths.  Read-only protected authority scope now rejects repository/disposable path ancestor overlap, not just exact equality; owner consent UI not invoked on conflict. 2026-11-18 owner-approved redesign: Owner protected service signs action+lease+source scope challenge and writes via atomic exchange; separately pinned frozen Owner UI verifies service signature and native owner SID/session/image, displays exact action, signs decision with distinct pre-provisioned nonexportable CNG key; service re-verifies decision/nonces/TTL and live authority before signing; WTS cross-session disabled. Still BLOCKED_TRUST with OS/P2 NOT_RUN.",
+      "runtime_gap": "Owner-session v2 source and synthetic request/response roundtrip implemented; real separate Windows Owner account/session, protected EXE image/ACL, interactive TPM CNG key, shared directory provisioning and native E2E NOT_RUN. WTS error 5 source dependency removed, NOT device-level acceptance.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -801,6 +801,18 @@
           "evidence_sha": "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
           "nonprogress_failure": false,
           "checks": "GITHUB_ACTIONS_44267396884_SUCCESS"
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261118-OWNER-SELF-SESSION",
+          "method": "Owner protected service signs action+lease+source scope challenge and writes via atomic exchange; separately pinned frozen Owner UI verifies service signature and native owner SID/session/image, displays exact action, signs decision with distinct pre-provisioned nonexportable CNG key; service re-verifies decision/nonces/TTL and live authority before signing; WTS cross-session disabled",
+          "evidence_sha": "64041221b1163598c74aa9f6267d39d7170dea73",
+          "outcome": "SOURCE_PROGRESS_CONNECTED_SYNTHETIC_PASS_WINDOWS_OWNER_PROVISIONING_AND_E2E_NOT_RUN",
+          "nonprogress_failure": false,
+          "github_actions_success": [
+            44273586915,
+            44273979237,
+            44274084752
+          ]
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -2047,12 +2059,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
+      "partial_source_sha": "0125dc778f7959fd7f1e5f2a3abce8f305b4c163",
       "partial_source_paths": [
         "src/my_local_ai/review/protected_reviewer.py"
       ],
-      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope.  Synthetic SHA-addressed Git tree output parser now rejects exact duplicate paths, case-insensitive aliases and malformed zero-delimited entries before dictionary overwrites, while an empty source tree remains valid; independent F18 remains HOLD. Protected Git tree decoder rejects file/directory prefix ambiguity that could hide additional paths in non-executing independent review.",
-      "runtime_gap": "Actual independently protected Windows reviewer principal, fixed check execution isolation, protected nonce/key issuer and signed F18 receipt still absent. Untrusted outbox parse is not attestation or F18 acceptance.",
+      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope.  Synthetic SHA-addressed Git tree output parser now rejects exact duplicate paths, case-insensitive aliases and malformed zero-delimited entries before dictionary overwrites, while an empty source tree remains valid; independent F18 remains HOLD. Protected Git tree decoder rejects file/directory prefix ambiguity that could hide additional paths in non-executing independent review. 2026-11-18 owner-approved redesign: Protected source reviewer exposes explicit F18 STATIC_ONLY status separated from independent executed-test REQ-14, rejects conversion of static result to execution acceptance. Still BLOCKED_TRUST with OS/P2 NOT_RUN.",
+      "runtime_gap": "Static source-review report now explicitly separate from executed independent unit/security test acceptance. Actual independent protected Windows F18 issuer NOT_RUN, legacy REQ-14 executed tests remain UNSATISFIED under approved Zero-VM without separately approved safe execution environment.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -2107,6 +2119,18 @@
           "evidence_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
           "nonprogress_failure": false,
           "checks": "GITHUB_ACTIONS_44267600993_SUCCESS"
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261118-REVIEW-SPLIT",
+          "method": "Protected source reviewer exposes explicit F18 STATIC_ONLY status separated from independent executed-test REQ-14, rejects conversion of static result to execution acceptance",
+          "evidence_sha": "0125dc778f7959fd7f1e5f2a3abce8f305b4c163",
+          "outcome": "SOURCE_PROGRESS_STATIC_EXECUTION_SPLIT_REQ14_UNSATISFIED_WINDOWS_F18_NOT_RUN",
+          "nonprogress_failure": false,
+          "github_actions_success": [
+            44273586915,
+            44273979237,
+            44274084752
+          ]
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -5725,10 +5749,18 @@
   ],
   "last_source_wave": {
     "branch": "dev/instant-implementation-v1",
-    "source_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
+    "source_sha": "64041221b1163598c74aa9f6267d39d7170dea73",
     "commits": [
-      "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
-      "be9ff609cce985155737e100878e77c97e03a0d2"
+      "c7071abbe0e44dec408d640c41315ddfc800625c",
+      "6288713c942155d7132c55c3febf19a6b4749778",
+      "33dcd0e57d92a771a14160118aacb2637ce29c52",
+      "3363b525c3fd45134133e665f388aa52eface415",
+      "49f24a61101f08a5a3bf58001c8697c77dfcb078",
+      "756d2581613205e04ff48683d006ca483fcb66c3",
+      "29ff839e5f8e0a605a73318ee3b068fb23c1858f",
+      "0125dc778f7959fd7f1e5f2a3abce8f305b4c163",
+      "373b24a43d365219f9dd129530ed75f1597d78a7",
+      "64041221b1163598c74aa9f6267d39d7170dea73"
     ],
     "swus_source_complete": [],
     "swus_partial_source": [
@@ -5741,16 +5773,21 @@
     "source_candidate_total": 52,
     "required_swu_total": 55,
     "checks": {
-      "github_actions_runs": [
-        44267396884,
-        44267600993
-      ],
       "syntax": "PASS",
       "synthetic_security": "PASS",
-      "real_owner_windows": "NOT_RUN",
-      "independent_f18": "NOT_RUN",
+      "synthetic_signed_owner_roundtrip": "PASS",
+      "github_actions_success": [
+        44273586915,
+        44273979237,
+        44274084752
+      ],
+      "intermediate_failed_commits": "CORRECTED_IN_LATER_COMMITS",
+      "real_windows_owner": "NOT_RUN",
+      "real_tpm_cng": "NOT_RUN",
+      "actual_f18": "NOT_RUN",
       "real_defender": "NOT_RUN"
     },
+    "design_branch_sha": "8bbf72d7146c6175a6ff2b9a6c7a3e966a163c6a",
     "trust_boundary": "HOLD",
     "owner_go": false,
     "p2": "LOCKED",
