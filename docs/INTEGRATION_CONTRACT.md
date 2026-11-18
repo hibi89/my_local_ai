@@ -65,3 +65,7 @@ No arbitrary shell. No auto PR/remote push, payment, Windows startup, external H
 - 같은 task/baseline/plan SHA에서 safe top3 skill hints만 read-only 전달; 충돌·outdated·missing FTS5/DB면 no-memory Qwen 기본 흐름. controller의 결정론적 안전조건은 learned suggestions보다 항상 우선.
 - 미승인 외부 Sol Max 답변 자동 import, 대체 모델 학습용 training signals/rubrics, hidden reasoning 추출, 고객자료/토큰/원본 프롬프트 저장/송신 금지. 실험은 소유 합성·공개 허용 소스에 한정.
 - 수용 `EXP-AC-01..10` / 독립 큐 `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`. 기존 정본 REQ/P1-P2/Browser/Hydrogen/CI·권한 게이트 변경 없음.
+
+## V2.0 비권한 포트 추가 설계 — 2026-11-18
+
+기존 Controller↔EAI/ProviderPort 계약을 유지하며 새 승인 권한을 추가하지 않는다. EvidenceQueryV1(source_sha,plan_sha,dependency_fingerprint,toolchain/rules,evidence_refs,scope,data_class) → EvidenceDecisionV1(REUSABLE_ADVICE|REVALIDATION_REQUIRED|UNKNOWN|REVOKED, reasons, allowed_use=ADVICE_ONLY). MESA AdvisorProposalV2(top<=3, strategy_ref,evidence_ids,rationale,limitations) 또한 권한 없는 힌트만 반환한다. AXZERO CapabilityQueryV1과 CapabilityDecisionV1은 정본 product/ax-zero-local의 기존 JSON v1/EXE decision 계약을 따르되 **MLA 자체 승인·F18·Git CAS**를 다시 확인한다. AXZERO OFF/미구현 시 MLA 기본 Qwen 경로 유지. 신뢰된 Typed Operator만 제한 실행, 생성 스크립트/코드 자동실행 불허. 정확한 상태기계·우선순위는 [V2 통합 최종설계](MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md).

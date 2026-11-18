@@ -100,3 +100,7 @@ AXNODE는 **미래의 독립 실행 패키지·typed graph export**용 선택 �
 - OpenAI 사용 약관: https://openai.com/policies/terms-of-use/
 - OpenAI 사용 정책: https://openai.com/policies/usage-policies/
 - 허용된 일상적 소프트웨어 개발·개발 결과 검토와, 대체 모델의 학습자료/신호 조성을 구분한다. 필요시 사용하는 서비스별 최신 약관·권한/데이터 전송 조건을 다시 검증한다.
+
+## 10. V2.0 상위 통합 규칙 — MESA 명칭 및 재사용 (2026-11-18)
+
+본 V1.2 문서는 **MESA(MLA Experience & Strategy Advisor)의 기존 기능·수용조건 정본**으로 승계한다. 새 시스템/새 7 SWU를 중복 신설하지 않는다. EXT-EXP-01..07의 ID·allowed_paths·수용조건·이력은 보존하고, V2.0 세부 계약/확장은 [V2 최종 통합설계](MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md)와 [별도 V2 접점 4 SWU](OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json)를 따른다. EAI 독립 제품은 개명/이식하지 않고 기존 advisors/eai.py는 선택형 비권한 포트로 유지한다. ExperienceRecordV2는 기존 V1 필드를 확장·호환하는 마이그레이션 계획이지 실 DB 변경 승인 아님. Evidence Gate의 REUSABLE_ADVICE는 서명·재검증 또는 자동 실행 허가가 아니다. 모델 답변/실패 가설은 후보 데이터만 된다.

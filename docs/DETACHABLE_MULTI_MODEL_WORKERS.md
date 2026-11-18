@@ -106,3 +106,7 @@ P1 기존 28 task/REQ-01~30는 **그대로**. 이 문서의 확장은 `docs/OPTI
 
 ## P1/P2 브라우저 검사 최적화 — 2026-11-17 추가
 Hydrogen/Qwen/Instant/Codex 등 **모든 코딩 워커**는 P1에서 BE+FE 실제 코드와 테스트 하네스를 작성하고 문법·타입·최소 빌드·국소 smoke 및 위험 변경의 즉시 안전 검사만 수행한다. 브라우저/Playwright E2E·시각/반응형/a11y 반복 검증은 기본 `DEFERRED_TO_P2`다. 다만 구현 자체에 불가피하거나 인증/권한/비밀/원본 손실/F18 같은 고위험 검사에 필요한 **최소** 브라우저 시나리오를 예외적으로 실행할 수 있으며 정확 SHA/사유/결과를 남긴다. P1 후보는 `IMPLEMENTED_UNVERIFIED`이며 실제 브라우저 PASS를 의미하지 않는다. P2는 기존 High phase gate 이후 전체 E2E/실브라우저/회귀 검증을 수행한다. 기존 필수 CI·안전 정책·선택형 Hydrogen 외부 승인/무료 한도는 변하지 않는다.
+
+## V2.0 호환 우선순위 — 2026-11-18 사용자 승인 설계
+
+본 문서의 기존 EXT-HYD-01..08과 두 역할(대안 조언/독립 코딩 워커)을 재사용하며 새 Hydrogen 큐를 만들지 않는다. V1.3 §L Zero-VM 규칙은 이 문서의 역사적인 isolated/sandbox executor 기술 표현보다 우선한다. 임의 생성 코드·테스트·셸 자동 실행을 전제로 한 경로는 비활성/HOLD, Git worktree는 OS 격리/무송신 증거 아님. Remote 기본 OFF, max_spend_usd=0, 실제 계정/모델/무료 티어 및 송신 승인 별도, 미확인 시 DENY. 최신 [V2.0 정본](MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md) §8을 우선한다. 실제 Google API 호출·결제·키 등록·모델 가용성 검증은 이 문서 변경으로 허가되지 않는다.

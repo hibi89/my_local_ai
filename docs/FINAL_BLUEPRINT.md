@@ -1,3 +1,5 @@
+> **[2026-11-18 KST · OWNER APPROVED V2.0 DESIGN CANONICAL]** Current V2.0 scope: [§M and MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md](docs/MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md). MESA inherits existing V1.2 EXT-EXP-01..07; Evidence Gate + AXZERO bridge are optional additions; Hydrogen V1.1/AXNODE optional; existing V1.3 Zero-VM security and 55 SWU remain unchanged. Design commit only, not implementation/OS/remote/API approval. Historical progress below is superseded by actual dev HEAD + task queues.
+
 > **[2026-11-18 KST · OWNER NO-VM NO-CONTAINER CANONICAL OVERRIDE]** 최신 사용자 확정 설계: **VM·Windows Sandbox·Hyper-V·WSL2·Docker·Windows 컨테이너·AppContainer 설치/실행/선택적 fallback 의존성 0**. 이전 J/K절에 남은 fallback·AppContainer 후보는 모두 폐기한다. **CPU-first Pure Player + 검증된 허용목록 Typed Operator + 비실행 CodeShield + 로컬 Qwen 하나**가 기본이다. 임의 AI 생성 코드/테스트/스크립트/패키지 훅은 실행하지 않고 HOLD한다. 격리 Worktree는 OS 보안 격리가 아니다. 별도 보호 소유자 승인·독립 F18·nonce/lease·Git CAS·원본/비밀/외부 송신 안전조건은 완화하지 않는다. 변경은 설계에 한하며 Codex 작업 중인 dev 소스/실기기 안전 증거는 그대로 미검증이다.
 
 > **[OWNER-ENFORCED PHASE SPLIT · 2026-11-17 KST · FIRST READ]** 본 프로젝트는 **P1 구현완료율 우선**, **P2 검증완료율 후행**이다. P1=`INSTANT_TASK_QUEUE.json`의 28개 실제 BE/FE 코드 작업(REQ-01~30). P2=`VERIFICATION_TASK_QUEUE.json`의 8개 전체 CI/보안/통합/실기기 검증 작업이며 **`WORK_PHASE_GATES.json`의 P1 구현 100% 후보 + High 인수 + 정확 SHA 게이트 전 LOCKED**. P3 독립 Codex/Astra 감사·P4 High 인수/사용자 GO는 검증 이후 별도. P1 중 전체 CI 수동 반복 대기 금지. **기존 필수 CI는 계속 활성화**, 문법/국소 스모크·인증/권한/비밀/데이터 손실/원본/F18 보안 즉시검사는 절대 생략 금지. `IMPLEMENTED_UNVERIFIED` ≠ `VERIFIED`. 가중치 승인 전 공식 검증완료율 UNASSESSED. **모든 GPT High/Instant, Codex, Astra, OpenCode·후속 채팅은 이 규칙과 `docs/PHASE_GATES.md`를 먼저 읽는다.**
@@ -166,3 +168,18 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 4. **기존 SWU 보존:** V1.3 55개 SWU와 원래 REQ/allowed_paths/2+2 이력은 임의 삭제·재번호 금지. `MLA-SWU-015`의 AI 생성 코드 실행/OS 격리 목표 및 `MLA-SWU-031`의 게스트 no-egress 목표는 **본 비실행 아키텍처와 충돌**한다. 이를 달성한 것으로 위장하지 말고, 동일 ID로 비실행 candidate worker/Typed Operator 기본 네트워크 거부의 실제 caller→callee를 재설계하여 수용조건·의존성을 명시적으로 대조한다. 설계 변경이 안전·기능 범위를 축소하는 경우 코드 작업자 임의 PASS가 아니라 High 수용 검토와 소유자 승인 경계 유지.
 5. **Codex 경합:** Codex가 이미 수정 중인 `dev/instant-implementation-v1`의 `isolation_runner.py` 및 6개 SWU 소스는 이번 설계 커밋에서 **수정하지 않는다**. 최신 dev HEAD 대비 설계 드리프트 및 기존 VM 프로파일 제거/비활성화는 Codex 결과 인수 후 **별도 안전한 코드 변경**으로 처리한다. 원격 코드에 남은 VM/profile 진단은 제거 완료가 아님.
 6. **기기 성능:** VM/컨테이너 제외는 자원 절약 목적이나 VRAM·RAM 절감량은 `UNMEASURED`; Windows 컨테이너가 반드시 GPU VRAM을 많이 점유한다고 가정하지 않는다. GTX 1050 Ti에서 Qwen 1개 우선.
+
+## M. My Local AI V2.0 최종 통합 아키텍처 — 2026-11-18 사용자 승인
+
+**현재 승인된 P0 설계:** [MLA V2.0 MESA + Evidence Gate + AXZERO 정본](MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md). 본 M절은 V1.2 경험학습·V1.1 Hydrogen의 **호환 상위 설계**이고 §L Zero-VM 절대 불변·V1.3 보호 Owner/F18·CodeShield·nonce/lease/Git CAS와 기존 고유 REQ/SWU를 축소·대체하지 않는다. 이전 H/I/J/K절의 날짜별 구현 건수는 역사적 스냅샷이며, 현재 구현 상황은 실제 개발 브랜치 HEAD와 큐로 판단한다.
+
+1. **MLA Controller**만 Plan SHA/REQ/DAG/READY/예산/권한 및 보호 Git 반영을 지휘한다. 모델, MESA, AXZERO, Hydrogen, AXNODE가 이를 대체하지 않는다.
+2. **Evidence Gate**는 환경·의존성 지문·정확 SHA·소유자 범위·증거 발급 주체·검수 규칙/유효기간을 비교하여 추천 재사용 가능 여부를 판정한다. 이전 독립 영수증을 새 SHA에 재발급/승격하지 않는다.
+3. **MESA**는 기존 V1.2 Experience Learning Engine 및 기존 **EXT-EXP-01..07**을 재사용해 관측·실패 원인·유사 사례·전략 추천·사용자 제안·A/B 효과 측정을 구현한다. 기존 EAI 선택 어댑터와 원본 EAI는 개명·변경하지 않는다. MESA는 비권한 AdvisorProposal만 반환하며 별도 GPU 모델을 상주시키지 않는다.
+4. **AXZERO**는 별도 repo/branch의 REQ 36/18 SWU를 보존한다. MLA는 증거가 있는 capability 참조/검증·고정 Typed Operator 호출만 선택형 어댑터로 연결한다. AXZERO 부재 시 Qwen/MLA 정상, 임의 생성 스크립트는 실행하지 않는다.
+5. **Hydrogen**은 기존 EXT-HYD-01..08을 보존한 기본 OFF 선택형 Advisor+독립 후보 코딩 워커다. 계정별 무료·실제 모델 ID·외부 송신/비밀·별도 Owner GO 미확인 시 실제 호출 DENY. **AXNODE**는 후속 선택적 패키징이며 필수 의존성이 아니다.
+6. **Owner UI 대안:** 기존 Windows WTSSendMessageW 오류 5를 포괄 권한 부여로 덮지 않는다. 별도 보호된 인터랙티브 Owner 세션의 명시적 승인 UI와 서명된 challenge/response를 비교 설계한다. 독립 SID/TPM 키/서비스 인증/nonce/lease·거절 기본값 및 복구·현장 별도 GO 필수. 관련 작업은 **기존 MLA-SWU-008/021 범위에 귀속**하며 새 SWU를 만들어 기존 완료율을 조작하지 않는다.
+7. **변경된 설계의 별도 신규 연결 작업은 4 SWU**([V2 추가 큐](OPTIONAL_V2_INTEGRATION_TASK_QUEUE.json)): Gate, AXZERO 읽기전용 어댑터, 제한 실행 브리지, 효과 측정. V1.2 경험학습 7 SWU와 함께 별도 **V2 확장 계획 11 SWU**, 기존 P1 **39 MLA + 16 CodeShield = 55 SWU** 분모와 섞지 않는다. Hydrogen 8개, AXZERO 18개는 각자 기존 큐 유지.
+8. **현재 확인된 개발 상태(관측):** dev/instant-implementation-v1@7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a의 기본 구현 후보 52/55(94.55%), 보호 서버 소스 존재, Owner 대화형 승인 오류 5, 실제 F18/Defender 실기기 미확인, P2 LOCKED/UNASSESSED. 이 설계 변경은 **코드 기능 +0, 신규 실행/설치/OS 권한/외부 송신 승인 없음**이다.
+
+**구현 순서:** 기존 V1.3 완성·인수 → MESA V1.2 승계 최소판 → 별도 AXZERO 핵심 → Evidence Gate/AXZERO V2 브리지 → 선택 Hydrogen → 선택 AXNODE. 일부 서로 독립적인 개발 작업은 별도 브랜치·책임자·충돌 없는 경로 확인 시 병행 가능. 기능·시간 개선은 실측 전 UNMEASURED. 임의 코드 자동실행 금지와 보호 OS 승인/F18 안전 경계는 어느 단계에서도 완화하지 않는다.
