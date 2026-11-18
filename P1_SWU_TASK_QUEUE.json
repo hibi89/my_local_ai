@@ -737,11 +737,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "870a4100f09eee2d68a2f3f93ce255289dd9f59c",
+      "partial_source_sha": "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths. ",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths.  Read-only protected authority scope now rejects repository/disposable path ancestor overlap, not just exact equality; owner consent UI not invoked on conflict.",
       "runtime_gap": "Separate Windows owner principal, ACL/key custody with actual protected signer and one-shot owner action grants remain absent. New Windows current-user DPAPI MAC check is an advisory real crypto path only; does not establish independent signer or F18 and cannot execute/merge/publish. Protected owner service requires separately authorized provisioning and real Windows security evidence.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -793,6 +793,14 @@
           "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_PROTECTED_OWNER_DEVICE_NOT_ATTESTED",
           "nonprogress_failure": false,
           "checks": "GITHUB_ACTIONS_44263938902_SUCCESS"
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261118-NESTED-SCOPE",
+          "method": "Guard protected authority's immutable Git mirror and disposable worktree paths against parent/child directory overlap before Owner confirmation; synthetic owner request deny cases",
+          "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_OWNER_TRUST_STILL_BLOCKED",
+          "evidence_sha": "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
+          "nonprogress_failure": false,
+          "checks": "GITHUB_ACTIONS_44267396884_SUCCESS"
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -2039,11 +2047,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "54b6de4cd9272a916f3fc595e22c3d706bd9ef94",
+      "partial_source_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
       "partial_source_paths": [
         "src/my_local_ai/review/protected_reviewer.py"
       ],
-      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope.  Synthetic SHA-addressed Git tree output parser now rejects exact duplicate paths, case-insensitive aliases and malformed zero-delimited entries before dictionary overwrites, while an empty source tree remains valid; independent F18 remains HOLD.",
+      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope.  Synthetic SHA-addressed Git tree output parser now rejects exact duplicate paths, case-insensitive aliases and malformed zero-delimited entries before dictionary overwrites, while an empty source tree remains valid; independent F18 remains HOLD. Protected Git tree decoder rejects file/directory prefix ambiguity that could hide additional paths in non-executing independent review.",
       "runtime_gap": "Actual independently protected Windows reviewer principal, fixed check execution isolation, protected nonce/key issuer and signed F18 receipt still absent. Untrusted outbox parse is not attestation or F18 acceptance.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -2091,6 +2099,14 @@
             "fc1bdcfb2e46807675cac51a2e2ac5b14dc96dba",
             "54b6de4cd9272a916f3fc595e22c3d706bd9ef94"
           ]
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261118-GIT-TREE-PREFIX-COLLISION",
+          "method": "Reject raw immutable Git trees with file-vs-directory prefix collisions in either listing order; preserve legitimate sibling paths",
+          "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_F18_TRUST_STILL_BLOCKED",
+          "evidence_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
+          "nonprogress_failure": false,
+          "checks": "GITHUB_ACTIONS_44267600993_SUCCESS"
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -5709,13 +5725,14 @@
   ],
   "last_source_wave": {
     "branch": "dev/instant-implementation-v1",
-    "source_sha": "54b6de4cd9272a916f3fc595e22c3d706bd9ef94",
+    "source_sha": "be9ff609cce985155737e100878e77c97e03a0d2",
     "commits": [
-      "fc1bdcfb2e46807675cac51a2e2ac5b14dc96dba",
-      "54b6de4cd9272a916f3fc595e22c3d706bd9ef94"
+      "a32f7cbf1d6801be4dc9a3afcd47924a20fdacb7",
+      "be9ff609cce985155737e100878e77c97e03a0d2"
     ],
     "swus_source_complete": [],
     "swus_partial_source": [
+      "MLA-SWU-008",
       "MLA-SWU-021"
     ],
     "source_complete_count": 37,
@@ -5725,8 +5742,8 @@
     "required_swu_total": 55,
     "checks": {
       "github_actions_runs": [
-        44265824382,
-        44265951425
+        44267396884,
+        44267600993
       ],
       "syntax": "PASS",
       "synthetic_security": "PASS",
