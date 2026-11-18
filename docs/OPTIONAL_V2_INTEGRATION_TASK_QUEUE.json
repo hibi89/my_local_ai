@@ -68,7 +68,9 @@
         "redesign_nonimproving": 0
       },
       "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
-      "evidence_sha": null
+      "evidence_sha": null,
+      "source_code_commit_sha": "d885a47e0916b74996d4457cabec2e382443c550",
+      "source_code_note": "Pure decision gate source and synthetic CI 44249877978 PASS; Controller caller and protected receipt evidence NOT_RUN; not complete/authorized."
     },
     {
       "id": "V2-AXZ-01",

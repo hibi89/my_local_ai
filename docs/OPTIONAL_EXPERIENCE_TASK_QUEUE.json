@@ -12,7 +12,7 @@
   "external_training_authorized": false,
   "paid_or_external_api_authorized": false,
   "preexisting_dev_branch": "dev/instant-implementation-v1",
-  "implementation_evidence": "NOT_RUN",
+  "implementation_evidence": "SOURCE_ONLY_PARTIAL_EXTENSION_NO_INTEGRATION_GO",
   "verification_evidence": "NOT_RUN",
   "tasks": [
     {
@@ -42,7 +42,9 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "42e8bea555a7de1d2fea73fcfbd7aa3bf7701ee7",
+      "source_code_note": "Immutable untrusted contracts implemented; synthetic CI 44249567794 PASS. Integration authority false and operational acceptance NOT_RUN."
     },
     {
       "task_id": "EXT-EXP-02",
