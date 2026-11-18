@@ -729,12 +729,16 @@ class ProtectedPipeClientTokenTests(unittest.TestCase):
         def close(handle):
             events.append("close_token")
             return True
+        def exit_process(code):
+            events.append(("terminate_service", code))
+            return None  # Native ExitProcess does not return.
         funcs = {
             "ImpersonateNamedPipeClient": impersonate,
             "RevertToSelf": revert,
             "GetCurrentThread": thread,
             "OpenThreadToken": open_token,
             "GetTokenInformation": get_token,
+            "ExitProcess": exit_process,
         }
         api._bind = lambda lib, name, args, result: funcs[name]
         # Do not expose live kernel handles; fake kernel needs only CloseHandle.
@@ -759,11 +763,17 @@ class ProtectedPipeClientTokenTests(unittest.TestCase):
                     api.pipe_client_sid_after_read(321)
                 self.assertEqual(events[-1], "revert")
 
-    def test_failed_identity_restore_is_terminal_hold(self):
+    def test_failed_identity_restore_terminates_service_before_next_request(self):
         api, events = self.fake_api(refuse_revert=True)
         with self.assertRaises(c.ProtectedBrokerHold):
             api.pipe_client_sid_after_read(321)
-        self.assertEqual(events[-1], "revert")
+        self.assertEqual(events[-2], "revert")
+        self.assertEqual(events[-1], ("terminate_service", 1))
+        # The fatal native path is ExitProcess, not ctypes callback
+        # exceptions that WINFUNCTYPE might silently swallow.
+        import inspect
+        source = inspect.getsource(c._WindowsBrokerAPI.pipe_client_sid_after_read)
+        self.assertIn('self._bind(self.kernel, "ExitProcess"', source)
 
     def test_server_authenticates_after_header_and_before_body(self):
         import inspect
