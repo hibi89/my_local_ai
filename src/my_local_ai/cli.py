@@ -84,6 +84,20 @@ def _parser() -> argparse.ArgumentParser:
     shield_sub = shield.add_subparsers(dest="shield_action", required=True)
     shield_sub.add_parser("status", help="CodeShield source coverage and F18 HOLD")
     shield_sub.add_parser("doctor", help="Explicit owner-side Defender read-only status query")
+    experience = subs.add_parser("experience", help="Read-only local MESA observations")
+    experience_sub = experience.add_subparsers(dest="experience_action", required=True)
+    for name in ("status", "search", "inspect", "export-redacted"):
+        view = experience_sub.add_parser(name)
+        view.add_argument("--db", type=Path, required=True)
+        view.add_argument("--project", required=True)
+        view.add_argument("--plan-sha", required=True)
+        view.add_argument("--source-sha", required=True)
+        view.add_argument("--scope", required=True)
+        view.add_argument("--rights", required=True)
+        if name == "search":
+            view.add_argument("--fingerprint", required=True)
+        if name == "inspect":
+            view.add_argument("--event-id", required=True)
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -694,6 +708,19 @@ def main(argv: list[str] | None = None) -> int:
                 "allow_code_execution": False,
                 "phase": "P1_SOURCE_ONLY",
             }
+        elif args.command == "experience":
+            from my_local_ai.ui.experience_status import (
+                open_mesa_readonly, experience_read_only_view,
+            )
+            with open_mesa_readonly(args.db) as local_mesa:
+                payload = experience_read_only_view(
+                    local_mesa, action=args.experience_action,
+                    project_id=args.project, plan_sha256=args.plan_sha,
+                    source_git_sha=args.source_sha, scope_ref=args.scope,
+                    rights_tag=args.rights,
+                    error_fingerprint=getattr(args, "fingerprint", None),
+                    event_id=getattr(args, "event_id", None),
+                )
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":
