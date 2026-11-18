@@ -142,3 +142,19 @@ def redacted_metrics_card(
         or (assisted is not None and not isinstance(assisted, TaskMetricsV1))):
         raise ValueError("invalid metrics card inputs")
     return compare_task_metrics(baseline, assisted).to_redacted_dict()
+
+
+
+def redacted_stored_metrics_card(
+    conn: sqlite3.Connection, *, project_id: str, scope_ref: str,
+    plan_sha256: str, source_git_sha: str,
+    acceptance_sha256: str, environment_digest: str, rights_tag: str,
+) -> dict[str, object]:
+    """Read existing owned local observations; never compute verified savings."""
+    from my_local_ai.experience.evaluation import compare_persisted_metrics
+    return compare_persisted_metrics(
+        conn, project_id=project_id, scope_ref=scope_ref,
+        plan_sha256=plan_sha256, source_git_sha=source_git_sha,
+        acceptance_sha256=acceptance_sha256,
+        environment_digest=environment_digest, rights_tag=rights_tag,
+    ).to_redacted_dict()

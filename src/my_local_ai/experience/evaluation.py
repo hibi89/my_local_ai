@@ -128,3 +128,97 @@ def compare_task_metrics(
         baseline.validation_ms, assisted.validation_ms,
         assisted.vram_peak_bytes,
     )
+
+
+# Source-only local persistence for independently reviewable A/B observations.
+# A caller must supply an existing, separately owned MESA v2 database;
+# no path creation, SQL schema migration or live data capture occurs here.
+def persist_task_metrics(
+    conn: "sqlite3.Connection", metric: TaskMetricsV1, *,
+    explicit_owned_scope: bool = False,
+) -> bool:
+    """Append exactly one redacted observation; False on identical replay."""
+    import hashlib
+    import json
+    import sqlite3
+    from dataclasses import asdict
+    from my_local_ai.state.experience_migrations import require_experience_store
+
+    if not isinstance(metric, TaskMetricsV1) or explicit_owned_scope is not True:
+        raise ValueError("explicit owned local MESA metric scope required")
+    require_experience_store(conn, require_v2=True)
+    encoded=json.dumps(asdict(metric),sort_keys=True,separators=(",",":"),
+                       ensure_ascii=True,allow_nan=False)
+    digest=hashlib.sha256(encoded.encode("ascii")).hexdigest()
+    with conn:
+        old=conn.execute(
+            "SELECT idempotency_digest, redacted_json FROM experience_metrics WHERE observation_id=?",
+            (metric.observation_id,),
+        ).fetchone()
+        if old is not None:
+            if old != (digest,encoded):
+                raise ValueError("changed metric replay refused")
+            return False
+        try:
+            conn.execute(
+                """INSERT INTO experience_metrics
+                   (observation_id,idempotency_digest,project_id,scope_ref,
+                    source_git_sha,plan_sha256,variant,redacted_json)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (metric.observation_id,digest,metric.project_id,metric.scope_ref,
+                 metric.source_git_sha,metric.plan_sha256,metric.variant,encoded),
+            )
+        except sqlite3.IntegrityError:
+            raise ValueError("duplicate or conflicting MESA measurement") from None
+    return True
+
+
+def compare_persisted_metrics(
+    conn: "sqlite3.Connection", *, project_id: str, scope_ref: str,
+    plan_sha256: str, source_git_sha: str, acceptance_sha256: str,
+    environment_digest: str, rights_tag: str,
+) -> MetricsComparisonV1:
+    """Compare a unique pair only; ambiguity and drift mean UNMEASURED.
+
+    No experiment is run here and observed numbers are not an efficacy claim.
+    """
+    import json
+    import sqlite3
+    from my_local_ai.state.experience_migrations import require_experience_store
+    from my_local_ai.experience.schema import _ID, _SHA40, _SHA64, _valid
+    if (not _valid(project_id,_ID) or not _valid(scope_ref,_ID)
+        or not _valid(plan_sha256,_SHA64) or not _valid(source_git_sha,_SHA40)
+        or not _valid(acceptance_sha256,_SHA64)
+        or not _valid(environment_digest,_SHA64)
+        or rights_tag not in {"PUBLIC_SYNTHETIC","OWNED_REDACTED"}):
+        raise ValueError("invalid metrics comparison scope")
+    try:
+        require_experience_store(conn,require_v2=True)
+        records=conn.execute(
+            """SELECT redacted_json FROM experience_metrics WHERE
+               project_id=? AND scope_ref=? AND plan_sha256=?
+               AND source_git_sha=? ORDER BY observation_id LIMIT 65""",
+            (project_id,scope_ref,plan_sha256,source_git_sha),
+        ).fetchall()
+        if len(records)>64:
+            return MetricsComparisonV1("UNMEASURED",("TOO_MANY_OBSERVATIONS",))
+        pairs={"BASELINE":[],"ASSISTED":[]}
+        for (raw,) in records:
+            item=json.loads(raw)
+            if not isinstance(item,dict):
+                return MetricsComparisonV1("UNMEASURED",("CORRUPT_OBSERVATION",))
+            candidate=TaskMetricsV1(**item)
+            if (candidate.project_id != project_id or
+                candidate.scope_ref != scope_ref or
+                candidate.plan_sha256 != plan_sha256 or
+                candidate.source_git_sha != source_git_sha):
+                return MetricsComparisonV1("UNMEASURED",("TAMPERED_OBSERVATION",))
+            if (candidate.acceptance_sha256 == acceptance_sha256 and
+                candidate.environment_digest == environment_digest and
+                candidate.rights_tag == rights_tag):
+                pairs[candidate.variant].append(candidate)
+        if len(pairs["BASELINE"])!=1 or len(pairs["ASSISTED"])!=1:
+            return MetricsComparisonV1("UNMEASURED",("MISSING_OR_AMBIGUOUS_PAIR",))
+        return compare_task_metrics(pairs["BASELINE"][0],pairs["ASSISTED"][0])
+    except (sqlite3.Error, ValueError, KeyError, TypeError, RecursionError):
+        return MetricsComparisonV1("UNMEASURED",("UNAVAILABLE_OR_CORRUPT_METRICS",))

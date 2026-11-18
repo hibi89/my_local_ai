@@ -3,8 +3,11 @@ import unittest
 from dataclasses import replace
 
 from my_local_ai.experience.evaluation import (
-    TaskMetricsV1, compare_task_metrics,
+    TaskMetricsV1, compare_task_metrics, persist_task_metrics,
+    compare_persisted_metrics,
 )
+import sqlite3
+from my_local_ai.state.experience_migrations import initialize_empty_experience_store
 
 BASE = TaskMetricsV1(
     "baseline-001", "BASELINE", "project-001",
@@ -56,3 +59,51 @@ class V2MetricsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class V2StoredMetricsTest(unittest.TestCase):
+    def setUp(self):
+        self.db=sqlite3.connect(":memory:")
+        initialize_empty_experience_store(self.db,explicit_new_owned_store=True)
+
+    def tearDown(self):
+        self.db.close()
+
+    def compare(self,**changes):
+        scope=dict(
+            project_id="project-001",scope_ref="scope-001",plan_sha256="a"*64,
+            source_git_sha="b"*40,acceptance_sha256="c"*64,
+            environment_digest="d"*64,rights_tag="PUBLIC_SYNTHETIC",
+        )
+        scope.update(changes)
+        return compare_persisted_metrics(self.db,**scope)
+
+    def test_redacted_append_idempotency_and_exact_comparison(self):
+        with self.assertRaises(ValueError):
+            persist_task_metrics(self.db,BASE)
+        self.assertTrue(persist_task_metrics(
+            self.db,BASE,explicit_owned_scope=True))
+        self.assertFalse(persist_task_metrics(
+            self.db,BASE,explicit_owned_scope=True))
+        self.assertTrue(persist_task_metrics(
+            self.db,ASSISTED,explicit_owned_scope=True))
+        observed=self.compare()
+        self.assertEqual(observed.state,"OBSERVED_UNVERIFIED")
+        self.assertEqual(observed.assisted_calls,4)
+        self.assertEqual(observed.verified_speedup,"UNMEASURED")
+        self.assertEqual(self.compare(acceptance_sha256="f"*64).state,"UNMEASURED")
+        with self.assertRaises(sqlite3.DatabaseError):
+            self.db.execute("DELETE FROM experience_metrics")
+
+    def test_changed_observation_and_cherry_picking_fail_closed(self):
+        persist_task_metrics(self.db,BASE,explicit_owned_scope=True)
+        persist_task_metrics(self.db,ASSISTED,explicit_owned_scope=True)
+        with self.assertRaises(ValueError):
+            persist_task_metrics(
+                self.db,replace(BASE,model_calls=1),explicit_owned_scope=True)
+        persist_task_metrics(
+            self.db,replace(ASSISTED,observation_id="assisted-002"),
+            explicit_owned_scope=True,
+        )
+        self.assertEqual(self.compare().state,"UNMEASURED")

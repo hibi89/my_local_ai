@@ -87,7 +87,7 @@ def _parser() -> argparse.ArgumentParser:
     shield_sub.add_parser("doctor", help="Explicit owner-side Defender read-only status query")
     experience = subs.add_parser("experience", help="Read-only local MESA observations")
     experience_sub = experience.add_subparsers(dest="experience_action", required=True)
-    for name in ("status", "search", "inspect", "export-redacted"):
+    for name in ("status", "search", "inspect", "export-redacted", "compare"):
         view = experience_sub.add_parser(name)
         view.add_argument("--db", type=Path, required=True)
         view.add_argument("--project", required=True)
@@ -99,6 +99,9 @@ def _parser() -> argparse.ArgumentParser:
             view.add_argument("--fingerprint", required=True)
         if name == "inspect":
             view.add_argument("--event-id", required=True)
+        if name == "compare":
+            view.add_argument("--acceptance-sha", required=True)
+            view.add_argument("--environment-sha", required=True)
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -714,14 +717,27 @@ def main(argv: list[str] | None = None) -> int:
                 open_mesa_readonly, experience_read_only_view,
             )
             with open_mesa_readonly(args.db) as local_mesa:
-                payload = experience_read_only_view(
-                    local_mesa, action=args.experience_action,
-                    project_id=args.project, plan_sha256=args.plan_sha,
-                    source_git_sha=args.source_sha, scope_ref=args.scope,
-                    rights_tag=args.rights,
-                    error_fingerprint=getattr(args, "fingerprint", None),
-                    event_id=getattr(args, "event_id", None),
-                )
+                if args.experience_action == "compare":
+                    from my_local_ai.ui.experience_status import redacted_stored_metrics_card
+                    payload = {
+                        "action": "compare", "read_only": True,
+                        **redacted_stored_metrics_card(
+                            local_mesa, project_id=args.project,
+                            scope_ref=args.scope, plan_sha256=args.plan_sha,
+                            source_git_sha=args.source_sha, rights_tag=args.rights,
+                            acceptance_sha256=args.acceptance_sha,
+                            environment_digest=args.environment_sha,
+                        ),
+                    }
+                else:
+                    payload = experience_read_only_view(
+                        local_mesa, action=args.experience_action,
+                        project_id=args.project, plan_sha256=args.plan_sha,
+                        source_git_sha=args.source_sha, scope_ref=args.scope,
+                        rights_tag=args.rights,
+                        error_fingerprint=getattr(args, "fingerprint", None),
+                        event_id=getattr(args, "event_id", None),
+                    )
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()
         elif args.command == "queue" and args.queue_action == "start":

@@ -10,6 +10,7 @@ import unittest
 from my_local_ai.cli import main
 from my_local_ai.experience.collector import collect_observation
 from my_local_ai.experience.schema import ExperienceEventV1
+from my_local_ai.experience.evaluation import TaskMetricsV1, persist_task_metrics
 from my_local_ai.experience.curator import classify_experience, append_curation_decision
 from my_local_ai.state.experience_migrations import initialize_empty_experience_store
 
@@ -46,6 +47,18 @@ class ExperienceCliTest(unittest.TestCase):
                 expected_project="project-001", expected_source_sha="b"*40,
                 expected_scope="scope-001",
             )
+            baseline = TaskMetricsV1(
+                "baseline-001","BASELINE","project-001",
+                "a"*64,"b"*40,"e"*64,"f"*64,"scope-001",
+                "PUBLIC_SYNTHETIC",120000,2,8,3,30000,None,None,None,
+            )
+            assisted = TaskMetricsV1(
+                "assisted-001","ASSISTED","project-001",
+                "a"*64,"b"*40,"e"*64,"f"*64,"scope-001",
+                "PUBLIC_SYNTHETIC",60000,2,4,2,10000,None,None,None,
+            )
+            persist_task_metrics(conn,baseline,explicit_owned_scope=True)
+            persist_task_metrics(conn,assisted,explicit_owned_scope=True)
         finally:
             conn.close()
 
@@ -79,6 +92,22 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(len(exported["records"]), 1)
         self.assertNotIn("PRIVATE_CANARY", json.dumps(exported))
         self.assertFalse(exported["execution_allowed"])
+
+    def test_cli_persisted_comparison_is_unverified_only(self):
+        code, observed = self.cli(
+            "compare", "--acceptance-sha", "e"*64,
+            "--environment-sha", "f"*64,
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(observed["state"], "OBSERVED_UNVERIFIED")
+        self.assertEqual(observed["verified_speedup"], "UNMEASURED")
+        self.assertFalse(observed["execution_allowed"])
+        code, mismatch = self.cli(
+            "compare", "--acceptance-sha", "0"*64,
+            "--environment-sha", "f"*64,
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(mismatch["state"], "UNMEASURED")
 
     def test_unknown_or_tampered_db_returns_hold(self):
         self.path.unlink()
