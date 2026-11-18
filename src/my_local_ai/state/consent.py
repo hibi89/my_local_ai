@@ -1869,6 +1869,8 @@ def _owner_ui_display_payload(body: dict) -> str:
         raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
     summary = _broker_canonical({
         "action":body["action"],"scope":body["scope"],
+        "action_sha256":body["action_sha256"],
+        "ticket_nonce":body["ticket_nonce"],
         "plan_sha256":body["binding"]["plan_sha256"],
         "source_sha":body["binding"]["source_sha"],
         "candidate_sha":body["binding"]["candidate_sha"],

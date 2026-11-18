@@ -112,6 +112,8 @@ class OwnerSessionProtocolTests(unittest.TestCase):
         self.assertIn("src/demo.py",payload)
         self.assertIn(self.binding["plan_sha256"],payload)
         self.assertIn(self.binding["nonce_sha256"],payload)
+        self.assertIn(ticket["body"]["ticket_nonce"],payload)
+        self.assertIn(ticket["body"]["action_sha256"],payload)
         self.assertIn("reviewer",payload)
         oversized={**ticket["body"],"scope":{
             **ticket["body"]["scope"],"oversized":"x"*18000}}
