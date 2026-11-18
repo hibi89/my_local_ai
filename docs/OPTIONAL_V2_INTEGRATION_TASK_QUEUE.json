@@ -236,7 +236,7 @@
       "source_code_note": "Task+experiment anchored persisted A/B scopes, fail closed UNMEASURED on mismatch or missing IDs; CI #44256751640 PASS after fixture repair. Protected real-task metrics feed NOT_RUN."
     }
   ],
-  "last_source_wave_sha": "8a3fb3364b924ce358ee9bd6fa140a7e567564f1",
+  "last_source_wave_sha": "514b99426cb02ae5abc0e8a6fd02e6d663826c4d",
   "extension_source_candidate_count_conservative": 4,
   "extension_source_candidate_out_of": 12
 }
