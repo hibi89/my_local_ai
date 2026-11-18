@@ -221,6 +221,24 @@ class ServerTests(unittest.TestCase):
                 updated[alias] = ("100644", "c" * 40)
                 with self.assertRaises(c.ProtectedBrokerHold):
                     r._bounded_review_changed_paths(source, updated, [alias])
+        # The candidate must not gain/remove executable bits through a
+        # source-only F18 review. A legacy 100755 file keeps its mode while
+        # its text changes; a newly executable path is always denied.
+        with self.assertRaises(c.ProtectedBrokerHold):
+            r._bounded_review_changed_paths(
+                source, {"src/demo.py": ("100755", "b" * 40)},
+                ["src/demo.py"],
+            )
+        with self.assertRaises(c.ProtectedBrokerHold):
+            r._bounded_review_changed_paths(
+                source, {**source, "src/new.py": ("100755", "b" * 40)},
+                ["src/new.py"],
+            )
+        legacy_source = {"src/demo.py": ("100755", "a" * 40)}
+        legacy_candidate = {"src/demo.py": ("100755", "b" * 40)}
+        self.assertEqual(r._bounded_review_changed_paths(
+            legacy_source, legacy_candidate, ["src/demo.py"]
+        ), ("src/demo.py",))
         with self.assertRaises(c.ProtectedBrokerHold):
             r._bounded_review_changed_paths(
                 source, {}, ["src/demo.py"]  # Deletion prohibited.

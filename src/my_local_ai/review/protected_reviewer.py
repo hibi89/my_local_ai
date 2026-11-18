@@ -526,6 +526,16 @@ def _bounded_review_changed_paths(
     if (not changed or not set(changed) <= set(allowed_paths)
         or any(path not in candidate or not path.endswith(".py") for path in changed)):
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    # Scope authorizes TEXT changes, not Git executable-mode transitions.
+    # A mode-only diff or a newly executable script cannot be accepted as a
+    # STATIC_ONLY Python candidate even when its bytes parse successfully.
+    # An existing executable file can be reviewed only with its mode unchanged.
+    for path in changed:
+        candidate_mode = candidate[path][0]
+        source_mode = source[path][0] if path in source else "100644"
+        if (candidate_mode not in {"100644", "100755"}
+            or source_mode != candidate_mode):
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     try:
         for path in changed:
             safe_path(checked_relative_path(path))
