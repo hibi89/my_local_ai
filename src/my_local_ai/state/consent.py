@@ -1776,6 +1776,8 @@ def _serve_named_pipe(api, server, stopped):
         with api.authenticate_pipe(pipe, api.role, api.roots, service_self=True):
             frame_deadline = 0.0
             def operation(fn, buf=None, size=0, *, connecting=False):
+                if not connecting and (stopped.is_set() or _time.monotonic() >= frame_deadline):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
                 ov, count = Overlapped(), w.DWORD()
                 ov.event = make_event(None, True, False, None)
                 if not ov.event:
