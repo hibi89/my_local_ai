@@ -128,3 +128,17 @@ def experience_read_only_view(
     return {**common, "action": action,
             "records": events, "export_raw_source": False,
             "bounded_limit": 100}
+
+
+
+def redacted_metrics_card(
+    baseline: object, assisted: object,
+) -> dict[str, object]:
+    """UI-facing local comparison; never a causal or certified speedup."""
+    from my_local_ai.experience.evaluation import (
+        TaskMetricsV1, compare_task_metrics,
+    )
+    if ((baseline is not None and not isinstance(baseline, TaskMetricsV1))
+        or (assisted is not None and not isinstance(assisted, TaskMetricsV1))):
+        raise ValueError("invalid metrics card inputs")
+    return compare_task_metrics(baseline, assisted).to_redacted_dict()

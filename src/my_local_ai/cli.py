@@ -739,7 +739,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         else:
             return 2
-    except (OSError, UnicodeError, ValueError, TypeError, KeyError, RecursionError):
+    except (OSError, sqlite3.Error, UnicodeError, ValueError, TypeError, KeyError, RecursionError):
         print(json.dumps({"status": "HOLD", "reason": "INVALID_OR_UNAVAILABLE_LOCAL_INPUT", "execution_allowed": False}))
         return 2
     print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
