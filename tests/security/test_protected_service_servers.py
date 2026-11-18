@@ -706,7 +706,7 @@ class SCMPrincipalBindingTests(unittest.TestCase):
             r"DOMAIN\mla_owner", r"NT AUTHORITY\SYSTEM",
             r"NT SERVICE\MyLocalAI.owner.v1", r"OTHER-PC\mla_owner",
             r".\SYSTEM", r".\NetworkService", r".\LocalService",
-            r".\", r".\user\extra", r".\trailing.",
+            ".\\", r".\user\extra", r".\trailing.",
             r".\space name", r"MY-PC\..", "mla_owner", "", None, 1,
         )
         for value in forbidden:
