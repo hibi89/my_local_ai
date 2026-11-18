@@ -33,13 +33,34 @@ def open_mesa_readonly(path: str | Path):
     if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
         or metadata.st_size > 100 * 1024 * 1024):
         raise ValueError("invalid or oversized experience store")
-    # Immutable, existing SQLite file: never creates DB/WAL/shm. All
-    # observations are advisory; an active WAL snapshot may be stale.
+    # immutable=1 does not read outstanding WAL content. Without this
+    # sidecar gate a revoked/poisoned strategy can be shown from a stale
+    # checkpoint. Reject both live WAL and leftover SHM, never silently
+    # report uncheckpointed MESA observations as current advice.
+    def require_checkpointed():
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(str(p) + suffix)
+            try:
+                sidecar.lstat()
+            except FileNotFoundError:
+                continue
+            raise ValueError("MESA uncheckpointed or untrusted SQLite sidecar")
+    require_checkpointed()
+    identity = (metadata.st_dev, metadata.st_ino,
+                metadata.st_size, metadata.st_mtime_ns)
     conn = sqlite3.connect(p.as_uri() + "?mode=ro&immutable=1", uri=True, timeout=2)
     try:
         conn.execute("PRAGMA query_only=ON")
+        require_checkpointed()
         require_experience_store(conn)
         yield conn
+        # After returning any advisory, fail closed if a concurrent writer
+        # changed the database/sidecars during the read-only query.
+        require_checkpointed()
+        after = p.lstat()
+        if (after.st_dev, after.st_ino, after.st_size,
+            after.st_mtime_ns) != identity:
+            raise ValueError("MESA snapshot changed during read")
     finally:
         conn.close()
 

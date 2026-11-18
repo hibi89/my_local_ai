@@ -205,6 +205,33 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(payload["shadow_experience_refs"], [])
         self.assertFalse(self.path.exists())
 
+    def test_active_wal_never_returns_stale_mesa_suggestions(self):
+        # An immutable SQLite reader would ignore an uncheckpointed REVOKED
+        # curation row. The safe reader must refuse the whole snapshot.
+        with contextlib.closing(sqlite3.connect(self.path)) as writer:
+            self.assertEqual(writer.execute(
+                "PRAGMA journal_mode=WAL",
+            ).fetchone()[0], "wal")
+            extra = {
+                "event_id": "event-003", "project_id": "project-001",
+                "run_id": "run-003", "task_id": "task-001",
+                "plan_sha256": "a"*64, "source_git_sha": "b"*40,
+                "scope_ref": "scope-001", "rights_tag": "PUBLIC_SYNTHETIC",
+                "outcome": "HOLD", "error_fingerprint": "c"*64,
+                "environment_digest": "d"*64, "observed_at": 1794000011,
+            }
+            collect_observation(
+                writer, json.dumps(extra), expected_project="project-001",
+                expected_plan_sha="a"*64, expected_source_sha="b"*40,
+                allowed_scope_refs=frozenset({"scope-001"}),
+            )
+            self.assertTrue(Path(str(self.path) + "-wal").exists())
+            code, output = self.cli("search", "--fingerprint", "c"*64,
+                                    "--environment-sha", "d"*64)
+            self.assertEqual(code, 2)
+            self.assertEqual(output["status"], "HOLD")
+            self.assertFalse(output["execution_allowed"])
+
     def test_unknown_or_tampered_db_returns_hold(self):
         self.path.unlink()
         code, result = self.cli("status")
