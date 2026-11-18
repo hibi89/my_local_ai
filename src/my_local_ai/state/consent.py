@@ -811,7 +811,10 @@ class _WindowsBrokerAPI:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         stack = ExitStack()
         try:
-            process = open_process(0x1000 | 0x100000, False, pid.value)
+            # PROCESS_QUERY_LIMITED_INFORMATION only: documented minimum
+            # for QueryFullProcessImageNameW / OpenProcessToken TOKEN_QUERY.
+            # SYNCHRONIZE is not used and could cause cross-SID DENIED.
+            process = open_process(0x1000, False, pid.value)
             if not process:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             stack.callback(self.kernel.CloseHandle, process)
@@ -2380,7 +2383,9 @@ def _serve_named_pipe(api, server, stopped):
                     pid = w.ULONG()
                     if not pid_fn(pipe, c.byref(pid)) or not pid.value:
                         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                    peer = open_process(0x1000 | 0x100000, False, pid.value)
+                    # Controller SID read requires PROCESS_QUERY_LIMITED_INFORMATION,
+                    # never SYNCHRONIZE/PROCESS_ALL_ACCESS or a DACL grant.
+                    peer = open_process(0x1000, False, pid.value)
                     if not peer:
                         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                     try:
