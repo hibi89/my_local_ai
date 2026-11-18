@@ -1,5 +1,8 @@
 """Synthetic safety tests for staged Windows images, with no native OS writes."""
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
+from unittest.mock import patch
 import json
 import sys
 import tempfile
@@ -89,6 +92,15 @@ class ReadOnlyPreflightTests(unittest.TestCase):
         self.assertFalse(result["defender_scan_verified"])
         self.assertEqual(len(result["image_sha256"]), 4)
         self.assertNotIn("S-1-5", json.dumps(result))
+
+    def test_cli_never_returns_zero_even_when_static_pins_match(self):
+        matched = self.check()
+        with patch.object(preflight, "preflight", return_value=matched):
+            with redirect_stdout(io.StringIO()) as stream:
+                status = preflight.main(["--bundle", str(self.bundle),
+                                         "--installed-root", str(self.installed)])
+        self.assertEqual(status, 2)
+        self.assertEqual(json.loads(stream.getvalue())["decision"], "HOLD")
 
     def test_modified_installed_executable_is_rejected(self):
         name = preflight.IMAGE_BY_ROLE["owner"]
