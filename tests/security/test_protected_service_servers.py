@@ -185,9 +185,14 @@ class OwnerSessionProtocolTests(unittest.TestCase):
                         reply=c._make_owner_ui_decision(ticket,approved=decision,
                             owner_sid="S-1-5-21-OWNER",
                             signer=self.signer(self.key_owner),now_seconds=int(time.time()))
-                        c._owner_ui_write_file(root/(
-                            body["ticket_nonce"]+".reply.json"
-                        ),c._broker_canonical(reply))
+                        # The actual Owner UI writes .partial and atomically
+                        # renames on Windows. Do not expose a half-written
+                        # signed response to the reader in this source test.
+                        temp=root/(body["ticket_nonce"]+".reply.partial")
+                        final=root/(body["ticket_nonce"]+".reply.json")
+                        c._owner_ui_write_file(temp,c._broker_canonical(reply))
+                        import os
+                        os.rename(temp,final)
                     except BaseException as exc:
                         errors.append(exc)
 
