@@ -250,7 +250,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     result = preflight(args.bundle, args.installed_root)
     print(json.dumps(result, sort_keys=True, indent=2))
-    return 0 if result["precheck"] == "MATCHED_UNATTESTED" else 2
+    # Even a perfect image/HKLM comparison never authorizes a protected action.
+    # A non-zero exit prevents CI/install wrappers from treating this as GO.
+    return 2
 
 
 if __name__ == "__main__":
