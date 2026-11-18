@@ -1918,9 +1918,13 @@ def _owner_ui_process_request(api, filename):
     temp=_OWNER_UI_EXCHANGE/(nonce+".reply.partial")
     _owner_ui_write_file(temp,_broker_canonical(reply))
     try:
-        # An existing response is never replaced. The service verifies the
-        # separate non-exportable Owner signature, exact action and nonce.
-        os.link(temp,dest)
+        # On Windows os.rename fails if dest exists and publishes the fully
+        # fsynced response atomically. A temporary hardlink would briefly make
+        # st_nlink=2 and race the service's anti-hardlink integrity preflight.
+        # Native Windows semantics are required; no POSIX overwrite fallback.
+        if os.name != "nt" or dest.exists():
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        os.rename(temp,dest)
     finally:
         temp.unlink(missing_ok=True)
     return True

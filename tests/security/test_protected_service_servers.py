@@ -299,6 +299,12 @@ class ServerTests(unittest.TestCase):
     def call(self, role, raw):
         return c._broker_decode(self.servers[role].process(raw))
 
+    def test_frozen_owner_ui_never_runs_on_nonwindows(self):
+        import os
+        if os.name != "nt":
+            with self.assertRaises(c.ProtectedBrokerHold):
+                c.owner_session_main()
+
     def test_owner_session_file_exchange_is_bounded_and_exclusive(self):
         import os
         with tempfile.TemporaryDirectory() as tmp:
