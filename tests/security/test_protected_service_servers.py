@@ -354,6 +354,31 @@ class ServerTests(unittest.TestCase):
             with self.assertRaises(c.ProtectedBrokerHold):
                 r._serve_static_review(api, self.binding, self.static_payload(), self.scope, threading.Event())
 
+    def test_protected_git_tree_rejects_duplicate_and_bad_framing(self):
+        # Even object-addressed Git trees may contain duplicate names.
+        # No entry may overwrite an earlier one before protected scope review.
+        def item(path, mode=b"100644", oid=b"a" * 40):
+            return mode + b" blob " + oid + b"\t" + path + b"\x00"
+
+        valid = item(b"src/demo.py")
+        self.assertEqual(
+            r._decode_protected_git_tree_listing(valid),
+            {"src/demo.py": ("100644", "a" * 40)},
+        )
+        for listing in (
+            valid + valid,
+            valid + item(b"SRC/DEMO.py", oid=b"b" * 40),
+            valid[:-1],
+            valid + b"\x00",
+            b"",
+            item(b"src/../demo.py"),
+            item(b"src/file.py", mode=b"120000"),
+            item(b"src/invalid_\xff.py"),
+        ):
+            with self.subTest(listing=repr(listing[:70])):
+                with self.assertRaises(c.ProtectedBrokerHold):
+                    r._decode_protected_git_tree_listing(listing)
+
     def test_static_evidence_cannot_pass_legacy_test_receipt_guard(self):
         from my_local_ai.review.receipt_guard import inspect_receipt, ExpectedReceipt, ReceiptHold
         expected = ExpectedReceipt("TASK-001", "RUN-001", "a" * 64, "b" * 40,

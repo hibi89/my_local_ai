@@ -544,6 +544,43 @@ def _bounded_review_changed_paths(
     return changed
 
 
+def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, str]]:
+    """Decode a bounded, NUL-terminated Git tree without collapsing duplicates.
+
+    A Git tree can be malformed despite matching its object ID. Reject exact
+    and case-insensitive duplicate paths BEFORE Python dictionary insertion.
+    This does not execute or check out untrusted repository content.
+    """
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    if type(listing) is not bytes or not listing or not listing.endswith(b"\x00"):
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    entries = listing[:-1].split(b"\x00")
+    if not 1 <= len(entries) <= 4096:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    result = {}
+    seen_casefold = set()
+    for item in entries:
+        try:
+            meta, name = item.split(b"\t", 1)
+            mode, kind, digest = meta.decode("ascii").split(" ")
+            path = name.decode("utf-8")
+        except (ValueError, UnicodeError):
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED") from None
+        if (not path or len(path) > 240 or path.startswith("/")
+            or "\\" in path or ":" in path
+            or any(part in ("", ".", "..") for part in path.split("/"))
+            or any(ord(ch) < 32 for ch in path)
+            or mode not in {"100644", "100755"}
+            or kind != "blob" or not _SHA40.fullmatch(digest)):
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+        key = path.casefold()
+        if key in seen_casefold:
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+        seen_casefold.add(key)
+        result[path] = (mode, digest)
+    return result
+
+
 def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> dict[str, bytes]:
     """Read immutable Git objects with one pinned, non-filtering Git operator.
 
@@ -628,27 +665,7 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
         def tree(oid):
             object_bytes("commit", oid)
             listing = git("ls-tree", "-rz", "--full-tree", oid)
-            entries = listing.rstrip(b"\x00").split(b"\x00") if listing else []
-            if len(entries) > 4096:
-                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-            result = {}
-            for item in entries:
-                meta, name = item.split(b"\t", 1)
-                mode, kind, digest = meta.decode("ascii").split(" ")
-                path = name.decode("utf-8")
-                # Unchanged .gitignore/.github entries belong to the commit
-                # identity. Apply the stricter edit scope only to changed files.
-                if (not path or len(path) > 240 or path.startswith("/")
-                    or "\\" in path or ":" in path
-                    or any(part in ("", ".", "..") for part in path.split("/"))
-                    or any(ord(ch) < 32 for ch in path)):
-                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-                if mode not in {"100644", "100755"} or kind != "blob" or not _SHA40.fullmatch(digest):
-                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-                result[path] = (mode, digest)
-            if len({path.casefold() for path in result}) != len(result):
-                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-            return result
+            return _decode_protected_git_tree_listing(listing)
         source, candidate = tree(binding["source_sha"]), tree(binding["candidate_sha"])
         changed = _bounded_review_changed_paths(
             source, candidate, scope["allowed_paths"]
