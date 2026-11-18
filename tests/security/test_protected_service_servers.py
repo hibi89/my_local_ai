@@ -696,18 +696,18 @@ class SCMPrincipalBindingTests(unittest.TestCase):
 
     def test_only_pinned_local_machine_account_names_are_candidates(self):
         check = c._WindowsBrokerAPI._local_scm_account_name
-        self.assertEqual(check(r".\\mla_owner", "MY-PC"), r"MY-PC\\mla_owner")
-        self.assertEqual(check(r"my-pc\\mla_review", "MY-PC"), r"MY-PC\\mla_review")
-        self.assertEqual(check(r"MY-PC\\mla-scanner", "MY-PC"), r"MY-PC\\mla-scanner")
+        self.assertEqual(check(r".\mla_owner", "MY-PC"), r"MY-PC\mla_owner")
+        self.assertEqual(check(r"my-pc\mla_review", "MY-PC"), r"MY-PC\mla_review")
+        self.assertEqual(check(r"MY-PC\mla-scanner", "MY-PC"), r"MY-PC\mla-scanner")
 
     def test_domain_builtin_service_group_and_ambiguous_accounts_hold(self):
         check = c._WindowsBrokerAPI._local_scm_account_name
         forbidden = (
-            r"DOMAIN\\mla_owner", r"NT AUTHORITY\\SYSTEM",
-            r"NT SERVICE\\MyLocalAI.owner.v1", r"OTHER-PC\\mla_owner",
-            r".\\SYSTEM", r".\\NetworkService", r".\\LocalService",
-            r".\\", r".\\user\\extra", r".\\trailing.",
-            r".\\space name", r"MY-PC\\..", "mla_owner", "", None, 1,
+            r"DOMAIN\mla_owner", r"NT AUTHORITY\SYSTEM",
+            r"NT SERVICE\MyLocalAI.owner.v1", r"OTHER-PC\mla_owner",
+            r".\SYSTEM", r".\NetworkService", r".\LocalService",
+            r".\", r".\user\extra", r".\trailing.",
+            r".\space name", r"MY-PC\..", "mla_owner", "", None, 1,
         )
         for value in forbidden:
             with self.subTest(value=value), self.assertRaises(c.ProtectedBrokerHold):
@@ -716,7 +716,7 @@ class SCMPrincipalBindingTests(unittest.TestCase):
     def test_invalid_computer_names_never_authorize_service_principal(self):
         for computer in ("", "MY-PC\\DOMAIN", "HOST.OTHER", " " * 5, "x"*16):
             with self.subTest(computer=computer), self.assertRaises(c.ProtectedBrokerHold):
-                c._WindowsBrokerAPI._local_scm_account_name(r".\\owner", computer)
+                c._WindowsBrokerAPI._local_scm_account_name(r".\owner", computer)
 
     def test_service_cross_sid_proof_keeps_exact_pid_image_scm_and_controller_sid(self):
         import inspect
