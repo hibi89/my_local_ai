@@ -86,6 +86,41 @@ class CurationStorageTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             replace(result,reason_codes=("PASTE_PRIVATE_PROMPT",))
 
+    def test_revocation_or_quarantine_cannot_be_resurrected(self):
+        from dataclasses import replace
+        seed = classify_experience(
+            EVENT, strategy_digest="1"*64, proposed_action_digest="2"*64,
+            expected_source_sha="b"*40, expected_scope="scope-001",
+            now=1795000010, expires_at=2000000000,
+        )
+        revoked = classify_experience(
+            EVENT, strategy_digest="1"*64, proposed_action_digest="2"*64,
+            expected_source_sha="b"*40, expected_scope="scope-001",
+            now=1795000020, expires_at=2000000000,
+            revoked_event_ids=frozenset({EVENT.event_id}),
+        )
+        self.assertTrue(self.write(result=revoked, decision_id="revoke-001",
+                                   created_at=1795000020))
+        with self.assertRaises(ValueError):
+            self.write(result=seed, decision_id="resurrect-001",
+                       created_at=1795000030)
+        self.assertEqual(self.conn.execute(
+            "SELECT state FROM experience_curation_events ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()[0], "REVOKED")
+
+    def test_reason_state_mismatch_and_backdated_observation_denied(self):
+        from dataclasses import replace
+        pending=classify_experience(
+            EVENT, strategy_digest="1"*64, proposed_action_digest="2"*64,
+            expected_source_sha="b"*40, expected_scope="scope-001",
+            now=1795000010, expires_at=2000000000,
+        )
+        with self.assertRaises(ValueError):
+            replace(pending, state="REVOKED")
+        with self.assertRaises(ValueError):
+            self.write(result=pending, decision_id="old-001",
+                       created_at=EVENT.observed_at-1)
+
     def test_prior_non_mesa_db_not_upgraded(self):
         foreign=sqlite3.connect(":memory:")
         try:

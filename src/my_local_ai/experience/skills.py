@@ -66,3 +66,65 @@ def inspect_skill(
         skill.skill_id, skill.content_sha256, skill.scope_ref,
         "SHADOW_ADVICE_ONLY" if eligible else "QUARANTINED_OR_STALE",
     )
+
+
+
+@dataclass(frozen=True, slots=True)
+class ShadowRollbackPlanV1:
+    """An inert version-pointer proposal, not an actual file/registry rollback."""
+    skill_id: str
+    scope_ref: str
+    revoked_content_sha256: str
+    previous_content_sha256: str | None
+    state: str = "SHADOW_REFERENCE_ONLY"
+    owner_go: bool = False
+    activated: bool = False
+    code_executed: bool = False
+    source_written: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.state != "SHADOW_REFERENCE_ONLY"
+            or not _ID.fullmatch(self.skill_id)
+            or not _ID.fullmatch(self.scope_ref)
+            or not _SHA64.fullmatch(self.revoked_content_sha256)
+            or (self.previous_content_sha256 is not None
+                and not _SHA64.fullmatch(self.previous_content_sha256))
+            or any(getattr(self,n) is not False for n in (
+                "owner_go","activated","code_executed","source_written",
+            ))):
+            raise ValueError("rollback plan cannot gain authority")
+
+
+def plan_shadow_rollback(
+    versions: tuple[SkillVersionV1, ...], *,
+    scope_ref: str, now: int,
+) -> ShadowRollbackPlanV1:
+    """Resolve an exact version-parent chain to an inert previous reference.
+
+    No code, original source, DB or skill bytes are modified. A previously
+    active/approved version is NEVER recovered by this function.
+    """
+    if (not isinstance(versions, tuple) or not 1 <= len(versions) <= 64
+        or type(now) is not int or now <= 0
+        or not isinstance(scope_ref,str) or not _ID.fullmatch(scope_ref)
+        or any(not isinstance(v,SkillVersionV1) for v in versions)):
+        raise ValueError("invalid shadow version history")
+    first=versions[0]
+    if (first.version != 1 or first.parent_content_sha256 is not None
+        or any(v.skill_id != first.skill_id or v.scope_ref != scope_ref
+               or v.version != i+1
+               or (i>0 and v.parent_content_sha256 != versions[i-1].content_sha256)
+               for i,v in enumerate(versions))):
+        raise ValueError("broken or cross-scope skill version chain")
+    # Only an inactive tip can be considered for rollback, and the parent
+    # must still be a non-expired, never-activated SHADOW reference.
+    tip=versions[-1]
+    if tip.state not in {"REVOKED","QUARANTINED"}:
+        raise ValueError("only quarantined/revoked tip may be rolled back")
+    parent=versions[-2] if len(versions)>1 else None
+    previous=None
+    if parent is not None and parent.state=="SHADOW" and now<parent.expiry_at:
+        previous=parent.content_sha256
+    return ShadowRollbackPlanV1(
+        tip.skill_id,scope_ref,tip.content_sha256,previous,
+    )

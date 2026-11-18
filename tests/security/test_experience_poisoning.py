@@ -52,6 +52,35 @@ class ExperiencePoisoningTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             replace(self.curate(), owner_approved=True)
 
+    def test_shadow_version_rollback_cannot_run_or_reactivate(self):
+        from my_local_ai.experience.skills import plan_shadow_rollback
+        old = SkillVersionV1(
+            "skill-001", 1, "a"*64, None, "scope-001", 2000000000,
+        )
+        bad = SkillVersionV1(
+            "skill-001", 2, "b"*64, "a"*64, "scope-001", 2000000000,
+            state="REVOKED",
+        )
+        plan = plan_shadow_rollback(
+            (old,bad), scope_ref="scope-001", now=1795000000,
+        )
+        self.assertEqual(plan.previous_content_sha256, "a"*64)
+        self.assertFalse(plan.activated)
+        self.assertFalse(plan.source_written)
+        self.assertFalse(plan.owner_go)
+        self.assertFalse(plan.code_executed)
+        with self.assertRaises(ValueError):
+            plan_shadow_rollback((old,), scope_ref="scope-001",
+                                 now=1795000000)
+        with self.assertRaises(ValueError):
+            plan_shadow_rollback((old,replace(bad,parent_content_sha256="c"*64)),
+                                 scope_ref="scope-001",now=1795000000)
+        expired=replace(old, expiry_at=1795000000)
+        no_parent=plan_shadow_rollback(
+            (expired,bad),scope_ref="scope-001",now=1795000000,
+        )
+        self.assertIsNone(no_parent.previous_content_sha256)
+
     def test_skill_version_is_shadow_only(self):
         skill = SkillVersionV1(
             "skill-001", 1, "a"*64, None, "scope-001", 2000000000,

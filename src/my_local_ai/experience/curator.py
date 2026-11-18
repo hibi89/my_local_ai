@@ -42,6 +42,13 @@ class CurationResult:
             or not isinstance(self.reason_codes, tuple)
             or len(self.reason_codes) != 1
             or any(code not in approved_reasons for code in self.reason_codes)
+            or self.reason_codes[0] not in {
+                "CURATION_PENDING": {"UNVERIFIED_SHADOW_CANDIDATE"},
+                "QUARANTINED": {"SOURCE_SCOPE_OR_POISONING",
+                                "NO_FAILURE_OR_CANDIDATE"},
+                "REVOKED": {"EXPLICIT_REVOCATION"},
+                "EXPIRED": {"REVALIDATION_REQUIRED"},
+            }[self.state]
             or any(getattr(self, f) is not False for f in
                    ("owner_approved", "verified", "may_run"))):
             raise ValueError("invalid or privileged MESA curation")
@@ -141,7 +148,7 @@ def append_curation_decision(
             or payload.get("owner_approved") is not False):
             raise ValueError("untrusted curation source")
         latest = conn.execute(
-            """SELECT created_at FROM experience_curation_events
+            """SELECT created_at, state FROM experience_curation_events
                WHERE event_id=? ORDER BY sequence DESC LIMIT 1""",
             (result.event_id,),
         ).fetchone()
@@ -157,8 +164,16 @@ def append_curation_decision(
             if old != fields:
                 raise ValueError("curation decision ID replay mismatch")
             return False
-        if latest is not None and created_at < latest[0]:
+        if (created_at < payload["observed_at"]
+            or (latest is not None and created_at < latest[0])):
             raise ValueError("backdated curation decision")
+        # This ledger is non-authoritative: once poisoned/revoked/expired,
+        # a fresh model-generated PENDING record must never resurrect it.
+        # Only an explicit REVOKED tombstone can supersede quarantine/expiry.
+        if latest is not None and latest[1] in {
+            "REVOKED", "QUARANTINED", "EXPIRED"
+        } and result.state != "REVOKED":
+            raise ValueError("terminal curation state cannot be revived")
         conn.execute(
             """INSERT INTO experience_curation_events
                (decision_id,event_id,state,reason_code,strategy_digest,
