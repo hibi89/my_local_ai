@@ -7,6 +7,8 @@ on:
       - '.github/workflows/windows-protected-bundle.yml'
       - 'scripts/build_protected_windows.py'
       - 'scripts/preflight_protected_windows.py'
+      - 'src/my_local_ai/**'
+      - 'pyproject.toml'
       - 'tests/unit/test_windows_protected_preflight.py'
   workflow_dispatch:
 
