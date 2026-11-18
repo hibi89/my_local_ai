@@ -655,6 +655,26 @@ class ServerTests(unittest.TestCase):
             with self.subTest(role=role), self.assertRaises(c.ProtectedBrokerHold):
                 c.protected_service_main(role)
 
+    def test_runtime_ipc_never_modifies_live_process_or_token_dacls(self):
+        # SCM/Owner UI must fail closed if independently provisioned read-only
+        # token query access is missing. P1 code must not fix this by granting
+        # rights at service start or during a client transaction.
+        import inspect
+        broker = inspect.getsource(c._WindowsBrokerAPI.transact)
+        service_init = inspect.getsource(c._WindowsProtectedServiceAPI.__init__)
+        service_type = inspect.getsource(c._WindowsProtectedServiceAPI)
+        for actual in (broker, service_init, service_type):
+            self.assertNotIn("SetSecurityInfo", actual)
+            self.assertNotIn("SetEntriesInAclW", actual)
+            self.assertNotIn("_permit_controller_identity_query", actual)
+        # Removing the mutation must not bypass authenticated peer SID and
+        # SCM PID/image checks from the independent broker trust boundary.
+        auth = inspect.getsource(c._WindowsBrokerAPI.authenticate_pipe)
+        self.assertIn("self.process_sid(process)", auth)
+        self.assertIn("QueryServiceStatusEx", auth)
+        self.assertIn("roots[role][1]", auth)
+        self.assertIn("check_acl(service", auth)
+
     def test_pipe_client_has_duplex_access_without_server_creation(self):
         # Generic write includes FILE_CREATE_PIPE_INSTANCE. The client must
         # request exactly the narrower rights granted by the server pipe DACL.
