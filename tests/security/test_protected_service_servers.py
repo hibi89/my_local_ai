@@ -217,6 +217,22 @@ class ServerTests(unittest.TestCase):
     def call(self, role, raw):
         return c._broker_decode(self.servers[role].process(raw))
 
+    def test_owner_session_file_exchange_is_bounded_and_exclusive(self):
+        import os
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"ticket.json"
+            raw=c._broker_canonical({"fixture":"only"})
+            c._owner_ui_write_file(path,raw)
+            self.assertEqual(c._owner_ui_read_file(path),raw)
+            with self.assertRaises(FileExistsError):
+                c._owner_ui_write_file(path,raw)
+            with self.assertRaises(c.ProtectedBrokerHold):
+                c._owner_ui_read_file(path,max_bytes=3)
+            path.unlink()
+            os.symlink("absent",path)
+            with self.assertRaises((c.ProtectedBrokerHold,FileNotFoundError)):
+                c._owner_ui_read_file(path)
+
     def test_owner_real_request_handler_records_full_action_and_consumes_nonce(self):
         response = self.call("owner", self.owner_request())
         self.assertEqual(response["body"]["status"], "OK")

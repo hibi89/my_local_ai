@@ -1042,6 +1042,7 @@ def dispatch_protected_action(role: str, operation: str, *, binding: dict,
     owner_action = {"action_sha256": action_sha256, "action": action}
     owner = exchange_protected_broker(
         "owner", "authorize", binding=binding, payload=owner_action,
+        timeout_seconds=150,
     )
     if owner["result"] != {
         "action_sha256": action_sha256,
@@ -1098,12 +1099,12 @@ _OWNER_UI_DECISION = "mla-owner-ui-decision/v1"
 
 def _build_owner_ui_ticket(
     request: dict, action: dict, scope: dict, *,
-    signer, issued_at: int, lifespan_seconds: int = 20,
+    signer, issued_at: int, lifespan_seconds: int = 120,
 ) -> dict:
     """Produce a service-signed, exact action+scope, one-shot UI challenge."""
     import base64
     import secrets
-    if (type(issued_at) is not int or not 1 <= lifespan_seconds <= 30
+    if (type(issued_at) is not int or not 1 <= lifespan_seconds <= 150
         or type(request) is not dict or type(action) is not dict
         or type(scope) is not dict or not callable(signer)):
         raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
@@ -1149,7 +1150,7 @@ def _check_owner_ui_ticket(
         or type(body["issued_at"]) is not int or type(body["expires_at"]) is not int
         or type(now_seconds) is not int
         or not body["issued_at"] <= now_seconds < body["expires_at"]
-        or not 1 <= body["expires_at"] - body["issued_at"] <= 30
+        or not 1 <= body["expires_at"] - body["issued_at"] <= 150
         or type(body["action"]) is not dict or type(body["scope"]) is not dict):
         raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
     _validate_broker_binding(body["binding"])
@@ -1650,62 +1651,138 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                 free(provider)
 
     def confirm_owner(self, action: dict, scope: dict) -> bool:
-        """Show the entire ASCII-escaped action to a separately pinned desktop.
+        """Deprecated WTS permission-dependent approval is never a fallback."""
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
 
-        No process input boolean is an approval. Missing WTS permission, a
-        disconnected/replaced session, No/close/timeout all deny. The owner
-        desktop SID is required to differ from the Controller and all services.
-        """
-        c, w = self.c, self.w
-        wts = c.WinDLL("wtsapi32.dll", use_last_error=True, winmode=0x800)
-        query = self._bind(wts, "WTSQuerySessionInformationW", [w.HANDLE, w.DWORD,
-            c.c_int, c.POINTER(c.c_void_p), c.POINTER(w.DWORD)], w.BOOL)
-        free = self._bind(wts, "WTSFreeMemory", [c.c_void_p], None)
-        session = self.settings["OwnerSessionId"]
-        def session_owner():
-            state, size = c.c_void_p(), w.DWORD()
-            if not query(None, session, 8, c.byref(state), c.byref(size)):
-                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            try:
-                if size.value != 4 or c.cast(state, c.POINTER(w.DWORD))[0] != 0:
-                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            finally:
-                free(state)
-            strings = []
-            for kind in (7, 5):  # WTSDomainName, WTSUserName
-                buf, size = c.c_void_p(), w.DWORD()
-                if not query(None, session, kind, c.byref(buf), c.byref(size)):
-                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+
+# Owner's self-session replaces WTSSendMessageW. Windows-native deployment
+# needs a PRE-PROVISIONED dual-SID exchange directory and an Owner-exclusive
+# CNG key. Source never creates identities, privileges, policy, ACL or keys.
+def _owner_ui_read_pins(api):
+    import re
+    import winreg
+    base = r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1"
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base, 0,
+                        winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+        api.check_acl(int(key), 4, 0xD0000 | 0x26 | 0x50000000)
+        vals = dict((name, winreg.QueryValueEx(key, name)) for name in (
+            "ControllerSid", "InteractiveOwnerSid", "OwnerSessionId",
+            "OwnerUiKeyName", "OwnerUiPublicKeyBlob", "OwnerUiImageSha256"))
+    c_sid, ct = vals["ControllerSid"]
+    sid, st = vals["InteractiveOwnerSid"]
+    session, nt = vals["OwnerSessionId"]
+    name, kt = vals["OwnerUiKeyName"]
+    public, pt = vals["OwnerUiPublicKeyBlob"]
+    image_sha, it = vals["OwnerUiImageSha256"]
+    sid_re = r"S-1-5-21-(?:[0-9]+-){3}[0-9]+"
+    if (ct != winreg.REG_SZ or st != winreg.REG_SZ
+        or type(c_sid) is not str or type(sid) is not str
+        or not re.fullmatch(sid_re,c_sid) or not re.fullmatch(sid_re,sid)
+        or sid == c_sid
+        or nt != winreg.REG_DWORD or type(session) is not int
+        or not 1 <= session < 65536
+        or kt != winreg.REG_SZ or type(name) is not str
+        or not re.fullmatch(r"MyLocalAI\.[A-Za-z0-9_.-]{3,64}",name)
+        or pt != winreg.REG_BINARY or type(public) is not bytes
+        or len(public) != 72 or public[:8] != b"ECS1\x20\x00\x00\x00"
+        or it != winreg.REG_SZ or type(image_sha) is not str
+        or not re.fullmatch(r"[0-9a-f]{64}",image_sha)
+        or any(sid == root[0] for root in api.load_roots().values())):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    return sid, session, name, public, image_sha
+
+
+@_contextmanager
+def _owner_ui_locked_directory(api, owner_sid):
+    import ctypes as c
+    from ctypes import wintypes as w
+    from contextlib import ExitStack
+    create = api._bind(api.kernel,"CreateFileW",[w.LPCWSTR,w.DWORD,w.DWORD,
+        c.c_void_p,w.DWORD,w.DWORD,w.HANDLE],w.HANDLE)
+    owners = {api.load_roots()["owner"][0],owner_sid}
+    if len(owners) != 2:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    with ExitStack() as held:
+        for part in (_OWNER_UI_EXCHANGE,*_OWNER_UI_EXCHANGE.parents):
+            info = part.lstat()
+            if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
+                or getattr(info,"st_file_attributes",0) & _REPARSE):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            handle=create(str(part),0x20000,3,None,3,0x02200000,None)
+            if handle in (None,c.c_void_p(-1).value):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            held.callback(api.kernel.CloseHandle,handle)
+            leaf = part == _OWNER_UI_EXCHANGE
+            api.check_acl(handle,1,(0xD0000 | 0x156 | 0x50000000)
+                if leaf else _ANCESTOR_WRITE_MASK,
+                allowed_writers=owners if leaf else (),
+                allowed_owners=owners if leaf else ())
+        yield
+
+
+def _owner_ui_read_file(path, max_bytes=65536):
+    import os
+    before=path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+        or getattr(before,"st_file_attributes",0) & _REPARSE
+        or not 1 <= before.st_size <= max_bytes):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    flags=os.O_RDONLY | getattr(os,"O_BINARY",0) | getattr(os,"O_NOFOLLOW",0)
+    with os.fdopen(os.open(path,flags),"rb") as stream:
+        opened=os.fstat(stream.fileno())
+        raw=stream.read(max_bytes+1)
+        finished=os.fstat(stream.fileno())
+    after=path.lstat()
+    identity=(before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns)
+    if len(raw)!=before.st_size or any(
+        (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)!=identity
+        for info in (opened,finished,after)):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    if raw!=_broker_canonical(_broker_decode(raw)):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    return raw
+
+
+def _owner_ui_write_file(path, packet):
+    import os
+    if type(packet) is not bytes or not 1 <= len(packet) <= 65536:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    fd=os.open(path,os.O_WRONLY | os.O_CREAT | os.O_EXCL
+               | getattr(os,"O_BINARY",0),0o600)
+    with os.fdopen(fd,"wb") as output:
+        output.write(packet)
+        output.flush()
+        os.fsync(output.fileno())
+
+
+def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
+    import time
+    if api.role != "owner":
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    owner_sid,_,_,public,_=_owner_ui_read_pins(api)
+    ticket=_build_owner_ui_ticket(request,action,scope,signer=sign_body,
+        issued_at=int(time.time()),lifespan_seconds=120)
+    nonce=ticket["body"]["ticket_nonce"]
+    request_path=_OWNER_UI_EXCHANGE / (nonce+".request.json")
+    response_path=_OWNER_UI_EXCHANGE / (nonce+".reply.json")
+    deadline=time.monotonic()+120
+    with _owner_ui_locked_directory(api,owner_sid):
+        _owner_ui_write_file(request_path,_broker_canonical(ticket))
+        try:
+            while not stopped.is_set() and time.monotonic()<deadline:
                 try:
-                    strings.append(c.wstring_at(buf))
-                finally:
-                    free(buf)
-            if not all(strings):
-                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            lookup = self._bind(self.advapi, "LookupAccountNameW", [w.LPCWSTR, w.LPCWSTR,
-                c.c_void_p, c.POINTER(w.DWORD), w.LPWSTR, c.POINTER(w.DWORD), c.POINTER(w.DWORD)], w.BOOL)
-            sid_size, domain_size, use = w.DWORD(), w.DWORD(), w.DWORD()
-            name = "\\".join(strings)
-            lookup(None, name, None, c.byref(sid_size), None, c.byref(domain_size), c.byref(use))
-            if not 1 <= sid_size.value <= 1024 or not 1 <= domain_size.value <= 1024:
-                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            sid, domain = c.create_string_buffer(sid_size.value), c.create_unicode_buffer(domain_size.value)
-            if not lookup(None, name, sid, c.byref(sid_size), domain, c.byref(domain_size), c.byref(use)):
-                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            return self.sid_string(sid)
-        before = session_owner()
-        if before != self.settings["InteractiveOwnerSid"]:
-            return False
-        text = _broker_canonical({"action": action, "approved_scope": scope}).decode("ascii")
-        if len(text) > 16000:
-            return False  # No truncation of the operation being approved.
-        title = "My Local AI: approve ONE static action (default: No)"
-        send = self._bind(wts, "WTSSendMessageW", [w.HANDLE, w.DWORD, w.LPWSTR,
-            w.DWORD, w.LPWSTR, w.DWORD, w.DWORD, w.DWORD, c.POINTER(w.DWORD), w.BOOL], w.BOOL)
-        response = w.DWORD()
-        ok = send(None, session, title, len(title.encode("utf-16-le")), text,
-                  len(text.encode("utf-16-le")), 0x104 | 0x30, 20, c.byref(response), True)
-        return bool(ok and response.value == 6 and session_owner() == before)
+                    raw=_owner_ui_read_file(response_path)
+                except FileNotFoundError:
+                    time.sleep(0.1)
+                    continue
+                return _check_owner_ui_decision(ticket,_broker_decode(raw),
+                    expected_owner_sid=owner_sid,expected_owner_public=public,
+                    verify_signature=api.verify_signature,
+                    now_seconds=int(time.time()))
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        finally:
+            request_path.unlink(missing_ok=True)
+            response_path.unlink(missing_ok=True)
 
 
 class _ProtectedActionServer:
@@ -1787,7 +1864,15 @@ class _ProtectedActionServer:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
                 scope = self.live_scope(binding, action)
                 nonce_key = self.journal.reserve(request, digest)
-                if not self.api.confirm_owner(action, scope):
+                if isinstance(self.api, _WindowsProtectedServiceAPI):
+                    confirmed = _confirm_owner_session_request(
+                        self.api, request, action, scope, self.sign_body,
+                        self.stopped,
+                    )
+                else:
+                    # Synthetic-only implementation fixture, never native GO.
+                    confirmed = self.api.confirm_owner(action, scope)
+                if not confirmed:
                     raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
                 self.live_scope(binding, action)  # Revocation during UI wins.
                 result = {"action_sha256": digest, "decision": "APPROVED_SINGLE_USE",
