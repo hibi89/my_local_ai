@@ -683,6 +683,47 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 0xC0000000, 0)
 
 
+class SCMPrincipalBindingTests(unittest.TestCase):
+    """Pure synthetic SCM name constraints; no Windows account/API changed."""
+
+    def test_only_pinned_local_machine_account_names_are_candidates(self):
+        check = c._WindowsBrokerAPI._local_scm_account_name
+        self.assertEqual(check(r".\\mla_owner", "MY-PC"), r"MY-PC\\mla_owner")
+        self.assertEqual(check(r"my-pc\\mla_review", "MY-PC"), r"MY-PC\\mla_review")
+        self.assertEqual(check(r"MY-PC\\mla-scanner", "MY-PC"), r"MY-PC\\mla-scanner")
+
+    def test_domain_builtin_service_group_and_ambiguous_accounts_hold(self):
+        check = c._WindowsBrokerAPI._local_scm_account_name
+        forbidden = (
+            r"DOMAIN\\mla_owner", r"NT AUTHORITY\\SYSTEM",
+            r"NT SERVICE\\MyLocalAI.owner.v1", r"OTHER-PC\\mla_owner",
+            r".\\SYSTEM", r".\\NetworkService", r".\\LocalService",
+            r".\\", r".\\user\\extra", r".\\trailing.",
+            r".\\space name", r"MY-PC\\..", "mla_owner", "", None, 1,
+        )
+        for value in forbidden:
+            with self.subTest(value=value), self.assertRaises(c.ProtectedBrokerHold):
+                check(value, "MY-PC")
+
+    def test_invalid_computer_names_never_authorize_service_principal(self):
+        for computer in ("", "MY-PC\\DOMAIN", "HOST.OTHER", " " * 5, "x"*16):
+            with self.subTest(computer=computer), self.assertRaises(c.ProtectedBrokerHold):
+                c._WindowsBrokerAPI._local_scm_account_name(r".\\owner", computer)
+
+    def test_service_cross_sid_proof_keeps_exact_pid_image_scm_and_controller_sid(self):
+        import inspect
+        code = inspect.getsource(c._WindowsBrokerAPI.authenticate_pipe)
+        self.assertIn("QueryServiceStatusEx", code)
+        self.assertIn("status[7] != pid.value", code)
+        self.assertIn("roots[role][1]", code)
+        self.assertIn("installed.kind != 0x10", code)
+        self.assertIn("self._scm_account_sid(installed.account)", code)
+        self.assertIn("self.process_sid(current())", code)
+        self.assertNotIn("self.process_sid(process)", code)
+        self.assertNotIn("SetSecurityInfo", code)
+        self.assertNotIn("SetEntriesInAclW", code)
+
+
 class DefenderEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.request = d.DefenderOwnerScanRequest("a" * 64, "b" * 40, "SYNTHETIC-ONLY",
