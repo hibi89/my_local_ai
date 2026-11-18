@@ -144,6 +144,70 @@ class OwnerSessionProtocolTests(unittest.TestCase):
             now_seconds=1003,
         ))
 
+    def test_owner_service_to_separate_session_signed_file_roundtrip(self):
+        """One synthetic service-side exchange + one synthetic Owner process.
+
+        No Windows service, key, EXE, ACL, user dialog or production claim.
+        """
+        import contextlib
+        import time
+        class FakeService:
+            role="owner"
+            def verify_signature(inner, public, body, signature):
+                self.verifier(public,body,signature)
+
+        @contextlib.contextmanager
+        def fake_preprovisioned_directory(_api, _sid):
+            yield
+
+        for decision, expected in ((True,True),(False,False)):
+            with self.subTest(approved=decision), tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                errors=[]
+                def serve_owner_ui():
+                    try:
+                        filename=None
+                        deadline=time.monotonic()+3
+                        while time.monotonic()<deadline:
+                            found=list(root.glob("*.request.json"))
+                            if found:
+                                filename=found[0]
+                                break
+                            time.sleep(0.01)
+                        if filename is None:
+                            raise AssertionError("service never created its signed challenge")
+                        ticket=c._broker_decode(c._owner_ui_read_file(filename))
+                        body=c._check_owner_ui_ticket(
+                            ticket,expected_service_public=self.key_service,
+                            verify_signature=self.verifier,now_seconds=int(time.time()))
+                        self.assertEqual(body["action_sha256"],
+                            hashlib.sha256(c._broker_canonical(self.action)).hexdigest())
+                        reply=c._make_owner_ui_decision(ticket,approved=decision,
+                            owner_sid="S-1-5-21-OWNER",
+                            signer=self.signer(self.key_owner),now_seconds=int(time.time()))
+                        c._owner_ui_write_file(root/(
+                            body["ticket_nonce"]+".reply.json"
+                        ),c._broker_canonical(reply))
+                    except BaseException as exc:
+                        errors.append(exc)
+
+                with (patch.object(c,"_OWNER_UI_EXCHANGE",root),
+                      patch.object(c,"_owner_ui_read_pins",
+                          return_value=("S-1-5-21-OWNER",1,
+                                        "synthetic",self.key_owner,"e"*64)),
+                      patch.object(c,"_owner_ui_locked_directory",
+                          fake_preprovisioned_directory)):
+                    worker=threading.Thread(target=serve_owner_ui,daemon=True)
+                    worker.start()
+                    result=c._confirm_owner_session_request(
+                        FakeService(),self.request,self.action,self.scope,
+                        self.signer(self.key_service),threading.Event())
+                    worker.join(timeout=2)
+                    self.assertFalse(worker.is_alive())
+                    self.assertEqual(errors,[])
+                    self.assertIs(result,expected)
+                    self.assertEqual(list(root.iterdir()),[])
+
     def test_owner_ui_tampering_replay_expiry_and_wrong_identity_hold(self):
         ticket = self.ticket()
         decision = c._make_owner_ui_decision(
