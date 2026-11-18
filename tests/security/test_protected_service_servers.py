@@ -573,6 +573,14 @@ class ServerTests(unittest.TestCase):
             self.assertFalse(result.independently_accepted)
             self.assertFalse(result.may_promote)
             self.assertEqual(result.transcript.check_ids, r._STATIC_CHECK_IDS)
+            status = result.to_acceptance_status()
+            self.assertEqual(status["static_review_scope"], "STATIC_ONLY")
+            self.assertEqual(status["required_executed_tests"],
+                             "NOT_RUN_ZERO_VM_POLICY_HOLD")
+            self.assertEqual(status["req14_executed_test_acceptance"],
+                             "UNSATISFIED")
+            self.assertFalse(status["may_promote"])
+            self.assertFalse(status["reviewer_executed_tests"])
             with self.assertRaises(r.ProtectedReviewerHold):
                 r.review_protected_candidate(intent, nonce_sha256=self.binding["nonce_sha256"],
                     owner_consent_ref=self.binding["owner_consent_ref"])

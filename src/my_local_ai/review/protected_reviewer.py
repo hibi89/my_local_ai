@@ -433,6 +433,28 @@ class ProtectedReviewSubmission:
             or self.may_promote is not False or self.independently_accepted is not False):
             raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS")
 
+    def to_acceptance_status(self) -> dict[str, object]:
+        """Explicitly split static source review from REQ-14 executed tests.
+
+        Even an opaque signed STATIC_ONLY service report is NOT proof that
+        independent tests ran. This redacted result is informative only and
+        cannot authorize Git promotion, execution, a trusted receipt or P2 GO.
+        """
+        return {
+            "schema": "mla-f18-phase-split/v1",
+            "static_review_scope": "STATIC_ONLY",
+            "static_check_ids": list(_STATIC_CHECK_IDS),
+            "static_report_authentication": "P2_ATTESTATION_PENDING",
+            "required_executed_check_ids": list(_SOURCE_POLICY_CHECK_IDS),
+            "required_executed_tests": "NOT_RUN_ZERO_VM_POLICY_HOLD",
+            "req14_executed_test_acceptance": "UNSATISFIED",
+            "full_independent_f18": "HOLD",
+            "reviewer_executed_tests": False,
+            "owner_go": False,
+            "may_promote": False,
+            "p2": "LOCKED",
+        }
+
 
 def review_protected_candidate(intent: IsolatedReviewerIntent, *,
                                nonce_sha256: str, owner_consent_ref: str) -> ProtectedReviewSubmission:
