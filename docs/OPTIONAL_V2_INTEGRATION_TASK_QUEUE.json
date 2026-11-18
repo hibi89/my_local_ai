@@ -1,0 +1,230 @@
+{
+  "schema": "mla-v2-optional-integration-swu/v1",
+  "project": "hibi89/my_local_ai",
+  "design_branch": "design/final-blueprint-v1",
+  "design_doc": "docs/MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md",
+  "phase": "P0_DESIGN_ONLY",
+  "owner_design_approved": true,
+  "implementation_scope_go": false,
+  "existing_baseline": {
+    "mla_swu": 39,
+    "codeshield_swu": 16,
+    "total_swu": 55,
+    "source_candidates_at_reference": 52,
+    "source_ref": "7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a",
+    "verified": "UNASSESSED",
+    "p2": "LOCKED",
+    "existing_req_count": 30
+  },
+  "reuse_without_renumbering": {
+    "mesa_previous": "EXT-EXP-01..07",
+    "existing_experience_swu_count": 7,
+    "hydrogen_previous": "EXT-HYD-01..08",
+    "axzero_repo": "hibi89/Freelancer",
+    "axzero_branch": "product/ax-zero-local",
+    "axzero_swu_count": 18
+  },
+  "new_v2_swu_count": 5,
+  "v2_extension_total_excluding_hydrogen_and_axzero": 12,
+  "runtime_go": false,
+  "model_live_api_approved": false,
+  "windows_security_or_service_changes_approved": false,
+  "tasks": [
+    {
+      "id": "V2-GATE-01",
+      "req_ids": [
+        "V2-REQ-GATE-01"
+      ],
+      "legacy_reuse": [
+        "EXT-EXP-01",
+        "EXT-EXP-03",
+        "EXT-EXP-04"
+      ],
+      "code_dependencies": [
+        "EXT-EXP-01"
+      ],
+      "operational_dependencies": [
+        "EXACT_EVIDENCE_AND_SCOPE",
+        "OWNER_GO_FOR_NEW_DATA_COLLECTION"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/experience/evidence_gate.py",
+        "tests/unit/test_v2_evidence_gate.py"
+      ],
+      "source_acceptance": "Controller->EvidenceGate->evidence decision with exact plan/source/dependency/rule/scope and rights invalidation; no signed receipt rebinding; REUSABLE_ADVICE/REVALIDATION_REQUIRED/UNKNOWN/REVOKED normal+negative paths",
+      "p2_validation": [
+        "V2-AC-EVIDENCE",
+        "V2-AC-POISONING"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 0,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
+      "evidence_sha": null
+    },
+    {
+      "id": "V2-AXZ-01",
+      "req_ids": [
+        "V2-REQ-AXZ-01"
+      ],
+      "legacy_reuse": [
+        "EXT-EXP-03"
+      ],
+      "code_dependencies": [
+        "V2-GATE-01"
+      ],
+      "operational_dependencies": [
+        "AXZERO_SOURCE_IMPLEMENTED",
+        "PINNED_CAPABILITY_ARTIFACT"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/advisors/axzero.py",
+        "tests/unit/test_axzero_advisor.py"
+      ],
+      "source_acceptance": "Controller->read-only AXZERO discovery->typed non-authoritative decision; exact artifact/policy/evidence hash and effects check; missing AXZERO/unknown contract falls back to Qwen without code/OS execution",
+      "p2_validation": [
+        "V2-AC-AXZERO-OFF",
+        "V2-AC-AXZERO-SCOPE"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 0,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_AXZERO_DEPENDENCY",
+      "evidence_sha": null
+    },
+    {
+      "id": "V2-AXZ-02",
+      "req_ids": [
+        "V2-REQ-AXZ-02"
+      ],
+      "legacy_reuse": [],
+      "code_dependencies": [
+        "V2-GATE-01",
+        "V2-AXZ-01"
+      ],
+      "operational_dependencies": [
+        "AXZERO_TYPED_OPERATOR_IMPLEMENTED",
+        "TRUSTED_OWNER_F18_SCOPE",
+        "NO_UNTRUSTED_CODE_EXECUTION"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/controller/axzero_eligibility.py",
+        "tests/security/test_v2_axzero_eligibility.py"
+      ],
+      "source_acceptance": "Controller->AXZERO signed capability reference + EvidenceGate + approved_effects/input_domain/budget/lease->immutable eligible/HOLD decision for an existing fixed Typed Operator; tampered digest/expired grant/candidate code/unknown effect denied; no execution in this SWU",
+      "p2_validation": [
+        "V2-AC-AXZERO-ELIGIBILITY",
+        "V2-AC-SCOPE-REVOKE"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 1,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_HIGH_RISK_OWNER_GO_REQUIRED",
+      "evidence_sha": null
+    },
+    {
+      "id": "V2-AXZ-03",
+      "req_ids": [
+        "V2-REQ-AXZ-03"
+      ],
+      "legacy_reuse": [],
+      "code_dependencies": [
+        "V2-GATE-01",
+        "V2-AXZ-01",
+        "V2-AXZ-02"
+      ],
+      "operational_dependencies": [
+        "AXZERO_TYPED_OPERATOR_IMPLEMENTED",
+        "TRUSTED_OWNER_F18_SCOPE",
+        "NO_UNTRUSTED_CODE_EXECUTION"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/axzero_bridge.py",
+        "tests/security/test_v2_axzero_bridge.py"
+      ],
+      "source_acceptance": "Controller->fresh verified V2-AXZ-02 eligibility decision->previously owned fixed Typed Operator with bounded arguments and effects->recorded result or HOLD; untrusted generated code/shell/import/remote/original writes and stale source denied; no bypass of F18/CAS",
+      "p2_validation": [
+        "V2-AC-AXZERO-GUARDED",
+        "V2-AC-ROLLBACK"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 1,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_HIGH_RISK_OWNER_GO_REQUIRED",
+      "evidence_sha": null
+    },
+    {
+      "id": "V2-METRICS-01",
+      "req_ids": [
+        "V2-REQ-METRICS-01"
+      ],
+      "legacy_reuse": [
+        "EXT-EXP-02",
+        "EXT-EXP-07"
+      ],
+      "code_dependencies": [
+        "EXT-EXP-02",
+        "V2-GATE-01"
+      ],
+      "operational_dependencies": [
+        "MEASURABLE_BASELINE",
+        "P2_INDEPENDENT_VALIDATION_FOR_SUCCESS_CLAIMS"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/experience/evaluation.py",
+        "tests/unit/test_v2_evaluation.py",
+        "src/my_local_ai/ui/experience_status.py"
+      ],
+      "source_acceptance": "redacted real task metrics -> persistent baseline/strategy diff with accepted REQ per hour, elapsed total, attempts, model calls, validation cost, CPU/RAM/VRAM nullable; exact SHA/criteria mismatch returns UNMEASURED, UI displays no invented speedup",
+      "p2_validation": [
+        "V2-AC-AB-BASELINE",
+        "V2-AC-RESOURCE"
+      ],
+      "score_S_C_I_D_U": {
+        "S": 1,
+        "C": 1,
+        "I": 1,
+        "D": 1,
+        "U": 1
+      },
+      "attempts": {
+        "initial_nonimproving": 0,
+        "redesign_nonimproving": 0
+      },
+      "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
+      "evidence_sha": null
+    }
+  ]
+}
