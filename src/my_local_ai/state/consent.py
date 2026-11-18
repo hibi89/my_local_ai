@@ -793,6 +793,49 @@ class _WindowsBrokerAPI:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         return self.sid_string(c.addressof(sid))
 
+    def pipe_client_sid_after_read(self, pipe) -> str:
+        """Read only the connected pipe client's SID, then revert immediately.
+
+        Windows requires a successful pipe ReadFile before the server may
+        impersonate that client's security context. SECURITY_IDENTIFICATION
+        on the controller's pipe handle limits this to identity inspection.
+        The caller MUST read only the fixed 4-byte length header first, and
+        MUST compare the returned SID before reading the untrusted body.
+        No request handling, signing, I/O or OS writes occur while impersonating.
+        """
+        c, w = self.c, self.w
+        impersonate = self._bind(self.advapi, "ImpersonateNamedPipeClient",
+            [w.HANDLE], w.BOOL)
+        revert = self._bind(self.advapi, "RevertToSelf", [], w.BOOL)
+        current = self._bind(self.kernel, "GetCurrentThread", [], w.HANDLE)
+        open_token = self._bind(self.advapi, "OpenThreadToken",
+            [w.HANDLE, w.DWORD, w.BOOL, c.POINTER(w.HANDLE)], w.BOOL)
+        get_token = self._bind(self.advapi, "GetTokenInformation",
+            [w.HANDLE, c.c_int, c.c_void_p, w.DWORD, c.POINTER(w.DWORD)], w.BOOL)
+        if not impersonate(pipe):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        try:
+            token = w.HANDLE()
+            if not open_token(current(), 0x0008, True, c.byref(token)):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            try:
+                size = w.DWORD()
+                get_token(token, 1, None, 0, c.byref(size))  # TokenUser
+                if not 1 <= size.value <= 65536:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                buffer = c.create_string_buffer(size.value)
+                if not get_token(token, 1, buffer, len(buffer), c.byref(size)):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                return self.sid_string(c.cast(buffer, c.POINTER(c.c_void_p))[0])
+            finally:
+                if token.value:
+                    self.kernel.CloseHandle(token)
+        finally:
+            # Failure to revert is fatal: never run an Owner/reviewer/Defender
+            # action under a client token, even on an exception path.
+            if not revert():
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+
     def authenticate_pipe(self, pipe, role: str, roots: dict, *, service_self=False):
         """Hold the SCM/peer process handles until the transaction has ended."""
         c, w = self.c, self.w
@@ -2294,8 +2337,9 @@ def _serve_named_pipe(api, server, stopped):
     """Fixed local, single-instance pipe; overlapped I/O with stop/deadline.
 
     FOUR-byte little-endian byte length then canonical JSON matches transact.
-    Client identity is checked by OS PID/token before reading the request.
-    IO cancellation is reaped before freeing OVERLAPPED/buffer memory.
+    Client PID is pinned before reading; identity is read from the pipe
+    token after ONLY the four-byte frame header, then reverted before body
+    parsing or privileged work. IO cancellation is fully reaped.
     """
     c, w = api.c, api.w
     class Overlapped(c.Structure):
@@ -2385,17 +2429,20 @@ def _serve_named_pipe(api, server, stopped):
                     pid = w.ULONG()
                     if not pid_fn(pipe, c.byref(pid)) or not pid.value:
                         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                    # Controller SID read requires PROCESS_QUERY_LIMITED_INFORMATION,
-                    # never SYNCHRONIZE/PROCESS_ALL_ACCESS or a DACL grant.
+                    # Keep the observed pipe-client PID's process handle
+                    # alive (no PID reuse) without opening its token or
+                    # changing any DACL. Identity uses the *connected pipe*
+                    # token after only the fixed-length framing header is read.
                     peer = open_process(0x1000, False, pid.value)
                     if not peer:
                         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                     try:
-                        if api.process_sid(peer) != sid:
-                            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                         length = int.from_bytes(exact(4), "little")
-                        if not 1 <= length <= _BROKER_LIMIT:
-                            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                        if (api.pipe_client_sid_after_read(pipe) != sid
+                            or not 1 <= length <= _BROKER_LIMIT):
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                        # The dedicated SID helper already reverted to the
+                        # service token. Never process a request impersonated.
                         response = server.process(exact(length))
                         frame_deadline = _time.monotonic() + 10
                         packet = len(response).to_bytes(4, "little") + response
