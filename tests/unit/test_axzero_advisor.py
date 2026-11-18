@@ -19,6 +19,7 @@ def catalog(**changes):
         "capability_id":"capability-001","task_type":"static-inspect",
         "artifact_sha256":"d"*64,"policy_sha256":"e"*64,
         "evidence_ref":"evidence-001",
+        "evidence_sha256":"f"*64,
         "input_contract_digest":"b"*64,"environment_fingerprint":"c"*64,
         "allowed_effects":["STATIC_READ"],"source_git_sha":SOURCE,
         "scope_ref":"scope-001","approved_for_execution":False,
@@ -47,6 +48,7 @@ class AXZEROAdvisorTest(unittest.TestCase):
         return inspect_axzero_capability(
             query(),catalog_json=raw,
             pinned_artifact_sha256="d"*64,pinned_policy_sha256="e"*64,
+            pinned_evidence_sha256="f"*64,
         )
 
     def test_missing_defaults_to_qwen_without_execution(self):
@@ -62,10 +64,13 @@ class AXZEROAdvisorTest(unittest.TestCase):
         self.assertFalse(item.f18_verified)
         self.assertFalse(item.owner_go_verified)
         self.assertFalse(item.git_write_allowed)
+        self.assertEqual(item.evidence_sha256, "f"*64)
 
     def test_tampering_unknown_contract_and_effects_fail_closed(self):
         for raw in (
-            catalog(artifact_sha256="f"*64),
+            catalog(artifact_sha256="0"*64),
+            catalog(evidence_sha256="0"*64),
+            catalog(evidence_sha256="INVALID"),
             catalog(scope_ref="scope-999"),
             catalog(allowed_effects=["SHELL"]),
             catalog(approved_for_execution=True),
@@ -78,6 +83,20 @@ class AXZEROAdvisorTest(unittest.TestCase):
             CapabilityQueryV1(
                 "request-001","static-inspect","b"*64,"c"*64,
                 ("SHELL",),SOURCE,"scope-001")
+
+    def test_evidence_pin_absent_or_mismatched_cannot_request_execution(self):
+        self.assertEqual(
+            inspect_axzero_capability(
+                query(), catalog_json=catalog(), pinned_artifact_sha256="d"*64,
+                pinned_policy_sha256="e"*64,
+            ).decision, "REQUEST_MODEL",
+        )
+        self.assertEqual(
+            inspect_axzero_capability(
+                query(), catalog_json=catalog(), pinned_artifact_sha256="d"*64,
+                pinned_policy_sha256="e"*64,pinned_evidence_sha256="0"*64,
+            ).decision, "REQUEST_MODEL",
+        )
 
     def test_controller_refuses_nonready_or_mismatched_source(self):
         off=preflight_controller_axzero(

@@ -57,6 +57,7 @@ class CapabilityDecisionV1:
     artifact_sha256: str | None = None
     policy_sha256: str | None = None
     evidence_ref: str | None = None
+    evidence_sha256: str | None = None
     selected_provider: str = "LOCAL_QWEN_CANDIDATE_ONLY"
     actual_model_calls: int = 0
     execution_allowed: bool = False
@@ -66,6 +67,8 @@ class CapabilityDecisionV1:
 
     def __post_init__(self):
         if (self.decision not in {"REQUEST_MODEL","REQUIRE_APPROVAL","BLOCK"}
+            or (self.evidence_sha256 is not None
+                and not _valid(self.evidence_sha256, _SHA64))
             or self.selected_provider != "LOCAL_QWEN_CANDIDATE_ONLY"
             or type(self.actual_model_calls) is not int or self.actual_model_calls!=0
             or any(getattr(self,n) is not False for n in (
@@ -87,6 +90,7 @@ def inspect_axzero_capability(
     query: CapabilityQueryV1, *, catalog_json: str | None,
     pinned_artifact_sha256: str | None = None,
     pinned_policy_sha256: str | None = None,
+    pinned_evidence_sha256: str | None = None,
 ) -> CapabilityDecisionV1:
     """Inspect *data only*. A pin is not a signature or reviewer receipt.
 
@@ -100,7 +104,8 @@ def inspect_axzero_capability(
     if (not isinstance(catalog_json,str)
         or len(catalog_json.encode("utf-8"))>_MAX_CAP_BYTES
         or not _valid(pinned_artifact_sha256,_SHA64)
-        or not _valid(pinned_policy_sha256,_SHA64)):
+        or not _valid(pinned_policy_sha256,_SHA64)
+        or not _valid(pinned_evidence_sha256,_SHA64)):
         return CapabilityDecisionV1("REQUEST_MODEL","MISSING_PINNED_CAPABILITY")
     try:
         data=json.loads(
@@ -110,6 +115,7 @@ def inspect_axzero_capability(
         expected={
             "version","origin","capability_id","task_type",
             "artifact_sha256","policy_sha256","evidence_ref",
+            "evidence_sha256",
             "input_contract_digest","environment_fingerprint",
             "allowed_effects","source_git_sha","scope_ref",
             "approved_for_execution",
@@ -122,6 +128,7 @@ def inspect_axzero_capability(
             or not _valid(data["evidence_ref"],_ID)
             or not _valid(data["artifact_sha256"],_SHA64)
             or not _valid(data["policy_sha256"],_SHA64)
+            or not _valid(data["evidence_sha256"],_SHA64)
             or not isinstance(data["allowed_effects"],list)
             or len(data["allowed_effects"])>8
             or len(set(data["allowed_effects"]))!=len(data["allowed_effects"])
@@ -132,6 +139,7 @@ def inspect_axzero_capability(
         return CapabilityDecisionV1("REQUEST_MODEL","INVALID_CAPABILITY_FALLBACK")
     if (data["artifact_sha256"]!=pinned_artifact_sha256
         or data["policy_sha256"]!=pinned_policy_sha256
+        or data["evidence_sha256"]!=pinned_evidence_sha256
         or data["task_type"]!=query.task_type
         or data["input_contract_digest"]!=query.input_contract_digest
         or data["environment_fingerprint"]!=query.environment_fingerprint
@@ -142,7 +150,7 @@ def inspect_axzero_capability(
     return CapabilityDecisionV1(
         "REQUIRE_APPROVAL","PIN_MATCH_STILL_NOT_TRUSTED",
         data["capability_id"],data["artifact_sha256"],data["policy_sha256"],
-        data["evidence_ref"],
+        data["evidence_ref"],data["evidence_sha256"],
     )
 
 
@@ -151,6 +159,7 @@ def preflight_controller_axzero(
     query: CapabilityQueryV1, catalog_json: str | None,
     pinned_artifact_sha256: str | None = None,
     pinned_policy_sha256: str | None = None,
+    pinned_evidence_sha256: str | None = None,
 ) -> CapabilityDecisionV1:
     """Controller's native READY remains the first authority boundary."""
     from my_local_ai.contracts.plan import PlanSpec
@@ -167,4 +176,5 @@ def preflight_controller_axzero(
         query,catalog_json=catalog_json,
         pinned_artifact_sha256=pinned_artifact_sha256,
         pinned_policy_sha256=pinned_policy_sha256,
+        pinned_evidence_sha256=pinned_evidence_sha256,
     )
