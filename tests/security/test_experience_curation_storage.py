@@ -69,6 +69,23 @@ class CurationStorageTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.write("decision-002", created_at=1795000009)
 
+    def test_modified_trigger_cannot_disguise_as_owned_append_only_store(self):
+        self.conn.execute("DROP TRIGGER curation_no_delete")
+        self.conn.execute("""CREATE TRIGGER curation_no_delete
+            BEFORE DELETE ON experience_curation_events BEGIN SELECT 1; END""")
+        with self.assertRaises(ValueError):
+            require_experience_store(self.conn, require_v2=True)
+
+    def test_untrusted_record_cannot_persist_arbitrary_explanation(self):
+        from dataclasses import replace
+        result=classify_experience(
+            EVENT,strategy_digest="1"*64,proposed_action_digest="2"*64,
+            expected_source_sha="b"*40,expected_scope="scope-001",
+            now=1795000010,expires_at=2000000000,
+        )
+        with self.assertRaises(ValueError):
+            replace(result,reason_codes=("PASTE_PRIVATE_PROMPT",))
+
     def test_prior_non_mesa_db_not_upgraded(self):
         foreign=sqlite3.connect(":memory:")
         try:

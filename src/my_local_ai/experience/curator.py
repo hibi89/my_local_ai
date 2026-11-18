@@ -27,10 +27,24 @@ class CurationResult:
     may_run: bool = False
 
     def __post_init__(self) -> None:
+        from .schema import _ID, _valid
+        approved_reasons = frozenset({
+            "EXPLICIT_REVOCATION", "REVALIDATION_REQUIRED",
+            "SOURCE_SCOPE_OR_POISONING", "NO_FAILURE_OR_CANDIDATE",
+            "UNVERIFIED_SHADOW_CANDIDATE",
+        })
         if (self.state not in _STATES
+            or not _valid(self.event_id, _ID)
+            or not isinstance(self.strategy_digest, str)
+            or _SHA64.fullmatch(self.strategy_digest) is None
+            or not isinstance(self.proposed_action_digest, str)
+            or _SHA64.fullmatch(self.proposed_action_digest) is None
+            or not isinstance(self.reason_codes, tuple)
+            or len(self.reason_codes) != 1
+            or any(code not in approved_reasons for code in self.reason_codes)
             or any(getattr(self, f) is not False for f in
                    ("owner_approved", "verified", "may_run"))):
-            raise ValueError("untrusted curation must not grant authority")
+            raise ValueError("invalid or privileged MESA curation")
 
 
 def classify_experience(

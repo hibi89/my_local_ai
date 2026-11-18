@@ -107,6 +107,35 @@ def require_experience_store(
         or _schema_objects(conn) != expected
         or (require_v2 and ver != MESA_VERSION)):
         raise ValueError("unknown, legacy, or tampered MESA database")
+    # Names alone do not attest schema integrity: a forged trigger could
+    # retain the expected name but silently allow rewrite of evidence.
+    specs = (
+        ("experience_events", "table"),
+        ("experience_lookup", "index"),
+        ("experience_no_update", "trigger"),
+        ("experience_no_delete", "trigger"),
+        ("experience_curation_events", "table"),
+        ("curation_latest", "index"),
+        ("curation_no_update", "trigger"),
+        ("curation_no_delete", "trigger"),
+        ("experience_metrics", "table"),
+        ("metrics_lookup", "index"),
+        ("metrics_no_update", "trigger"),
+        ("metrics_no_delete", "trigger"),
+    )
+    expected_sql = {
+        name: (kind, " ".join(ddl.split()))
+        for (name, kind), ddl in zip(specs, _DDL)
+        if ver == MESA_VERSION or name in _V1_OBJECTS
+    }
+    observed_sql = {
+        name: (kind, " ".join(ddl.split()) if isinstance(ddl, str) else None)
+        for kind, name, ddl in conn.execute(
+            "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
+        )
+    }
+    if observed_sql != expected_sql:
+        raise ValueError("MESA schema SQL drift or modified append-only triggers")
     if (conn.execute("PRAGMA quick_check").fetchone()[0] != "ok"
         or conn.execute("PRAGMA foreign_key_check").fetchone() is not None):
         raise ValueError("MESA integrity check failed")
