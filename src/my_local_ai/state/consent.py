@@ -1764,11 +1764,19 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
         issued_at=int(time.time()),lifespan_seconds=120)
     nonce=ticket["body"]["ticket_nonce"]
     request_path=_OWNER_UI_EXCHANGE / (nonce+".request.json")
+    pending_path=_OWNER_UI_EXCHANGE / (nonce+".request.partial")
     response_path=_OWNER_UI_EXCHANGE / (nonce+".reply.json")
     deadline=time.monotonic()+120
     with _owner_ui_locked_directory(api,owner_sid):
-        _owner_ui_write_file(request_path,_broker_canonical(ticket))
         try:
+            # Publish the complete service-signed request atomically. Exposing
+            # the final filename before fsync can make the interactive Owner
+            # app reject a valid ticket as incomplete/forged.
+            _owner_ui_write_file(pending_path,_broker_canonical(ticket))
+            if request_path.exists():
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            import os
+            os.rename(pending_path,request_path)
             while not stopped.is_set() and time.monotonic()<deadline:
                 try:
                     raw=_owner_ui_read_file(response_path)
@@ -1781,6 +1789,7 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
                     now_seconds=int(time.time()))
             raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
         finally:
+            pending_path.unlink(missing_ok=True)
             request_path.unlink(missing_ok=True)
             response_path.unlink(missing_ok=True)
 

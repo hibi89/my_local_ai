@@ -164,6 +164,7 @@ class OwnerSessionProtocolTests(unittest.TestCase):
             with self.subTest(approved=decision), tempfile.TemporaryDirectory() as tmp:
                 root=Path(tmp)
                 errors=[]
+                stopped=threading.Event()
                 def serve_owner_ui():
                     try:
                         filename=None
@@ -195,6 +196,7 @@ class OwnerSessionProtocolTests(unittest.TestCase):
                         os.rename(temp,final)
                     except BaseException as exc:
                         errors.append(exc)
+                        stopped.set()  # Short fail, never wait 120s on fixture error.
 
                 with (patch.object(c,"_OWNER_UI_EXCHANGE",root),
                       patch.object(c,"_owner_ui_read_pins",
@@ -206,7 +208,7 @@ class OwnerSessionProtocolTests(unittest.TestCase):
                     worker.start()
                     result=c._confirm_owner_session_request(
                         FakeService(),self.request,self.action,self.scope,
-                        self.signer(self.key_service),threading.Event())
+                        self.signer(self.key_service),stopped)
                     worker.join(timeout=2)
                     self.assertFalse(worker.is_alive())
                     self.assertEqual(errors,[])
