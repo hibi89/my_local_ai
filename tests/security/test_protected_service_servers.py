@@ -100,6 +100,18 @@ class OwnerSessionProtocolTests(unittest.TestCase):
             signer=self.signer(self.key_service), issued_at=1000,
         )
 
+    def test_owner_dialog_displays_exact_nontruncated_authorized_scope(self):
+        ticket=self.ticket()
+        payload=c._owner_ui_display_payload(ticket["body"])
+        self.assertIn("src/demo.py",payload)
+        self.assertIn(self.binding["plan_sha256"],payload)
+        self.assertIn(self.binding["nonce_sha256"],payload)
+        self.assertIn("reviewer",payload)
+        oversized={**ticket["body"],"scope":{
+            **ticket["body"]["scope"],"oversized":"x"*18000}}
+        with self.assertRaises(c.ProtectedBrokerHold):
+            c._owner_ui_display_payload(oversized)
+
     def test_owner_session_signed_one_shot_approval_and_denial(self):
         ticket = self.ticket()
         identity = c._check_owner_ui_ticket(

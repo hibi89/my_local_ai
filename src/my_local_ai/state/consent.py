@@ -1785,6 +1785,170 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
             response_path.unlink(missing_ok=True)
 
 
+
+class _OwnerInteractiveAPI(_WindowsBrokerAPI):
+    """Frozen Owner-session UI; neither a Controller nor a protected service."""
+    _key_acl = _WindowsProtectedServiceAPI._key_acl
+    signer = _WindowsProtectedServiceAPI.signer
+    pin_path = _WindowsProtectedServiceAPI.pin_path
+
+    def __init__(self):
+        import hashlib
+        import os
+        import sys
+        from contextlib import ExitStack
+        super().__init__()
+        if (os.name != "nt" or not getattr(sys, "frozen", False)
+            or len(sys.argv) > 1
+            or Path(sys.executable).name.casefold() != "mylocalai.ownerui.exe"):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        owner_sid, session_id, key_name, public, image_sha = _owner_ui_read_pins(self)
+        roots = self.load_roots()
+        if (public in {value[2] for value in roots.values()}
+            or image_sha in {value[1] for value in roots.values()}):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        current = self._bind(self.kernel,"GetCurrentProcess",[],self.w.HANDLE)
+        pid = self._bind(self.kernel,"GetCurrentProcessId",[],self.w.DWORD)
+        session_fn = self._bind(self.kernel,"ProcessIdToSessionId",
+            [self.w.DWORD,self.c.POINTER(self.w.DWORD)],self.w.BOOL)
+        actual_session = self.w.DWORD()
+        if (self.process_sid(current()) != owner_sid
+            or not session_fn(pid(),self.c.byref(actual_session))
+            or actual_session.value != session_id):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        self.role = "owner-ui"
+        self.roots = {"owner-ui":(owner_sid,image_sha,public)}
+        self.settings = {"KeyName":key_name}
+        self.resources = ExitStack()
+        exe = Path(sys.executable)
+        bundle = Path(getattr(sys,"_MEIPASS",""))
+        if (not exe.is_absolute() or not bundle.is_absolute()
+            or bundle.parent != exe.parent or bundle.name != "_internal"
+            or not exe.is_file() or exe.stat().st_size > 128*1024*1024):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        try:
+            self.pin_path(exe)
+            if hashlib.sha256(exe.read_bytes()).hexdigest() != image_sha:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            count = total = 0
+            for folder, dirs, names in os.walk(bundle,followlinks=False):
+                for name in (*dirs,*names):
+                    node = Path(folder)/name
+                    info = node.lstat()
+                    if (stat.S_ISLNK(info.st_mode)
+                        or getattr(info,"st_file_attributes",0) & _REPARSE):
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                for name in names:
+                    node = Path(folder)/name
+                    count += 1
+                    total += node.stat().st_size
+                    if count > 2048 or total > 512*1024*1024:
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    self.pin_path(node)
+        except BaseException:
+            self.resources.close()
+            raise
+        self.service_roots, self.owner_sid = roots,owner_sid
+
+    def close(self):
+        self.resources.close()
+
+
+def _owner_ui_display_payload(body: dict) -> str:
+    """Exact signed action+scope+plan/nonce, no truncated approval."""
+    if body.get("schema") != _OWNER_UI_SCHEMA:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    summary = _broker_canonical({
+        "action":body["action"],"scope":body["scope"],
+        "plan_sha256":body["binding"]["plan_sha256"],
+        "source_sha":body["binding"]["source_sha"],
+        "candidate_sha":body["binding"]["candidate_sha"],
+        "nonce_sha256":body["binding"]["nonce_sha256"],
+        "lease_epoch":body["binding"]["lease_epoch"],
+        "expires_at":body["expires_at"],
+    }).decode("ascii")
+    if len(summary) > 16000:
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    return summary
+
+
+def _owner_ui_show_dialog(api, body: dict) -> bool:
+    """Owner's own desktop; default NO, no WTS other-session rights."""
+    user32 = api.c.WinDLL("user32.dll",use_last_error=True,winmode=0x800)
+    message = api._bind(user32,"MessageBoxW",
+        [api.w.HWND,api.w.LPCWSTR,api.w.LPCWSTR,api.w.UINT],api.c.c_int)
+    return message(None,_owner_ui_display_payload(body),
+        "My Local AI: approve ONE static action",
+        0x4 | 0x30 | 0x100 | 0x40000) == 6
+
+
+def _owner_ui_process_request(api, filename):
+    """Verify service signature, display exact request, sign once for service."""
+    import os
+    import re
+    import time
+    if not re.fullmatch(r"[0-9a-f]{64}\.request\.json",filename):
+        return False
+    ticket = _broker_decode(_owner_ui_read_file(_OWNER_UI_EXCHANGE/filename))
+    body = _check_owner_ui_ticket(ticket,
+        expected_service_public=api.service_roots["owner"][2],
+        verify_signature=api.verify_signature,now_seconds=int(time.time()))
+    nonce=body["ticket_nonce"]
+    action,scope=body["action"],body["scope"]
+    if (filename!=nonce+".request.json"
+        or scope.get("data_class")!="PUBLIC_SYNTHETIC"
+        or scope.get("plan_sha256")!=body["binding"]["plan_sha256"]
+        or (action.get("role"),action.get("operation")) not in {
+            ("reviewer","review"),("scanner","defender")}
+        or (action["role"]+":"+action["operation"]) not in scope.get("operations",[])
+        or not isinstance(scope.get("allowed_paths"),list)):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    approved = _owner_ui_show_dialog(api,body)
+    current = api._bind(api.kernel,"GetCurrentProcess",[],api.w.HANDLE)
+    if api.process_sid(current()) != api.owner_sid:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    with api.signer() as sign_body:
+        reply=_make_owner_ui_decision(ticket,approved=approved,owner_sid=api.owner_sid,
+            signer=sign_body,now_seconds=int(time.time()))
+    dest=_OWNER_UI_EXCHANGE/(nonce+".reply.json")
+    temp=_OWNER_UI_EXCHANGE/(nonce+".reply.partial")
+    _owner_ui_write_file(temp,_broker_canonical(reply))
+    try:
+        # An existing response is never replaced. The service verifies the
+        # separate non-exportable Owner signature, exact action and nonce.
+        os.link(temp,dest)
+    finally:
+        temp.unlink(missing_ok=True)
+    return True
+
+
+def owner_session_main() -> int:
+    """Separately frozen interactive Owner app; never auto-started/provisioned."""
+    import os
+    import time
+    if os.name != "nt":
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PLATFORM")
+    api = _OwnerInteractiveAPI()
+    try:
+        with _owner_ui_locked_directory(api,api.owner_sid):
+            while True:
+                entries=sorted(os.listdir(_OWNER_UI_EXCHANGE))
+                if len(entries)>256:
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+                for name in entries:
+                    if not name.endswith(".request.json"):
+                        continue
+                    try:
+                        _owner_ui_process_request(api,name)
+                    except (ProtectedBrokerHold,OSError,ValueError):
+                        continue  # Malformed/expired: no Owner GO; service times out.
+                time.sleep(0.25)
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        api.close()
+
+
 class _ProtectedActionServer:
     """One authenticated request -> live policy -> durable nonce -> signed result."""
     def __init__(self, api: _WindowsProtectedServiceAPI, sign_body, stopped):
@@ -2235,5 +2399,10 @@ def _serve_named_pipe(api, server, stopped):
 if __name__ == "__main__":
     import sys
     if getattr(sys, "frozen", False):
+        # The frozen image name selects a role, but never grants trust:
+        # both entry points independently validate pinned image, session,
+        # OS principal and pre-provisioned non-exportable key custody.
+        if Path(sys.executable).name.casefold() == "mylocalai.ownerui.exe":
+            raise SystemExit(owner_session_main())
         raise SystemExit(protected_service_main("owner"))
     raise SystemExit(_owner_token_read_only_main())
