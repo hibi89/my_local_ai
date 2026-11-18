@@ -109,3 +109,69 @@ class V2EvidenceGateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class V2NativeControllerGateTest(unittest.TestCase):
+    def synthetic_plan(self):
+        import json
+        task={
+            "task_id":"TASK-A","req_ids":["REQ-05"],"depends_on":[],
+            "goal":"synthetic static","allowed_paths":["src/a.py"],
+            "acceptance":["synthetic"],"checks":[],"risk":"LOW",
+            "resource_budget":{"max_calls":1,"max_seconds":10},
+            "safety_checks":["NO_REMOTE"],"plan_sha":None,
+            "source_sha":"b"*40,
+        }
+        return json.dumps({
+            "version":1,"plan_id":"GATE-SYNTH-001",
+            "blueprint":{"repo":"hibi89/my_local_ai",
+                         "branch":"dev/instant-implementation-v1",
+                         "sha":"b"*40},
+            "approval":{"status":"NOT_APPROVED",
+                        "scope":"SYNTHETIC_ONLY","digest":None},
+            "tasks":[task],
+        })
+
+    def invoke(self,states=None,**changes):
+        from my_local_ai.contracts.plan import PlanSpec
+        from my_local_ai.experience.evidence_gate import (
+            controller_dependency_digest,preview_controller_evidence,
+        )
+        plan_json=self.synthetic_plan()
+        plan=PlanSpec.parse_json(plan_json)
+        q=replace(
+            _query(),
+            plan_sha256=plan.digest,
+            dependency_fingerprint=controller_dependency_digest(plan,"TASK-A"),
+        )
+        data=dict(
+            plan_json=plan_json,
+            protected_states=states or {"TASK-A":"READY"},
+            task_id="TASK-A",query=q,record=None,
+            checked_at=1795000030,expected_project_id="project-001",
+            expected_rules_sha256=q.scanner_rules_sha256,
+        )
+        data.update(changes)
+        return preview_controller_evidence(**data)
+
+    def test_ready_decision_is_still_unknown_and_inert(self):
+        r=self.invoke()
+        self.assertEqual(r.status,"ADVICE_EVALUATED")
+        self.assertEqual(r.evidence.state,"UNKNOWN")
+        self.assertFalse(r.owner_go)
+        self.assertFalse(r.execution_allowed)
+        self.assertFalse(r.f18_verified)
+
+    def test_native_hold_does_not_consume_past_evidence(self):
+        r=self.invoke(states={"TASK-A":"HOLD"})
+        self.assertEqual(r.status,"NOT_READY_HOLD")
+        self.assertIsNone(r.evidence)
+
+    def test_source_rule_dependency_drift_is_hard_hold(self):
+        for changes in (
+            {"expected_rules_sha256":"f"*64},
+            {"expected_project_id":"other-project"},
+        ):
+            with self.subTest(changes=changes),self.assertRaises(ValueError):
+                self.invoke(**changes)

@@ -196,3 +196,86 @@ def decide_evidence(
         state, refs, tuple(reasons), tuple(invalid), tuple(revisit),
         checked_at, fingerprint,
     )
+
+
+
+@dataclass(frozen=True, slots=True)
+class ControllerEvidencePreview:
+    """Controller->EvidenceGate output; no independent trusted grant."""
+    task_id: str
+    plan_sha256: str
+    source_git_sha: str
+    status: str
+    evidence: EvidenceDecisionV1 | None
+    execution_allowed: bool = False
+    owner_go: bool = False
+    f18_verified: bool = False
+    git_write_allowed: bool = False
+
+    def __post_init__(self):
+        if (self.status not in {"NOT_READY_HOLD","ADVICE_EVALUATED"}
+            or any(getattr(self, k) is not False for k in (
+                "execution_allowed","owner_go","f18_verified","git_write_allowed"))
+            or (self.status == "NOT_READY_HOLD" and self.evidence is not None)
+            or (self.status == "ADVICE_EVALUATED"
+                and not isinstance(self.evidence,EvidenceDecisionV1))):
+            raise ValueError("untrusted controller evidence preview")
+
+
+def controller_dependency_digest(plan: object, task_id: str) -> str:
+    """Bind suggested evidence to immutable DAG and path scope of a task."""
+    from my_local_ai.contracts.plan import PlanSpec, canonical_digest
+    if not isinstance(plan,PlanSpec) or not isinstance(task_id,str):
+        raise ValueError("validated immutable plan required")
+    task=next((t for t in plan.tasks if t.task_id==task_id),None)
+    if task is None:
+        raise ValueError("unknown task")
+    return canonical_digest({
+        "task_id":task.task_id,"plan_sha256":plan.digest,
+        "source_git_sha":task.source_sha,
+        "depends_on":list(task.depends_on),
+        "allowed_paths":list(task.allowed_paths),
+        "risk":task.risk,
+    })
+
+
+def preview_controller_evidence(
+    *, plan_json: str, protected_states: dict[str,str],
+    task_id: str, query: EvidenceQueryV1, record: EvidenceRecordV1 | None,
+    checked_at: int, expected_project_id: str, expected_rules_sha256: str,
+    active_leases: tuple[str,...] = (),
+) -> ControllerEvidencePreview:
+    """Genuine native Controller READY -> exact-bound EvidenceGate caller.
+
+    The currently unimplemented OS-protected receipt resolver is deliberately
+    NOT exposed here. A callback from Controller, guest, model or untrusted
+    queue would falsely imitate independent F18 evidence.
+    """
+    from my_local_ai.contracts.plan import PlanSpec
+    from my_local_ai.controller.decision import Controller
+    if not isinstance(query,EvidenceQueryV1):
+        raise ValueError("typed evidence query required")
+    plan=PlanSpec.parse_json(plan_json)
+    if (query.plan_sha256!=plan.digest
+        or query.source_git_sha!=plan.blueprint_sha
+        or query.project_id!=expected_project_id
+        or query.scanner_rules_sha256!=expected_rules_sha256
+        or query.dependency_fingerprint!=controller_dependency_digest(plan,task_id)):
+        raise ValueError("plan, rules, source or dependency drift")
+    result=Controller(plan).propose(
+        protected_states,independently_verified=(),
+        active_leases=active_leases,
+    )
+    if result.owner_go or result.verified or result.execution_allowed:
+        raise ValueError("untrusted native controller grant")
+    if task_id not in {d.task_id for d in result.decisions}:
+        return ControllerEvidencePreview(
+            task_id,plan.digest,plan.blueprint_sha,"NOT_READY_HOLD",None,
+        )
+    decision=decide_evidence(
+        query,record,checked_at=checked_at,trusted_receipt_check=None,
+    )
+    return ControllerEvidencePreview(
+        task_id,plan.digest,plan.blueprint_sha,
+        "ADVICE_EVALUATED",decision,
+    )
