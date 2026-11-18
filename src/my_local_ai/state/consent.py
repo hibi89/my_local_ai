@@ -759,10 +759,11 @@ class _WindowsBrokerAPI:
     def _scm_account_sid(self, configured: str) -> str:
         """Resolve an existing *local* SCM service identity using read-only Win32.
 
-        Read-only SCM PID+own-process+immutable image+local account SID can
-        attest a different service without opening its cross-account token.
-        A Controller CLIENT still requires its own exact token SID check at
-        the protected server; this does not weaken that authentication.
+        SCM status and account configuration are nonauthoritative posture:
+        a service might still run under an older logon after config changes.
+        The pinned one-use ECDSA response signature is mandatory to authenticate
+        the peer after this check; SCM alone can NEVER authorize an operation.
+        A Controller CLIENT still requires an exact token SID at the server.
         """
         c, w = self.c, self.w
         computer = c.create_unicode_buffer(256)
@@ -818,10 +819,11 @@ class _WindowsBrokerAPI:
             if not process:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             stack.callback(self.kernel.CloseHandle, process)
-            # On client->service authentication the service's SCM own-process
-            # PID, pre-provisioned local logon SID and pinned image constitute
-            # the OS identity. Opening a foreign service token can require a
-            # DACL change, prohibited without the Owner's separate approval.
+            # SCM own-process PID, local account CONFIG and pinned image
+            # are fail-closed preconditions, NOT authority: the live logon
+            # could differ from saved SCM config. Only the separately pinned
+            # ECDSA reply signature authenticates the protected service.
+            # Opening its foreign token could require unapproved DACL changes.
             # On service-self startup still check the actual own token.
             if (self.process_sid(current()) != roots[role][0] if service_self
                 else self.process_sid(current()) in {v[0] for v in roots.values()}):
