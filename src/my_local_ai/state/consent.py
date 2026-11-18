@@ -1226,7 +1226,15 @@ def _read_service_scope(path: Path, binding: dict, role: str, operation: str) ->
         if (type(value) is not str or not Path(value).is_absolute()
             or value.startswith(("\\\\", "//")) or ".." in Path(value).parts):
             raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-    if Path(scope["repository_path"]) == Path(scope["disposable_root"]):
+    repository = Path(scope["repository_path"])
+    disposable = Path(scope["disposable_root"])
+    # The independently provisioned bare review mirror and the disposable
+    # candidate area must be disjoint, not merely unequal. A nested mirror
+    # could let an untrusted worktree reach protected Git objects or staging
+    # material through its ancestor. This is an immutable authority check:
+    # it neither resolves/re-writes caller paths nor changes OS permissions.
+    if (repository == disposable or repository in disposable.parents
+        or disposable in repository.parents):
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
     return scope
 

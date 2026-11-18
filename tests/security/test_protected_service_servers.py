@@ -193,6 +193,25 @@ class ServerTests(unittest.TestCase):
         self.write_scope(binding={**self.binding, "source_sha": "0" * 40})
         self.assertEqual(self.call("owner", self.owner_request())["body"]["status"], "DENIED")
 
+    def test_nested_git_mirror_and_disposable_scope_denied_before_owner_prompt(self):
+        bare = self.root / "bare"
+        scratch = self.root / "scratch"
+        for repository_path, disposable_root in (
+            (bare, bare),
+            (scratch / "bare", scratch),
+            (bare, bare / "worktree"),
+        ):
+            with self.subTest(repository=str(repository_path),
+                              disposable=str(disposable_root)):
+                self.write_scope(scope={
+                    **self.scope,
+                    "repository_path": str(repository_path),
+                    "disposable_root": str(disposable_root),
+                })
+                response = self.call("owner", self.owner_request())
+                self.assertEqual(response["body"]["status"], "DENIED")
+                self.assertEqual(self.apis["owner"].prompts, [])
+
     def test_private_scope_never_reaches_owner_ui(self):
         self.write_scope(scope={**self.scope, "data_class": "CUSTOMER_SECRET"})
         self.assertEqual(self.call("owner", self.owner_request())["body"]["status"], "DENIED")
