@@ -2039,11 +2039,11 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "8feb68e266d6b0693025db235bd2386c8c3b8679",
+      "partial_source_sha": "54b6de4cd9272a916f3fc595e22c3d706bd9ef94",
       "partial_source_paths": [
         "src/my_local_ai/review/protected_reviewer.py"
       ],
-      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope. ",
+      "partial_source_description": "Strict bounded raw independent reviewer outbox decode -> fixed check policy/identity digest -> canonical unsigned transcript, refusing duplicate/extra keys, malformed output, failed checks; no OS reviewer process, protected key, nonce consumption, authenticated F18 issuance. Additional source: raw reviewer result must match plan SHA, lease epoch, and reviewer binary SHA, and can be read from one fixed Windows reviewer scratch path with inode/link/size/parent rechecks; returns only unsigned non-authorizing transcript. Protected Git F18 reader now validates changed file paths using both CodeShield and PlanSpec and refuses generated executable-bit transitions, deletions or changes outside approved scope.  Synthetic SHA-addressed Git tree output parser now rejects exact duplicate paths, case-insensitive aliases and malformed zero-delimited entries before dictionary overwrites, while an empty source tree remains valid; independent F18 remains HOLD.",
       "runtime_gap": "Actual independently protected Windows reviewer principal, fixed check execution isolation, protected nonce/key issuer and signed F18 receipt still absent. Untrusted outbox parse is not attestation or F18 acceptance.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
@@ -2079,6 +2079,18 @@
           "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_INDEPENDENT_F18_NOT_ATTESTED",
           "nonprogress_failure": false,
           "checks": "GITHUB_ACTIONS_44263938902_AND_44264103098_SUCCESS"
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261118-GIT-TREE-DUPLICATE",
+          "method": "Reject duplicate/casefold-aliased Git tree names BEFORE dict ingestion and malformed NUL-delimited records; preserve valid empty source baseline for initial nonexecuting F18 review",
+          "evidence_sha": "54b6de4cd9272a916f3fc595e22c3d706bd9ef94",
+          "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_INDEPENDENT_F18_STILL_HOLD",
+          "nonprogress_failure": false,
+          "checks": "GITHUB_ACTIONS_44265824382_AND_44265951425_SUCCESS",
+          "commits": [
+            "fc1bdcfb2e46807675cac51a2e2ac5b14dc96dba",
+            "54b6de4cd9272a916f3fc595e22c3d706bd9ef94"
+          ]
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true
@@ -5697,14 +5709,13 @@
   ],
   "last_source_wave": {
     "branch": "dev/instant-implementation-v1",
-    "source_sha": "8feb68e266d6b0693025db235bd2386c8c3b8679",
+    "source_sha": "54b6de4cd9272a916f3fc595e22c3d706bd9ef94",
     "commits": [
-      "870a4100f09eee2d68a2f3f93ce255289dd9f59c",
-      "8feb68e266d6b0693025db235bd2386c8c3b8679"
+      "fc1bdcfb2e46807675cac51a2e2ac5b14dc96dba",
+      "54b6de4cd9272a916f3fc595e22c3d706bd9ef94"
     ],
     "swus_source_complete": [],
     "swus_partial_source": [
-      "MLA-SWU-008",
       "MLA-SWU-021"
     ],
     "source_complete_count": 37,
@@ -5714,8 +5725,8 @@
     "required_swu_total": 55,
     "checks": {
       "github_actions_runs": [
-        44263938902,
-        44264103098
+        44265824382,
+        44265951425
       ],
       "syntax": "PASS",
       "synthetic_security": "PASS",
