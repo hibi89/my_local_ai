@@ -34,6 +34,8 @@ class TaskMetricsV1:
     cpu_peak_bytes: int | None
     ram_peak_bytes: int | None
     vram_peak_bytes: int | None
+    task_id: str | None = None
+    comparison_id: str | None = None
 
     def __post_init__(self):
         if (not isinstance(self.observation_id, str)
@@ -42,6 +44,13 @@ class TaskMetricsV1:
             or _ID.fullmatch(self.project_id) is None
             or not isinstance(self.scope_ref, str)
             or _ID.fullmatch(self.scope_ref) is None
+            or (self.task_id is not None
+                and (not isinstance(self.task_id,str)
+                     or _ID.fullmatch(self.task_id) is None))
+            or (self.comparison_id is not None
+                and (not isinstance(self.comparison_id,str)
+                     or _ID.fullmatch(self.comparison_id) is None))
+            or (self.task_id is None) != (self.comparison_id is None)
             or self.variant not in {"BASELINE", "ASSISTED"}
             or self.rights_tag not in {"PUBLIC_SYNTHETIC", "OWNED_REDACTED"}
             or any(not isinstance(getattr(self, n), str)
@@ -119,6 +128,11 @@ def compare_task_metrics(
     # Prevent same record being presented as two independent measurements.
     if baseline.observation_id == assisted.observation_id:
         return MetricsComparisonV1("UNMEASURED", ("DUPLICATED_OBSERVATION",))
+    if (baseline.task_id is None or assisted.task_id is None
+        or baseline.comparison_id is None or assisted.comparison_id is None
+        or baseline.task_id != assisted.task_id
+        or baseline.comparison_id != assisted.comparison_id):
+        return MetricsComparisonV1("UNMEASURED", ("TASK_OR_EXPERIMENT_MISMATCH",))
     def rate(record: TaskMetricsV1) -> float:
         return round(record.accepted_req_count * 3600000 / record.elapsed_ms, 4)
     return MetricsComparisonV1(
@@ -144,8 +158,10 @@ def persist_task_metrics(
     from dataclasses import asdict
     from my_local_ai.state.experience_migrations import require_experience_store
 
-    if not isinstance(metric, TaskMetricsV1) or explicit_owned_scope is not True:
-        raise ValueError("explicit owned local MESA metric scope required")
+    if (not isinstance(metric, TaskMetricsV1)
+        or explicit_owned_scope is not True
+        or metric.task_id is None or metric.comparison_id is None):
+        raise ValueError("exact task and experiment scope required")
     require_experience_store(conn, require_v2=True)
     encoded=json.dumps(asdict(metric),sort_keys=True,separators=(",",":"),
                        ensure_ascii=True,allow_nan=False)
@@ -177,6 +193,7 @@ def compare_persisted_metrics(
     conn: "sqlite3.Connection", *, project_id: str, scope_ref: str,
     plan_sha256: str, source_git_sha: str, acceptance_sha256: str,
     environment_digest: str, rights_tag: str,
+    task_id: str, comparison_id: str,
 ) -> MetricsComparisonV1:
     """Compare a unique pair only; ambiguity and drift mean UNMEASURED.
 
@@ -190,6 +207,7 @@ def compare_persisted_metrics(
         or not _valid(plan_sha256,_SHA64) or not _valid(source_git_sha,_SHA40)
         or not _valid(acceptance_sha256,_SHA64)
         or not _valid(environment_digest,_SHA64)
+        or not _valid(task_id,_ID) or not _valid(comparison_id,_ID)
         or rights_tag not in {"PUBLIC_SYNTHETIC","OWNED_REDACTED"}):
         raise ValueError("invalid metrics comparison scope")
     try:
@@ -215,7 +233,9 @@ def compare_persisted_metrics(
                 return MetricsComparisonV1("UNMEASURED",("TAMPERED_OBSERVATION",))
             if (candidate.acceptance_sha256 == acceptance_sha256 and
                 candidate.environment_digest == environment_digest and
-                candidate.rights_tag == rights_tag):
+                candidate.rights_tag == rights_tag and
+                candidate.task_id == task_id and
+                candidate.comparison_id == comparison_id):
                 pairs[candidate.variant].append(candidate)
         if len(pairs["BASELINE"])!=1 or len(pairs["ASSISTED"])!=1:
             return MetricsComparisonV1("UNMEASURED",("MISSING_OR_AMBIGUOUS_PAIR",))

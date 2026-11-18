@@ -149,6 +149,7 @@ def redacted_stored_metrics_card(
     conn: sqlite3.Connection, *, project_id: str, scope_ref: str,
     plan_sha256: str, source_git_sha: str,
     acceptance_sha256: str, environment_digest: str, rights_tag: str,
+    task_id: str, comparison_id: str,
 ) -> dict[str, object]:
     """Read existing owned local observations; never compute verified savings."""
     from my_local_ai.experience.evaluation import compare_persisted_metrics
@@ -157,4 +158,5 @@ def redacted_stored_metrics_card(
         plan_sha256=plan_sha256, source_git_sha=source_git_sha,
         acceptance_sha256=acceptance_sha256,
         environment_digest=environment_digest, rights_tag=rights_tag,
+        task_id=task_id, comparison_id=comparison_id,
     ).to_redacted_dict()

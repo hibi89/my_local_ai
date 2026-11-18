@@ -13,6 +13,7 @@ BASE = TaskMetricsV1(
     "baseline-001", "BASELINE", "project-001",
     "a"*64, "b"*40, "c"*64, "d"*64, "scope-001",
     "PUBLIC_SYNTHETIC", 120000, 2, 8, 3, 30000, 1000, 2000, None,
+    task_id="TASK-001", comparison_id="experiment-001",
 )
 ASSISTED = replace(
     BASE, observation_id="assisted-001", variant="ASSISTED",
@@ -75,6 +76,7 @@ class V2StoredMetricsTest(unittest.TestCase):
             project_id="project-001",scope_ref="scope-001",plan_sha256="a"*64,
             source_git_sha="b"*40,acceptance_sha256="c"*64,
             environment_digest="d"*64,rights_tag="PUBLIC_SYNTHETIC",
+            task_id="TASK-001",comparison_id="experiment-001",
         )
         scope.update(changes)
         return compare_persisted_metrics(self.db,**scope)
@@ -95,6 +97,18 @@ class V2StoredMetricsTest(unittest.TestCase):
         self.assertEqual(self.compare(acceptance_sha256="f"*64).state,"UNMEASURED")
         with self.assertRaises(sqlite3.DatabaseError):
             self.db.execute("DELETE FROM experience_metrics")
+
+    def test_cross_task_and_cross_experiment_never_mispaired(self):
+        persist_task_metrics(self.db,BASE,explicit_owned_scope=True)
+        other=replace(ASSISTED,task_id="TASK-002")
+        persist_task_metrics(self.db,other,explicit_owned_scope=True)
+        self.assertEqual(self.compare().state,"UNMEASURED")
+        self.assertEqual(compare_task_metrics(BASE,other).state,"UNMEASURED")
+        with self.assertRaises(ValueError):
+            persist_task_metrics(
+                self.db,replace(BASE,observation_id="legacy-001",
+                                task_id=None,comparison_id=None),
+                explicit_owned_scope=True)
 
     def test_changed_observation_and_cherry_picking_fail_closed(self):
         persist_task_metrics(self.db,BASE,explicit_owned_scope=True)

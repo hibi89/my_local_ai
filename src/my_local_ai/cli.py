@@ -102,6 +102,8 @@ def _parser() -> argparse.ArgumentParser:
         if name == "compare":
             view.add_argument("--acceptance-sha", required=True)
             view.add_argument("--environment-sha", required=True)
+            view.add_argument("--task-id", required=True)
+            view.add_argument("--comparison-id", required=True)
     subs.add_parser("benchmark", help="Show synthetic fixture data, never measure real Qwen")
     stop = subs.add_parser("stop", help="Safe HOLD notice; real stop needs owner Controller")
     stop.add_argument("--task-id", required=True)
@@ -727,6 +729,8 @@ def main(argv: list[str] | None = None) -> int:
                             source_git_sha=args.source_sha, rights_tag=args.rights,
                             acceptance_sha256=args.acceptance_sha,
                             environment_digest=args.environment_sha,
+                            task_id=args.task_id,
+                            comparison_id=args.comparison_id,
                         ),
                     }
                 else:
