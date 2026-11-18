@@ -992,7 +992,7 @@
       ],
       "risk": "HIGH",
       "source_status": "SOURCE_OWNER_SCOPE_PREVIEW_IMPLEMENTED_UNVERIFIED_SCAN_HOLD",
-      "implementation_evidence_sha": "4e40fa741cc3c471208f675d8c3fda761fea8a2e",
+      "implementation_evidence_sha": "ea577e8cfe9ce2f17476c961f07096a426aedb78",
       "acceptance_evidence_sha": null,
       "runtime_authorization": "HOLD_UNTIL_OWNER_GO_INDEPENDENT_F18_AND_PHASE_GATES",
       "initial_nonimproving_failures": 0,
@@ -1002,7 +1002,7 @@
       "owner_go": false,
       "code_only_attempt_allowed": true,
       "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant",
-      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE. Scan request contract now carries replay-bound context metadata; owner action verification/native Start-MpScan remain HOLD.",
+      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE. Scan request contract now carries replay-bound context metadata; owner action verification/native Start-MpScan remain HOLD. Defender event correlation now rejects reused scan ID, stale pre-start and mismatched foreign detection events; actual Windows scan and protected signer still HOLD.",
       "code_only_attempts": [
         {
           "attempt_id": "CS012-20261118-A1",
@@ -1017,6 +1017,14 @@
           "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
           "evidence_sha": "d4a3abef6d991e472da25bcd8e99cd5a60f787c4",
           "nonprogress_failure": false
+        },
+        {
+          "attempt_id": "CS012-20261118-CORRELATION",
+          "method": "Defender scan-ID uniqueness and resource-bound detection correlation, rejecting prior/foreign scan events",
+          "outcome": "SOURCE_PROGRESS_NOT_COMPLETE",
+          "evidence_sha": "ea577e8cfe9ce2f17476c961f07096a426aedb78",
+          "nonprogress_failure": false,
+          "github_actions_run_id": 44262555404
         }
       ]
     },
@@ -1292,18 +1300,17 @@
   ],
   "last_source_wave": {
     "branch": "dev/instant-implementation-v1",
-    "source_sha": "7cd995ae3b9564480b1763fb5e3d62204f1ac8c9",
+    "source_sha": "ea577e8cfe9ce2f17476c961f07096a426aedb78",
     "task_ids": [
-      "CS-SWU-014"
+      "CS-SWU-012"
     ],
-    "status": "P1_CONTROLLER_SOURCE_COMPLETE_UNVERIFIED_RUNTIME_HOLD",
+    "status": "P1_CS012_SOURCE_PROGRESS_UNVERIFIED_SCAN_HOLD",
     "checks": {
       "syntax": "PASS",
-      "synthetic_unit": "PASS",
-      "synthetic_integration": "PASS",
-      "synthetic_f18_contract": "PASS",
-      "github_actions_run_id": 44141907584,
+      "synthetic_security": "PASS",
+      "github_actions_run_id": 44262555404,
       "real_windows": "NOT_RUN",
+      "owner_signer": "NOT_RUN",
       "independent_f18": "NOT_RUN"
     },
     "nonprogress_failures_added": 0
