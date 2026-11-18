@@ -198,6 +198,38 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(self.call("owner", self.owner_request())["body"]["status"], "DENIED")
         self.assertEqual(self.apis["owner"].prompts, [])
 
+    def test_windows_alias_and_non_plan_paths_never_reach_owner(self):
+        # checked_relative_path alone accepted device names, globs and
+        # non-ASCII candidates. Signed PlanSpec never does.
+        for path in ("src/CON.py", "src/nul.py", "src/[ab].py",
+                     "src/한글.py", "src/name?.py", "src/name'.py"):
+            with self.subTest(path=path):
+                self.write_scope(scope={**self.scope, "allowed_paths": [path]})
+                response = self.call("owner", self.owner_request())
+                self.assertEqual(response["body"]["status"], "DENIED")
+                self.assertEqual(self.apis["owner"].prompts, [])
+
+    def test_static_reviewer_uses_plan_path_contract_for_git_delta(self):
+        source = {"src/demo.py": ("100644", "a" * 40)}
+        candidate = {"src/demo.py": ("100644", "b" * 40)}
+        self.assertEqual(r._bounded_review_changed_paths(
+            source, candidate, ["src/demo.py"]), ("src/demo.py",))
+        for alias in ("src/CON.py", "src/nul.py", "src/[ab].py",
+                      "src/한글.py", "src/aux.py", "src/name?.py"):
+            with self.subTest(alias=alias):
+                updated = dict(source)
+                updated[alias] = ("100644", "c" * 40)
+                with self.assertRaises(c.ProtectedBrokerHold):
+                    r._bounded_review_changed_paths(source, updated, [alias])
+        with self.assertRaises(c.ProtectedBrokerHold):
+            r._bounded_review_changed_paths(
+                source, {}, ["src/demo.py"]  # Deletion prohibited.
+            )
+        with self.assertRaises(c.ProtectedBrokerHold):
+            r._bounded_review_changed_paths(
+                source, candidate, ["src/other.py"]  # Out of scope.
+            )
+
     def test_modified_action_digest_denies(self):
         req = c._broker_decode(self.owner_request())
         req["payload"]["action_sha256"] = "0" * 64

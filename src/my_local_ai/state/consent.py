@@ -1185,6 +1185,7 @@ class _ServiceJournal:
 def _read_service_scope(path: Path, binding: dict, role: str, operation: str) -> dict:
     """Read live administrator-protected plan/lease policy; never caller flags."""
     from my_local_ai.security.codeshield_contracts import checked_relative_path
+    from my_local_ai.contracts.task import safe_path
     with _closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
         db.execute("PRAGMA query_only=ON")
         db.execute("PRAGMA trusted_schema=OFF")
@@ -1209,7 +1210,15 @@ def _read_service_scope(path: Path, binding: dict, role: str, operation: str) ->
         or type(scope["allowed_paths"]) is not list
         or not 1 <= len(scope["allowed_paths"]) <= 16):
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-    paths = [checked_relative_path(value) for value in scope["allowed_paths"]]
+    # The trust-bearing scope must use BOTH the protected scanner's lexical
+    # filter and the PlanSpec's Windows-safe path contract. checked_relative_path
+    # alone permits reserved device aliases (CON.py/NUL.py), Unicode and
+    # wildcard names that a real Windows checkout cannot safely represent.
+    try:
+        paths = [safe_path(checked_relative_path(value))
+                 for value in scope["allowed_paths"]]
+    except ValueError:
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED") from None
     if paths != sorted(paths) or len(set(value.casefold() for value in paths)) != len(paths):
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
     for key in ("repository_path", "disposable_root"):

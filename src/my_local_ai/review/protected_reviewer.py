@@ -505,6 +505,35 @@ def review_protected_candidate(intent: IsolatedReviewerIntent, *,
         raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS") from None
 
 
+def _bounded_review_changed_paths(
+    source: dict[str, tuple[str, str]],
+    candidate: dict[str, tuple[str, str]],
+    allowed_paths: list[str],
+) -> tuple[str, ...]:
+    """Prove changed-file lexical scope before any candidate bytes are accepted.
+
+    This is data validation, not a Git trust receipt. A protected mirror
+    supplies the two content-addressed tree inventories. Matching the
+    CodeShield lexical check alone is insufficient on Windows: a PlanSpec
+    disallows reserved device names, aliases, glob syntax and non-ASCII paths.
+    No deleted, renamed-out-of-scope or non-Python candidate can pass.
+    """
+    from my_local_ai.security.codeshield_contracts import checked_relative_path
+    from my_local_ai.contracts.task import safe_path
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    changed = tuple(sorted(path for path in source.keys() | candidate.keys()
+                           if source.get(path) != candidate.get(path)))
+    if (not changed or not set(changed) <= set(allowed_paths)
+        or any(path not in candidate or not path.endswith(".py") for path in changed)):
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    try:
+        for path in changed:
+            safe_path(checked_relative_path(path))
+    except ValueError:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED") from None
+    return changed
+
+
 def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> dict[str, bytes]:
     """Read immutable Git objects with one pinned, non-filtering Git operator.
 
@@ -515,7 +544,6 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
     import hashlib
     import winreg
     from my_local_ai.state.consent import ProtectedBrokerHold
-    from my_local_ai.security.codeshield_contracts import checked_relative_path
     root = _Path(scope["repository_path"])
     # Repository used here is an independently provisioned read-only bare
     # mirror, never the Controller's writable checkout or candidate worktree.
@@ -612,13 +640,9 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             return result
         source, candidate = tree(binding["source_sha"]), tree(binding["candidate_sha"])
-        changed = sorted(path for path in source.keys() | candidate.keys()
-                         if source.get(path) != candidate.get(path))
-        if (not changed or not set(changed) <= set(scope["allowed_paths"])
-            or any(path not in candidate or not path.endswith(".py") for path in changed)):
-            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-        for path in changed:
-            checked_relative_path(path)
+        changed = _bounded_review_changed_paths(
+            source, candidate, scope["allowed_paths"]
+        )
         files = {}
         for path in changed:
             data = object_bytes("blob", candidate[path][1])
