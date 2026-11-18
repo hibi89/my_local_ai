@@ -1085,6 +1085,157 @@ from contextlib import ExitStack as _ExitStack, contextmanager as _contextmanage
 _AUTHORITY_APP_ID = 0x4D4C4141
 _SERVICE_APP_ID = 0x4D4C4153
 _SERVICE_HOME = Path(r"C:\ProgramData\MyLocalAI\Protected\v1")
+
+# Owner-session v2: the interactive owner signs a single displayed decision
+# using a DIFFERENT pre-provisioned TPM key/SID from Controller or the three
+# protected services. The service verifies that decision before minting its
+# own existing one-use broker authorization. No WTS cross-session messaging
+# or user-controlled 'approved' flags can establish authority.
+_OWNER_UI_EXCHANGE = Path(r"C:\ProgramData\MyLocalAI\OwnerExchange\v1")
+_OWNER_UI_SCHEMA = "mla-owner-ui-challenge/v1"
+_OWNER_UI_DECISION = "mla-owner-ui-decision/v1"
+
+
+def _build_owner_ui_ticket(
+    request: dict, action: dict, scope: dict, *,
+    signer, issued_at: int, lifespan_seconds: int = 20,
+) -> dict:
+    """Produce a service-signed, exact action+scope, one-shot UI challenge."""
+    import base64
+    import secrets
+    if (type(issued_at) is not int or not 1 <= lifespan_seconds <= 30
+        or type(request) is not dict or type(action) is not dict
+        or type(scope) is not dict or not callable(signer)):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    binding = request.get("binding")
+    _validate_broker_binding(binding)
+    action_sha = _digest(_broker_canonical(action)).hexdigest()
+    if (request.get("payload", {}).get("action_sha256") != action_sha
+        or action.get("binding") != binding):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    body = {
+        "schema": _OWNER_UI_SCHEMA,
+        "ticket_nonce": secrets.token_hex(32),
+        "action_sha256": action_sha,
+        "request_sha256": _digest(_broker_canonical(request)).hexdigest(),
+        "binding": binding,
+        "action": action,
+        "scope": scope,
+        "issued_at": issued_at,
+        "expires_at": issued_at + lifespan_seconds,
+    }
+    signature = signer(body)
+    if type(signature) is not bytes or len(signature) != 64:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    return {"body": body, "signature": base64.b64encode(signature).decode("ascii")}
+
+
+def _check_owner_ui_ticket(
+    ticket: dict, *, expected_service_public: bytes,
+    verify_signature, now_seconds: int,
+) -> dict:
+    """Owner UI authenticates service-signed request before any popup."""
+    import base64
+    if type(ticket) is not dict or set(ticket) != {"body", "signature"}:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    body = ticket["body"]
+    if (type(body) is not dict or set(body) != {
+        "schema", "ticket_nonce", "action_sha256", "request_sha256",
+        "binding", "action", "scope", "issued_at", "expires_at",
+    } or body["schema"] != _OWNER_UI_SCHEMA
+        or type(body["ticket_nonce"]) is not str
+        or len(body["ticket_nonce"]) != 64
+        or any(c not in "0123456789abcdef" for c in body["ticket_nonce"])
+        or type(body["issued_at"]) is not int or type(body["expires_at"]) is not int
+        or type(now_seconds) is not int
+        or not body["issued_at"] <= now_seconds < body["expires_at"]
+        or not 1 <= body["expires_at"] - body["issued_at"] <= 30
+        or type(body["action"]) is not dict or type(body["scope"]) is not dict):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    _validate_broker_binding(body["binding"])
+    if (body["action"].get("binding") != body["binding"]
+        or _digest(_broker_canonical(body["action"])).hexdigest() != body["action_sha256"]
+        or type(body["request_sha256"]) is not str
+        or len(body["request_sha256"]) != 64):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    try:
+        raw = base64.b64decode(ticket["signature"], validate=True)
+    except (ValueError, TypeError):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE") from None
+    if len(raw) != 64:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    verify_signature(expected_service_public, _broker_canonical(body), raw)
+    return body
+
+
+def _make_owner_ui_decision(
+    ticket: dict, *, approved: bool, owner_sid: str, signer,
+    now_seconds: int,
+) -> dict:
+    """The pinned interactive Owner SID signs a single-use decision.
+
+    Caller must have independently verified the service ticket and actual
+    native owner token; this function itself is only a bounded data contract.
+    """
+    import base64
+    if (type(approved) is not bool or type(now_seconds) is not int
+        or type(owner_sid) is not str or not owner_sid.startswith("S-1-5-")
+        or not callable(signer)):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    ticket_body = ticket["body"]
+    if not ticket_body["issued_at"] <= now_seconds < ticket_body["expires_at"]:
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    body = {
+        "schema": _OWNER_UI_DECISION,
+        "ticket_sha256": _digest(_broker_canonical(ticket)).hexdigest(),
+        "ticket_nonce": ticket_body["ticket_nonce"],
+        "action_sha256": ticket_body["action_sha256"],
+        "binding": ticket_body["binding"],
+        "owner_sid": owner_sid,
+        "approved": approved,
+        "issued_at": now_seconds,
+        "expires_at": ticket_body["expires_at"],
+    }
+    signature = signer(body)
+    if type(signature) is not bytes or len(signature) != 64:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    return {"body": body, "signature": base64.b64encode(signature).decode("ascii")}
+
+
+def _check_owner_ui_decision(
+    ticket: dict, decision: dict, *, expected_owner_sid: str,
+    expected_owner_public: bytes, verify_signature, now_seconds: int,
+) -> bool:
+    """Protected broker authenticates exact owner decision; deny by default."""
+    import base64
+    if type(decision) is not dict or set(decision) != {"body", "signature"}:
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    body = decision["body"]
+    original = ticket["body"]
+    if (type(body) is not dict or set(body) != {
+        "schema", "ticket_sha256", "ticket_nonce", "action_sha256",
+        "binding", "owner_sid", "approved", "issued_at", "expires_at",
+    } or body["schema"] != _OWNER_UI_DECISION
+        or body["ticket_sha256"] != _digest(_broker_canonical(ticket)).hexdigest()
+        or body["ticket_nonce"] != original["ticket_nonce"]
+        or body["action_sha256"] != original["action_sha256"]
+        or body["binding"] != original["binding"]
+        or body["owner_sid"] != expected_owner_sid
+        or type(body["approved"]) is not bool
+        or type(body["issued_at"]) is not int or type(body["expires_at"]) is not int
+        or type(now_seconds) is not int
+        or not original["issued_at"] <= body["issued_at"] <= now_seconds
+        or not now_seconds < body["expires_at"] == original["expires_at"]):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    try:
+        signature = base64.b64decode(decision["signature"], validate=True)
+    except (ValueError, TypeError):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE") from None
+    if len(signature) != 64:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    verify_signature(expected_owner_public, _broker_canonical(body), signature)
+    return body["approved"]
+
 PROTECTED_AUTHORITY_SCHEMA = """
 PRAGMA application_id=1296843073;
 PRAGMA user_version=1;

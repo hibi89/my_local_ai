@@ -54,6 +54,117 @@ class SyntheticAPI:
             raise c.ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
 
 
+class OwnerSessionProtocolTests(unittest.TestCase):
+    """Pure source tests: HMAC fixture never substitutes TPM or Windows GO."""
+
+    def setUp(self):
+        self.key_service = b"synthetic-service-key"
+        self.key_owner = b"synthetic-owner-key"
+        self.binding = {
+            "task_id": "TASK-001", "run_id": "RUN-001",
+            "plan_sha256": "a" * 64, "source_sha": "b" * 40,
+            "candidate_sha": "c" * 40, "lease_epoch": 1,
+            "nonce_sha256": "d" * 64, "owner_consent_ref": "OWNER-001",
+        }
+        self.action = {"role": "reviewer", "operation": "review",
+                       "binding": self.binding,
+                       "payload": {"validation_scope": "STATIC_ONLY"}}
+        digest = hashlib.sha256(c._broker_canonical(self.action)).hexdigest()
+        self.request = {"schema": "mla-protected-request/v1",
+                        "role": "owner", "operation": "authorize",
+                        "challenge": "e" * 64, "binding": self.binding,
+                        "payload": {"action_sha256": digest,
+                                    "action": self.action}}
+        self.scope = {
+            "repository_path": "C:\\protected\\bare",
+            "disposable_root": "C:\\scratch\\candidate",
+            "allowed_paths": ["src/demo.py"],
+            "operations": ["reviewer:review"],
+            "data_class": "PUBLIC_SYNTHETIC",
+            "plan_sha256": "a" * 64,
+        }
+
+    def signer(self, key):
+        return lambda body: hmac.new(key, c._broker_canonical(body),
+                                     hashlib.sha512).digest()
+
+    def verifier(self, public, body, signature):
+        if not hmac.compare_digest(
+            hmac.new(public, body, hashlib.sha512).digest(), signature
+        ):
+            raise c.ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+
+    def ticket(self):
+        return c._build_owner_ui_ticket(
+            self.request, self.action, self.scope,
+            signer=self.signer(self.key_service), issued_at=1000,
+        )
+
+    def test_owner_session_signed_one_shot_approval_and_denial(self):
+        ticket = self.ticket()
+        identity = c._check_owner_ui_ticket(
+            ticket, expected_service_public=self.key_service,
+            verify_signature=self.verifier, now_seconds=1001,
+        )
+        self.assertEqual(identity["binding"], self.binding)
+        approved = c._make_owner_ui_decision(
+            ticket, approved=True, owner_sid="S-1-5-21-OWNER",
+            signer=self.signer(self.key_owner), now_seconds=1002,
+        )
+        self.assertTrue(c._check_owner_ui_decision(
+            ticket, approved, expected_owner_sid="S-1-5-21-OWNER",
+            expected_owner_public=self.key_owner, verify_signature=self.verifier,
+            now_seconds=1003,
+        ))
+        denied = c._make_owner_ui_decision(
+            ticket, approved=False, owner_sid="S-1-5-21-OWNER",
+            signer=self.signer(self.key_owner), now_seconds=1002,
+        )
+        self.assertFalse(c._check_owner_ui_decision(
+            ticket, denied, expected_owner_sid="S-1-5-21-OWNER",
+            expected_owner_public=self.key_owner, verify_signature=self.verifier,
+            now_seconds=1003,
+        ))
+
+    def test_owner_ui_tampering_replay_expiry_and_wrong_identity_hold(self):
+        ticket = self.ticket()
+        decision = c._make_owner_ui_decision(
+            ticket, approved=True, owner_sid="S-1-5-21-OWNER",
+            signer=self.signer(self.key_owner), now_seconds=1002,
+        )
+        other = self.ticket()
+        for mutated, owner_sid, now in (
+            (decision, "S-1-5-21-FOREIGN", 1003),
+            (decision, "S-1-5-21-OWNER", 1021),
+            ({**decision, "body": {**decision["body"], "approved": False}},
+                "S-1-5-21-OWNER", 1003),
+            ({**decision, "body": {**decision["body"],
+                "ticket_sha256": "0" * 64}}, "S-1-5-21-OWNER", 1003),
+        ):
+            with self.subTest(owner=owner_sid, now=now), self.assertRaises(
+                c.ProtectedBrokerHold
+            ):
+                c._check_owner_ui_decision(
+                    ticket, mutated, expected_owner_sid=owner_sid,
+                    expected_owner_public=self.key_owner,
+                    verify_signature=self.verifier, now_seconds=now,
+                )
+        with self.assertRaises(c.ProtectedBrokerHold):
+            c._check_owner_ui_decision(
+                other, decision, expected_owner_sid="S-1-5-21-OWNER",
+                expected_owner_public=self.key_owner,
+                verify_signature=self.verifier, now_seconds=1003,
+            )
+        tampered = {**ticket, "body": {**ticket["body"],
+            "scope": {**ticket["body"]["scope"],
+                      "allowed_paths": ["private/secret.py"]}}}
+        with self.assertRaises(c.ProtectedBrokerHold):
+            c._check_owner_ui_ticket(
+                tampered, expected_service_public=self.key_service,
+                verify_signature=self.verifier, now_seconds=1002,
+            )
+
+
 class ServerTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
