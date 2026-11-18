@@ -22,6 +22,7 @@ def search_experiences(
     source_git_sha: str, scope_ref: str, rights_tag: str,
     error_fingerprint: str, enabled: bool = False, max_results: int = 3,
     now_seconds: int | None = None,
+    environment_digest: str | None = None,
 ) -> tuple[ExperienceSuggestionV1, ...]:
     """Return top-three shadow hints without changing the native Controller.
 
@@ -38,7 +39,14 @@ def search_experiences(
         or not _valid(source_git_sha, _SHA40)
         or not _valid(error_fingerprint, _SHA64)
         or rights_tag not in _RIGHTS):
+
         raise ValueError("invalid MESA search scope")
+    # Missing environment is not a transferable experience. Fall back to
+    # the unchanged local Controller instead of guessing a compatible host.
+    if environment_digest is None:
+        return ()
+    if not _valid(environment_digest, _SHA64):
+        raise ValueError("invalid MESA environment digest")
     if now_seconds is None:
         now_seconds = int(time.time())
     if type(now_seconds) is not int or now_seconds <= 0:
@@ -57,10 +65,12 @@ def search_experiences(
                WHERE e.project_id=? AND e.plan_sha256=?
                  AND e.source_git_sha=? AND e.scope_ref=? AND e.rights_tag=?
                  AND e.error_fingerprint=?
+                 AND e.environment_digest=?
                  AND e.outcome IN ('FAILED','HOLD','CANDIDATE')
                ORDER BY e.observed_at DESC, e.event_id DESC LIMIT ?""",
             (project_id, plan_sha256, source_git_sha, scope_ref,
-             rights_tag, error_fingerprint, _MAX_SCAN + 1),
+             rights_tag, error_fingerprint, environment_digest,
+             _MAX_SCAN + 1),
         ).fetchall()
         if len(rows) > _MAX_SCAN:
             return ()
@@ -90,6 +100,7 @@ def search_experiences(
                 or event.plan_sha256 != plan_sha256
                 or event.rights_tag != rights_tag
                 or event.error_fingerprint != error_fingerprint
+                or event.environment_digest != environment_digest
                 or not _valid(strategy, _SHA64)
                 or (conflict is not None and not _valid(conflict, _SHA64))):
                 return ()

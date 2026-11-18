@@ -97,6 +97,7 @@ def _parser() -> argparse.ArgumentParser:
         view.add_argument("--rights", required=True)
         if name == "search":
             view.add_argument("--fingerprint", required=True)
+            view.add_argument("--environment-sha", required=True)
         if name == "inspect":
             view.add_argument("--event-id", required=True)
         if name == "compare":
@@ -741,6 +742,7 @@ def main(argv: list[str] | None = None) -> int:
                         rights_tag=args.rights,
                         error_fingerprint=getattr(args, "fingerprint", None),
                         event_id=getattr(args, "event_id", None),
+                        environment_digest=getattr(args, "environment_sha", None),
                     )
         elif args.command == "benchmark":
             payload = _benchmark_synthetic()

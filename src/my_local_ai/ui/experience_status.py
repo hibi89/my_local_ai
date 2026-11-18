@@ -93,6 +93,7 @@ def experience_read_only_view(
     plan_sha256: str, source_git_sha: str, scope_ref: str,
     rights_tag: str, error_fingerprint: str | None = None,
     event_id: str | None = None,
+    environment_digest: str | None = None,
 ) -> dict[str, object]:
     """Inert display data; no learn/approve/revoke/delete endpoint."""
     common = {
@@ -108,6 +109,7 @@ def experience_read_only_view(
             source_git_sha=source_git_sha, scope_ref=scope_ref,
             rights_tag=rights_tag, error_fingerprint=error_fingerprint,
             enabled=True, max_results=3,
+            environment_digest=environment_digest,
         )
         return {**common, "action": "search",
                 "record_refs": [r.record_ids[0] for r in hints],

@@ -58,7 +58,8 @@ class ExperienceRetrievalTest(unittest.TestCase):
         opts=dict(project_id="project-001",plan_sha256="a"*64,
                   source_git_sha="b"*40,scope_ref="scope-001",
                   rights_tag="PUBLIC_SYNTHETIC",error_fingerprint="c"*64,
-                  enabled=True,now_seconds=1795000030)
+                  enabled=True,now_seconds=1795000030,
+                  environment_digest="d"*64)
         opts.update(overrides)
         return search_experiences(self.conn,**opts)
 
@@ -76,6 +77,8 @@ class ExperienceRetrievalTest(unittest.TestCase):
             dict(source_git_sha="f"*40),dict(scope_ref="scope-999"),
             dict(rights_tag="OWNED_REDACTED"),
             dict(error_fingerprint="e"*64),
+            dict(environment_digest="e"*64),
+            dict(environment_digest=None),
         ):
             with self.subTest(delta=delta):
                 self.assertEqual(self.search(**delta),())
@@ -103,7 +106,8 @@ class ExperienceRetrievalTest(unittest.TestCase):
                 empty,project_id="project-001",plan_sha256="a"*64,
                 source_git_sha="b"*40,scope_ref="scope-001",
                 rights_tag="PUBLIC_SYNTHETIC",error_fingerprint="c"*64,
-                enabled=True,now_seconds=1795000030),())
+                enabled=True,now_seconds=1795000030,
+                environment_digest="d"*64),())
 
 
 if __name__ == "__main__":

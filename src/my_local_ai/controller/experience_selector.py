@@ -40,6 +40,7 @@ def select_with_experience(
     experience_conn: sqlite3.Connection | None = None,
     enabled: bool = False, project_id: str,
     scope_ref: str, rights_tag: str,
+    environment_digest: str | None = None,
     task_error_fingerprints: dict[str, str] | None = None,
     active_leases: tuple[str, ...] = (),
 ) -> MESAControllerProposal:
@@ -73,6 +74,7 @@ def select_with_experience(
                 plan_sha256=plan.digest, source_git_sha=candidate.source_sha,
                 scope_ref=scope_ref, rights_tag=rights_tag,
                 error_fingerprint=fingerprint, enabled=True,
+                environment_digest=environment_digest,
                 max_results=3-len(refs),
             )
             if hints:

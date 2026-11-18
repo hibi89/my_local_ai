@@ -81,6 +81,7 @@ class ExperienceControllerOfflineTest(unittest.TestCase):
             experience_conn=self.conn, enabled=True,
             project_id="project-001", scope_ref="scope-001",
             rights_tag="PUBLIC_SYNTHETIC",
+            environment_digest="d"*64,
             task_error_fingerprints={"TASK-B": ERR},
         )
         data.update(changes)
@@ -101,6 +102,8 @@ class ExperienceControllerOfflineTest(unittest.TestCase):
             dict(enabled=False), dict(experience_conn=None),
             dict(scope_ref="scope-999"),
             dict(task_error_fingerprints={"TASK-B": "e"*64}),
+            dict(environment_digest="e"*64),
+            dict(environment_digest=None),
         ):
             with self.subTest(change=change):
                 result = self.select(**change)

@@ -85,7 +85,7 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertTrue(result["read_only"])
         self.assertEqual(result["redacted_count_capped"], 1)
-        code, found = self.cli("search", "--fingerprint", "c"*64)
+        code, found = self.cli("search", "--fingerprint", "c"*64, "--environment-sha", "d"*64)
         self.assertEqual(code, 0)
         self.assertEqual(found["record_refs"], ["event-001"])
         _, inspect = self.cli("inspect", "--event-id", "event-001")
@@ -120,8 +120,16 @@ class ExperienceCliTest(unittest.TestCase):
         self.assertEqual(result["status"], "HOLD")
         self.assertFalse(self.path.exists())
 
+    def test_search_environment_drift_returns_baseline(self):
+        code, result = self.cli(
+            "search", "--fingerprint", "c"*64,
+            "--environment-sha", "0"*64,
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(result["record_refs"], [])
+
     def test_search_wrong_scope_returns_no_matches(self):
-        code, result = self.cli("search", "--fingerprint", "e"*64)
+        code, result = self.cli("search", "--fingerprint", "e"*64, "--environment-sha", "d"*64)
         self.assertEqual(code, 0)
         self.assertEqual(result["record_refs"], [])
 
