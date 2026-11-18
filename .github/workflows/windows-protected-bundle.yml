@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/windows-protected-bundle.yml'
       - 'scripts/build_protected_windows.py'
+      - 'scripts/preflight_protected_windows.py'
+      - 'tests/unit/test_windows_protected_preflight.py'
   workflow_dispatch:
 
 permissions:
@@ -41,6 +43,18 @@ jobs:
           if ($m.trusted_or_installed -ne $false -or $m.windows_native_acceptance -ne 'NOT_RUN') {
             throw 'build manifest incorrectly claims trust'
           }
+      - name: Read-only native preflight must HOLD without Owner-provisioned HKLM/SCM
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist/mla-protected-v1').Path
+          $simulated = Join-Path $env:RUNNER_TEMP 'mla-unprivileged-simulated-copy'
+          New-Item -ItemType Directory -Path $simulated -ErrorAction Stop | Out-Null
+          @('MyLocalAI.owner.v1','MyLocalAI.reviewer.v1','MyLocalAI.scanner.v1','MyLocalAI.OwnerUI') | ForEach-Object {
+            Copy-Item -Path (Join-Path $stage $_) -Destination $simulated -Recurse -ErrorAction Stop
+          }
+          $env:MLA_STAGED_DIR = $stage
+          $env:MLA_SIMULATED_DIR = $simulated
+          python -c "import os,sys;from pathlib import Path;sys.path.insert(0,'scripts');from preflight_protected_windows import preflight;r=preflight(Path(os.environ['MLA_STAGED_DIR']),Path(os.environ['MLA_SIMULATED_DIR']));assert r['decision']=='HOLD' and r['precheck']=='BLOCKED' and r['runtime_authorized'] is False;print('EXPECTED_WINDOWS_CI_HOLD:',r['code'])"
       - uses: actions/upload-artifact@v4
         with:
           name: MLA-untrusted-Windows-protected-four-images
