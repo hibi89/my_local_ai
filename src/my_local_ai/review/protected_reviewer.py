@@ -1,11 +1,8 @@
-"""Independent F18 reviewer host-broker input boundary (source-only).
+"""Independent static reviewer client, transcript parser and native handler.
 
-The coder must never supply the reviewer executable, policy, results, signer,
-nonce or OS principal. This module constructs a canonical *UNSIGNED* review
-transcript from a fixed policy and an independently supplied host check report.
-It cannot mint a TrustedReceipt: a separately installed/protected Windows
-reviewer must attest the actual principal, deny egress, consume the nonce and
-sign the result. No guest process or test is run in this module.
+The installed protected service reads immutable Git objects and fixed static
+checks before issuing a signed STATIC_ONLY report. OS provisioning is separate.
+It never emits the legacy executed-test PASS/HMAC receipt or runs guest tests.
 """
 from __future__ import annotations
 
@@ -14,7 +11,7 @@ from hashlib import sha256
 import json
 import re
 
-from .trusted_runner import (
+from my_local_ai.review.trusted_runner import (
     IsolatedReviewerIntent, MandatoryCheck, ReviewPlanHold,
     build_reviewer_policy,
 )
@@ -506,3 +503,228 @@ def review_protected_candidate(intent: IsolatedReviewerIntent, *,
         raise ProtectedReviewerHold("INDEPENDENT_OS_REVIEWER_NOT_ATTESTED") from None
     except (ValueError, TypeError, KeyError):
         raise ProtectedReviewerHold("UNTRUSTED_CHECK_RESULTS") from None
+
+
+def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> dict[str, bytes]:
+    """Read immutable Git objects with one pinned, non-filtering Git operator.
+
+    Never checks out a tree, imports a module, runs a hook/filter, loads local
+    tools or follows a promisor remote. Every commit/blob is independently
+    content-address checked. Scope/plan come from the protected authority DB.
+    """
+    import hashlib
+    import winreg
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    from my_local_ai.security.codeshield_contracts import checked_relative_path
+    root = _Path(scope["repository_path"])
+    # Repository used here is an independently provisioned read-only bare
+    # mirror, never the Controller's writable checkout or candidate worktree.
+    if root == _Path(scope["disposable_root"]):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+        r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1\reviewer", 0,
+        winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+        git_path, pkind = winreg.QueryValueEx(key, "GitPath")
+        git_sha, hkind = winreg.QueryValueEx(key, "GitSha256")
+    if (pkind != winreg.REG_SZ or hkind != winreg.REG_SZ
+        or type(git_path) is not str or type(git_sha) is not str
+        or not _SHA64.fullmatch(git_sha) or not _Path(git_path).is_absolute()
+        or _Path(git_path).name.casefold() != "git.exe"):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    # Retain image/ancestor locks for all Git reads, then close them. The
+    # repository directory is also protected, including its object/config DB.
+    with _ExitStackForReview(api):
+        api.pin_path(_Path(git_path))
+        api.pin_path(root / "HEAD")
+        # Reject unprotected/reparse object stores and alternates. A private
+        # read-only bare mirror is a provisioning requirement, not a claim in
+        # the Controller request. Packed and loose objects are both supported.
+        count = 0
+        for directory, subdirs, filenames in _os.walk(root, followlinks=False):
+            for name in (*subdirs, *filenames):
+                node = _Path(directory) / name
+                info = node.lstat()
+                if (_stat.S_ISLNK(info.st_mode)
+                    or getattr(info, "st_file_attributes", 0) & _REPARSE_ATTRIBUTE):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            for name in filenames:
+                path = _Path(directory) / name
+                count += 1
+                if count > 1024 or path.name in {"alternates", "http-alternates", "grafts"}:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                api.pin_path(path)
+        if sha256(_Path(git_path).read_bytes()).hexdigest() != git_sha:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        system_root = _os.environ.get("SystemRoot", r"C:\Windows")
+        env = {"SystemRoot": system_root, "WINDIR": system_root,
+               "PATH": str(_Path(system_root) / "System32"),
+               "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_SYSTEM": "NUL",
+               "GIT_CONFIG_GLOBAL": "NUL", "GIT_NO_REPLACE_OBJECTS": "1",
+               "GIT_NO_LAZY_FETCH": "1", "GIT_TERMINAL_PROMPT": "0",
+               "GIT_OPTIONAL_LOCKS": "0", "GIT_ATTR_NOSYSTEM": "1"}
+        deadline = _timeForReview.monotonic() + 30
+        def git(*args):
+            if stopped.is_set() or _timeForReview.monotonic() >= deadline:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+            prefix = [git_path, "--no-pager", "--no-optional-locks",
+                      "--git-dir=" + str(root), "-c", "core.fsmonitor=false",
+                      "-c", "core.hooksPath=NUL", "-c", "core.attributesFile=NUL"]
+            # Fixed product-owned executable/argv only, never candidate argv.
+            from my_local_ai.state.consent import _run_bounded_fixed_process
+            code, out, err, timed_out = _run_bounded_fixed_process(
+                prefix + list(args), cwd=root, env=env,
+                timeout_seconds=max(0.1, deadline - _timeForReview.monotonic()),
+                stopped=stopped, output_limit=2 * 1024 * 1024,
+            )
+            if timed_out:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+            if code != 0 or err:
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            return out
+        def object_bytes(kind, oid):
+            data = git("cat-file", kind, oid)
+            canonical = kind.encode("ascii") + b" " + str(len(data)).encode("ascii") + b"\x00" + data
+            if hashlib.sha1(canonical).hexdigest() != oid:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            return data
+        def tree(oid):
+            object_bytes("commit", oid)
+            listing = git("ls-tree", "-rz", "--full-tree", oid)
+            entries = listing.rstrip(b"\x00").split(b"\x00") if listing else []
+            if len(entries) > 4096:
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            result = {}
+            for item in entries:
+                meta, name = item.split(b"\t", 1)
+                mode, kind, digest = meta.decode("ascii").split(" ")
+                path = name.decode("utf-8")
+                # Unchanged .gitignore/.github entries belong to the commit
+                # identity. Apply the stricter edit scope only to changed files.
+                if (not path or len(path) > 240 or path.startswith("/")
+                    or "\\" in path or ":" in path
+                    or any(part in ("", ".", "..") for part in path.split("/"))
+                    or any(ord(ch) < 32 for ch in path)):
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                if mode not in {"100644", "100755"} or kind != "blob" or not _SHA40.fullmatch(digest):
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                result[path] = (mode, digest)
+            if len({path.casefold() for path in result}) != len(result):
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            return result
+        source, candidate = tree(binding["source_sha"]), tree(binding["candidate_sha"])
+        changed = sorted(path for path in source.keys() | candidate.keys()
+                         if source.get(path) != candidate.get(path))
+        if (not changed or not set(changed) <= set(scope["allowed_paths"])
+            or any(path not in candidate or not path.endswith(".py") for path in changed)):
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+        for path in changed:
+            checked_relative_path(path)
+        files = {}
+        for path in changed:
+            data = object_bytes("blob", candidate[path][1])
+            if not 1 <= len(data) <= 256 * 1024:
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            files[path] = data
+        if sum(map(len, files.values())) > 1024 * 1024:
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+        return files
+
+
+# Keep native path locks scoped to a request; long-running services must not
+# accumulate one handle per source object or scan.
+from contextlib import ExitStack as _ReviewExitStack
+import time as _timeForReview
+
+
+class _ExitStackForReview:
+    def __init__(self, api):
+        self.api = api
+
+    def __enter__(self):
+        self.previous = self.api.resources
+        self.api.resources = _ReviewExitStack()
+        return self.api.resources
+
+    def __exit__(self, *exc):
+        try:
+            return self.api.resources.__exit__(*exc)
+        finally:
+            self.api.resources = self.previous
+
+
+def _serve_static_review(api, binding: dict, payload: dict, scope: dict, stopped) -> dict:
+    """Independent server: protected Git readback -> AST/static evidence -> receipt.
+
+    REQ-14 originally asks for executed unit/security tests. Zero-VM §L forbids
+    executing those generated tests. This server explicitly reports STATIC_ONLY;
+    it cannot satisfy or downgrade the executed-test acceptance condition. The
+    old receipt_guard PASS/HMAC route remains separate and rejects this schema.
+    """
+    import ast
+    import base64
+    from my_local_ai.state.consent import ProtectedBrokerHold, _broker_canonical
+    from my_local_ai.security.ast_preflight import scan_python_sources
+    from my_local_ai.security.codeshield_contracts import CodeShieldContext, DataClass, RiskOutcome
+    expected = {"policy_sha256", "static_policy_sha256", "reviewer_binary_sha256",
+                "check_ids", "validation_scope", "execution_count", "execution_permitted", "policy"}
+    if (type(payload) is not dict or set(payload) != expected
+        or payload["policy_sha256"] != build_reviewer_policy().policy_sha256
+        or payload["static_policy_sha256"] != _STATIC_POLICY_SHA256
+        or payload["reviewer_binary_sha256"] != api.roots["reviewer"][1]
+        or payload["check_ids"] != list(_STATIC_CHECK_IDS)
+        or payload["validation_scope"] != "STATIC_ONLY"
+        or type(payload["execution_count"]) is not int or payload["execution_count"] != 0
+        or payload["execution_permitted"] is not False
+        or payload["policy"] != "F18_STATIC_ONLY_V1"):
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    started = _timeForReview.monotonic()
+    files = _read_protected_git_candidate(api, binding, scope, stopped)
+    source_evidence = {path: sha256(data).hexdigest() for path, data in files.items()}
+    observations = [{"check_id": "SOURCE-SHA-001", "exit_code": 0,
+        "elapsed_ms": min(30000, int((_timeForReview.monotonic() - started) * 1000)),
+        "timed_out": False, "output_sha256": sha256(_broker_canonical(source_evidence)).hexdigest()}]
+    started = _timeForReview.monotonic()
+    for path, content in files.items():
+        if stopped.is_set():
+            raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+        ast.parse(content.decode("utf-8"), filename="<candidate>", mode="exec")
+    observations.append({"check_id": "AST-PARSE-001", "exit_code": 0,
+        "elapsed_ms": int((_timeForReview.monotonic() - started) * 1000),
+        "timed_out": False, "output_sha256": sha256(b"AST_PARSE_ONLY").hexdigest()})
+    context = CodeShieldContext("hibi89/my_local_ai", binding["task_id"], binding["run_id"],
+        binding["owner_consent_ref"], binding["plan_sha256"], binding["source_sha"],
+        binding["candidate_sha"], binding["lease_epoch"], binding["nonce_sha256"],
+        tuple(scope["allowed_paths"]), DataClass.PUBLIC_SYNTHETIC, ())
+    started = _timeForReview.monotonic()
+    report = scan_python_sources(context, files)
+    if report.outcome != RiskOutcome.ALLOW_NON_EXECUTING or report.findings:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    observations.append({"check_id": "STATIC-POLICY-001", "exit_code": 0,
+        "elapsed_ms": int((_timeForReview.monotonic() - started) * 1000),
+        "timed_out": False, "output_sha256": sha256(_broker_canonical({
+            "context_sha256": report.context_sha256, "digests": report.file_digests,
+            "reason": report.reason})).hexdigest()})
+    raw = _broker_canonical({"version": 1, "task_id": binding["task_id"],
+        "run_id": binding["run_id"], "source_sha": binding["source_sha"],
+        "candidate_sha": binding["candidate_sha"], "plan_sha256": binding["plan_sha256"],
+        "lease_epoch": binding["lease_epoch"], "policy_sha256": payload["policy_sha256"],
+        "static_policy_sha256": _STATIC_POLICY_SHA256,
+        "reviewer_binary_sha256": api.roots["reviewer"][1], "validation_scope": "STATIC_ONLY",
+        "execution_count": 0, "checks": observations})
+    # Reuse exactly the client decoder. A server may never mint a result the
+    # fixed trusted_runner/STATIC_ONLY client contract cannot consume.
+    intent = IsolatedReviewerIntent(binding["task_id"], binding["run_id"], binding["plan_sha256"],
+        binding["source_sha"], binding["candidate_sha"], binding["lease_epoch"],
+        payload["policy_sha256"], api.roots["reviewer"][1], _SOURCE_POLICY_CHECK_IDS)
+    decode_untrusted_reviewer_outbox(raw, intent)
+    return {"observations_b64": base64.b64encode(raw).decode("ascii"),
+        "nonce_state": "CONSUMED", "lease_state": "LIVE_AT_SIGNING",
+        "reviewer_binary_sha256": api.roots["reviewer"][1],
+        "source_sha": binding["source_sha"], "candidate_sha": binding["candidate_sha"],
+        "static_policy_sha256": _STATIC_POLICY_SHA256, "validation_scope": "STATIC_ONLY",
+        "execution_count": 0, "evidence_sha256": sha256(raw).hexdigest()}
+
+
+if __name__ == "__main__":
+    from my_local_ai.state.consent import protected_service_main
+    raise SystemExit(protected_service_main("reviewer"))

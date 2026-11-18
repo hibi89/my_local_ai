@@ -1,7 +1,8 @@
-"""Read-only local consent ledger. Never issues grants or accepts guest approvals.
+"""Local consent inspection, authenticated IPC, and native protected services.
 
-Actual Windows protected-store/owner signer integration is pending. This module
-cannot by itself prove the SQLite file is protected against an untrusted worker.
+LOCAL_PLAN inspection remains advisory. Native server activation requires
+separately provisioned SCM principals, pinned images/TPM keys and protected
+ledgers; this source never provisions or grants those OS rights itself.
 """
 from __future__ import annotations
 
@@ -10,9 +11,13 @@ from contextlib import closing as _closing
 from pathlib import Path
 import stat
 
-from .migrations import APP_ID, SCHEMA_VERSION
+from my_local_ai.state.migrations import APP_ID, SCHEMA_VERSION
 
 _REPARSE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+_SYSTEM_TRUSTED_SIDS = frozenset({
+    "S-1-5-18", "S-1-5-32-544",
+    "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",  # TrustedInstaller
+})
 
 def _check_safe_owned_file(path: Path) -> tuple[int, int, int, int]:
     if path.suffix != ".sqlite3" or not path.is_file():
@@ -510,7 +515,7 @@ def _owner_token_read_only_main() -> int:
 
 
 # Protected-service client. This is deliberately NOT a service installer or a
-# new signer in the Controller. The four native services, TPM keys, protected
+# new signer in the Controller. The three native services, TPM keys, protected
 # ledgers and runtime policy have to be provisioned independently by the owner.
 # An absent/misconfigured service is a hard denial, never a host fallback.
 class ProtectedBrokerHold(PermissionError):
@@ -520,11 +525,13 @@ class ProtectedBrokerHold(PermissionError):
             "PROTECTED_BROKER_IDENTITY", "PROTECTED_BROKER_TIMEOUT",
             "PROTECTED_BROKER_PROTOCOL", "PROTECTED_BROKER_SIGNATURE",
             "PROTECTED_OWNER_ACTION_DENIED", "PROTECTED_RUNTIME_DENIED",
+            "PROTECTED_ACTION_OUTCOME_UNKNOWN",
         } else "PROTECTED_BROKER_UNAVAILABLE"
         super().__init__(self.code)
 
 
 _BROKER_ROLES = ("owner", "coder", "reviewer", "scanner")
+_SERVICE_ROLES = ("owner", "reviewer", "scanner")
 _BROKER_OPERATIONS = {
     "owner": frozenset({"authorize"}),
     "coder": frozenset(),  # Zero-VM V1.3: no generated-code broker execution.
@@ -622,7 +629,7 @@ class _WindowsBrokerAPI:
         finally:
             self.kernel.LocalFree(c.cast(text, c.c_void_p))
 
-    def check_acl(self, handle, kind: int, write_mask: int) -> None:
+    def check_acl(self, handle, kind: int, write_mask: int, *, allowed_writers=(), allowed_owners=()) -> None:
         """Reject NULL DACLs, unknown ACEs and non-admin writers/owners.
 
         Conservative allow-only analysis: even a matching deny ACE does not
@@ -636,9 +643,10 @@ class _WindowsBrokerAPI:
         if get(handle, kind, 5, c.byref(owner), None, c.byref(dacl), None,
                c.byref(descriptor)) != 0:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-        trusted = {"S-1-5-18", "S-1-5-32-544"}
+        trusted = _SYSTEM_TRUSTED_SIDS
+        writers = trusted | set(allowed_writers)
         try:
-            if self.sid_string(owner) not in trusted or not dacl.value:
+            if self.sid_string(owner) not in trusted | set(allowed_owners) or not dacl.value:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             class ACL(c.Structure):
                 _fields_ = [("revision", c.c_ubyte), ("sbz1", c.c_ubyte),
@@ -658,7 +666,7 @@ class _WindowsBrokerAPI:
                 if ace_type != 0:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 mask = w.DWORD.from_address(ace.value + 4).value
-                if mask & write_mask and self.sid_string(ace.value + 8) not in trusted:
+                if mask & write_mask and self.sid_string(ace.value + 8) not in writers:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         finally:
             if descriptor.value:
@@ -673,12 +681,12 @@ class _WindowsBrokerAPI:
         # Parent delete/rename rights can replace a perfectly protected child.
         for name in ("SOFTWARE", r"SOFTWARE\MyLocalAI",
                      r"SOFTWARE\MyLocalAI\ProtectedBrokers", base,
-                     *(base + "\\" + role for role in _BROKER_ROLES)):
+                     *(base + "\\" + role for role in _SERVICE_ROLES)):
             with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, name, 0,
                                 winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
                 self.check_acl(int(key), 4, 0xD0000 | 0x26 | 0x50000000)
                 role = name.rsplit("\\", 1)[-1]
-                if role not in _BROKER_ROLES:
+                if role not in _SERVICE_ROLES:
                     continue
                 sid, sid_kind = winreg.QueryValueEx(key, "PrincipalSid")
                 image, image_kind = winreg.QueryValueEx(key, "ImageSha256")
@@ -691,7 +699,7 @@ class _WindowsBrokerAPI:
                     or len(public) != 72 or public[:8] != b"ECS1\x20\x00\x00\x00"):
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 roots[role] = (sid, image, public)
-        if any(len({value[index] for value in roots.values()}) != 4 for index in (0, 1, 2)):
+        if any(len({value[index] for value in roots.values()}) != 3 for index in (0, 1, 2)):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         return roots
 
@@ -716,7 +724,7 @@ class _WindowsBrokerAPI:
         finally:
             self.kernel.CloseHandle(token)
 
-    def authenticate_pipe(self, pipe, role: str, roots: dict):
+    def authenticate_pipe(self, pipe, role: str, roots: dict, *, service_self=False):
         """Hold the SCM/peer process handles until the transaction has ended."""
         c, w = self.c, self.w
         from contextlib import ExitStack
@@ -736,7 +744,8 @@ class _WindowsBrokerAPI:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             stack.callback(self.kernel.CloseHandle, process)
             if (self.process_sid(process) != roots[role][0]
-                or self.process_sid(current()) in {v[0] for v in roots.values()}):
+                or (self.process_sid(current()) != roots[role][0] if service_self
+                    else self.process_sid(current()) in {v[0] for v in roots.values()})):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             open_scm = self._bind(self.advapi, "OpenSCManagerW",
                                   [w.LPCWSTR, w.LPCWSTR, w.DWORD], w.HANDLE)
@@ -1013,7 +1022,7 @@ def dispatch_protected_action(role: str, operation: str, *, binding: dict,
     }:
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
     permit = exchange_protected_broker("reviewer", "runtime-permit", binding=binding,
-        payload={"action_sha256": action_sha256,
+        payload={"action_sha256": action_sha256, "action": action,
                  "owner_authorization": owner["signed_envelope"]})
     if permit["result"] != {
         "action_sha256": action_sha256,
@@ -1022,11 +1031,829 @@ def dispatch_protected_action(role: str, operation: str, *, binding: dict,
         "lease_state": "LIVE_AT_SIGNING",
     }:
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
-    return exchange_protected_broker(role, operation, binding=binding,
-        payload={"action_sha256": action_sha256, "input": payload,
-                 "owner_authorization": owner["signed_envelope"],
-                 "runtime_permit": permit["signed_envelope"]}, timeout_seconds=timeout_seconds)
+    try:
+        return exchange_protected_broker(role, operation, binding=binding,
+            payload={"action_sha256": action_sha256, "input": payload,
+                     "owner_authorization": owner["signed_envelope"],
+                     "runtime_permit": permit["signed_envelope"]}, timeout_seconds=timeout_seconds)
+    except ProtectedBrokerHold:
+        # The final service may have consumed a nonce/started its native scan
+        # before a connection or signature failure. Never mislabel that as a
+        # proven NOT_RUN or automatically retry an indeterminate operation.
+        raise ProtectedBrokerHold("PROTECTED_ACTION_OUTCOME_UNKNOWN") from None
+
+
+# Native server implementation. Nothing below installs a service, creates a
+# key/account, edits an ACL, or populates trust policy. An administrator must
+# provision THREE distinct frozen service images/SIDs/TPM keys, the two schema
+# types below, and a separate interactive owner before this entry point works.
+# Runtime writes are confined to each service's existing private journal.
+import base64 as _b64
+import time as _time
+from hashlib import sha256 as _digest
+from contextlib import ExitStack as _ExitStack, contextmanager as _contextmanager
+
+_AUTHORITY_APP_ID = 0x4D4C4141
+_SERVICE_APP_ID = 0x4D4C4153
+_SERVICE_HOME = Path(r"C:\ProgramData\MyLocalAI\Protected\v1")
+PROTECTED_AUTHORITY_SCHEMA = """
+PRAGMA application_id=1296843073;
+PRAGMA user_version=1;
+CREATE TABLE scopes (
+ consent_ref TEXT PRIMARY KEY, binding_json TEXT NOT NULL,
+ scope_json TEXT NOT NULL, expires_at INTEGER NOT NULL,
+ revoked INTEGER NOT NULL CHECK(revoked IN (0,1))
+);
+"""
+PROTECTED_SERVICE_LEDGER_SCHEMA = """
+PRAGMA application_id=1296843091;
+PRAGMA user_version=1;
+CREATE TABLE journal (
+ nonce_key TEXT PRIMARY KEY, action_sha256 TEXT NOT NULL,
+ binding_sha256 TEXT NOT NULL, challenge TEXT NOT NULL UNIQUE,
+ state TEXT NOT NULL CHECK(state IN ('RESERVED','DENIED','COMPLETED')),
+ created_at INTEGER NOT NULL, response BLOB
+);
+"""
+
+
+def _service_request(raw: bytes, role: str) -> dict:
+    import re
+    request = _broker_decode(raw)
+    if (set(request) != {"schema", "role", "operation", "binding", "challenge", "payload"}
+        or request["schema"] != "mla-protected-request/v1"
+        or request["role"] != role or role not in _SERVICE_ROLES
+        or type(request["operation"]) is not str
+        or request["operation"] not in _BROKER_OPERATIONS[role]
+        or type(request["challenge"]) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", request["challenge"]) is None
+        or type(request["payload"]) is not dict):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    _validate_broker_binding(request["binding"])
+    if raw != _broker_canonical(request):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+    return request
+
+
+class _ServiceJournal:
+    """Durable anti-replay, not a trust root. Host must pin its OS protection.
+
+    Reservation commits BEFORE UI/scan work. A crash after reservation burns
+    the nonce; retries cannot reexecute it. Only a new independently approved
+    lease/nonce can recover. Runtime never initializes or repairs a database.
+    """
+    def __init__(self, path: Path):
+        self.path = path
+        self.identity = (path.stat().st_dev, path.stat().st_ino)
+
+    @_contextmanager
+    def transaction(self):
+        if (self.path.stat().st_dev, self.path.stat().st_ino) != self.identity:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        with _closing(sqlite3.connect(self.path.as_uri() + "?mode=rw", uri=True,
+                                     timeout=1, isolation_level=None)) as db:
+            db.execute("PRAGMA trusted_schema=OFF")
+            db.execute("PRAGMA synchronous=FULL")
+            if (db.execute("PRAGMA application_id").fetchone()[0] != _SERVICE_APP_ID
+                or db.execute("PRAGMA user_version").fetchone()[0] != 1
+                or db.execute("PRAGMA journal_mode").fetchone()[0] != "delete"):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                yield db
+                if (self.path.stat().st_dev, self.path.stat().st_ino) != self.identity:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                db.execute("COMMIT")
+            except BaseException:
+                db.execute("ROLLBACK")
+                raise
+
+    def reserve(self, request: dict, action_sha256: str) -> str:
+        binding = request["binding"]
+        # The same nonce cannot authorize another action, run or epoch. Permit
+        # and final review are separate stages of one action, in one ledger.
+        nonce_key = request["operation"] + ":" + binding["nonce_sha256"]
+        try:
+            with self.transaction() as db:
+                db.execute("INSERT INTO journal VALUES(?,?,?,?,?,?,NULL)", (
+                    nonce_key, action_sha256, _digest(_broker_canonical(binding)).hexdigest(),
+                    request["challenge"], "RESERVED", int(_time.time()),
+                ))
+        except sqlite3.IntegrityError:
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED") from None
+        return nonce_key
+
+    def finish(self, nonce_key: str, response: bytes, *, approved: bool) -> None:
+        with self.transaction() as db:
+            changed = db.execute(
+                "UPDATE journal SET state=?,response=? WHERE nonce_key=? AND state='RESERVED'",
+                ("COMPLETED" if approved else "DENIED", response, nonce_key),
+            ).rowcount
+            if changed != 1:
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+
+
+def _read_service_scope(path: Path, binding: dict, role: str, operation: str) -> dict:
+    """Read live administrator-protected plan/lease policy; never caller flags."""
+    from my_local_ai.security.codeshield_contracts import checked_relative_path
+    with _closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1)) as db:
+        db.execute("PRAGMA query_only=ON")
+        db.execute("PRAGMA trusted_schema=OFF")
+        if (db.execute("PRAGMA application_id").fetchone()[0] != _AUTHORITY_APP_ID
+            or db.execute("PRAGMA user_version").fetchone()[0] != 1):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        row = db.execute(
+            "SELECT binding_json,scope_json,expires_at,revoked FROM scopes WHERE consent_ref=?",
+            (binding["owner_consent_ref"],),
+        ).fetchone()
+    if (row is None or type(row[2]) is not int or row[2] <= int(_time.time())
+        or row[3] != 0 or _broker_decode(row[0].encode("ascii")) != binding):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    scope = _broker_decode(row[1].encode("ascii"))
+    if (set(scope) != {"repository_path", "disposable_root", "allowed_paths",
+                      "operations", "data_class", "plan_sha256"}
+        or scope["data_class"] != "PUBLIC_SYNTHETIC"
+        or scope["plan_sha256"] != binding["plan_sha256"]
+        or type(scope["operations"]) is not list
+        or role + ":" + operation not in scope["operations"]
+        or not set(scope["operations"]) <= {"reviewer:review", "scanner:defender"}
+        or type(scope["allowed_paths"]) is not list
+        or not 1 <= len(scope["allowed_paths"]) <= 16):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    paths = [checked_relative_path(value) for value in scope["allowed_paths"]]
+    if paths != sorted(paths) or len(set(value.casefold() for value in paths)) != len(paths):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    for key in ("repository_path", "disposable_root"):
+        value = scope[key]
+        if (type(value) is not str or not Path(value).is_absolute()
+            or value.startswith(("\\\\", "//")) or ".." in Path(value).parts):
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    if Path(scope["repository_path"]) == Path(scope["disposable_root"]):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    return scope
+
+
+class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
+    """SCM/pipe/TPM native server backend. No provisioning APIs are used."""
+    def __init__(self, role: str):
+        super().__init__()
+        if role not in _SERVICE_ROLES:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+        self.role = role
+        self.roots = self.load_roots()
+        self.resources = _ExitStack()
+        c, w = self.c, self.w
+        current = self._bind(self.kernel, "GetCurrentProcess", [], w.HANDLE)
+        if self.process_sid(current()) != self.roots[role][0]:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        self.settings = self._settings()
+        self.authority_path = _SERVICE_HOME / "authority.sqlite3"
+        self.ledger_path = _SERVICE_HOME / role / "journal.sqlite3"
+        self.pin_path(self.authority_path, writable=True)
+        self.pin_path(self.ledger_path, private=True, writable=True)
+        for database in (self.authority_path, self.ledger_path):
+            for suffix in ("-wal", "-shm", "-journal"):
+                if Path(str(database) + suffix).exists():
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        # A pinned EXE must not import its implementation/DLLs from a writable
+        # temp extraction directory. Only a protected one-folder frozen bundle
+        # is accepted; all shipped files remain pinned for the service lifetime.
+        import os
+        import sys
+        bundle = Path(getattr(sys, "_MEIPASS", ""))
+        image_parent = Path(sys.executable).parent
+        if not bundle.is_absolute() or bundle.parent != image_parent or bundle.name != "_internal":
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        total, count = 0, 0
+        for directory, subdirs, files in os.walk(bundle, followlinks=False):
+            for name in (*subdirs, *files):
+                node = Path(directory) / name
+                info = node.lstat()
+                if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & _REPARSE:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            for name in files:
+                path = Path(directory) / name
+                count += 1
+                total += path.stat().st_size
+                if count > 2048 or total > 512 * 1024 * 1024:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                self.pin_path(path)
+
+    def close(self):
+        self.resources.close()
+
+    def _settings(self) -> dict:
+        import re
+        import winreg
+        base = r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1"
+        values = {}
+        for sub, names in ((base, ("ControllerSid", "InteractiveOwnerSid", "OwnerSessionId")),
+                           (base + "\\" + self.role, ("KeyName",))):
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, sub, 0,
+                                winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+                for name in names:
+                    value, kind = winreg.QueryValueEx(key, name)
+                    if name == "OwnerSessionId":
+                        if kind != winreg.REG_DWORD or type(value) is not int or not 1 <= value < 65536:
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    elif kind != winreg.REG_SZ or type(value) is not str:
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    values[name] = value
+        for name in ("ControllerSid", "InteractiveOwnerSid"):
+            if re.fullmatch(r"S-1-5-21-(?:[0-9]+-){3}[0-9]+", values[name]) is None:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        if (len({values["ControllerSid"], values["InteractiveOwnerSid"],
+                 *(entry[0] for entry in self.roots.values())}) != 5
+            or re.fullmatch(r"MyLocalAI\.[A-Za-z0-9_.-]{3,64}", values["KeyName"]) is None):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        return values
+
+    def pin_path(self, path: Path, *, private=False, writable=False):
+        """Retain non-delete shared handles to the file and every ancestor."""
+        c, w = self.c, self.w
+        if not path.is_absolute() or str(path).startswith("\\\\"):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        create = self._bind(self.kernel, "CreateFileW", [w.LPCWSTR, w.DWORD,
+            w.DWORD, c.c_void_p, w.DWORD, w.DWORD, w.HANDLE], w.HANDLE)
+        private_root = _SERVICE_HOME / self.role
+        for node in (path, *path.parents):
+            info = node.lstat()
+            if (stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & _REPARSE
+                or node == path and (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1)):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            is_private = private and (node == private_root or private_root in node.parents)
+            handle = create(str(node), 0x20000, 3 if writable else 1, None, 3, 0x02200000, None)
+            if handle in (None, c.c_void_p(-1).value):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            self.resources.callback(self.kernel.CloseHandle, handle)
+            self.check_acl(handle, 1, 0xD0000 | 0x156 | 0x50000000,
+                           allowed_writers=(self.roots[self.role][0],) if is_private else (),
+                           allowed_owners=(self.roots[self.role][0],) if is_private else ())
+
+    def lock_untrusted_input(self, path: Path):
+        """Pin untrusted file/ancestry against write/delete; this grants no trust."""
+        c, w = self.c, self.w
+        create = self._bind(self.kernel, "CreateFileW", [w.LPCWSTR, w.DWORD,
+            w.DWORD, c.c_void_p, w.DWORD, w.DWORD, w.HANDLE], w.HANDLE)
+        identities = []
+        for node in (path, *path.parents):
+            before = node.lstat()
+            if (stat.S_ISLNK(before.st_mode) or getattr(before, "st_file_attributes", 0) & _REPARSE
+                or node == path and (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1)):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            handle = create(str(node), 0x80000000 if node == path else 0x20000,
+                            1, None, 3, 0x02200000, None)
+            if handle in (None, c.c_void_p(-1).value):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            self.resources.callback(self.kernel.CloseHandle, handle)
+            after = node.lstat()
+            if (before.st_dev, before.st_ino, before.st_mode) != (after.st_dev, after.st_ino, after.st_mode):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            identities.append((node, before.st_dev, before.st_ino, before.st_mode))
+        for node, device, inode, mode in identities:
+            current = node.lstat()
+            if (current.st_dev, current.st_ino, current.st_mode) != (device, inode, mode):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+
+    def _key_acl(self, raw: bytes):
+        """Restrict existing key use to its service SID and system administrators."""
+        c, w = self.c, self.w
+        descriptor = c.create_string_buffer(raw)
+        owner, dacl = c.c_void_p(), c.c_void_p()
+        defaulted, present = w.BOOL(), w.BOOL()
+        get_owner = self._bind(self.advapi, "GetSecurityDescriptorOwner",
+            [c.c_void_p, c.POINTER(c.c_void_p), c.POINTER(w.BOOL)], w.BOOL)
+        get_dacl = self._bind(self.advapi, "GetSecurityDescriptorDacl",
+            [c.c_void_p, c.POINTER(w.BOOL), c.POINTER(c.c_void_p), c.POINTER(w.BOOL)], w.BOOL)
+        if (not get_owner(descriptor, c.byref(owner), c.byref(defaulted))
+            or self.sid_string(owner) not in _SYSTEM_TRUSTED_SIDS
+            or not get_dacl(descriptor, c.byref(present), c.byref(dacl), c.byref(defaulted))
+            or not present.value or not dacl.value):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        count = w.WORD.from_address(dacl.value + 4).value
+        get_ace = self._bind(self.advapi, "GetAce",
+            [c.c_void_p, w.DWORD, c.POINTER(c.c_void_p)], w.BOOL)
+        allowed = _SYSTEM_TRUSTED_SIDS | {self.roots[self.role][0]}
+        for index in range(count):
+            ace = c.c_void_p()
+            if not get_ace(dacl, index, c.byref(ace)):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            kind = c.c_ubyte.from_address(ace.value).value
+            if kind == 1 or c.c_ubyte.from_address(ace.value + 1).value & 8:
+                continue
+            if kind != 0 or self.sid_string(ace.value + 8) not in allowed:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+
+    @_contextmanager
+    def signer(self):
+        """Open an EXISTING TPM ECDSA key; private material never enters Python."""
+        c, w = self.c, self.w
+        ncrypt = c.WinDLL("ncrypt.dll", use_last_error=True, winmode=0x800)
+        handle_type = c.c_size_t
+        provider, key = handle_type(), handle_type()
+        free = self._bind(ncrypt, "NCryptFreeObject", [handle_type], c.c_long)
+        open_provider = self._bind(ncrypt, "NCryptOpenStorageProvider",
+            [c.POINTER(handle_type), w.LPCWSTR, w.DWORD], c.c_long)
+        open_key = self._bind(ncrypt, "NCryptOpenKey",
+            [handle_type, c.POINTER(handle_type), w.LPCWSTR, w.DWORD, w.DWORD], c.c_long)
+        get = self._bind(ncrypt, "NCryptGetProperty", [handle_type, w.LPCWSTR,
+            c.c_void_p, w.DWORD, c.POINTER(w.DWORD), w.DWORD], c.c_long)
+        export = self._bind(ncrypt, "NCryptExportKey", [handle_type, handle_type,
+            w.LPCWSTR, c.c_void_p, c.c_void_p, w.DWORD, c.POINTER(w.DWORD), w.DWORD], c.c_long)
+        sign = self._bind(ncrypt, "NCryptSignHash", [handle_type, c.c_void_p,
+            c.c_void_p, w.DWORD, c.c_void_p, w.DWORD, c.POINTER(w.DWORD), w.DWORD], c.c_long)
+        try:
+            if (open_provider(c.byref(provider), "Microsoft Platform Crypto Provider", 0) != 0
+                or open_key(provider, c.byref(key), self.settings["KeyName"], 0, 0x60) != 0):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            def prop(name, flags=0x40):
+                length = w.DWORD()
+                if get(key, name, None, 0, c.byref(length), flags) != 0 or not 1 <= length.value <= 65536:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                buf = c.create_string_buffer(length.value)
+                if get(key, name, buf, len(buf), c.byref(length), flags) != 0:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                return buf.raw[:length.value]
+            if (int.from_bytes(prop("Export Policy"), "little") != 0
+                or int.from_bytes(prop("Length"), "little") != 256
+                or prop("Algorithm Name").decode("utf-16-le").rstrip("\x00") != "ECDSA_P256"):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            self._key_acl(prop("Security Descr", 5 | 0x40))
+            public, length = c.create_string_buffer(72), w.DWORD()
+            if (export(key, 0, "ECCPUBLICBLOB", None, public, len(public), c.byref(length), 0) != 0
+                or length.value != 72 or public.raw != self.roots[self.role][2]):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            def sign_body(body: dict) -> bytes:
+                digest = _digest(b"mla-protected-broker/v1|" + _broker_canonical(body)).digest()
+                output, size = c.create_string_buffer(64), w.DWORD()
+                if (sign(key, None, c.create_string_buffer(digest), 32,
+                         output, 64, c.byref(size), 0x40) != 0 or size.value != 64):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                self.verify_signature(public.raw, _broker_canonical(body), output.raw)
+                return output.raw
+            yield sign_body
+        finally:
+            if key.value:
+                free(key)
+            if provider.value:
+                free(provider)
+
+    def confirm_owner(self, action: dict, scope: dict) -> bool:
+        """Show the entire ASCII-escaped action to a separately pinned desktop.
+
+        No process input boolean is an approval. Missing WTS permission, a
+        disconnected/replaced session, No/close/timeout all deny. The owner
+        desktop SID is required to differ from the Controller and all services.
+        """
+        c, w = self.c, self.w
+        wts = c.WinDLL("wtsapi32.dll", use_last_error=True, winmode=0x800)
+        query = self._bind(wts, "WTSQuerySessionInformationW", [w.HANDLE, w.DWORD,
+            c.c_int, c.POINTER(c.c_void_p), c.POINTER(w.DWORD)], w.BOOL)
+        free = self._bind(wts, "WTSFreeMemory", [c.c_void_p], None)
+        session = self.settings["OwnerSessionId"]
+        def session_owner():
+            state, size = c.c_void_p(), w.DWORD()
+            if not query(None, session, 8, c.byref(state), c.byref(size)):
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            try:
+                if size.value != 4 or c.cast(state, c.POINTER(w.DWORD))[0] != 0:
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            finally:
+                free(state)
+            strings = []
+            for kind in (7, 5):  # WTSDomainName, WTSUserName
+                buf, size = c.c_void_p(), w.DWORD()
+                if not query(None, session, kind, c.byref(buf), c.byref(size)):
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+                try:
+                    strings.append(c.wstring_at(buf))
+                finally:
+                    free(buf)
+            if not all(strings):
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            lookup = self._bind(self.advapi, "LookupAccountNameW", [w.LPCWSTR, w.LPCWSTR,
+                c.c_void_p, c.POINTER(w.DWORD), w.LPWSTR, c.POINTER(w.DWORD), c.POINTER(w.DWORD)], w.BOOL)
+            sid_size, domain_size, use = w.DWORD(), w.DWORD(), w.DWORD()
+            name = "\\".join(strings)
+            lookup(None, name, None, c.byref(sid_size), None, c.byref(domain_size), c.byref(use))
+            if not 1 <= sid_size.value <= 1024 or not 1 <= domain_size.value <= 1024:
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            sid, domain = c.create_string_buffer(sid_size.value), c.create_unicode_buffer(domain_size.value)
+            if not lookup(None, name, sid, c.byref(sid_size), domain, c.byref(domain_size), c.byref(use)):
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            return self.sid_string(sid)
+        before = session_owner()
+        if before != self.settings["InteractiveOwnerSid"]:
+            return False
+        text = _broker_canonical({"action": action, "approved_scope": scope}).decode("ascii")
+        if len(text) > 16000:
+            return False  # No truncation of the operation being approved.
+        title = "My Local AI: approve ONE static action (default: No)"
+        send = self._bind(wts, "WTSSendMessageW", [w.HANDLE, w.DWORD, w.LPWSTR,
+            w.DWORD, w.LPWSTR, w.DWORD, w.DWORD, w.DWORD, c.POINTER(w.DWORD), w.BOOL], w.BOOL)
+        response = w.DWORD()
+        ok = send(None, session, title, len(title.encode("utf-16-le")), text,
+                  len(text.encode("utf-16-le")), 0x104 | 0x30, 20, c.byref(response), True)
+        return bool(ok and response.value == 6 and session_owner() == before)
+
+
+class _ProtectedActionServer:
+    """One authenticated request -> live policy -> durable nonce -> signed result."""
+    def __init__(self, api: _WindowsProtectedServiceAPI, sign_body, stopped):
+        self.api, self.sign_body, self.stopped = api, sign_body, stopped
+        self.role = api.role
+        self.journal = _ServiceJournal(api.ledger_path)
+
+    def live_scope(self, binding, action):
+        if self.stopped.is_set():
+            raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")
+        return _read_service_scope(self.api.authority_path, binding,
+                                   action["role"], action["operation"])
+
+    def signed_response(self, request, raw, result, status, *, lease_expires_at=None):
+        now = int(_time.time())
+        expires_at = min(now + 30, lease_expires_at) if lease_expires_at is not None else now + 30
+        if expires_at <= now:
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        body = {"schema": "mla-protected-response/v1", "role": self.role,
+                "operation": request["operation"], "request_sha256": _digest(raw).hexdigest(),
+                "challenge": request["challenge"], "binding": request["binding"],
+                "issued_at": now, "expires_at": expires_at, "status": status, "result": result}
+        return _broker_canonical({"body": body,
+            "signature": _b64.b64encode(self.sign_body(body)).decode("ascii")})
+
+    def verify_grant(self, token: str, role: str, binding: dict) -> dict:
+        if type(token) is not str or not 1 <= len(token) <= _BROKER_LIMIT:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+        envelope = _broker_decode(_b64.b64decode(token, validate=True))
+        if set(envelope) != {"body", "signature"} or type(envelope["body"]) is not dict:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+        body = envelope["body"]
+        if (set(body) != {"schema", "role", "operation", "request_sha256", "challenge",
+                         "binding", "issued_at", "expires_at", "status", "result"}
+            or body["schema"] != "mla-protected-response/v1" or body["role"] != role
+            or body["binding"] != binding or body["status"] != "OK"
+            or type(body["result"]) is not dict or type(body["issued_at"]) is not int
+            or type(body["expires_at"]) is not int
+            or not body["issued_at"] <= int(_time.time()) < body["expires_at"]
+            or not 1 <= body["expires_at"] - body["issued_at"] <= 30):
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        _validate_broker_binding(body["binding"])
+        signature = _b64.b64decode(envelope["signature"], validate=True)
+        self.api.verify_signature(self.api.roots[role][2], _broker_canonical(body), signature)
+        return body
+
+    def action_from_owner(self, payload, binding, action):
+        owner = self.verify_grant(payload["owner_authorization"], "owner", binding)
+        expected = {"action_sha256": payload["action_sha256"], "decision": "APPROVED_SINGLE_USE",
+                    "nonce_state": "CONSUMED", "lease_state": "LIVE_AT_SIGNING"}
+        if owner["operation"] != "authorize" or owner["result"] != expected:
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        original = {"schema": "mla-protected-request/v1", "role": "owner",
+                    "operation": "authorize", "binding": binding,
+                    "challenge": owner["challenge"], "payload": {
+                        "action_sha256": payload["action_sha256"], "action": action}}
+        if owner["request_sha256"] != _digest(_broker_canonical(original)).hexdigest():
+            raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+        return owner
+
+    def process(self, raw: bytes) -> bytes:
+        request = _service_request(raw, self.role)
+        payload, binding, op = request["payload"], request["binding"], request["operation"]
+        nonce_key = None
+        try:
+            if self.role == "owner":
+                if set(payload) != {"action_sha256", "action"}:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                action = payload["action"]
+                if (type(action) is not dict or set(action) != {"role", "operation", "binding", "payload"}
+                    or action["binding"] != binding or type(action["payload"]) is not dict
+                    or (action["role"], action["operation"]) not in {
+                        ("reviewer", "review"), ("scanner", "defender")}):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                digest = _digest(_broker_canonical(action)).hexdigest()
+                if payload["action_sha256"] != digest:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                scope = self.live_scope(binding, action)
+                nonce_key = self.journal.reserve(request, digest)
+                if not self.api.confirm_owner(action, scope):
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+                self.live_scope(binding, action)  # Revocation during UI wins.
+                result = {"action_sha256": digest, "decision": "APPROVED_SINGLE_USE",
+                          "nonce_state": "CONSUMED", "lease_state": "LIVE_AT_SIGNING"}
+            elif self.role == "reviewer" and op == "runtime-permit":
+                if set(payload) != {"action_sha256", "action", "owner_authorization"}:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                action = payload["action"]
+                if (type(action) is not dict
+                    or set(action) != {"role", "operation", "binding", "payload"}
+                    or action["binding"] != binding
+                    or _digest(_broker_canonical(action)).hexdigest() != payload["action_sha256"]):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                self.action_from_owner(payload, binding, action)
+                self.live_scope(binding, action)
+                # Runtime permit authorizes fixed STATIC operations only; it
+                # does not permit code/test execution, even if owner approved.
+                digest = payload["action_sha256"]
+                nonce_key = self.journal.reserve(request, digest)
+                result = {"action_sha256": digest, "decision": "RUNTIME_BOUNDARY_APPROVED",
+                          "nonce_state": "LIVE_FOR_REVIEW", "lease_state": "LIVE_AT_SIGNING"}
+            else:
+                if set(payload) != {"action_sha256", "input", "owner_authorization", "runtime_permit"}:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                action = {"role": self.role, "operation": op, "binding": binding, "payload": payload["input"]}
+                digest = _digest(_broker_canonical(action)).hexdigest()
+                if digest != payload["action_sha256"]:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                self.action_from_owner(payload, binding, action)
+                permit = self.verify_grant(payload["runtime_permit"], "reviewer", binding)
+                if (permit["operation"] != "runtime-permit" or permit["result"] != {
+                    "action_sha256": digest, "decision": "RUNTIME_BOUNDARY_APPROVED",
+                    "nonce_state": "LIVE_FOR_REVIEW", "lease_state": "LIVE_AT_SIGNING"}):
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                permit_request = {"schema": "mla-protected-request/v1", "role": "reviewer",
+                    "operation": "runtime-permit", "binding": binding,
+                    "challenge": permit["challenge"], "payload": {
+                        "action_sha256": digest, "action": action,
+                        "owner_authorization": payload["owner_authorization"]}}
+                if permit["request_sha256"] != _digest(_broker_canonical(permit_request)).hexdigest():
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                scope = self.live_scope(binding, action)
+                nonce_key = self.journal.reserve(request, digest)
+                if (self.role, op) == ("reviewer", "review"):
+                    from my_local_ai.review.protected_reviewer import _serve_static_review
+                    result = _serve_static_review(self.api, binding, payload["input"], scope, self.stopped)
+                elif (self.role, op) == ("scanner", "defender"):
+                    from my_local_ai.security.defender_status import _serve_defender_scan
+                    result = _serve_defender_scan(self.api, binding, payload["input"], scope, self.stopped)
+                else:
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                self.live_scope(binding, action)  # Check lease again at signing.
+            # DELETE-mode authority DB: a read transaction holds a SHARED lock
+            # through signature + journal commit, so revocation cannot commit
+            # between the live lease check and durable result issuance.
+            with _closing(sqlite3.connect(self.api.authority_path.as_uri() + "?mode=ro",
+                                          uri=True, timeout=1)) as authority:
+                authority.execute("PRAGMA query_only=ON")
+                authority.execute("BEGIN")
+                lease = authority.execute(
+                    "SELECT expires_at FROM scopes WHERE consent_ref=?", (binding["owner_consent_ref"],)
+                ).fetchone()
+                if not lease or authority.execute("PRAGMA journal_mode").fetchone()[0] != "delete":
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+                self.live_scope(binding, action)
+                response = self.signed_response(request, raw, result, "OK", lease_expires_at=lease[0])
+                self.journal.finish(nonce_key, response, approved=True)
+            return response
+        except (ProtectedBrokerHold, sqlite3.Error, OSError, ValueError,
+                TypeError, KeyError, OverflowError, SyntaxError, RecursionError, MemoryError):
+            response = self.signed_response(request, raw, {"reason": "PROTECTED_ACTION_HOLD"}, "DENIED")
+            if nonce_key is not None:
+                self.journal.finish(nonce_key, response, approved=False)
+            return response
+
+
+def protected_service_main(role: str) -> int:
+    """SCM entry for a separately frozen EXE. Never starts/installs a service.
+
+    Package each role with this function as its zero-argument entry point.
+    SCM ImagePath must be exactly that EXE, matching the existing client check.
+    Plain Python, command-line role selection and developer foreground mode
+    cannot act as production services. Every OS precondition is fail-closed.
+    """
+    import os
+    import sys
+    import threading
+    if os.name != "nt" or role not in _SERVICE_ROLES or not getattr(sys, "frozen", False):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    import ctypes as c
+    from ctypes import wintypes as w
+    advapi = c.WinDLL("advapi32.dll", use_last_error=True, winmode=0x800)
+    status_handle = None
+    stopped = threading.Event()
+    main_type = c.WINFUNCTYPE(None, w.DWORD, c.POINTER(w.LPWSTR))
+    control_type = c.WINFUNCTYPE(w.DWORD, w.DWORD, w.DWORD, c.c_void_p, c.c_void_p)
+    class Status(c.Structure):
+        _fields_ = [(name, w.DWORD) for name in (
+            "kind", "state", "accepted", "exit", "specific", "checkpoint", "wait_hint")]
+    set_status = _WindowsBrokerAPI._bind(advapi, "SetServiceStatus", [w.HANDLE, c.POINTER(Status)], w.BOOL)
+    def report(state, error=0):
+        status = Status(0x10, state, 1 if state == 4 else 0, error, 0,
+                        1 if state in (2, 3) else 0, 25000 if state in (2, 3) else 0)
+        if status_handle and not set_status(status_handle, c.byref(status)):
+            stopped.set()
+    @control_type
+    def control(code, event, data, context):
+        if code in (1, 5):
+            stopped.set()
+            report(3)
+        return 0
+    @main_type
+    def main(argc, argv):
+        nonlocal status_handle
+        register = _WindowsBrokerAPI._bind(advapi, "RegisterServiceCtrlHandlerExW",
+            [w.LPCWSTR, control_type, c.c_void_p], w.HANDLE)
+        status_handle = register("MyLocalAI." + role + ".v1", control, None)
+        if not status_handle:
+            return
+        report(2)
+        try:
+            api = _WindowsProtectedServiceAPI(role)
+            try:
+                # StartServiceCtrlDispatcher/ServiceMain have completed before
+                # opening CNG (NCrypt in a dispatcher initialization can lock).
+                report(4)
+                with api.signer() as sign_body:
+                    server = _ProtectedActionServer(api, sign_body, stopped)
+                    _serve_named_pipe(api, server, stopped)
+            finally:
+                api.close()
+        except Exception:
+            report(1, 1066)
+            return
+        report(1)
+    class Entry(c.Structure):
+        _fields_ = [("name", w.LPWSTR), ("main", main_type)]
+    table = (Entry * 2)()
+    table[0] = Entry("MyLocalAI." + role + ".v1", main)
+    dispatch = _WindowsBrokerAPI._bind(advapi, "StartServiceCtrlDispatcherW", [c.POINTER(Entry)], w.BOOL)
+    if not dispatch(table):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")
+    return 0
+
+
+def _run_bounded_fixed_process(argv, *, cwd, env, timeout_seconds, stopped, output_limit):
+    """Native product operator only. Bounded capture, deadline/stop, reaped child.
+
+    Callers, not external requests, construct argv from fixed operator schemas.
+    No shell, inherited stdin, environment, handles, or generated executable.
+    """
+    import subprocess
+    import threading
+    process = subprocess.Popen(argv, cwd=str(cwd), env=env, shell=False,
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        close_fds=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    overflow = threading.Event()
+    buffers = [bytearray(), bytearray()]
+    lock = threading.Lock()
+    def drain(stream, index):
+        try:
+            while chunk := stream.read(8192):
+                with lock:
+                    if sum(map(len, buffers)) + len(chunk) > output_limit:
+                        overflow.set()
+                    elif not overflow.is_set():
+                        buffers[index].extend(chunk)
+        finally:
+            stream.close()
+    threads = [threading.Thread(target=drain, args=(stream, index), daemon=True)
+               for index, stream in enumerate((process.stdout, process.stderr))]
+    for thread in threads:
+        thread.start()
+    deadline = _time.monotonic() + timeout_seconds
+    timed_out = False
+    try:
+        while process.poll() is None:
+            if stopped.is_set() or _time.monotonic() >= deadline or overflow.is_set():
+                timed_out = not overflow.is_set()
+                process.kill()
+                break
+            stopped.wait(0.02)
+        process.wait(timeout=5)
+        for thread in threads:
+            thread.join(timeout=2)
+        if overflow.is_set() or any(thread.is_alive() for thread in threads):
+            raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+        return process.returncode, bytes(buffers[0]), bytes(buffers[1]), timed_out
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+
+
+def _serve_named_pipe(api, server, stopped):
+    """Fixed local, single-instance pipe; overlapped I/O with stop/deadline.
+
+    FOUR-byte little-endian byte length then canonical JSON matches transact.
+    Client identity is checked by OS PID/token before reading the request.
+    IO cancellation is reaped before freeing OVERLAPPED/buffer memory.
+    """
+    c, w = api.c, api.w
+    class Overlapped(c.Structure):
+        _fields_ = [("internal", c.c_size_t), ("internal_high", c.c_size_t),
+                    ("offset", w.DWORD), ("offset_high", w.DWORD), ("event", w.HANDLE)]
+    class Attributes(c.Structure):
+        _fields_ = [("length", w.DWORD), ("descriptor", c.c_void_p), ("inherit", w.BOOL)]
+    convert = api._bind(api.advapi, "ConvertStringSecurityDescriptorToSecurityDescriptorW",
+        [w.LPCWSTR, w.DWORD, c.POINTER(c.c_void_p), c.c_void_p], w.BOOL)
+    create = api._bind(api.kernel, "CreateNamedPipeW", [w.LPCWSTR, w.DWORD,
+        w.DWORD, w.DWORD, w.DWORD, w.DWORD, w.DWORD, c.POINTER(Attributes)], w.HANDLE)
+    connect = api._bind(api.kernel, "ConnectNamedPipe", [w.HANDLE, c.POINTER(Overlapped)], w.BOOL)
+    disconnect = api._bind(api.kernel, "DisconnectNamedPipe", [w.HANDLE], w.BOOL)
+    make_event = api._bind(api.kernel, "CreateEventW", [c.c_void_p, w.BOOL, w.BOOL, w.LPCWSTR], w.HANDLE)
+    wait = api._bind(api.kernel, "WaitForSingleObject", [w.HANDLE, w.DWORD], w.DWORD)
+    cancel = api._bind(api.kernel, "CancelIoEx", [w.HANDLE, c.POINTER(Overlapped)], w.BOOL)
+    complete = api._bind(api.kernel, "GetOverlappedResult",
+        [w.HANDLE, c.POINTER(Overlapped), c.POINTER(w.DWORD), w.BOOL], w.BOOL)
+    # Specific read/write rights exclude FILE_CREATE_PIPE_INSTANCE (0x4).
+    sid = api.settings["ControllerSid"]
+    sddl = "D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;" + api.roots[api.role][0] + ")"
+    sddl += "(A;;0x0012019b;;;" + sid + ")"
+    descriptor = c.c_void_p()
+    if not convert(sddl, 1, c.byref(descriptor), None):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    pipe = None
+    try:
+        attrs = Attributes(c.sizeof(Attributes), descriptor, False)
+        pipe = create(r"\\.\pipe\MyLocalAI.v1." + api.role,
+                      3 | 0x40000000 | 0x80000, 8, 1, 65536, 65536, 1000, c.byref(attrs))
+        if pipe in (None, c.c_void_p(-1).value):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        with api.authenticate_pipe(pipe, api.role, api.roots, service_self=True):
+            def operation(fn, buf=None, size=0, *, connecting=False):
+                ov, count = Overlapped(), w.DWORD()
+                ov.event = make_event(None, True, False, None)
+                if not ov.event:
+                    raise ProtectedBrokerHold()
+                try:
+                    ok = fn(pipe, c.byref(ov)) if connecting else fn(pipe, buf, size, c.byref(count), c.byref(ov))
+                    if not ok:
+                        error = c.get_last_error()
+                        if connecting and error == 535:  # ERROR_PIPE_CONNECTED
+                            return 0
+                        if error != 997:
+                            raise ProtectedBrokerHold()
+                        deadline = _time.monotonic() + (3600 if connecting else 10)
+                        waited = wait(ov.event, 100)
+                        while waited == 258:
+                            if stopped.is_set() or _time.monotonic() >= deadline:
+                                cancel(pipe, c.byref(ov))
+                                complete(pipe, c.byref(ov), c.byref(count), True)
+                                raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+                            waited = wait(ov.event, 100)
+                        if waited != 0:
+                            cancel(pipe, c.byref(ov))
+                            complete(pipe, c.byref(ov), c.byref(count), True)
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")
+                        if not complete(pipe, c.byref(ov), c.byref(count), False):
+                            raise ProtectedBrokerHold()
+                    return count.value
+                finally:
+                    api.kernel.CloseHandle(ov.event)
+            read = api._bind(api.kernel, "ReadFile", [w.HANDLE, c.c_void_p, w.DWORD,
+                c.POINTER(w.DWORD), c.POINTER(Overlapped)], w.BOOL)
+            write = api._bind(api.kernel, "WriteFile", [w.HANDLE, c.c_void_p, w.DWORD,
+                c.POINTER(w.DWORD), c.POINTER(Overlapped)], w.BOOL)
+            pid_fn = api._bind(api.kernel, "GetNamedPipeClientProcessId",
+                [w.HANDLE, c.POINTER(w.ULONG)], w.BOOL)
+            open_process = api._bind(api.kernel, "OpenProcess", [w.DWORD, w.BOOL, w.DWORD], w.HANDLE)
+            def exact(size):
+                parts = bytearray()
+                while len(parts) < size:
+                    buf = c.create_string_buffer(min(size - len(parts), 65536))
+                    count = operation(read, buf, len(buf))
+                    if not 1 <= count <= len(buf):
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                    parts.extend(buf.raw[:count])
+                return bytes(parts)
+            while not stopped.is_set():
+                try:
+                    operation(connect, connecting=True)
+                    pid = w.ULONG()
+                    if not pid_fn(pipe, c.byref(pid)) or not pid.value:
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    peer = open_process(0x1000 | 0x100000, False, pid.value)
+                    if not peer:
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    try:
+                        if api.process_sid(peer) != sid:
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                        length = int.from_bytes(exact(4), "little")
+                        if not 1 <= length <= _BROKER_LIMIT:
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                        response = server.process(exact(length))
+                        packet = len(response).to_bytes(4, "little") + response
+                        pos = 0
+                        while pos < len(packet):
+                            buf = c.create_string_buffer(packet[pos:pos + 65536])
+                            count = operation(write, buf, min(65536, len(packet) - pos))
+                            if count == 0:
+                                raise ProtectedBrokerHold()
+                            pos += count
+                    finally:
+                        api.kernel.CloseHandle(peer)
+                except ProtectedBrokerHold:
+                    pass  # Invalid transport gets disconnected, never a grant.
+                finally:
+                    disconnect(pipe)
+    finally:
+        if pipe not in (None, c.c_void_p(-1).value):
+            api.kernel.CloseHandle(pipe)
+        api.kernel.LocalFree(descriptor)
 
 
 if __name__ == "__main__":
+    import sys
+    if getattr(sys, "frozen", False):
+        raise SystemExit(protected_service_main("owner"))
     raise SystemExit(_owner_token_read_only_main())

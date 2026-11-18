@@ -1,4 +1,4 @@
-"""Windows Defender read-only health probe for CodeShield V1.3.
+"""Windows Defender health/client and protected custom-file scan server.
 
 Never changes Defender, Controlled Folder Access, exclusions, service startup,
 firewall or Windows policy. Probe output is advisory; no scan is F18 evidence.
@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from .codeshield_contracts import CodeShieldHold
+from my_local_ai.security.codeshield_contracts import CodeShieldHold
 
 _STATUS_COMMAND = (
     "$ErrorActionPreference='Stop'; "
@@ -166,10 +166,10 @@ def plan_optional_download_scan(*, file_sha256: str, scope_ref: str) -> Optional
 from hashlib import sha256 as _sha256
 import stat as _stat
 
-from .codeshield_contracts import (
+from my_local_ai.security.codeshield_contracts import (
     CodeShieldContext, checked_relative_path,
 )
-from .ast_preflight import preflight_changed_paths
+from my_local_ai.security.ast_preflight import preflight_changed_paths
 
 _MAX_OWNER_SCAN_BYTES = 64 * 1024 * 1024
 _ALLOWED_SCAN_EXTENSIONS = frozenset({
@@ -347,7 +347,7 @@ class DefenderFileScanResult:
     may_promote: bool = False
 
     def __post_init__(self):
-        states = {"COMPLETED_CLEAN", "MALWARE_DETECTED_HOLD", "SCAN_ERROR_HOLD",
+        states = {"COMPLETED_CLEAN", "MALWARE_DETECTED_HOLD", "SCAN_ERROR_HOLD", "UNKNOWN_HOLD",
                   "SCAN_TIMEOUT_HOLD", "NOT_RUN_HOLD", "RESULT_REJECTED_HOLD"}
         if (self.state not in states
             or type(self.content_sha256) is not str
@@ -357,7 +357,7 @@ class DefenderFileScanResult:
                 or type(self.finding_count) is not int or self.finding_count != 0)
             or self.state == "MALWARE_DETECTED_HOLD" and (not self.scan_completed
                 or type(self.finding_count) is not int or self.finding_count <= 0)
-            or self.state in {"SCAN_ERROR_HOLD", "SCAN_TIMEOUT_HOLD",
+            or self.state in {"SCAN_ERROR_HOLD", "SCAN_TIMEOUT_HOLD", "UNKNOWN_HOLD",
                               "NOT_RUN_HOLD", "RESULT_REJECTED_HOLD"}
                 and (self.scan_completed or self.finding_count is not None)
             or self.scan_reference is not None
@@ -372,6 +372,7 @@ class DefenderFileScanResult:
                 and (self.scan_reference is None or self.scan_error_code is not None)
             or self.state in {"SCAN_ERROR_HOLD", "SCAN_TIMEOUT_HOLD"}
                 and (self.scan_reference is None or self.scan_error_code is None)
+            or self.state == "UNKNOWN_HOLD" and self.scan_error_code is None
             or any(getattr(self, field) is not False for field in (
                 "defender_policy_modified", "execution_allowed", "f18_verified", "may_promote"))):
             raise CodeShieldHold("UNTRUSTED_DECISION")
@@ -439,16 +440,18 @@ def _classify_protected_defender_result(
             "MALWARE_DETECTED_HOLD", request.content_sha256, True, count,
             "DEFENDER_DETECTION_EVIDENCE_PRESENT", result["scan_reference"],
         )
-    if outcome == "SCAN_ERROR":
+    if outcome in {"SCAN_ERROR", "UNKNOWN"}:
         if (completed is not False or timed_out is not False or count is not None
-            or type(exit_code) is not int or exit_code == 0
+            or type(exit_code) is not int or outcome == "SCAN_ERROR" and exit_code == 0
             or not isinstance(error_code, str)
             or re.fullmatch(r"[A-Z0-9_]{3,64}", error_code) is None
             or evidence is not None):
             return rejected()
         return DefenderFileScanResult(
-            "SCAN_ERROR_HOLD", request.content_sha256, False, None,
-            "DEFENDER_SCAN_ERROR", result["scan_reference"], error_code,
+            "UNKNOWN_HOLD" if outcome == "UNKNOWN" else "SCAN_ERROR_HOLD",
+            request.content_sha256, False, None,
+            "DEFENDER_RESULT_UNKNOWN" if outcome == "UNKNOWN" else "DEFENDER_SCAN_ERROR",
+            result["scan_reference"], error_code,
         )
     if outcome == "TIMEOUT":
         if (completed is not False or timed_out is not True or count is not None
@@ -509,6 +512,284 @@ def run_owner_scoped_defender_scan(
             return held("RESULT_REJECTED_HOLD", "DEFENDER_TARGET_CHANGED")
         return _classify_protected_defender_result(reply.get("result"), request)
     except ProtectedBrokerHold as exc:
+        if exc.code == "PROTECTED_ACTION_OUTCOME_UNKNOWN":
+            return DefenderFileScanResult("UNKNOWN_HOLD", request.content_sha256,
+                False, None, "DEFENDER_BROKER_OUTCOME_UNKNOWN",
+                scan_error_code="BROKER_OUTCOME_UNKNOWN")
         return held("NOT_RUN_HOLD", exc.code)
     except (CodeShieldHold, OSError, ValueError, TypeError, KeyError):
         return held("RESULT_REJECTED_HOLD", "DEFENDER_RESULT_HOLD")
+
+
+def _verify_microsoft_image(api, image: Path) -> None:
+    """Offline WinVerifyTrust + actual leaf publisher, never a name-only pin."""
+    import ctypes as c
+    from ctypes import wintypes as w
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    trust = c.WinDLL("wintrust.dll", use_last_error=True, winmode=0x800)
+    crypt = c.WinDLL("crypt32.dll", use_last_error=True, winmode=0x800)
+    class Guid(c.Structure):
+        _fields_ = [("a", w.DWORD), ("b", w.WORD), ("d", w.WORD), ("tail", c.c_ubyte * 8)]
+    class FileInfo(c.Structure):
+        _fields_ = [("size", w.DWORD), ("path", w.LPCWSTR), ("file", w.HANDLE), ("subject", c.c_void_p)]
+    class TrustData(c.Structure):
+        _fields_ = [("size", w.DWORD), ("policy", c.c_void_p), ("sip", c.c_void_p),
+                    ("ui", w.DWORD), ("revocation", w.DWORD), ("choice", w.DWORD),
+                    ("file", c.POINTER(FileInfo)), ("action", w.DWORD), ("state", w.HANDLE),
+                    ("url", w.LPCWSTR), ("flags", w.DWORD), ("context", w.DWORD),
+                    ("signature_settings", c.c_void_p)]
+    class ProviderCert(c.Structure):
+        _fields_ = [("size", w.DWORD), ("cert", c.c_void_p)]
+    class ProviderSigner(c.Structure):
+        _fields_ = [("size", w.DWORD), ("verified_at", w.FILETIME),
+                    ("count", w.DWORD), ("chain", c.POINTER(ProviderCert))]
+    guid = Guid(0x00AAC56B, 0xCD44, 0x11D0,
+                (c.c_ubyte * 8)(0x8C, 0xC2, 0x00, 0xC0, 0x4F, 0xC2, 0x95, 0xEE))
+    file = FileInfo(c.sizeof(FileInfo), str(image), None, None)
+    # WTD_UI_NONE, verify cached chain only; no certificate/network fetch.
+    data = TrustData(c.sizeof(TrustData), None, None, 2, 0, 1,
+                     c.pointer(file), 1, None, None, 0x1000 | 0x80, 0, None)
+    verify = api._bind(trust, "WinVerifyTrust", [w.HWND, c.POINTER(Guid), c.c_void_p], c.c_long)
+    try:
+        if verify(w.HWND(-1), c.byref(guid), c.byref(data)) != 0:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+        provider = api._bind(trust, "WTHelperProvDataFromStateData", [w.HANDLE], c.c_void_p)(data.state)
+        signer_fn = api._bind(trust, "WTHelperGetProvSignerFromChain",
+            [c.c_void_p, w.DWORD, w.BOOL, w.DWORD], c.POINTER(ProviderSigner))
+        signer = signer_fn(provider, 0, False, 0) if provider else None
+        if not signer or signer.contents.count < 1 or not signer.contents.chain:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+        cert = signer.contents.chain[0].cert
+        name = c.create_unicode_buffer(256)
+        get_name = api._bind(crypt, "CertGetNameStringW",
+            [c.c_void_p, w.DWORD, w.DWORD, c.c_void_p, w.LPWSTR, w.DWORD], w.DWORD)
+        if not 1 < get_name(cert, 4, 0, None, name, len(name)) < len(name) or name.value != "Microsoft Corporation":
+            raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    finally:
+        data.action = 2  # WTD_STATEACTION_CLOSE on every path.
+        verify(w.HWND(-1), c.byref(guid), c.byref(data))
+
+
+def _defender_events_after(api, after_record: int) -> list[dict]:
+    """Read bounded event XML via wevtapi. No PowerShell or mutable log file."""
+    import xml.etree.ElementTree as ET
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    c, w = api.c, api.w
+    dll = c.WinDLL("wevtapi.dll", use_last_error=True, winmode=0x800)
+    query = api._bind(dll, "EvtQuery", [w.HANDLE, w.LPCWSTR, w.LPCWSTR, w.DWORD], w.HANDLE)
+    next_fn = api._bind(dll, "EvtNext", [w.HANDLE, w.DWORD, c.POINTER(w.HANDLE),
+                                       w.DWORD, w.DWORD, c.POINTER(w.DWORD)], w.BOOL)
+    render = api._bind(dll, "EvtRender", [w.HANDLE, w.HANDLE, w.DWORD, w.DWORD,
+        c.c_void_p, c.POINTER(w.DWORD), c.POINTER(w.DWORD)], w.BOOL)
+    close = api._bind(dll, "EvtClose", [w.HANDLE], w.BOOL)
+    xpath = "*[System[EventRecordID > " + str(after_record) + "]]"
+    handle = query(None, "Microsoft-Windows-Windows Defender/Operational", xpath, 1 | 0x200)
+    if not handle:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    result = []
+    ns = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
+    try:
+        for _ in range(256):
+            event, count = w.HANDLE(), w.DWORD()
+            if not next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count)):
+                if c.get_last_error() == 259:
+                    break
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            try:
+                length, properties = w.DWORD(), w.DWORD()
+                render(None, event, 1, 0, None, c.byref(length), c.byref(properties))
+                if not 1 <= length.value <= 65536:
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                buf = c.create_string_buffer(length.value)
+                if not render(None, event, 1, len(buf), buf, c.byref(length), c.byref(properties)):
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                xml = c.wstring_at(c.cast(buf, w.LPWSTR))
+                tree = ET.fromstring(xml)
+                provider = tree.find("e:System/e:Provider", ns)
+                if provider is None or provider.attrib.get("Name") != "Microsoft-Windows-Windows Defender":
+                    raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                record = int(tree.findtext("e:System/e:EventRecordID", namespaces=ns))
+                event_id = int(tree.findtext("e:System/e:EventID", namespaces=ns))
+                fields = {}
+                for item in tree.findall("e:EventData/e:Data", ns):
+                    name = item.attrib.get("Name", "")
+                    if name in fields:
+                        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                    fields[name] = item.text or ""
+                result.append({"record": record, "id": event_id, "fields": fields,
+                               "evidence_sha256": _sha256(xml.encode("utf-8")).hexdigest()})
+            finally:
+                close(event)
+    finally:
+        close(handle)
+    return result
+
+
+def _defender_completion_evidence(events: list[dict], target: str, cursor: int) -> tuple[bool, list[str]]:
+    """Correlate one exact private scan resource and its scan ID; fail closed.
+
+    DisableRemediation may suppress detection events. No detection event with
+    exit code 2 is UNKNOWN, not a clean scan. Localized/missing/ambiguous resource
+    fields likewise cannot become proof of completion.
+    """
+    normalized = target.casefold()
+    starts = []
+    detections = []
+    for event in events:
+        if event["record"] <= cursor:
+            continue
+        fields = event["fields"]
+        resource = fields.get("Scan Resources", "").strip().casefold()
+        if resource.startswith("file:_"):
+            resource = resource[6:]
+        if event["id"] == 1000 and resource == normalized and fields.get("Scan ID"):
+            starts.append(event)
+        # An actual provider detection record for the unique private staged
+        # file is independent from MpCmdRun's overloaded exit code.
+        resource = fields.get("Path", "").strip().casefold()
+        if resource.startswith("file:_"):
+            resource = resource[6:]
+        if (event["id"] in (1006, 1116) and resource == normalized
+            and fields.get("Threat ID") and fields.get("Threat Name")):
+            detections.append(event["evidence_sha256"])
+    if len(starts) != 1:
+        return False, detections
+    start = starts[0]
+    scan_id = start["fields"]["Scan ID"]
+    related = [e for e in events if e["record"] > start["record"]
+               and e["fields"].get("Scan ID") == scan_id]
+    completed = (sum(e["id"] == 1001 for e in related) == 1
+                 and not any(e["id"] in (1002, 1005) for e in related))
+    return completed, detections
+
+
+def _serve_defender_scan(api, binding: dict, payload: dict, scope: dict, stopped) -> dict:
+    """Protected server -> fixed no-remediation custom FILE scan -> evidence.
+
+    No settings/exclusions/CFA/real-time/cloud policy is written. PUBLIC_SYNTHETIC
+    is enforced independently. The target is copied into a preprotected private
+    directory and held against replacement, with SHA/size readback before/after.
+    A CLI timeout never claims that the engine background scan was cancelled.
+    """
+    import secrets
+    import winreg
+    from contextlib import ExitStack
+    from my_local_ai.state.consent import (
+        ProtectedBrokerHold, _SERVICE_HOME, _broker_canonical,
+        _run_bounded_fixed_process,
+    )
+    if (type(payload) is not dict or set(payload) != {
+            "context_sha256", "disposable_root", "relative_target", "content_sha256",
+            "content_size", "timeout_seconds", "policy"}
+        or payload["policy"] != "DEFENDER_CUSTOM_FILE_OFFLINE_DISABLE_REMEDIATION_V1"
+        or scope["data_class"] != "PUBLIC_SYNTHETIC"
+        or payload["disposable_root"] != scope["disposable_root"]
+        or type(payload["timeout_seconds"]) is not int or not 1 <= payload["timeout_seconds"] <= 120
+        or type(payload["content_size"]) is not int
+        or not 1 <= payload["content_size"] <= _MAX_OWNER_SCAN_BYTES
+        or type(payload["content_sha256"]) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", payload["content_sha256"]) is None):
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    relative = checked_relative_path(payload["relative_target"])
+    if relative not in scope["allowed_paths"] or Path(relative).suffix.casefold() not in _ALLOWED_SCAN_EXTENSIONS:
+        raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    # No Defender scan when inactive/passive/stale/unavailable. This invokes
+    # only the existing fixed read-only status probe, never Start-MpScan.
+    if not probe_defender_status().defender_primary_active:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+        r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1\scanner", 0,
+        winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+        image_value, image_kind = winreg.QueryValueEx(key, "DefenderPath")
+        image_sha, hash_kind = winreg.QueryValueEx(key, "DefenderSha256")
+    if (image_kind != winreg.REG_SZ or hash_kind != winreg.REG_SZ
+        or type(image_value) is not str or type(image_sha) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", image_sha) is None
+        or re.fullmatch(r"C:\\(?:Program Files\\Windows Defender|ProgramData\\Microsoft\\Windows Defender\\Platform\\[0-9.\-]+)\\MpCmdRun.exe",
+                        image_value, re.IGNORECASE) is None):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    image = Path(image_value)
+    source = Path(scope["disposable_root"]) / relative
+    stage_dir = _SERVICE_HOME / "scanner"
+    reference = secrets.token_hex(16)
+    staged = stage_dir / ("scan_" + reference + Path(relative).suffix.lower())
+    prior_resources = api.resources
+    try:
+        with ExitStack() as locks:
+            api.resources = locks
+            api.pin_path(image)
+            if _sha256(image.read_bytes()).hexdigest() != image_sha:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            _verify_microsoft_image(api, image)
+            api.lock_untrusted_input(source)
+            before_digest, before_size = _read_bounded_untrusted_scan_target(source)
+            if before_digest != payload["content_sha256"] or before_size != payload["content_size"]:
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            # Protected parent/ACLs are pre-provisioned; file creation does not
+            # grant/change ACLs. No source/executable is ever opened for writing.
+            with source.open("rb") as incoming, staged.open("xb") as outgoing:
+                copied = 0
+                while block := incoming.read(65536):
+                    copied += len(block)
+                    if copied > _MAX_OWNER_SCAN_BYTES or stopped.is_set():
+                        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+                    outgoing.write(block)
+                outgoing.flush()
+                os.fsync(outgoing.fileno())
+            api.pin_path(staged, private=True)
+            if _read_bounded_untrusted_scan_target(staged) != (before_digest, before_size):
+                raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+            prior_events = _defender_events_after(api, 0)
+            cursor = max((item["record"] for item in prior_events), default=0)
+            root = os.environ.get("SystemRoot", r"C:\Windows")
+            env = {"SystemRoot": root, "WINDIR": root,
+                   "PATH": str(Path(root) / "System32"),
+                   "TEMP": str(stage_dir), "TMP": str(stage_dir)}
+            code, stdout, stderr, timed_out = _run_bounded_fixed_process(
+                [str(image), "-Scan", "-ScanType", "3", "-File", str(staged), "-DisableRemediation"],
+                cwd=image.parent, env=env, timeout_seconds=payload["timeout_seconds"],
+                stopped=stopped, output_limit=1024 * 1024,
+            )
+            after_events = _defender_events_after(api, cursor)
+            if any(item["id"] in {5001, 5004, 5007, 5010, 5012} for item in after_events):
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            completed, detections = _defender_completion_evidence(after_events, str(staged), cursor)
+            if (_read_bounded_untrusted_scan_target(staged) != (before_digest, before_size)
+                or _read_bounded_untrusted_scan_target(source) != (before_digest, before_size)
+                or _sha256(image.read_bytes()).hexdigest() != image_sha):
+                raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+            result = {"outcome": "UNKNOWN", "content_sha256": before_digest,
+                "content_size": before_size, "scan_completed": False, "timed_out": False,
+                "finding_count": None, "engine_exit_code": code,
+                "scan_error_code": "COMPLETION_NOT_PROVEN", "detection_evidence_sha256": None,
+                "remediation": "DISABLED", "policy_changed": False, "scan_reference": reference}
+            if timed_out:
+                result.update(outcome="TIMEOUT", timed_out=True, engine_exit_code=None,
+                              scan_error_code="SCAN_TIMEOUT")
+            elif completed and code == 0 and not detections and not stderr:
+                result.update(outcome="COMPLETED_CLEAN", scan_completed=True,
+                              finding_count=0, scan_error_code=None)
+            elif completed and code == 2 and detections:
+                evidence = {"events": detections, "stdout_sha256": _sha256(stdout).hexdigest(),
+                            "stderr_sha256": _sha256(stderr).hexdigest(), "scan_reference": reference}
+                result.update(outcome="MALWARE_DETECTED", scan_completed=True,
+                              finding_count=len(detections), scan_error_code=None,
+                              detection_evidence_sha256=_sha256(_broker_canonical(evidence)).hexdigest())
+            elif code not in (0, 2):
+                result.update(outcome="SCAN_ERROR", scan_error_code="DEFENDER_ENGINE_ERROR")
+            # Signed by the common service host only after live lease recheck
+            # and durable nonce consumption. No raw private paths are returned.
+            return result
+    finally:
+        api.resources = prior_resources
+        # Private service scratch only, one exact file; never recursive cleanup.
+        try:
+            if staged.is_file():
+                staged.unlink()
+        except OSError:
+            pass  # Cleanup failure gives no execution/promotion authority.
+
+
+if __name__ == "__main__":
+    from my_local_ai.state.consent import protected_service_main
+    raise SystemExit(protected_service_main("scanner"))
