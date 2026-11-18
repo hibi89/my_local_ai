@@ -226,7 +226,12 @@
         "redesign_nonimproving": 0
       },
       "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
-      "evidence_sha": null
+      "evidence_sha": null,
+      "source_code_commit_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED",
+      "source_code_note": "CI #44252409181 SUCCESS after import fix; exact-context AB computation, persistence/independent metrics evidence NOT_RUN"
     }
-  ]
+  ],
+  "last_source_wave_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
+  "extension_source_candidate_count_conservative": 3
 }

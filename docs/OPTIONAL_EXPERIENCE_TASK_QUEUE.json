@@ -12,7 +12,7 @@
   "external_training_authorized": false,
   "paid_or_external_api_authorized": false,
   "preexisting_dev_branch": "dev/instant-implementation-v1",
-  "implementation_evidence": "SOURCE_ONLY_PARTIAL_EXTENSION_NO_INTEGRATION_GO",
+  "implementation_evidence": "SOME_SOURCE_CANDIDATES_AND_PARTIAL_IMPLEMENTATIONS_NO_OPERATIONAL_GO",
   "verification_evidence": "NOT_RUN",
   "tasks": [
     {
@@ -76,7 +76,10 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "11eb20a5a9b9ce210224c3f12d076b06d7a7639e",
+      "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
+      "source_code_note": "CI #44250828256 SUCCESS; only new MESA-owned schema, no existing DB migration or live data"
     },
     {
       "task_id": "EXT-EXP-03",
@@ -107,7 +110,10 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "ec50f1a55eff7651f5a86c04a3c1d1968deccee2",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED",
+      "source_code_note": "CI #44250998824 SUCCESS; scoped top3 but persisted expiry/revocation/conflict controls still missing"
     },
     {
       "task_id": "EXT-EXP-04",
@@ -139,7 +145,10 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "50c019953224806ba7e921b04b2d7f6d21460d6a",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED",
+      "source_code_note": "CI #44251407367 SUCCESS; shadow/quarantine only, independent F18/owner promotion and persistent rollback unavailable"
     },
     {
       "task_id": "EXT-EXP-05",
@@ -171,7 +180,10 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "80c42b10b0f51a9ab5e92213ea77b8c569bd57e4",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED",
+      "source_code_note": "CI #44251639635 SUCCESS; native Controller->MESA tie-ordering safe but protected READY/F18, curation dependency not complete"
     },
     {
       "task_id": "EXT-EXP-06",
@@ -203,7 +215,10 @@
         "No implementation scope GO; preserve existing P1 READY and exact dev HEAD",
         "Source path and cross-module conflict audit before coding"
       ],
-      "verification_status": "NOT_RUN"
+      "verification_status": "NOT_RUN",
+      "source_code_commit_sha": "588aace73e9a566cf6843fe1a204649a0a3b9b2f",
+      "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
+      "source_code_note": "CI #44251931066 SUCCESS; read-only status/search/inspect/redacted export CLI, mutation/owner controls remain HOLD"
     },
     {
       "task_id": "EXT-EXP-07",
@@ -238,5 +253,19 @@
       ],
       "verification_status": "NOT_RUN"
     }
+  ],
+  "last_code_wave_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
+  "p1_source_candidate_ids_at_wave": [
+    "EXT-EXP-01",
+    "EXT-EXP-02",
+    "EXT-EXP-06"
+  ],
+  "p1_partial_source_ids_at_wave": [
+    "EXT-EXP-03",
+    "EXT-EXP-04",
+    "EXT-EXP-05"
+  ],
+  "pending_p2_only_or_not_started": [
+    "EXT-EXP-07"
   ]
 }
