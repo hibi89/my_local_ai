@@ -994,15 +994,33 @@ def dispatch_protected_action(role: str, operation: str, *, binding: dict,
     _validate_broker_binding(binding)
     binding = _broker_decode(_broker_canonical(binding))
     payload = _broker_decode(_broker_canonical(payload))
-    action_sha256 = sha256(_broker_canonical({"role": role, "operation": operation,
-        "binding": binding, "payload": payload})).hexdigest()
-    action = {"role": role, "operation": operation, "action_sha256": action_sha256}
-    owner = exchange_protected_broker("owner", "authorize", binding=binding, payload=action)
-    if owner["result"] != {"action_sha256": action_sha256, "decision": "APPROVED_SINGLE_USE"}:
+    # Bind the complete action to the owner request. A digest-only prompt would
+    # leave the independent owner unable to display what is being approved.
+    # The broker still has to present its own authenticated, bounded summary;
+    # no caller-supplied approval boolean is accepted here.
+    action = {"role": role, "operation": operation,
+        "binding": binding, "payload": payload}
+    action_sha256 = sha256(_broker_canonical(action)).hexdigest()
+    owner_action = {"action_sha256": action_sha256, "action": action}
+    owner = exchange_protected_broker(
+        "owner", "authorize", binding=binding, payload=owner_action,
+    )
+    if owner["result"] != {
+        "action_sha256": action_sha256,
+        "decision": "APPROVED_SINGLE_USE",
+        "nonce_state": "CONSUMED",
+        "lease_state": "LIVE_AT_SIGNING",
+    }:
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
     permit = exchange_protected_broker("reviewer", "runtime-permit", binding=binding,
-        payload={**action, "owner_authorization": owner["signed_envelope"]})
-    if permit["result"] != {"action_sha256": action_sha256, "decision": "RUNTIME_BOUNDARY_APPROVED"}:
+        payload={"action_sha256": action_sha256,
+                 "owner_authorization": owner["signed_envelope"]})
+    if permit["result"] != {
+        "action_sha256": action_sha256,
+        "decision": "RUNTIME_BOUNDARY_APPROVED",
+        "nonce_state": "LIVE_FOR_REVIEW",
+        "lease_state": "LIVE_AT_SIGNING",
+    }:
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     return exchange_protected_broker(role, operation, binding=binding,
         payload={"action_sha256": action_sha256, "input": payload,

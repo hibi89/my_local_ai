@@ -339,24 +339,127 @@ class DefenderFileScanResult:
     scan_completed: bool
     finding_count: int | None
     reason: str
+    scan_reference: str | None = None
+    scan_error_code: str | None = None
     defender_policy_modified: bool = False
     execution_allowed: bool = False
     f18_verified: bool = False
     may_promote: bool = False
 
     def __post_init__(self):
-        if (self.state not in {"CLEAN_STATIC_ONLY", "FINDINGS_HOLD", "NOT_RUN_HOLD", "ERROR_HOLD"}
+        states = {"COMPLETED_CLEAN", "MALWARE_DETECTED_HOLD", "SCAN_ERROR_HOLD",
+                  "SCAN_TIMEOUT_HOLD", "NOT_RUN_HOLD", "RESULT_REJECTED_HOLD"}
+        if (self.state not in states
             or type(self.content_sha256) is not str
             or re.fullmatch(r"[0-9a-f]{64}", self.content_sha256) is None
             or type(self.scan_completed) is not bool
-            or self.state == "CLEAN_STATIC_ONLY" and (not self.scan_completed
+            or self.state == "COMPLETED_CLEAN" and (not self.scan_completed
                 or type(self.finding_count) is not int or self.finding_count != 0)
-            or self.state == "FINDINGS_HOLD" and (not self.scan_completed
+            or self.state == "MALWARE_DETECTED_HOLD" and (not self.scan_completed
                 or type(self.finding_count) is not int or self.finding_count <= 0)
-            or self.state in {"NOT_RUN_HOLD", "ERROR_HOLD"} and (self.scan_completed or self.finding_count is not None)
+            or self.state in {"SCAN_ERROR_HOLD", "SCAN_TIMEOUT_HOLD",
+                              "NOT_RUN_HOLD", "RESULT_REJECTED_HOLD"}
+                and (self.scan_completed or self.finding_count is not None)
+            or self.scan_reference is not None
+                and (not isinstance(self.scan_reference, str)
+                     or re.fullmatch(r"[A-Za-z0-9_-]{8,96}", self.scan_reference) is None)
+            or self.scan_error_code is not None
+                and (not isinstance(self.scan_error_code, str)
+                     or re.fullmatch(r"[A-Z0-9_]{3,64}", self.scan_error_code) is None)
+            or self.state == "COMPLETED_CLEAN"
+                and (self.scan_reference is None or self.scan_error_code is not None)
+            or self.state == "MALWARE_DETECTED_HOLD"
+                and (self.scan_reference is None or self.scan_error_code is not None)
+            or self.state in {"SCAN_ERROR_HOLD", "SCAN_TIMEOUT_HOLD"}
+                and (self.scan_reference is None or self.scan_error_code is None)
             or any(getattr(self, field) is not False for field in (
                 "defender_policy_modified", "execution_allowed", "f18_verified", "may_promote"))):
             raise CodeShieldHold("UNTRUSTED_DECISION")
+
+
+_DEFENDER_RESULT_FIELDS = frozenset({
+    "outcome", "content_sha256", "content_size", "scan_completed",
+    "timed_out", "finding_count", "engine_exit_code", "scan_error_code",
+    "detection_evidence_sha256", "remediation", "policy_changed",
+    "scan_reference",
+})
+
+
+def _classify_protected_defender_result(
+    result: object, request: DefenderOwnerScanRequest,
+) -> DefenderFileScanResult:
+    """Validate the broker-signed engine outcome without trusting exit code alone.
+
+    Microsoft documents exit code 2 as either an unremediated detection or a
+    scan error. A detection therefore needs separate hashed evidence; ambiguous
+    output is an error/HOLD, never reported as clean or malware by inference.
+    """
+    def rejected(code: str = "DEFENDER_RESULT_REJECTED"):
+        return DefenderFileScanResult(
+            "RESULT_REJECTED_HOLD", request.content_sha256, False, None, code,
+        )
+
+    if type(result) is not dict or set(result) != _DEFENDER_RESULT_FIELDS:
+        return rejected()
+    if (result["content_sha256"] != request.content_sha256
+        or type(result["content_size"]) is not int
+        or result["content_size"] != request.content_size
+        or result["remediation"] != "DISABLED"
+        or result["policy_changed"] is not False
+        or not isinstance(result["scan_reference"], str)
+        or re.fullmatch(r"[A-Za-z0-9_-]{8,96}", result["scan_reference"]) is None):
+        return rejected()
+
+    outcome = result["outcome"]
+    completed = result["scan_completed"]
+    timed_out = result["timed_out"]
+    count = result["finding_count"]
+    exit_code = result["engine_exit_code"]
+    error_code = result["scan_error_code"]
+    evidence = result["detection_evidence_sha256"]
+    if type(completed) is not bool or type(timed_out) is not bool:
+        return rejected()
+    if outcome == "COMPLETED_CLEAN":
+        if (completed is not True or timed_out is not False
+            or type(count) is not int or count != 0 or type(exit_code) is not int
+            or exit_code != 0 or error_code is not None or evidence is not None):
+            return rejected()
+        return DefenderFileScanResult(
+            "COMPLETED_CLEAN", request.content_sha256, True, 0,
+            "DEFENDER_COMPLETED_NO_FINDINGS", result["scan_reference"],
+        )
+    if outcome == "MALWARE_DETECTED":
+        if (completed is not True or timed_out is not False
+            or type(count) is not int or not 1 <= count <= 100000
+            or type(exit_code) is not int or exit_code != 2
+            or error_code is not None or not isinstance(evidence, str)
+            or re.fullmatch(r"[0-9a-f]{64}", evidence) is None):
+            return rejected()
+        return DefenderFileScanResult(
+            "MALWARE_DETECTED_HOLD", request.content_sha256, True, count,
+            "DEFENDER_DETECTION_EVIDENCE_PRESENT", result["scan_reference"],
+        )
+    if outcome == "SCAN_ERROR":
+        if (completed is not False or timed_out is not False or count is not None
+            or type(exit_code) is not int or exit_code == 0
+            or not isinstance(error_code, str)
+            or re.fullmatch(r"[A-Z0-9_]{3,64}", error_code) is None
+            or evidence is not None):
+            return rejected()
+        return DefenderFileScanResult(
+            "SCAN_ERROR_HOLD", request.content_sha256, False, None,
+            "DEFENDER_SCAN_ERROR", result["scan_reference"], error_code,
+        )
+    if outcome == "TIMEOUT":
+        if (completed is not False or timed_out is not True or count is not None
+            or exit_code is not None or error_code != "SCAN_TIMEOUT"
+            or evidence is not None):
+            return rejected()
+        return DefenderFileScanResult(
+            "SCAN_TIMEOUT_HOLD", request.content_sha256, False, None,
+            "DEFENDER_SCAN_TIMEOUT", result["scan_reference"], "SCAN_TIMEOUT",
+        )
+    return rejected()
 
 
 def run_owner_scoped_defender_scan(
@@ -398,27 +501,14 @@ def run_owner_scoped_defender_scan(
             "content_size": request.content_size, "timeout_seconds": timeout_seconds,
             "policy": "DEFENDER_CUSTOM_FILE_OFFLINE_DISABLE_REMEDIATION_V1"},
             timeout_seconds=timeout_seconds + 5)
-        result = reply["result"]
-        if (set(result) != {"content_sha256", "content_size", "scan_completed", "timed_out",
-                            "finding_count", "engine_exit_code", "remediation", "policy_changed"}
-            or result["content_sha256"] != request.content_sha256
-            or type(result["content_size"]) is not int or result["content_size"] != request.content_size
-            or result["scan_completed"] is not True or result["timed_out"] is not False
-            or result["remediation"] != "DISABLED" or result["policy_changed"] is not False
-            or type(result["finding_count"]) is not int or not 0 <= result["finding_count"] <= 100000
-            or type(result["engine_exit_code"]) is not int
-            or result["engine_exit_code"] != (2 if result["finding_count"] else 0)):
-            return held("ERROR_HOLD", "DEFENDER_COMPLETION_NOT_PROVEN")
         # Repeat scope, ancestry, content and candidate binding after scanning.
         after = preview_owner_scoped_defender_scan(
             context, disposable_worktree=disposable_worktree, original_checkout=original_checkout,
             target_relative_path=target_relative_path, expected_content_sha256=expected_content_sha256)
         if after != request:
-            return held("ERROR_HOLD", "DEFENDER_TARGET_CHANGED")
-        count = result["finding_count"]
-        return DefenderFileScanResult("FINDINGS_HOLD" if count else "CLEAN_STATIC_ONLY",
-            request.content_sha256, True, count, "DEFENDER_FILE_FINDINGS" if count else "DEFENDER_STATIC_ONLY")
+            return held("RESULT_REJECTED_HOLD", "DEFENDER_TARGET_CHANGED")
+        return _classify_protected_defender_result(reply.get("result"), request)
     except ProtectedBrokerHold as exc:
         return held("NOT_RUN_HOLD", exc.code)
     except (CodeShieldHold, OSError, ValueError, TypeError, KeyError):
-        return held("ERROR_HOLD", "DEFENDER_RESULT_HOLD")
+        return held("RESULT_REJECTED_HOLD", "DEFENDER_RESULT_HOLD")
