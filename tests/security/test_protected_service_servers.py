@@ -713,6 +713,19 @@ class SCMPrincipalBindingTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(c.ProtectedBrokerHold):
                 check(value, "MY-PC")
 
+    def test_scm_config_cannot_replace_signed_nonce_and_service_key(self):
+        import inspect
+        authentication = inspect.getsource(c.exchange_protected_broker)
+        self.assertIn("api.verify_signature(roots[role][2]", authentication)
+        self.assertIn('body["challenge"] != nonce', authentication)
+        self.assertIn('body["request_sha256"] != sha256(request).hexdigest()', authentication)
+        self.assertIn('body["binding"] != binding', authentication)
+        self.assertIn('body["status"] != "OK"', authentication)
+        # Service-side exact Owner and Reviewer leases remain mandatory.
+        server = inspect.getsource(c._ProtectedActionServer.process)
+        self.assertIn("self.action_from_owner(payload, binding, action)", server)
+        self.assertIn("self.live_scope(binding, action)", server)
+
     def test_invalid_computer_names_never_authorize_service_principal(self):
         for computer in ("", "MY-PC\\DOMAIN", "HOST.OTHER", " " * 5, "x"*16):
             with self.subTest(computer=computer), self.assertRaises(c.ProtectedBrokerHold):
