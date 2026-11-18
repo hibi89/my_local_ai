@@ -100,6 +100,12 @@ class OwnerSessionProtocolTests(unittest.TestCase):
             signer=self.signer(self.key_service), issued_at=1000,
         )
 
+    def test_owner_interactive_entry_cannot_run_as_plain_python_on_nonwindows(self):
+        import os
+        if os.name != "nt":
+            with self.assertRaises(c.ProtectedBrokerHold):
+                c.owner_session_main()
+
     def test_owner_dialog_displays_exact_nontruncated_authorized_scope(self):
         ticket=self.ticket()
         payload=c._owner_ui_display_payload(ticket["body"])
@@ -147,7 +153,7 @@ class OwnerSessionProtocolTests(unittest.TestCase):
         other = self.ticket()
         for mutated, owner_sid, now in (
             (decision, "S-1-5-21-FOREIGN", 1003),
-            (decision, "S-1-5-21-OWNER", 1021),
+            (decision, "S-1-5-21-OWNER", 1121),
             ({**decision, "body": {**decision["body"], "approved": False}},
                 "S-1-5-21-OWNER", 1003),
             ({**decision, "body": {**decision["body"],

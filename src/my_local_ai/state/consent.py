@@ -1903,6 +1903,10 @@ def _owner_ui_process_request(api, filename):
         or (action["role"]+":"+action["operation"]) not in scope.get("operations",[])
         or not isinstance(scope.get("allowed_paths"),list)):
         raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+    # A response may still be awaiting consumption by the service. Never
+    # display a second confirmation for the same one-shot request.
+    if (_OWNER_UI_EXCHANGE/(nonce+".reply.json")).exists():
+        return False
     approved = _owner_ui_show_dialog(api,body)
     current = api._bind(api.kernel,"GetCurrentProcess",[],api.w.HANDLE)
     if api.process_sid(current()) != api.owner_sid:
