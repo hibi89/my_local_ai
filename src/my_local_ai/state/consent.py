@@ -18,6 +18,11 @@ _SYSTEM_TRUSTED_SIDS = frozenset({
     "S-1-5-18", "S-1-5-32-544",
     "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",  # TrustedInstaller
 })
+# Ancestor creation rights alone cannot replace an existing protected child.
+# Reject delete-child and ACL/owner changes. Retained native handles deny
+# replacement and GENERIC_WRITE reparse operations; ordinary ancestor create/
+# attribute rights do not grant writes to a separately protected child.
+_ANCESTOR_WRITE_MASK = 0xD0000 | 0x40 | 0x10000000
 
 def _check_safe_owned_file(path: Path) -> tuple[int, int, int, int]:
     if path.suffix != ".sqlite3" or not path.is_file():
@@ -669,7 +674,12 @@ class _WindowsBrokerAPI:
                 if ace_type != 0:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 mask = w.DWORD.from_address(ace.value + 4).value
-                if mask & write_mask and self.sid_string(ace.value + 8) not in writers:
+                ace_sid = self.sid_string(ace.value + 8)
+                # CREATOR OWNER is an inheritance placeholder, not a token SID
+                # authorizing arbitrary callers on the existing protected key.
+                if ace_sid == "S-1-3-0" and ace_flags & 3:
+                    continue
+                if mask & write_mask and ace_sid not in writers:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         finally:
             if descriptor.value:
@@ -798,7 +808,8 @@ class _WindowsBrokerAPI:
                 if handle in (None, c.c_void_p(-1).value):
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 stack.callback(self.kernel.CloseHandle, handle)
-                self.check_acl(handle, 1, 0xD0000 | 0x156 | 0x50000000)
+                self.check_acl(handle, 1, (0xD0000 | 0x156 | 0x50000000)
+                               if node == path else _ANCESTOR_WRITE_MASK)
             if not 1 <= path.stat().st_size <= 128 * 1024 * 1024:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             with path.open("rb") as stream:
@@ -861,6 +872,11 @@ class _WindowsBrokerAPI:
 
     def transact(self, role: str, roots: dict, request: bytes, timeout: int) -> bytes:
         import time
+        # A service running under a different standard logon must authenticate
+        # the client token too. Grant only QUERY on OUR ephemeral identity;
+        # these are not impersonation, duplicate-token or mutation rights.
+        for peer in roots.values():
+            _WindowsProtectedServiceAPI._permit_controller_identity_query(self, peer[0])
         c, w = self.c, self.w
         class Overlapped(c.Structure):
             _fields_ = [("internal", c.c_size_t), ("internal_high", c.c_size_t),
@@ -924,7 +940,13 @@ class _WindowsBrokerAPI:
                 length = int.from_bytes(read_exact(4), "little")
                 if not 1 <= length <= _BROKER_LIMIT:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
-                return read_exact(length)
+                response = read_exact(length)
+                # Server retains the pipe until all response bytes have been
+                # received. A bounded ACK avoids both lost buffered data on
+                # disconnect and an unbounded synchronous FlushFileBuffers.
+                if io(b"\x06", 1) != b"\x06":
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                return response
         finally:
             self.kernel.CloseHandle(pipe)
 
@@ -1214,6 +1236,7 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
         if self.process_sid(current()) != self.roots[role][0]:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         self.settings = self._settings()
+        self._permit_controller_identity_query()
         self.authority_path = _SERVICE_HOME / "authority.sqlite3"
         self.ledger_path = _SERVICE_HOME / role / "journal.sqlite3"
         self.pin_path(self.authority_path, writable=True)
@@ -1248,6 +1271,58 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
 
     def close(self):
         self.resources.close()
+
+    def _permit_controller_identity_query(self, query_sid=None):
+        """Grant only read-only identity queries on OUR process and token.
+
+        A standard Controller cannot otherwise query a different service logon
+        token. No token duplicate/impersonation/write right is granted, and no
+        caller-selected process, account, key or persistent ACL is modified.
+        """
+        c, w = self.c, self.w
+        class Trustee(c.Structure):
+            _fields_ = [("multiple", c.c_void_p), ("operation", c.c_int),
+                        ("form", c.c_int), ("kind", c.c_int), ("name", c.c_void_p)]
+        class Access(c.Structure):
+            _fields_ = [("permissions", w.DWORD), ("mode", c.c_int),
+                        ("inheritance", w.DWORD), ("trustee", Trustee)]
+        convert = self._bind(self.advapi, "ConvertStringSidToSidW",
+            [w.LPCWSTR, c.POINTER(c.c_void_p)], w.BOOL)
+        get = self._bind(self.advapi, "GetSecurityInfo", [w.HANDLE, c.c_int,
+            w.DWORD, c.c_void_p, c.c_void_p, c.POINTER(c.c_void_p), c.c_void_p,
+            c.POINTER(c.c_void_p)], w.DWORD)
+        merge = self._bind(self.advapi, "SetEntriesInAclW", [w.ULONG,
+            c.POINTER(Access), c.c_void_p, c.POINTER(c.c_void_p)], w.DWORD)
+        set_info = self._bind(self.advapi, "SetSecurityInfo", [w.HANDLE, c.c_int,
+            w.DWORD, c.c_void_p, c.c_void_p, c.c_void_p, c.c_void_p], w.DWORD)
+        current = self._bind(self.kernel, "GetCurrentProcess", [], w.HANDLE)()
+        token = w.HANDLE()
+        open_token = self._bind(self.advapi, "OpenProcessToken",
+            [w.HANDLE, w.DWORD, c.POINTER(w.HANDLE)], w.BOOL)
+        sid = c.c_void_p()
+        if not convert(query_sid if query_sid is not None else self.settings["ControllerSid"], c.byref(sid)):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        try:
+            if not open_token(current, 0x60008, c.byref(token)):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            for handle, permissions in ((current, 0x101000), (token, 8)):
+                dacl, descriptor, updated = c.c_void_p(), c.c_void_p(), c.c_void_p()
+                try:
+                    if get(handle, 6, 4, None, None, c.byref(dacl), None, c.byref(descriptor)) != 0 or not dacl.value:
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                    entry = Access(permissions, 1, 0, Trustee(None, 0, 0, 1, sid))
+                    if (merge(1, c.byref(entry), dacl, c.byref(updated)) != 0
+                        or set_info(handle, 6, 4, None, None, updated, None) != 0):
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                finally:
+                    if updated.value:
+                        self.kernel.LocalFree(updated)
+                    if descriptor.value:
+                        self.kernel.LocalFree(descriptor)
+        finally:
+            if token.value:
+                self.kernel.CloseHandle(token)
+            self.kernel.LocalFree(sid)
 
     def _settings(self) -> dict:
         import re
@@ -1293,7 +1368,8 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
             if handle in (None, c.c_void_p(-1).value):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             self.resources.callback(self.kernel.CloseHandle, handle)
-            self.check_acl(handle, 1, 0xD0000 | 0x156 | 0x50000000,
+            self.check_acl(handle, 1, (0xD0000 | 0x156 | 0x50000000)
+                           if node == path else _ANCESTOR_WRITE_MASK,
                            allowed_writers=(self.roots[self.role][0],) if is_private else (),
                            allowed_owners=(self.roots[self.role][0],) if is_private else ())
 
@@ -1383,7 +1459,7 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                 return buf.raw[:length.value]
             if (int.from_bytes(prop("Export Policy"), "little") != 0
                 or int.from_bytes(prop("Length"), "little") != 256
-                or prop("Algorithm Name").decode("utf-16-le").rstrip("\x00") != "ECDSA_P256"):
+                or prop("Algorithm Name").decode("utf-16-le").rstrip("\x00") not in {"ECDSA_P256", "ECDSA"}):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
             self._key_acl(prop("Security Descr", 5 | 0x40))
             public, length = c.create_string_buffer(72), w.DWORD()
@@ -1675,7 +1751,20 @@ def protected_service_main(role: str) -> int:
                     _serve_named_pipe(api, server, stopped)
             finally:
                 api.close()
-        except Exception:
+        except Exception as exc:
+            # Private, bounded startup diagnosis; never a trust attestation or
+            # raw exception/key dump. Useful before an SCM service can accept IPC.
+            try:
+                import json
+                import traceback
+                frames = traceback.extract_tb(exc.__traceback__)
+                detail = {"role": role, "state": "STARTUP_HOLD",
+                          "code": exc.code if isinstance(exc, ProtectedBrokerHold) else "NATIVE_STARTUP_ERROR",
+                          "line": frames[-1].lineno if frames else 0}
+                (_SERVICE_HOME / role / "startup-status.json").write_text(
+                    json.dumps(detail, sort_keys=True), encoding="utf-8")
+            except (OSError, ValueError):
+                pass
             report(1, 1066)
             return
         report(1)
@@ -1852,10 +1941,23 @@ def _serve_named_pipe(api, server, stopped):
                             if count == 0:
                                 raise ProtectedBrokerHold()
                             pos += count
+                        if exact(1) != b"\x06":
+                            raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
                     finally:
                         api.kernel.CloseHandle(peer)
-                except ProtectedBrokerHold:
-                    pass  # Invalid transport gets disconnected, never a grant.
+                except ProtectedBrokerHold as exc:
+                    # Bounded private diagnosis for authenticated field tests;
+                    # no raw request, key or token is written to this record.
+                    try:
+                        import json
+                        import traceback
+                        frames = traceback.extract_tb(exc.__traceback__)
+                        (_SERVICE_HOME / api.role / "request-hold.json").write_text(
+                            json.dumps({"code": exc.code,
+                                "function": frames[-1].name if frames else "unknown",
+                                "line": frames[-1].lineno if frames else 0}), encoding="utf-8")
+                    except (OSError, ValueError):
+                        pass
                 finally:
                     disconnect(pipe)
     finally:
