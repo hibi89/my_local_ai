@@ -735,7 +735,11 @@ class _WindowsBrokerAPI:
         open_process = self._bind(self.kernel, "OpenProcess",
                                   [w.DWORD, w.BOOL, w.DWORD], w.HANDLE)
         current = self._bind(self.kernel, "GetCurrentProcess", [], w.HANDLE)
-        if not get_pid(pipe, c.byref(pid)) or not pid.value:
+        if service_self:
+            # SCM validates our own PID/image before the pipe has a client.
+            # Do not depend on a connected-peer pipe query during startup.
+            pid.value = self._bind(self.kernel, "GetCurrentProcessId", [], w.DWORD)()
+        elif not get_pid(pipe, c.byref(pid)) or not pid.value:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         stack = ExitStack()
         try:
@@ -1770,6 +1774,7 @@ def _serve_named_pipe(api, server, stopped):
         if pipe in (None, c.c_void_p(-1).value):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         with api.authenticate_pipe(pipe, api.role, api.roots, service_self=True):
+            frame_deadline = 0.0
             def operation(fn, buf=None, size=0, *, connecting=False):
                 ov, count = Overlapped(), w.DWORD()
                 ov.event = make_event(None, True, False, None)
@@ -1783,7 +1788,7 @@ def _serve_named_pipe(api, server, stopped):
                             return 0
                         if error != 997:
                             raise ProtectedBrokerHold()
-                        deadline = _time.monotonic() + (3600 if connecting else 10)
+                        deadline = (_time.monotonic() + 3600 if connecting else frame_deadline)
                         waited = wait(ov.event, 100)
                         while waited == 258:
                             if stopped.is_set() or _time.monotonic() >= deadline:
@@ -1819,6 +1824,7 @@ def _serve_named_pipe(api, server, stopped):
             while not stopped.is_set():
                 try:
                     operation(connect, connecting=True)
+                    frame_deadline = _time.monotonic() + 10
                     pid = w.ULONG()
                     if not pid_fn(pipe, c.byref(pid)) or not pid.value:
                         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
@@ -1832,6 +1838,7 @@ def _serve_named_pipe(api, server, stopped):
                         if not 1 <= length <= _BROKER_LIMIT:
                             raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
                         response = server.process(exact(length))
+                        frame_deadline = _time.monotonic() + 10
                         packet = len(response).to_bytes(4, "little") + response
                         pos = 0
                         while pos < len(packet):
