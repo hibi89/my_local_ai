@@ -69,8 +69,9 @@
       },
       "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
       "evidence_sha": null,
-      "source_code_commit_sha": "d885a47e0916b74996d4457cabec2e382443c550",
-      "source_code_note": "Pure decision gate source and synthetic CI 44249877978 PASS; Controller caller and protected receipt evidence NOT_RUN; not complete/authorized."
+      "source_code_commit_sha": "b6a005471f5b16daa207caf758e676ff71609459",
+      "source_code_note": "Controller READY->exact plan/rule/source/dependency Evidence Gate source; protected independent receipt resolver NOT_RUN; CI #44254527532 PASS.",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED"
     },
     {
       "id": "V2-AXZ-01",
@@ -108,7 +109,10 @@
         "redesign_nonimproving": 0
       },
       "status": "DESIGN_ONLY_AXZERO_DEPENDENCY",
-      "evidence_sha": null
+      "evidence_sha": null,
+      "source_code_commit_sha": "1fdf3fdb5b775bcb6e8943981b6cfb733cbd89e5",
+      "source_acceptance_state": "PARTIAL_UNVERIFIED",
+      "source_code_note": "Offline bounded capability read-only schema and SHA/effects check with Qwen fallback; AXZERO independent product still missing and trusted evidence digest not signed; CI #44254291443 PASS."
     },
     {
       "id": "V2-AXZ-02",
@@ -227,11 +231,12 @@
       },
       "status": "DESIGN_ONLY_SCOPE_GO_REQUIRED",
       "evidence_sha": null,
-      "source_code_commit_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
+      "source_code_commit_sha": "7cfaaf6cefda5afea42f788e1bc5980698e4b4d6",
       "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "CI #44252409181 SUCCESS after import fix; exact-context AB computation, persistence/independent metrics evidence NOT_RUN"
+      "source_code_note": "Isolated append-only scoped A/B metrics persistent storage, comparison and CLI read-only card; real task integration and independent measurement NOT_RUN; CI #44253973737 PASS."
     }
   ],
-  "last_source_wave_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
-  "extension_source_candidate_count_conservative": 3
+  "last_source_wave_sha": "00caa91df337039b078a39912531b9a1317e9a18",
+  "extension_source_candidate_count_conservative": 4,
+  "extension_source_candidate_out_of": 12
 }

@@ -12,7 +12,7 @@
   "external_training_authorized": false,
   "paid_or_external_api_authorized": false,
   "preexisting_dev_branch": "dev/instant-implementation-v1",
-  "implementation_evidence": "SOME_SOURCE_CANDIDATES_AND_PARTIAL_IMPLEMENTATIONS_NO_OPERATIONAL_GO",
+  "implementation_evidence": "SOURCE_ONLY_4_OF_7_CANDIDATES_WITHOUT_OPTIONAL_GO",
   "verification_evidence": "NOT_RUN",
   "tasks": [
     {
@@ -111,9 +111,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "ec50f1a55eff7651f5a86c04a3c1d1968deccee2",
-      "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "CI #44250998824 SUCCESS; scoped top3 but persisted expiry/revocation/conflict controls still missing"
+      "source_code_commit_sha": "00caa91df337039b078a39912531b9a1317e9a18",
+      "source_acceptance_state": "SOURCE_CANDIDATE_UNVERIFIED",
+      "source_code_note": "Default-OFF indexed exact rights/plan/source/scope/expiry/revocation/conflict top3 with v1 fallback; CI #44254752546 PASS. No independent F18 or auto-activation."
     },
     {
       "task_id": "EXT-EXP-04",
@@ -146,9 +146,9 @@
         "Source path and cross-module conflict audit before coding"
       ],
       "verification_status": "NOT_RUN",
-      "source_code_commit_sha": "50c019953224806ba7e921b04b2d7f6d21460d6a",
+      "source_code_commit_sha": "00caa91df337039b078a39912531b9a1317e9a18",
       "source_acceptance_state": "PARTIAL_UNVERIFIED",
-      "source_code_note": "CI #44251407367 SUCCESS; shadow/quarantine only, independent F18/owner promotion and persistent rollback unavailable"
+      "source_code_note": "Append-only shadow/quarantine/revocation persistence and version reference. Protected F18/Owner promotion, skill rollback and real user lifecycle remain HOLD; CI #44254752546 PASS."
     },
     {
       "task_id": "EXT-EXP-05",
@@ -254,14 +254,14 @@
       "verification_status": "NOT_RUN"
     }
   ],
-  "last_code_wave_sha": "df4d7c8124708371abacca4479c1bfa6cedcf909",
+  "last_code_wave_sha": "00caa91df337039b078a39912531b9a1317e9a18",
   "p1_source_candidate_ids_at_wave": [
     "EXT-EXP-01",
     "EXT-EXP-02",
+    "EXT-EXP-03",
     "EXT-EXP-06"
   ],
   "p1_partial_source_ids_at_wave": [
-    "EXT-EXP-03",
     "EXT-EXP-04",
     "EXT-EXP-05"
   ],
