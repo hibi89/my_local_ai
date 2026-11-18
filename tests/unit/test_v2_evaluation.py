@@ -98,6 +98,35 @@ class V2StoredMetricsTest(unittest.TestCase):
         with self.assertRaises(sqlite3.DatabaseError):
             self.db.execute("DELETE FROM experience_metrics")
 
+    def test_two_sqlite_connections_identical_replay_is_idempotent(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / "synthetic-mesa.db"
+            first = sqlite3.connect(path)
+            second = None
+            try:
+                initialize_empty_experience_store(
+                    first, explicit_new_owned_store=True,
+                )
+                second = sqlite3.connect(path)
+                self.assertTrue(persist_task_metrics(
+                    first, BASE, explicit_owned_scope=True,
+                ))
+                self.assertFalse(persist_task_metrics(
+                    second, BASE, explicit_owned_scope=True,
+                ))
+                with self.assertRaises(ValueError):
+                    persist_task_metrics(
+                        second, replace(BASE, model_calls=9),
+                        explicit_owned_scope=True,
+                    )
+            finally:
+                if second is not None:
+                    second.close()
+                first.close()
+
     def test_cross_task_and_cross_experiment_never_mispaired(self):
         persist_task_metrics(self.db,BASE,explicit_owned_scope=True)
         other=replace(ASSISTED,task_id="TASK-002")

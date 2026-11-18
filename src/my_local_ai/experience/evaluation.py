@@ -167,26 +167,27 @@ def persist_task_metrics(
                        ensure_ascii=True,allow_nan=False)
     digest=hashlib.sha256(encoded.encode("ascii")).hexdigest()
     with conn:
-        old=conn.execute(
-            "SELECT idempotency_digest, redacted_json FROM experience_metrics WHERE observation_id=?",
+        # A single SQLite writer statement resolves a concurrent duplicate
+        # before checking the full canonical payload. A different same-ID
+        # record or any other constraint conflict cannot be accepted.
+        inserted = conn.execute(
+            """INSERT OR IGNORE INTO experience_metrics
+               (observation_id,idempotency_digest,project_id,scope_ref,
+                source_git_sha,plan_sha256,variant,redacted_json)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (metric.observation_id,digest,metric.project_id,metric.scope_ref,
+             metric.source_git_sha,metric.plan_sha256,metric.variant,encoded),
+        )
+        observed = conn.execute(
+            """SELECT idempotency_digest, redacted_json
+               FROM experience_metrics WHERE observation_id=?""",
             (metric.observation_id,),
         ).fetchone()
-        if old is not None:
-            if old != (digest,encoded):
-                raise ValueError("changed metric replay refused")
-            return False
-        try:
-            conn.execute(
-                """INSERT INTO experience_metrics
-                   (observation_id,idempotency_digest,project_id,scope_ref,
-                    source_git_sha,plan_sha256,variant,redacted_json)
-                   VALUES (?,?,?,?,?,?,?,?)""",
-                (metric.observation_id,digest,metric.project_id,metric.scope_ref,
-                 metric.source_git_sha,metric.plan_sha256,metric.variant,encoded),
-            )
-        except sqlite3.IntegrityError:
-            raise ValueError("duplicate or conflicting MESA measurement") from None
-    return True
+        if observed != (digest, encoded):
+            raise ValueError("changed or conflicting MESA measurement replay")
+        if inserted.rowcount not in (0, 1):
+            raise ValueError("unexpected MESA insert result")
+        return inserted.rowcount == 1
 
 
 def compare_persisted_metrics(
