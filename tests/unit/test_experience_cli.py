@@ -51,11 +51,13 @@ class ExperienceCliTest(unittest.TestCase):
                 "baseline-001","BASELINE","project-001",
                 "a"*64,"b"*40,"e"*64,"f"*64,"scope-001",
                 "PUBLIC_SYNTHETIC",120000,2,8,3,30000,None,None,None,
+                task_id="TASK-001", comparison_id="experiment-001",
             )
             assisted = TaskMetricsV1(
                 "assisted-001","ASSISTED","project-001",
                 "a"*64,"b"*40,"e"*64,"f"*64,"scope-001",
                 "PUBLIC_SYNTHETIC",60000,2,4,2,10000,None,None,None,
+                task_id="TASK-001", comparison_id="experiment-001",
             )
             persist_task_metrics(conn,baseline,explicit_owned_scope=True)
             persist_task_metrics(conn,assisted,explicit_owned_scope=True)
@@ -97,6 +99,7 @@ class ExperienceCliTest(unittest.TestCase):
         code, observed = self.cli(
             "compare", "--acceptance-sha", "e"*64,
             "--environment-sha", "f"*64,
+            "--task-id", "TASK-001", "--comparison-id", "experiment-001",
         )
         self.assertEqual(code, 0)
         self.assertEqual(observed["state"], "OBSERVED_UNVERIFIED")
@@ -105,6 +108,7 @@ class ExperienceCliTest(unittest.TestCase):
         code, mismatch = self.cli(
             "compare", "--acceptance-sha", "0"*64,
             "--environment-sha", "f"*64,
+            "--task-id", "TASK-001", "--comparison-id", "experiment-001",
         )
         self.assertEqual(code, 0)
         self.assertEqual(mismatch["state"], "UNMEASURED")
