@@ -670,10 +670,18 @@ class ServerTests(unittest.TestCase):
         # Removing the mutation must not bypass authenticated peer SID and
         # SCM PID/image checks from the independent broker trust boundary.
         auth = inspect.getsource(c._WindowsBrokerAPI.authenticate_pipe)
-        self.assertIn("self.process_sid(process)", auth)
+        # A protected service is now identified by SCM own-process PID,
+        # local account SID and pinned image; foreign token access is not
+        # required, but the protected server still checks Controller SID.
+        self.assertIn("self._scm_account_sid(installed.account)", auth)
+        self.assertIn("installed.kind != 0x10", auth)
         self.assertIn("QueryServiceStatusEx", auth)
+        self.assertIn("status[7] != pid.value", auth)
         self.assertIn("roots[role][1]", auth)
         self.assertIn("check_acl(service", auth)
+        self.assertNotIn("self.process_sid(process)", auth)
+        server_pipe = inspect.getsource(c._serve_named_pipe)
+        self.assertIn("api.process_sid(peer) != sid", server_pipe)
 
     def test_pipe_client_has_duplex_access_without_server_creation(self):
         # Generic write includes FILE_CREATE_PIPE_INSTANCE. The client must
