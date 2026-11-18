@@ -1,3 +1,5 @@
+> **[2026-11-18 KST · OWNER-APPROVED OWNER-SESSION/F18 EXECUTION REDESIGN]** `§N` and [Owner 자체 세션·F18 분리 설계](OWNER_SESSION_F18_APPROVED_REDESIGN_20261118.md) are now authoritative for MLA-SWU-008/021 implementation. WTS cross-session delivery is replaced by separately pinned interactive Owner UI+signed challenge/response; REQ-14 executed tests remain UNSATISFIED under Zero-VM. No OS install/ACL/key/go/verification is authorized by document commit alone. P1 source candidate counts unchanged until actual acceptance.
+
 > **[2026-11-18 KST · OWNER APPROVED V2.0 DESIGN CANONICAL]** Current V2.0 scope: [§M and MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md](docs/MLA_V2_FINAL_ARCHITECTURE_MESA_AXZERO_20261118.md). MESA inherits existing V1.2 EXT-EXP-01..07; Evidence Gate + AXZERO bridge are optional additions; Hydrogen V1.1/AXNODE optional; existing V1.3 Zero-VM security and 55 SWU remain unchanged. Design commit only, not implementation/OS/remote/API approval. Historical progress below is superseded by actual dev HEAD + task queues.
 
 > **[2026-11-18 KST · OWNER NO-VM NO-CONTAINER CANONICAL OVERRIDE]** 최신 사용자 확정 설계: **VM·Windows Sandbox·Hyper-V·WSL2·Docker·Windows 컨테이너·AppContainer 설치/실행/선택적 fallback 의존성 0**. 이전 J/K절에 남은 fallback·AppContainer 후보는 모두 폐기한다. **CPU-first Pure Player + 검증된 허용목록 Typed Operator + 비실행 CodeShield + 로컬 Qwen 하나**가 기본이다. 임의 AI 생성 코드/테스트/스크립트/패키지 훅은 실행하지 않고 HOLD한다. 격리 Worktree는 OS 보안 격리가 아니다. 별도 보호 소유자 승인·독립 F18·nonce/lease·Git CAS·원본/비밀/외부 송신 안전조건은 완화하지 않는다. 변경은 설계에 한하며 Codex 작업 중인 dev 소스/실기기 안전 증거는 그대로 미검증이다.
@@ -183,3 +185,8 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 8. **현재 확인된 개발 상태(관측):** dev/instant-implementation-v1@7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a의 기본 구현 후보 52/55(94.55%), 보호 서버 소스 존재, Owner 대화형 승인 오류 5, 실제 F18/Defender 실기기 미확인, P2 LOCKED/UNASSESSED. 이 설계 변경은 **코드 기능 +0, 신규 실행/설치/OS 권한/외부 송신 승인 없음**이다.
 
 **구현 순서:** 기존 V1.3 완성·인수 → MESA V1.2 승계 최소판 → 별도 AXZERO 핵심 → Evidence Gate/AXZERO V2 브리지 → 선택 Hydrogen → 선택 AXNODE. 일부 서로 독립적인 개발 작업은 별도 브랜치·책임자·충돌 없는 경로 확인 시 병행 가능. 기능·시간 개선은 실측 전 UNMEASURED. 임의 코드 자동실행 금지와 보호 OS 승인/F18 안전 경계는 어느 단계에서도 완화하지 않는다.
+
+
+## N. Owner 자체 세션 승인 및 F18 정적/실행 분리 (2026-11-18 사용자 승인)
+
+기존 §L Zero-VM·기본 30 REQ/55 SWU·독립 보호 및 P2/GO를 보존하며, Owner UI를 별도 로그인 세션의 고정 EXE로 옮긴다. 상세 수용·Windows 사전 구성·서명/nonce/lease·F18-A/B 분리는 [승인 정본](OWNER_SESSION_F18_APPROVED_REDESIGN_20261118.md)을 따른다. REQ-14 독립 실행 테스트는 미실행/UNSATISFIED, 정적 검사만으로 합격·Git 승격 불가.

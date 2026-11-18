@@ -70,6 +70,8 @@ AXZERO는 독립 개발 제품. v1 최소 경계 AXZERO.CapabilityQueryV1(reques
 remote_enabled=false, max_spend_usd=0, cost_eligibility UNKNOWN→DENY, model_available UNVERIFIED→DENY, secret/customer/private content→DENY. 무료라고 자동 데이터 전송 승인되는 것이 아니다. 429/401/403/5xx/타임아웃/중복 결과는 기존 V1.1 정책에 따라 bounded HOLD/안전 재할당. Hydrogen 없이 모든 기본 로컬 경로 작동.
 
 ## 9. Owner/F18 UI 구조 개선 (기존 SWU-008·021에 흡수)
+
+**2026-11-18 사용자 추가 승인:** 다른 세션 WTS 전달을 폐기하고 [Owner 자체 세션 승인+F18 분리 실행 정본](OWNER_SESSION_F18_APPROVED_REDESIGN_20261118.md)의 서명된 challenge/response 구현으로 확정했다. 이 섹션의 과거 '대체안' 문구는 설계 이력이며, 정적 검수만으로 REQ-14 테스트 완료를 주장할 수 없다. Windows 보호 키·계정·EXE 설치 및 실제 시험은 NOT_RUN.
 dev HEAD 7ffd12c190392c6db675a69a5f5b54ff8ffb6f4a에서 3개 Windows 보호 서버 소스는 존재하나 실제 Owner WTSSendMessageW 권한 오류 5, F18 정상·Defender 실검사 NOT_RUN 상태. 55 SWU 기준 52/55 = 94.55%는 코드 큐의 최신 관측치(새 설계 커밋으로 변동 없음). 기존 MLA-SWU-008/021 및 CS-SWU-012의 완료·실기기 증거 없이 100% 처리 금지.
 권한 오류의 유일한 해법을 서비스 계정의 광범위한 세션 권한 확대로 두지 않는다. **대체안은 사용자가 별도 로그인한 보호된 Owner 대화형 세션에서 수동 실행하는 승인 UI + 기존 보호 서비스의 서명된 요청/응답**이다.
 - Owner UI는 전체 action summary, exact plan/source SHA, scope/effects, TTL, nonce, lease, target file, 승인 후 발생할 일까지 표시하고 기본 거절. 16000자 초과는 조용히 잘라내지 않고 거부/별도 안전보기.
