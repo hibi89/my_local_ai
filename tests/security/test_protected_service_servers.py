@@ -390,7 +390,14 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(r._bounded_review_changed_paths(
             {}, {"src/demo.py": ("100644", "a" * 40)},
             ["src/demo.py"]), ("src/demo.py",))
+        # Independent siblings under an ordinary directory remain valid.
+        self.assertEqual(len(r._decode_protected_git_tree_listing(
+            valid + item(b"src/other.py", oid=b"b" * 40))), 2)
         for listing in (
+            # Both raw Git-tree enumeration orders must fail closed.
+            item(b"src") + valid,
+            valid + item(b"src"),
+            item(b"Src") + item(b"src/demo.py"),
             valid + valid,
             valid + item(b"SRC/DEMO.py", oid=b"b" * 40),
             valid[:-1],

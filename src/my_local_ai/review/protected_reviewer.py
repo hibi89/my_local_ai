@@ -563,6 +563,7 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     result = {}
     seen_casefold = set()
+    seen_directory_prefixes = set()
     for item in entries:
         try:
             meta, name = item.split(b"\t", 1)
@@ -578,9 +579,17 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
             or kind != "blob" or not _SHA40.fullmatch(digest)):
             raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
         key = path.casefold()
-        if key in seen_casefold:
+        parts = key.split("/")
+        ancestors = {"/".join(parts[:n]) for n in range(1, len(parts))}
+        # Git can encode malformed trees whose flattened paths require the
+        # same name to be BOTH a file and a directory. Such trees cannot be
+        # safely represented in the Owner's Windows checkout. Detect either
+        # enumeration order without relying on a later filesystem checkout.
+        if (key in seen_casefold or key in seen_directory_prefixes
+            or not ancestors.isdisjoint(seen_casefold)):
             raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
         seen_casefold.add(key)
+        seen_directory_prefixes.update(ancestors)
         result[path] = (mode, digest)
     return result
 
