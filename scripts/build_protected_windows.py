@@ -50,12 +50,19 @@ def _hash_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _unsafe_link(path: Path) -> bool:
+    info = path.lstat()
+    return bool(path.is_symlink()
+                or getattr(info, "st_file_attributes", 0) & 0x400
+                or path.is_file() and info.st_nlink != 1)
+
+
 def inspect_image(folder: Path, image_name: str) -> dict:
-    """Read-only bounded inventory; reject link-backed frozen images."""
+    """Read-only bounded inventory; reject hardlinks, junctions and reparse points."""
     expected = folder / (image_name + ".exe")
     internal = folder / "_internal"
-    if (folder.is_symlink() or not folder.is_dir() or expected.is_symlink()
-            or not expected.is_file() or internal.is_symlink() or not internal.is_dir()):
+    if (not folder.is_dir() or not expected.is_file() or not internal.is_dir()
+            or any(_unsafe_link(p) for p in (folder, expected, internal))):
         raise ValueError("missing or non-regular one-folder frozen image")
     if any(p.name not in {expected.name, "_internal"} for p in folder.iterdir()):
         raise ValueError("unexpected top-level frozen image contents")
@@ -67,8 +74,8 @@ def inspect_image(folder: Path, image_name: str) -> dict:
     for root, dirs, files in os.walk(internal, followlinks=False):
         for name in (*dirs, *files):
             p = Path(root) / name
-            if p.is_symlink():
-                raise ValueError("symlink in frozen image")
+            if _unsafe_link(p):
+                raise ValueError("linked or reparse-backed node in frozen image")
             if not p.is_file() and not p.is_dir():
                 raise ValueError("unsupported file type in frozen image")
         for name in files:
