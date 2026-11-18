@@ -691,6 +691,93 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 0xC0000000, 0)
 
 
+class ProtectedPipeClientTokenTests(unittest.TestCase):
+    """Synthetic Win32 token-query contract; no real OS impersonation."""
+
+    def fake_api(self, *, refuse_open=False, refuse_read=False, refuse_revert=False):
+        import ctypes as C
+        from ctypes import wintypes as W
+        events = []
+        api = object.__new__(c._WindowsBrokerAPI)
+        api.c, api.w, api.advapi, api.kernel = C, W, object(), object()
+        api.sid_string = lambda sid: ("S-1-5-21-100-200-300-1000"
+                                     if sid == 0x1234 else "INVALID")
+        def impersonate(pipe):
+            events.append("impersonate")
+            return True
+        def revert():
+            events.append("revert")
+            return not refuse_revert
+        def thread():
+            events.append("thread")
+            return 111
+        def open_token(thread, access, self_identity, target):
+            events.append(("open_token", access, self_identity))
+            if refuse_open:
+                return False
+            target._obj.value = 222
+            return True
+        def get_token(token, level, buffer, max_size, output_size):
+            events.append(("token_query", level))
+            output_size._obj.value = 64
+            if buffer is None:
+                return False  # expected initial ERROR_INSUFFICIENT_BUFFER
+            if refuse_read:
+                return False
+            C.cast(buffer, C.POINTER(C.c_void_p))[0] = 0x1234
+            return True
+        def close(handle):
+            events.append("close_token")
+            return True
+        funcs = {
+            "ImpersonateNamedPipeClient": impersonate,
+            "RevertToSelf": revert,
+            "GetCurrentThread": thread,
+            "OpenThreadToken": open_token,
+            "GetTokenInformation": get_token,
+        }
+        api._bind = lambda lib, name, args, result: funcs[name]
+        # Do not expose live kernel handles; fake kernel needs only CloseHandle.
+        class Kernel:
+            CloseHandle = staticmethod(close)
+        api.kernel = Kernel()
+        return api, events
+
+    def test_read_only_pipe_token_sid_and_mandatory_revert(self):
+        api, events = self.fake_api()
+        self.assertEqual(api.pipe_client_sid_after_read(321),
+                         "S-1-5-21-100-200-300-1000")
+        self.assertEqual(events[0], "impersonate")
+        self.assertIn(("open_token", 0x0008, True), events)
+        self.assertEqual(events[-2:], ["close_token", "revert"])
+
+    def test_open_or_token_query_failure_always_reverts(self):
+        for option in ("refuse_open", "refuse_read"):
+            with self.subTest(option=option):
+                api, events = self.fake_api(**{option: True})
+                with self.assertRaises(c.ProtectedBrokerHold):
+                    api.pipe_client_sid_after_read(321)
+                self.assertEqual(events[-1], "revert")
+
+    def test_failed_identity_restore_is_terminal_hold(self):
+        api, events = self.fake_api(refuse_revert=True)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            api.pipe_client_sid_after_read(321)
+        self.assertEqual(events[-1], "revert")
+
+    def test_server_authenticates_after_header_and_before_body(self):
+        import inspect
+        source = inspect.getsource(c._serve_named_pipe)
+        first_header = source.index('length = int.from_bytes(exact(4), "little")')
+        identity = source.index("api.pipe_client_sid_after_read(pipe)")
+        processing = source.index("server.process(exact(length))")
+        self.assertLess(first_header, identity)
+        self.assertLess(identity, processing)
+        self.assertNotIn("api.process_sid(peer)", source)
+        client_source = inspect.getsource(c._WindowsBrokerAPI.transact)
+        self.assertIn("0x00110000", client_source)  # SQOS IDENTIFICATION
+
+
 class SCMPrincipalBindingTests(unittest.TestCase):
     """Pure synthetic SCM name constraints; no Windows account/API changed."""
 
