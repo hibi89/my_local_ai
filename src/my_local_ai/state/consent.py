@@ -1689,7 +1689,20 @@ class _ProtectedActionServer:
                 self.journal.finish(nonce_key, response, approved=True)
             return response
         except (ProtectedBrokerHold, sqlite3.Error, OSError, ValueError,
-                TypeError, KeyError, OverflowError, SyntaxError, RecursionError, MemoryError):
+                TypeError, KeyError, OverflowError, SyntaxError, RecursionError, MemoryError) as exc:
+            if isinstance(self.api, _WindowsProtectedServiceAPI):
+                # Keep private field diagnosis without disclosing request or
+                # exception text in the signed public failure response.
+                try:
+                    import json
+                    import traceback
+                    frames = traceback.extract_tb(exc.__traceback__)
+                    (_SERVICE_HOME / self.role / "action-hold.json").write_text(
+                        json.dumps({"code": getattr(exc, "code", "PROTECTED_ACTION_HOLD"),
+                            "function": frames[-1].name if frames else "unknown",
+                            "line": frames[-1].lineno if frames else 0}), encoding="utf-8")
+                except (OSError, ValueError):
+                    pass
             response = self.signed_response(request, raw, {"reason": "PROTECTED_ACTION_HOLD"}, "DENIED")
             if nonce_key is not None:
                 self.journal.finish(nonce_key, response, approved=False)
