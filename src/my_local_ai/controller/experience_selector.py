@@ -69,33 +69,56 @@ def select_with_experience(
             fingerprint = task_error_fingerprints.get(candidate.task_id)
             if fingerprint is None or len(refs) >= 3:
                 continue
-            hints = search_experiences(
-                experience_conn, project_id=project_id,
-                plan_sha256=plan.digest, source_git_sha=candidate.source_sha,
-                scope_ref=scope_ref, rights_tag=rights_tag,
-                error_fingerprint=fingerprint, enabled=True,
-                environment_digest=environment_digest,
-                max_results=3-len(refs),
-            )
+            try:
+                hints = search_experiences(
+                    experience_conn, project_id=project_id,
+                    plan_sha256=plan.digest, source_git_sha=candidate.source_sha,
+                    scope_ref=scope_ref, rights_tag=rights_tag,
+                    error_fingerprint=fingerprint, enabled=True,
+                    environment_digest=environment_digest,
+                    max_results=3-len(refs),
+                )
+            except (sqlite3.Error, ValueError, TypeError, RuntimeError):
+                # Optional MESA input/store failures cannot take down the
+                # original local Qwen Controller or make a task executable.
+                return MESAControllerProposal(
+                    plan.digest, plan.blueprint_sha, baseline_ids, (),
+                    "MEMORY_UNAVAILABLE_FALLBACK",
+                )
             if hints:
                 ranked.add(candidate.task_id)
                 for hint in hints:
-                    refs.extend(hint.record_ids)
+                    for ref in hint.record_ids:
+                        if ref not in refs:
+                            refs.append(ref)
+                            if len(refs) == 3:
+                                break
         if ranked:
             advisory = json.dumps({
                 "version": 1,
                 "hints": [{"task_id": task_id, "rank": 0}
                           for task_id in sorted(ranked)],
             }, sort_keys=True, separators=(",", ":"))
-            changed = controller.propose(
-                protected_states, independently_verified=(),
-                active_leases=active_leases, advisory_json=advisory,
-            )
-            after = tuple(d.task_id for d in changed.decisions)
-            if (set(after) != set(baseline_ids)
-                or changed.owner_go or changed.verified or changed.execution_allowed
-                or changed.advisory_status != "OPTIONAL_HINTS_ACCEPTED"):
-                raise ValueError("MESA proposal escaped native READY boundary")
+            try:
+                changed = controller.propose(
+                    protected_states, independently_verified=(),
+                    active_leases=active_leases, advisory_json=advisory,
+                )
+                after = tuple(d.task_id for d in changed.decisions)
+                if (set(after) != set(baseline_ids)
+                    or len(after) != len(baseline_ids)
+                    or changed.owner_go or changed.verified
+                    or changed.execution_allowed
+                    or changed.advisory_status != "OPTIONAL_HINTS_ACCEPTED"
+                    or any(d.runnable for d in changed.decisions)):
+                    raise ValueError("MESA advisory crossed native READY boundary")
+            except (ValueError, TypeError):
+                # A refused/invalid optional hint must never block native
+                # READY evaluation or retain any untrusted experience refs.
+                return MESAControllerProposal(
+                    plan.digest, plan.blueprint_sha, baseline_ids, (),
+                    "MEMORY_REJECTED_FALLBACK",
+                )
             baseline_ids = after
             status = "SHADOW_ADVICE_ONLY"
     return MESAControllerProposal(

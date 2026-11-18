@@ -116,6 +116,33 @@ class ExperienceControllerOfflineTest(unittest.TestCase):
         self.assertEqual(proposal.candidate_task_ids, ("TASK-A", "TASK-C"))
         self.assertNotIn("TASK-B", proposal.candidate_task_ids)
 
+    def test_corrupt_optional_fingerprint_falls_back_to_original_ready(self):
+        result = self.select(task_error_fingerprints={"TASK-B": "not-a-sha"})
+        self.assertEqual(result.status, "MEMORY_UNAVAILABLE_FALLBACK")
+        self.assertEqual(result.candidate_task_ids,
+                         ("TASK-A", "TASK-B", "TASK-C"))
+        self.assertEqual(result.experience_refs, ())
+        self.assertFalse(result.execution_allowed)
+
+    def test_rejected_advice_falls_back_without_promoting_memory(self):
+        from unittest.mock import patch
+        from my_local_ai.controller.decision import Controller
+
+        native = Controller.propose
+
+        def reject_optional(instance, *args, **kwargs):
+            if kwargs.get("advisory_json") is not None:
+                raise ValueError("invalid optional hint")
+            return native(instance, *args, **kwargs)
+
+        with patch.object(Controller, "propose", reject_optional):
+            result = self.select()
+        self.assertEqual(result.status, "MEMORY_REJECTED_FALLBACK")
+        self.assertEqual(result.candidate_task_ids,
+                         ("TASK-A", "TASK-B", "TASK-C"))
+        self.assertEqual(result.experience_refs, ())
+        self.assertFalse(result.owner_go)
+
     def test_untrusted_context_does_not_launch_anything(self):
         with self.assertRaises(ValueError):
             self.select(task_error_fingerprints={str(i): ERR for i in range(300)})
