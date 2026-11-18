@@ -552,7 +552,11 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
     This does not execute or check out untrusted repository content.
     """
     from my_local_ai.state.consent import ProtectedBrokerHold
-    if type(listing) is not bytes or not listing or not listing.endswith(b"\x00"):
+    if type(listing) is not bytes:
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+    if not listing:
+        return {}  # A legitimate unborn project's first Git commit is empty.
+    if not listing.endswith(b"\x00"):
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     entries = listing[:-1].split(b"\x00")
     if not 1 <= len(entries) <= 4096:

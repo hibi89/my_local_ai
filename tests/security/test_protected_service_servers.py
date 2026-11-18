@@ -365,12 +365,17 @@ class ServerTests(unittest.TestCase):
             r._decode_protected_git_tree_listing(valid),
             {"src/demo.py": ("100644", "a" * 40)},
         )
+        # A first commit may have no baseline blobs. This is a normal path,
+        # not an incorrectly signed or malformed delta.
+        self.assertEqual(r._decode_protected_git_tree_listing(b""), {})
+        self.assertEqual(r._bounded_review_changed_paths(
+            {}, {"src/demo.py": ("100644", "a" * 40)},
+            ["src/demo.py"]), ("src/demo.py",))
         for listing in (
             valid + valid,
             valid + item(b"SRC/DEMO.py", oid=b"b" * 40),
             valid[:-1],
             valid + b"\x00",
-            b"",
             item(b"src/../demo.py"),
             item(b"src/file.py", mode=b"120000"),
             item(b"src/invalid_\xff.py"),
