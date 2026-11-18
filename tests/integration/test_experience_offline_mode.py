@@ -6,6 +6,8 @@ import unittest
 from my_local_ai.contracts.plan import PlanSpec
 from my_local_ai.controller.experience_selector import select_with_experience
 from my_local_ai.experience.collector import collect_observation
+from my_local_ai.experience.schema import ExperienceEventV1
+from my_local_ai.experience.curator import classify_experience, append_curation_decision
 from my_local_ai.state.experience_migrations import initialize_empty_experience_store
 
 SOURCE = "a"*40
@@ -50,12 +52,24 @@ class ExperienceControllerOfflineTest(unittest.TestCase):
             "plan_sha256": self.plan.digest, "source_git_sha": SOURCE,
             "scope_ref": "scope-001", "rights_tag": "PUBLIC_SYNTHETIC",
             "outcome": "FAILED", "error_fingerprint": ERR,
-            "environment_digest": "d"*64, "observed_at": 1795000000,
+            "environment_digest": "d"*64, "observed_at": 1794000000,
         }
         collect_observation(
             self.conn, json.dumps(record), expected_project="project-001",
             expected_plan_sha=self.plan.digest, expected_source_sha=SOURCE,
             allowed_scope_refs=frozenset({"scope-001"}),
+        )
+        event = ExperienceEventV1(**record)
+        shadow = classify_experience(
+            event, strategy_digest="1"*64, proposed_action_digest="2"*64,
+            expected_source_sha=SOURCE, expected_scope="scope-001",
+            now=1794000010, expires_at=2000000000,
+        )
+        append_curation_decision(
+            self.conn, decision_id="decision-001", result=shadow,
+            created_at=1794000010, expires_at=2000000000,
+            expected_project="project-001", expected_source_sha=SOURCE,
+            expected_scope="scope-001",
         )
 
     def tearDown(self):

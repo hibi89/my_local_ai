@@ -9,6 +9,8 @@ import unittest
 
 from my_local_ai.cli import main
 from my_local_ai.experience.collector import collect_observation
+from my_local_ai.experience.schema import ExperienceEventV1
+from my_local_ai.experience.curator import classify_experience, append_curation_decision
 from my_local_ai.state.experience_migrations import initialize_empty_experience_store
 
 
@@ -25,12 +27,24 @@ class ExperienceCliTest(unittest.TestCase):
                 "plan_sha256": "a"*64, "source_git_sha": "b"*40,
                 "scope_ref": "scope-001", "rights_tag": "PUBLIC_SYNTHETIC",
                 "outcome": "FAILED", "error_fingerprint": "c"*64,
-                "environment_digest": "d"*64, "observed_at": 1795000000,
+                "environment_digest": "d"*64, "observed_at": 1794000000,
             }
             collect_observation(
                 conn, json.dumps(data), expected_project="project-001",
                 expected_plan_sha="a"*64, expected_source_sha="b"*40,
                 allowed_scope_refs=frozenset({"scope-001"}),
+            )
+            event = ExperienceEventV1(**data)
+            candidate = classify_experience(
+                event, strategy_digest="1"*64, proposed_action_digest="2"*64,
+                expected_source_sha="b"*40, expected_scope="scope-001",
+                now=1794000010, expires_at=2000000000,
+            )
+            append_curation_decision(
+                conn, decision_id="decision-001", result=candidate,
+                created_at=1794000010, expires_at=2000000000,
+                expected_project="project-001", expected_source_sha="b"*40,
+                expected_scope="scope-001",
             )
         finally:
             conn.close()

@@ -124,8 +124,10 @@ def initialize_empty_experience_store(
     if app or ver or _schema_objects(conn):
         raise ValueError("existing or unknown state must not be migrated")
     try:
-        conn.execute("BEGIN IMMEDIATE")
         conn.execute("PRAGMA foreign_keys=ON")
+        if conn.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
+            raise ValueError("MESA foreign key enforcement unavailable")
+        conn.execute("BEGIN IMMEDIATE")
         for statement in _DDL:
             conn.execute(statement)
         conn.execute(f"PRAGMA application_id={MESA_APP_ID}")
