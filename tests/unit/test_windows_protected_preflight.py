@@ -205,7 +205,7 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
         }
 
     def test_nonwindows_is_hold_and_does_not_probe(self):
-        with patch.object(preflight.os, "name", "posix"), \\
+        with patch.object(preflight.os, "name", "posix"), \
              patch("my_local_ai.ops.windows_local_operator.run_operator_request") as probe:
             result = preflight.host_readonly_prerequisites()
         self.assertEqual(result["reason"], "WINDOWS_REQUIRED")
@@ -214,7 +214,7 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
         probe.assert_not_called()
 
     def test_successful_synthetic_host_probe_is_still_non_authoritative(self):
-        with patch.object(preflight.os, "name", "nt"), \\
+        with patch.object(preflight.os, "name", "nt"), \
              patch("my_local_ai.ops.windows_local_operator.run_operator_request",
                    return_value=self.simulated_report()) as probe:
             result = preflight.host_readonly_prerequisites()
@@ -240,8 +240,8 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
                         "tpm-status": {"state": "SECRET:PRIVATE_PATH"}}},
         ):
             sample = {**self.simulated_report(), **change}
-            with self.subTest(change=str(change)[:35]), \\
-                 patch.object(preflight.os, "name", "nt"), \\
+            with self.subTest(change=str(change)[:35]), \
+                 patch.object(preflight.os, "name", "nt"), \
                  patch("my_local_ai.ops.windows_local_operator.run_operator_request",
                        return_value=sample):
                 result = preflight.host_readonly_prerequisites()
@@ -251,7 +251,7 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
             self.assertNotIn("SECRET", json.dumps(result))
 
     def test_probe_exception_redacted_and_never_authorized(self):
-        with patch.object(preflight.os, "name", "nt"), \\
+        with patch.object(preflight.os, "name", "nt"), \
              patch("my_local_ai.ops.windows_local_operator.run_operator_request",
                    side_effect=OSError("sensitive account name")):
             result = preflight.host_readonly_prerequisites()
