@@ -48,6 +48,36 @@ jobs:
             throw 'unsafe software KSP or approval result'
           }
           Write-Host 'READ_ONLY_KSP_FOUND_NO_KEY_NO_OWNER_TRUST'
+      - name: Host-only Windows read-only intake must remain HOLD (NO Owner trust)
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'src'
+          # A nonzero exit is intentional. This action never provisions keys,
+          # services, accounts, ACLs, registry values, or Owner approval.
+          $raw = python scripts/preflight_protected_windows.py --host-readonly
+          $code = $LASTEXITCODE
+          if ($code -ne 2) { throw 'host intake unexpectedly returned GO or crashed' }
+          $report = $raw | ConvertFrom-Json
+          if ($report.schema -ne 'mla-protected-host-intake/v1' -or
+              $report.decision -ne 'HOLD' -or
+              $report.read_only -ne $true -or
+              $report.os_settings_changed -ne $false -or
+              $report.runtime_authorized -ne $false -or
+              $report.owner_approval_verified -ne $false -or
+              $report.protected_signer_verified -ne $false -or
+              $report.independent_f18_verified -ne $false -or
+              $report.defender_scan_verified -ne $false -or
+              $report.p2 -ne 'LOCKED' -or
+              $report.formal_verified_rate -ne 'UNASSESSED') {
+            throw 'host intake leaked trust authority'
+          }
+          Write-Host 'WINDOWS_HOST_INTAKE_READ_ONLY_HOLD_CONFIRMED'
+      - name: Synthetic protected Windows preflight regression (NO Owner acceptance)
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'src'
+          python -m unittest discover -s tests/unit -p test_windows_protected_preflight.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'synthetic protected preflight regression failed' }
       - name: Build standalone one-folder images (NO install or service registration)
         run: python scripts/build_protected_windows.py --output dist/mla-protected-v1
       - name: Assert four binaries and untrusted manifest
