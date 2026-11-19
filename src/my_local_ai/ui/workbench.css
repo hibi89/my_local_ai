@@ -56,7 +56,19 @@ h1 { font-size: clamp(1.65rem, 4vw, 2.68rem); letter-spacing: -.04em; line-heigh
   border-bottom: 1px solid var(--line); }
 .panel-head h2 { font-size: 1.21rem; margin-bottom: 5px; }
 .panel-head p { font-size: .84rem; }
-.inputs form, .result-body { display: grid; gap: 9px; padding: 18px 21px 21px; }
+.inputs form, .result-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 18px 21px 21px; }
+.composer { border: 1px solid var(--line); border-radius: 11px; background: var(--inset); }
+.composer:focus-within { border-color: var(--accent); }
+.composer textarea { display: block; min-height: 168px; padding: 13px 14px; border: 0; border-radius: 10px 10px 0 0; }
+.composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 9px 14px;
+  padding: 11px; border-top: 1px solid var(--line); }
+.composer-actions kbd { color: var(--muted); font: .72rem Consolas, monospace; padding: 3px 6px;
+  border: 1px solid var(--line); border-radius: 4px; }
+#chat-hint { margin-top: 1px; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.advanced-input { border-top: 1px solid var(--line); }
+.advanced-input > summary { cursor: pointer; padding: 14px 21px; color: var(--muted); font-size: .86rem; }
+.advanced-input[open] > summary { color: var(--text); }
+.advanced-input form { padding-top: 0; }
 label { color: var(--text); display: block; margin-top: 5px; font-size: .87rem; font-weight: 650; }
 label small { color: var(--muted); margin-left: 5px; font-size: .72rem; font-weight: 450; }
 textarea, input { padding: 10px 11px; width: 100%; min-width: 0; border: 1px solid var(--line);
@@ -76,6 +88,17 @@ button { cursor: pointer; }
 .state { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; font-size: .75rem; }
 .state[data-state="working"], .state[data-state="done"] { color: var(--success); border-color: var(--success); }
 .state[data-state="error"] { color: var(--error); border-color: var(--error); }
+.timers { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); border-bottom: 1px solid var(--line); }
+.timers > div { padding: 11px 21px 12px; }
+.timers > div + div { border-left: 1px solid var(--line); }
+.timers dt, .work-plan dt { color: var(--muted); font-size: .77rem; }
+.timers dd, .work-plan dd { margin: 0; }
+.timers dd { margin-top: 4px; font: 650 clamp(1.12rem, 2vw, 1.38rem) "Cascadia Mono", Consolas, monospace; }
+.timing-warning { padding: 10px 21px 0; color: var(--error); font-size: .8rem; }
+.work-plan { margin: 0; display: grid; gap: 7px; padding: 12px 13px; background: var(--inset);
+  border: 1px solid var(--line); border-radius: 8px; }
+.work-plan > div { display: grid; grid-template-columns: minmax(4.7rem, max-content) minmax(0,1fr); gap: 10px; align-items: baseline; }
+.work-plan dd { font-size: .81rem; overflow-wrap: anywhere; }
 .empty { min-height: 300px; display: grid; place-content: center; justify-items: center; text-align: center; gap: 13px; color: var(--text); }
 .empty p { color: var(--muted); font-size: .84rem; line-height: 1.6; }
 .empty-icon { display: grid; align-content: center; gap: 5px; width: 49px; height: 49px; border: 1px solid var(--line); border-radius: 10px; padding: 11px; background: var(--inset); }
@@ -165,6 +188,7 @@ pre span { display:block; width:max-content; min-width: 100%; padding-inline: 6p
   .layout-tab { flex: 1; justify-content: center; min-height: 38px; }
   .layout-tab small { display: none; }
   .quiet-button { min-height: 40px; }
-  .panel-head, .inputs form, .result-body { padding-inline: 14px; }
+  .panel-head, .inputs form, .result-body, .advanced-input > summary, .timers > div, .timing-warning { padding-inline: 14px; }
+  .composer-actions kbd { display: none; }
   .file-inputs { grid-template-columns: minmax(0,1fr); }
 }

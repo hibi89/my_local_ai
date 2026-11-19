@@ -2,7 +2,10 @@
 
 const session = document.body.dataset.session;
 const form = document.querySelector('#draft-form');
-const start = document.querySelector('#start');
+const chatForm = document.querySelector('#chat-form');
+const messageInput = chatForm.elements.message;
+const forms = [chatForm, form];
+const submitButtons = forms.map(current => current.querySelector('[type="submit"]'));
 const phase = document.querySelector('#phase');
 const stateBadge = document.querySelector('#state');
 const fileList = document.querySelector('#file-list');
@@ -13,23 +16,31 @@ const copyFile = document.querySelector('#copy-file');
 const copyFolder = document.querySelector('#copy-folder');
 const details = document.querySelector('#details');
 const empty = document.querySelector('#empty');
+const plan = document.querySelector('#work-plan');
+const elapsed = document.querySelector('#elapsed');
+const total = document.querySelector('#total');
 const stateLabels = { idle: '대기', working: '작업 중', done: '초안 저장됨', error: '확인 필요' };
 
 let activeFile = null;
 let renderedFolder = null;
 let showDiff = true;
 let retry = null;
+let submission = 0;
+let clock = null;
+let renderedPlan = '';
 
 document.querySelector('#sample').addEventListener('click', () => {
-  const examples = {
-    instructions: '날짜 목록을 오름차순으로 정렬하는 Python 함수 sort_dates를 작성해줘.',
-    blueprint: '함수의 입력과 반환값은 ISO 형식 날짜 목록이며, 원래 목록을 수정하지 않는다.',
-    paths: 'src/date_tools.py',
-  };
-  for (const [key, value] of Object.entries(examples)) {
-    if (!form.elements[key].value.trim()) form.elements[key].value = value;
+  if (!messageInput.value.trim()) {
+    messageInput.value = '날짜 목록을 오름차순으로 정렬하는 Python 함수 sort_dates를 만들어줘.\n' +
+      '작업 파일: src/date_tools.py\n입력과 반환값은 ISO 형식 날짜 목록이고, 원본 목록은 그대로 둬.';
   }
-  form.elements.instructions.focus();
+  messageInput.focus();
+});
+messageInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) {
+    event.preventDefault();
+    if (!submitButtons[0].disabled) chatForm.requestSubmit();
+  }
 });
 
 for (const tab of document.querySelectorAll('.layout-tab')) {
@@ -87,14 +98,66 @@ copyFolder.addEventListener('click', async () => {
   }
 });
 
+function showTimeline() {
+  if (!clock) return;
+  const delta = clock.running ? performance.now() - clock.at : 0;
+  for (const [node, ms] of [[elapsed, clock.elapsed], [total, clock.total]]) {
+    const seconds = Math.floor((ms + delta) / 1000);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor(seconds / 60) % 60;
+    const stamp = [minutes, seconds % 60].map(value => String(value).padStart(2, '0')).join(':');
+    const text = hours ? hours + ':' + stamp : stamp;
+    if (node.textContent !== text) {
+      node.textContent = text;
+      node.dateTime = 'PT' + seconds + 'S';
+    }
+  }
+}
+
+function showPlan(value) {
+  const key = JSON.stringify(value || null);
+  if (renderedPlan === key) return;
+  renderedPlan = key;
+  const entries = value ? [
+    ['저장소', value.repository],
+    ['브랜치', [value.branch, value.revision?.slice(0, 12)].filter(Boolean).join(' · ')],
+    ['작업 파일', value.paths.join(', ')],
+    ['기존 작업 폴더', value.workspace],
+    ['작업 자료', value.documents ? `GitHub 문서 ${value.documents}개` : ''],
+  ].filter(([, data]) => data) : [];
+  plan.hidden = !entries.length;
+  plan.replaceChildren();
+  for (const [label, data] of entries) {
+    const field = document.createElement('div');
+    const term = document.createElement('dt');
+    const content = document.createElement('dd');
+    term.textContent = label;
+    content.textContent = data;
+    field.append(term, content);
+    plan.append(field);
+  }
+}
+
+function setBusy(busy) {
+  for (const button of submitButtons) button.disabled = busy;
+  for (const input of forms) input.setAttribute('aria-busy', String(busy));
+}
+
 function showResult(state) {
   if (phase.textContent !== state.message) phase.textContent = state.message;
   stateBadge.textContent = stateLabels[state.state];
   stateBadge.dataset.state = state.state;
-  start.disabled = state.state === 'working';
-  form.setAttribute('aria-busy', String(start.disabled));
+  setBusy(state.state === 'working');
+  if (typeof state.elapsed_ms === 'number') {
+    clock = { running: state.state === 'working', at: performance.now(), elapsed: state.elapsed_ms, total: state.total_ms };
+    document.querySelector('#timing-warning').hidden = state.timing_saved !== false;
+    showTimeline();
+  } else if (clock) {
+    clock.running = false;
+  }
+  showPlan(state.plan);
   details.hidden = state.state !== 'done';
-  empty.hidden = !details.hidden || state.state === 'error';
+  empty.hidden = !details.hidden || state.state === 'error' || (state.state === 'working' && !plan.hidden);
   if (state.state !== 'done' || renderedFolder === state.folder) return;
   renderedFolder = state.folder;
   document.querySelector('#summary').textContent = state.summary || '변경 파일을 확인하세요.';
@@ -122,7 +185,7 @@ function showResult(state) {
   sourceList.replaceChildren();
   for (const source of state.sources) {
     const item = document.createElement('li');
-    const scope = source.characters_used < source.characters
+    const scope = source.characters_used === 0 && source.characters ? ' · 읽음, 모델에 전달할 문맥에서 제외' : source.characters_used < source.characters
       ? ' · 관련 발췌 ' + source.characters_used.toLocaleString('ko-KR') + '자/' + source.characters.toLocaleString('ko-KR') + '자'
       : ' · 전체 사용';
     item.textContent = [source.origin, source.revision].filter(Boolean).join(' · ') + scope;
@@ -131,28 +194,32 @@ function showResult(state) {
   }
 }
 
-async function poll() {
+async function poll(version = submission) {
   try {
     const response = await fetch(session + '/status');
     if (!response.ok) throw new Error();
     const status = await response.json();
+    if (version !== submission) return;
     showResult(status);
-    if (status.state === 'working') retry = setTimeout(poll, 1100);
+    if (status.state === 'working') retry = setTimeout(() => poll(version), 1100);
   } catch {
+    if (version !== submission) return;
     showResult({ state: 'error', message: '작업대에 연결할 수 없습니다. 실행 창과 주소를 확인하세요.' });
   }
 }
 
-form.addEventListener('submit', async event => {
+async function submit(event) {
   event.preventDefault();
+  if (submitButtons[0].disabled) return;
+  const version = ++submission;
   clearTimeout(retry);
-  if (start.disabled) return;
-  start.disabled = true;
+  const payload = Object.fromEntries(new FormData(event.currentTarget));
+  setBusy(true);
   try {
     const response = await fetch(session + '/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      body: JSON.stringify(payload),
     });
     const status = await response.json();
     if (!response.ok) {
@@ -160,10 +227,12 @@ form.addEventListener('submit', async event => {
       return;
     }
     showResult(status);
-    if (status.state === 'working') retry = setTimeout(poll, 750);
+    if (status.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
     showResult({ state: 'error', message: '작업 요청을 확인할 수 없습니다. 실행 창과 주소를 확인하세요.' });
   }
-});
+}
 
+for (const input of forms) input.addEventListener('submit', submit);
+setInterval(showTimeline, 250);
 poll();

@@ -92,18 +92,92 @@ def _api_object(raw: bytes | None) -> dict:
     return data
 
 
-def _read_github(url: str, refs: dict[tuple[str, str], str]) -> DraftDocument:
+def _repo_root(repository: str) -> str:
+    bits = repository.split("/")
+    if len(bits) != 2 or not all(_NAME.fullmatch(part) for part in bits):
+        raise DraftError("GitHub 저장소는 소유자/저장소 형식으로 넣으세요.")
+    return f"/repos/{repository}"
+
+
+def resolve_github_revision(repository: str, branch: str, refs: dict) -> str:
+    root = _repo_root(repository)
+    if _SHA.fullmatch(branch):
+        return branch
+    if branch and not _REF.fullmatch(branch):
+        raise DraftError("GitHub 브랜치 형식을 확인하세요.")
+    key = (root, branch)
+    if key not in refs:
+        ref = branch or _api_object(_github_get(root)).get("default_branch")
+        if not isinstance(ref, str) or not _REF.fullmatch(ref):
+            raise DraftError("GitHub 저장소의 기본 브랜치를 확인할 수 없습니다.")
+        raw = _github_get(f"{root}/commits/{quote(ref, safe='')}", "application/vnd.github.sha")
+        revision = raw.decode("ascii", errors="ignore").strip() if raw else ""
+        refs[key] = revision if _SHA.fullmatch(revision) else ""
+    return refs[key]
+
+
+def github_path_info(url: str) -> tuple[str, list[str]]:
     site = urlsplit(url)
     if (site.scheme != "https" or site.netloc not in ("github.com", "raw.githubusercontent.com")
         or len(url) > 2048):
-        raise DraftError("GitHub의 HTTPS 파일 주소 또는 이슈 주소를 넣으세요.")
+        raise DraftError("GitHub의 HTTPS 저장소, 파일 또는 이슈 주소를 넣으세요.")
     bits = [unquote(part, errors="strict") for part in site.path.strip("/").split("/")]
-    if (len(bits) < 3 or not all(_NAME.fullmatch(part) for part in bits[:2])
+    if (len(bits) < 2 or not all(_NAME.fullmatch(part) for part in bits[:2])
         or any(part in ("", ".", "..") or "/" in part or "\\" in part
                or any(ord(ch) < 32 for ch in part) for part in bits)):
-        raise DraftError("GitHub 문서 주소 형식을 확인하세요.")
-    owner, repo, *parts = bits
-    root = f"/repos/{owner}/{repo}"
+        raise DraftError("GitHub 주소 형식을 확인하세요.")
+    return "/".join(bits[:2]), bits[2:]
+
+
+def read_github_file(repository: str, revision: str, path: str, *,
+                     origin: str = "", allow_missing: bool = False) -> DraftDocument | None:
+    root = _repo_root(repository)
+    if not _SHA.fullmatch(revision) or any(
+        part in ("", ".", "..") or "\\" in part or any(ord(ch) < 32 for ch in part)
+        for part in path.split("/")
+    ):
+        raise DraftError("GitHub 파일 경로 또는 커밋 형식을 확인하세요.")
+    raw = _github_get(f"{root}/contents/{quote(path, safe='/')}?ref={revision}")
+    if allow_missing and raw is None:
+        return None
+    doc = _api_object(raw)
+    if (doc.get("type") != "file" or doc.get("encoding") != "base64"
+        or doc.get("path") != path or type(doc.get("size")) is not int
+        or not 0 <= doc["size"] <= DOCUMENT_LIMIT or not isinstance(doc.get("content"), str)):
+        raise DraftError("GitHub에서는 크기 제한 안의 텍스트 파일을 선택하세요.")
+    try:
+        content = base64.b64decode("".join(doc["content"].split()), validate=True)
+        git_id = sha1(f"blob {len(content)}\0".encode() + content).hexdigest()
+        if doc["size"] != len(content) or doc.get("sha") != git_id:
+            raise ValueError
+        text = content.decode("utf-8-sig")
+    except (UnicodeError, ValueError):
+        raise DraftError("GitHub 파일의 UTF-8 내용 또는 해시를 확인할 수 없습니다.") from None
+    if "\0" in text:
+        raise DraftError("GitHub 파일은 UTF-8 텍스트여야 합니다.")
+    origin = origin or f"https://github.com/{repository}/blob/{revision}/{quote(path, safe='/')}"
+    return DraftDocument(text, origin, revision)
+
+
+def github_files(repository: str, revision: str) -> dict[str, int]:
+    root = _repo_root(repository)
+    if not _SHA.fullmatch(revision):
+        raise DraftError("GitHub 커밋 형식을 확인하세요.")
+    tree = _api_object(_github_get(f"{root}/git/trees/{revision}?recursive=1"))
+    if tree.get("truncated") or not isinstance(tree.get("tree"), list):
+        raise DraftError("저장소 파일이 너무 많습니다. 메시지에 작업 파일을 직접 적어 주세요.")
+    return {
+        entry["path"]: entry["size"] for entry in tree["tree"]
+        if isinstance(entry, dict) and entry.get("type") == "blob"
+        and entry.get("mode") in ("100644", "100755") and isinstance(entry.get("path"), str)
+        and type(entry.get("size")) is int and 0 <= entry["size"] <= DOCUMENT_LIMIT
+    }
+
+
+def _read_github(url: str, refs: dict[tuple[str, str], str]) -> DraftDocument:
+    site = urlsplit(url)
+    repository, parts = github_path_info(url)
+    root = _repo_root(repository)
     origin = f"https://{site.netloc}" + site.path
     if site.netloc == "github.com":
         if len(parts) == 2 and parts[0] == "issues" and re.fullmatch(r"[0-9]{1,10}", parts[1]):
@@ -120,34 +194,16 @@ def _read_github(url: str, refs: dict[tuple[str, str], str]) -> DraftDocument:
     if not ref:
         for index in range(1, min(len(parts), 9)):
             candidate = "/".join(parts[:index])
-            if not _REF.fullmatch(candidate):
-                raise DraftError("GitHub 브랜치 형식을 확인하세요.")
-            cache_key = (root, candidate)
-            if cache_key not in refs:
-                raw = _github_get(f"{root}/commits/{quote(candidate, safe='')}", "application/vnd.github.sha")
-                resolved = raw.decode("ascii", errors="ignore").strip() if raw else ""
-                if _SHA.fullmatch(resolved):
-                    refs[cache_key] = resolved
-            if cache_key in refs:
-                ref, local_path = refs[cache_key], parts[index:]
+            ref = resolve_github_revision(repository, candidate, refs)
+            if ref:
+                local_path = parts[index:]
                 break
         else:
             raise DraftError("GitHub 브랜치 또는 커밋을 찾을 수 없습니다.")
-    path = "/".join(local_path)
-    doc = _api_object(_github_get(f"{root}/contents/{quote(path, safe='/')}?ref={ref}"))
-    if (doc.get("type") != "file" or doc.get("encoding") != "base64"
-        or doc.get("path") != path or type(doc.get("size")) is not int
-        or not 1 <= doc["size"] <= DOCUMENT_LIMIT or not isinstance(doc.get("content"), str)):
+    document = read_github_file(repository, ref, "/".join(local_path), origin=origin)
+    if not document.text:
         raise DraftError("GitHub에서는 크기 제한 안의 텍스트 파일을 선택하세요.")
-    try:
-        content = base64.b64decode("".join(doc["content"].split()), validate=True)
-        git_id = sha1(f"blob {len(content)}\0".encode() + content).hexdigest()
-        if doc["size"] != len(content) or doc.get("sha") != git_id:
-            raise ValueError
-        text = content.decode("utf-8-sig")
-    except (UnicodeError, ValueError):
-        raise DraftError("GitHub 파일의 UTF-8 내용 또는 해시를 확인할 수 없습니다.") from None
-    return DraftDocument(text, origin, ref)
+    return document
 
 
 def read_document(value: str, refs: dict[tuple[str, str], str]) -> DraftDocument:

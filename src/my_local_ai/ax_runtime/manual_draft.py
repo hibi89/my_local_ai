@@ -9,14 +9,19 @@ import os
 from pathlib import Path
 import re
 import secrets
+import sqlite3
 import stat
 import tempfile
 from threading import Lock, Thread
+from time import monotonic
 
-from ..contracts.task import safe_path
 from ..state.local_files import local_path_stat, read_bounded_regular
 from .budgets import BudgetGuard, ModelBudget
-from .draft_documents import DOCUMENT_LIMIT, DraftError, read_document
+from .draft_documents import (
+    DOCUMENT_LIMIT, DraftDocument, DraftError, github_files, read_document, read_github_file,
+)
+from .draft_intake import parse_handoff, read_handoff_documents, text_path
+from .draft_timing import recorded_time
 from .ollama_provider import OllamaProvider
 from .provider_policy import ProviderHold
 from .worker_lock import ModelLockUnsafe, OneModelLock
@@ -25,13 +30,8 @@ from .worker_lock import ModelLockUnsafe, OneModelLock
 REQUEST_LIMIT = 1_800_000  # Space for JSON escaping of two UTF-8 documents.
 _CONTEXT = 8192
 _INPUT_LIMIT = _CONTEXT - 1536
+_CHAT_INPUT_LIMIT = 10_400
 _OUTPUT_LIMIT = 60_000
-_TEXT_EXTENSIONS = {
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".html", ".css", ".scss",
-    ".json", ".yaml", ".yml", ".toml", ".md", ".txt", ".sql", ".go", ".rs",
-    ".java", ".cs", ".c", ".cpp", ".h", ".svelte", ".vue", ".swift", ".kt", ".sh", ".ps1",
-}
-_PRIVATE_NAMES = {"secrets", "credentials", "tokens", "certificate", "private_key"}
 _KEYWORDS = re.compile(r"[A-Za-z0-9_\uac00-\ud7a3]{2,}")
 
 
@@ -42,19 +42,6 @@ def _unique_fields(pairs):
             raise ValueError("duplicate JSON field")
         result[key] = value
     return result
-
-
-def _text_path(path: str) -> str:
-    try:
-        safe_path(path)
-        leaf = Path(path)
-        if (leaf.suffix.lower() not in _TEXT_EXTENSIONS
-            or any(part.casefold().split(".")[0] in _PRIVATE_NAMES
-                   or part.startswith(".") for part in leaf.parts)):
-            raise ValueError
-    except ValueError:
-        raise DraftError("작업 파일에는 프로젝트 안의 일반 텍스트 소스 상대 경로를 넣으세요.") from None
-    return path
 
 
 def _local_absolute(value: str) -> Path:
@@ -133,6 +120,128 @@ def _create_prompt(instruction: str, design: str, sources: dict[str, str]) -> tu
     return header + excerpt, len(excerpt)
 
 
+def _clip(text: str, limit: int) -> str:
+    return text.encode()[:max(0, limit)].decode("utf-8", errors="ignore")
+
+
+def _first_priority(message: str) -> str:
+    sections = re.split(r"(?m)(?=^#{2,6} )", message)
+    for index, section in enumerate(sections):
+        title, _, rest = section.partition("\n")
+        if title.startswith("##") and re.search(r"우선순위|priorities|next task", title, re.I):
+            return rest.strip() or (sections[index + 1].strip() if index + 1 < len(sections) else "")
+    return message
+
+
+def _source_excerpt(source: str, query: str, limit: int) -> str:
+    if len(source.encode()) <= limit:
+        return source
+    keywords = set(_KEYWORDS.findall(query.casefold()))
+    lines = source.splitlines(keepends=True)
+    best = (-1, "")
+    # Score overlapping windows of whole lines so Qwen can copy exact anchors.
+    for start in range(0, len(lines), 12):
+        excerpt = _clip("".join(lines[start:start + 110]), limit)
+        if excerpt and not excerpt.endswith("\n"):
+            excerpt = excerpt.rpartition("\n")[0] + "\n" if "\n" in excerpt else ""
+        score = len(keywords.intersection(_KEYWORDS.findall(excerpt.casefold())))
+        if excerpt and score > best[0]:
+            best = (score, excerpt)
+    if not best[1]:
+        raise DraftError("작업 파일에 모델이 인용할 수 있는 코드 구간을 찾지 못했습니다.")
+    return best[1]
+
+
+def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], originals: dict[str, str],
+                    source_docs: dict[str, DraftDocument], narrowed: bool) -> tuple[str, dict | None, list]:
+    priority = _first_priority(task.text)
+    if len(task.text.encode()) > 3500:
+        begin = _clip(task.text, 750)
+        focus = _clip(priority, 1750) if priority != task.text else _design_excerpt(task.text, " ".join(originals), 1600)
+        instructions = f"{begin}\n\n{focus}"
+        used = len(begin) + len(focus) if priority != task.text else len(focus)
+    else:
+        instructions, used = task.text, len(task.text)
+    query = instructions + " " + " ".join(originals)
+    evidence = [task.evidence(min(used, len(task.text)))]
+    encoded = json.dumps(originals, ensure_ascii=False)
+    fragments = None
+    selection = ("Choose one small source change that advances the first priority and is supported by the shown code. "
+                 "Do not mark checks as passed or invent test or execution results.\n") if narrowed else ""
+    preamble = selection + "Use the attached document excerpts as context for the change."
+    if len(encoded.encode()) > 1900:
+        per_file = min(3600, 3800 // len(originals))
+        fragments = {path: _source_excerpt(source.replace("\r\n", "\n"), query, per_file)
+                     for path, source in originals.items()}
+        prompt = (
+            'Return one JSON object: {"summary":"short Korean summary","edits":[{"path":"exact path",'
+            '"before":"unique exact block from the excerpt, including indentation and line breaks",'
+            '"after":"replacement text"}]}. Use whole lines and preserve surrounding code. '
+            'For an empty file only, use an empty before and include the whole new file as after. '
+            'Use only the listed paths. Return at least one edit. Do not return Markdown or commands.\n'
+            + preamble + '\nWork instructions:\n' + instructions
+            + '\nCurrent source excerpts:\n' + json.dumps(fragments, ensure_ascii=False)
+        )
+    else:
+        prompt, _ = _create_prompt(instructions + "\n\n" + preamble, "", originals)
+    room = _CHAT_INPUT_LIMIT - len(prompt.encode())
+    if room < 0:
+        raise DraftError("붙여넣은 작업과 파일을 한 번에 읽기 어렵습니다. 작업 파일을 나누어 주세요.")
+    if documents:
+        per_document = min(2300, room // len(documents))
+        for document in documents:
+            name = document.origin.split("/")[-1]
+            limit = per_document - len(name.encode()) - 16
+            excerpt = (_design_excerpt(document.text, query, limit) if limit >= 500
+                       else _clip(document.text, limit))
+            if excerpt:
+                prompt += f"\n\n[{name}]\n{excerpt}"
+            evidence.append(document.evidence(len(excerpt)))
+    for path, document in source_docs.items():
+        evidence.append(document.evidence(len(fragments[path]) if fragments is not None else len(document.text)))
+    return prompt, fragments, evidence
+
+
+def _apply_model_edits(raw: str, originals: dict[str, str], fragments: dict[str, str]) -> str:
+    try:
+        data = json.loads(raw, object_pairs_hook=_unique_fields)
+        if (type(data) is not dict or set(data) != {"summary", "edits"}
+            or type(data["edits"]) is not list or not 1 <= len(data["edits"]) <= 8):
+            raise ValueError
+        changes = {}
+        for row in data["edits"]:
+            if (type(row) is not dict or set(row) != {"path", "before", "after"}
+                or any(type(value) is not str for value in row.values())):
+                raise ValueError
+            path, before, after = row["path"], row["before"], row["after"]
+            if path not in originals:
+                raise ValueError
+            original = originals[path]
+            before = before.replace("\r\n", "\n")
+            if (not before and original) or (before and before not in fragments[path]):
+                raise ValueError
+            if "\r\n" in original:
+                before = before.replace("\n", "\r\n")
+                after = after.replace("\r\n", "\n").replace("\n", "\r\n")
+            offset = original.find(before)
+            if offset < 0 or (before and offset != original.rfind(before)):
+                raise ValueError
+            changes.setdefault(path, []).append((offset, offset + len(before), after))
+        files = []
+        for path, edits in changes.items():
+            source = originals[path]
+            boundary = len(source) + 1
+            for start, end, replacement in sorted(edits, reverse=True):
+                if start >= boundary or end > boundary:
+                    raise ValueError
+                source = source[:start] + replacement + source[end:]
+                boundary = start
+            files.append({"path": path, "content": source})
+        return json.dumps({"summary": data["summary"], "files": files}, ensure_ascii=False)
+    except (ValueError, RecursionError):
+        raise DraftError("Qwen이 제안한 수정 위치를 원본에서 정확히 확인할 수 없습니다. 수정 대상을 더 좁혀 주세요.") from None
+
+
 def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
     try:
         data = json.loads(raw, object_pairs_hook=_unique_fields)
@@ -146,7 +255,7 @@ def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
             if (type(row) is not dict or set(row) != {"path", "content"}
                 or type(row["path"]) is not str or type(row["content"]) is not str):
                 raise ValueError
-            path, source = _text_path(row["path"]), row["content"]
+            path, source = text_path(row["path"]), row["content"]
             if ((originals and path not in originals) or path.casefold() in seen or "\0" in source
                 or len(source.encode()) > _OUTPUT_LIMIT):
                 raise ValueError
@@ -182,32 +291,55 @@ class LocalDrafts:
         self.provider = provider or OllamaProvider(timeout_seconds=260)
         self._lock = Lock()
         self._state = {"state": "idle", "message": "작업을 시작하면 진행 상황이 표시됩니다."}
+        self._started = None
+        self._elapsed_ms = self._total_ms = 0
+        self._timing_error = False
+        self._refresh_total()
 
     def snapshot(self) -> dict:
         with self._lock:
-            return dict(self._state)
+            return self._snapshot_locked()
+
+    def _snapshot_locked(self) -> dict:
+        elapsed = self._elapsed_ms if self._started is None else int((monotonic() - self._started) * 1000)
+        return {**self._state, "elapsed_ms": elapsed,
+                "total_ms": self._total_ms + (elapsed if self._started is not None else 0),
+                "timing_saved": not self._timing_error}
 
     def _set(self, state: str, message: str, **values) -> None:
         with self._lock:
-            self._state = {"state": state, "message": message, **values}
+            self._state.update(state=state, message=message, **values)
+            if state in ("done", "error"):
+                self._elapsed_ms = int((monotonic() - self._started) * 1000)
+                self._started = None
+                self._refresh_total(self._elapsed_ms)
+
+    def _refresh_total(self, elapsed_ms: int | None = None) -> None:
+        try:
+            self._total_ms = recorded_time(self.root, elapsed_ms)
+            self._timing_error = False
+        except (OSError, ValueError, sqlite3.Error):
+            self._total_ms += elapsed_ms or 0
+            self._timing_error = True
 
     def start(self, payload: object) -> dict:
         names = {"instructions", "blueprint", "paths", "workspace"}
-        if (type(payload) is not dict or set(payload) != names
+        if (type(payload) is not dict or set(payload) not in (names, {"message"})
             or any(type(text) is not str or "\0" in text for text in payload.values())):
             raise DraftError("입력값의 형식을 확인하세요.")
-        instruction = payload["instructions"].strip()
-        design = payload["blueprint"].strip()
-        spec = payload["paths"].strip()
-        folder = payload["workspace"].strip()
+        handoff = "message" in payload
+        instruction = payload["message" if handoff else "instructions"].strip()
+        design = payload.get("blueprint", "").strip()
+        spec = payload.get("paths", "").strip()
+        folder = payload.get("workspace", "").strip()
         if not instruction:
-            raise DraftError("작업명령문을 넣으세요.")
+            raise DraftError("작업 지시를 넣으세요.")
         if folder and not spec:
             raise DraftError("기존 프로젝트를 바꿀 때는 작업할 파일 경로를 지정하세요.")
         if (any(len(value.encode()) > DOCUMENT_LIMIT for value in (instruction, design))
             or len(spec) > 3000 or len(folder) > 1024):
             raise DraftError("입력 문서나 파일 목록을 나누어 넣으세요.")
-        paths = tuple(_text_path(line.strip()) for line in spec.splitlines() if line.strip())
+        paths = tuple(text_path(line.strip()) for line in spec.splitlines() if line.strip())
         if len(paths) > 8 or len({path.casefold() for path in paths}) != len(paths):
             raise DraftError("서로 다른 작업 파일을 한 번에 1~8개 넣으세요.")
         if folder:
@@ -216,25 +348,80 @@ class LocalDrafts:
         with self._lock:
             if self._state["state"] == "working":
                 raise DraftError("현재 작업이 끝나면 다음 작업을 시작할 수 있습니다.")
-            self._state = {"state": "working", "message": "작업 자료를 읽는 중입니다."}
-            worker = Thread(target=self._run, args=(instruction, design, paths, folder), daemon=True)
+            self._refresh_total()
+            self._started = monotonic()
+            self._elapsed_ms = 0
+            message = "붙여넣은 지시에서 작업 자료를 찾는 중입니다." if handoff else "작업 자료를 읽는 중입니다."
+            self._state = {"state": "working", "message": message}
+            worker = Thread(target=self._run, args=(instruction, design, paths, folder, handoff), daemon=True)
             try:
                 worker.start()
             except RuntimeError:
                 self._state = {"state": "error", "message": "작업을 시작하지 못했습니다."}
-            return dict(self._state)
+                self._started = None
+            return self._snapshot_locked()
 
-    def _run(self, instruction: str, design: str, paths: tuple[str, ...], folder: str) -> None:
+    def _prepare_handoff(self, message: str) -> tuple[str, dict, dict | None, list, dict]:
+        handoff = parse_handoff(message)
+        plan = {"repository": handoff.repository, "branch": handoff.branch,
+                "paths": list(handoff.paths), "documents": len(handoff.documents)}
+        self._set("working", "작업에 필요한 문서와 원본을 읽는 중입니다.", plan=plan)
+        revision, documents = read_handoff_documents(handoff)
+        paths = handoff.paths
+        mentioned = tuple(path for path in handoff.mentioned if handoff.permits(path))
+        if not paths and len(mentioned) == 1:
+            paths = (text_path(mentioned[0]),)
+        narrowed = not paths and bool(handoff.repository)
+        if narrowed:
+            files = github_files(handoff.repository, revision)
+            candidates = {path: size for path, size in files.items() if size <= _OUTPUT_LIMIT}
+            path = handoff.pick_file(candidates, _first_priority(message), documents)
+            paths = (path,)
+        elif not paths:
+            paths = tuple(text_path(path) for path in mentioned)
+        if not paths and (handoff.allowed or handoff.excluded):
+            paths = tuple(text_path(path) for path in handoff.allowed if "*" not in path and handoff.permits(path))
+            if not paths:
+                raise DraftError("수정 범위 안에서 ‘작업 파일: 상대경로’ 한 개를 적어 주세요.")
+        if len(paths) > 8 or len({path.casefold() for path in paths}) != len(paths):
+            raise DraftError("서로 다른 작업 파일을 한 번에 1~8개 넣으세요.")
+        if any(not handoff.permits(path) for path in paths):
+            raise DraftError("작업 파일이 메시지에 적힌 수정 허용 범위를 벗어납니다.")
+        if handoff.workspace and not paths:
+            raise DraftError("기존 작업 폴더를 쓸 때는 메시지에 ‘작업 파일: 상대경로’를 적어 주세요.")
+        source_docs = {}
+        if handoff.repository and not handoff.workspace:
+            for path in paths:
+                document = read_github_file(handoff.repository, revision, path, allow_missing=not narrowed)
+                if document is not None:
+                    source_docs[path] = document
+            originals = {path: source_docs[path].text if path in source_docs else "" for path in paths}
+        else:
+            originals = _existing_sources(handoff.workspace, paths, self.root)
+        if any(len(source.encode()) > _OUTPUT_LIMIT for source in originals.values()):
+            raise DraftError("작업 파일이 로컬 초안 크기 한도를 넘었습니다. 더 작은 파일을 선택해 주세요.")
+        plan = {**plan, "paths": list(paths), "revision": revision, "documents": len(documents),
+                "narrowed": narrowed, "workspace": handoff.workspace}
+        task = DraftDocument(message, "붙여넣은 작업 지시")
+        prompt, fragments, evidence = _handoff_prompt(task, documents, originals, source_docs, narrowed)
+        return prompt, originals, fragments, evidence, plan
+
+    def _run(self, instruction: str, design: str, paths: tuple[str, ...], folder: str, handoff: bool) -> None:
         try:
-            refs = {}
-            task = read_document(instruction, refs)
-            blueprint = read_document(design, refs) if design else None
-            originals = _existing_sources(folder, paths, self.root)
-            prompt, used = _create_prompt(task.text, blueprint.text if blueprint else "", originals)
-            evidence = [task.evidence(len(task.text))]
-            if blueprint:
-                evidence.append(blueprint.evidence(used))
-            self._set("working", "로컬 Qwen이 파일 초안을 작성 중입니다.")
+            fragments = None
+            plan = None
+            if handoff:
+                prompt, originals, fragments, evidence, plan = self._prepare_handoff(instruction)
+            else:
+                refs = {}
+                task = read_document(instruction, refs)
+                blueprint = read_document(design, refs) if design else None
+                originals = _existing_sources(folder, paths, self.root)
+                prompt, used = _create_prompt(task.text, blueprint.text if blueprint else "", originals)
+                evidence = [task.evidence(len(task.text))]
+                if blueprint:
+                    evidence.append(blueprint.evidence(used))
+            self._set("working", "로컬 Qwen이 파일 초안을 작성 중입니다.", plan=plan)
             context = 4096 if len(prompt.encode()) <= 2560 else _CONTEXT
             generate = self.provider.generate(
                 prompt, model_lock=OneModelLock(self.root),
@@ -244,10 +431,12 @@ class LocalDrafts:
             )
             if generate.untrusted is not True:
                 raise DraftError("Qwen 초안의 출처를 확인할 수 없습니다.")
-            summary, files = _model_files(generate.text, originals)
+            reply = _apply_model_edits(generate.text, originals, fragments) if fragments is not None else generate.text
+            summary, files = _model_files(reply, originals)
             self._set("working", "변경 내용을 정리해 별도 폴더에 저장 중입니다.")
-            destination = self._save(files, summary, evidence)
-            self._set("done", "초안 파일을 저장했습니다.", summary=summary,
+            destination = self._save(files, summary, evidence, plan)
+            message = "첫 작업의 로컬 초안을 저장했습니다." if plan and plan["narrowed"] else "초안 파일을 저장했습니다."
+            self._set("done", message, summary=summary,
                       folder=str(destination / "files"), files=files, sources=evidence)
         except DraftError as exc:
             self._set("error", str(exc))
@@ -258,10 +447,10 @@ class LocalDrafts:
                 "RESOURCE_LIMIT": "로컬 모델이 사용 중이거나 작업 한도를 넘었습니다.",
             }
             self._set("error", messages.get(exc.code, "Qwen 응답을 다시 확인해 주세요."))
-        except (OSError, ValueError, OverflowError, ModelLockUnsafe):
+        except (OSError, ValueError, OverflowError, RuntimeError, ModelLockUnsafe):
             self._set("error", "작업 자료나 초안 저장 폴더를 확인하세요.")
 
-    def _save(self, files: list[dict], summary: str, sources: list[dict]) -> Path:
+    def _save(self, files: list[dict], summary: str, sources: list[dict], plan: dict | None) -> Path:
         local_path_stat(self.root)
         target = self.root / (datetime.now().strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(5))
         with tempfile.TemporaryDirectory(prefix=".mla-draft-", dir=self.root) as temporary:
@@ -273,6 +462,7 @@ class LocalDrafts:
                     stream.write(file["content"].encode())
             (stage / "work.json").write_text(json.dumps({
                 "summary": summary, "paths": [file["path"] for file in files], "sources": sources,
+                **({"plan": plan} if plan else {}),
             }, ensure_ascii=False, indent=2), encoding="utf-8")
             stage.rename(target)
         return target

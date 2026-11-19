@@ -40,7 +40,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
   </header>
   <main id="content" class="shell">
     <header class="intro">
-      <div><h1>로컬 작업대</h1><p>작업명령문과 최종설계도를 넘기고, 변경 초안을 확인하세요.</p></div>
+      <div><h1>로컬 작업대</h1><p>웹 GPT가 준 지시를 보내고, Qwen이 만든 변경 초안을 확인하세요.</p></div>
       <nav class="layout-tabs" aria-label="화면 구성">{tabs}</nav>
     </header>
     <ol class="steps" aria-label="작업 순서">
@@ -48,11 +48,25 @@ def render_workbench(session_path: str, layout: str) -> bytes:
     </ol>
     <div class="work-grid">
       <section class="panel inputs" aria-labelledby="input-heading">
-        <header class="panel-head"><div><h2 id="input-heading">작업 입력</h2>
-          <p>텍스트 또는 GitHub 문서 주소</p></div>
+        <header class="panel-head"><div><h2 id="input-heading">작업 지시</h2>
+          <p>명령문과 GitHub 주소를 한 번에</p></div>
           <button type="button" class="quiet-button" id="sample">예제 넣기</button>
         </header>
-        <form id="draft-form">
+        <form id="chat-form" aria-labelledby="input-heading">
+          <label for="message">웹 GPT 지시문</label>
+          <div class="composer">
+            <textarea id="message" name="message" rows="8" required aria-describedby="chat-hint"
+              placeholder="웹 GPT가 넘겨준 작업 지시를 그대로 붙여넣으세요.&#10;예시  GitHub의 최종설계도를 읽고 날짜 정렬 함수를 만들어줘."></textarea>
+            <div class="composer-actions">
+              <button class="primary" id="send" type="submit">보내고 작업 시작 <span aria-hidden="true">→</span></button>
+              <kbd>Ctrl+Enter</kbd>
+            </div>
+          </div>
+          <p id="chat-hint">MLA가 작업 자료와 파일을 찾아 초안을 별도 폴더에 저장합니다.</p>
+        </form>
+        <details class="advanced-input">
+          <summary>작업 자료 직접 지정</summary>
+          <form id="draft-form">
           <label for="instructions">작업명령문</label>
           <textarea id="instructions" name="instructions" rows="5" required
             placeholder="예시  날짜 목록을 정렬하는 함수를 작성해줘"></textarea>
@@ -73,14 +87,21 @@ def render_workbench(session_path: str, layout: str) -> bytes:
             <button class="primary" id="start" type="submit">로컬 작업 시작 <span aria-hidden="true">→</span></button>
             <span>초안은 별도 폴더에 저장됩니다.</span>
           </footer>
-        </form>
+          </form>
+        </details>
       </section>
       <section class="panel review" aria-labelledby="review-heading">
         <header class="panel-head"><div><h2 id="review-heading">작업 결과</h2>
           <p id="phase" role="status" aria-live="polite">작업을 시작하면 진행 상황이 표시됩니다.</p></div>
           <span id="state" class="state" data-state="idle">대기</span>
         </header>
+        <dl class="timers" aria-label="작업 시간">
+          <div><dt>이번 작업 시간</dt><dd><time id="elapsed" datetime="PT0S">00:00</time></dd></div>
+          <div><dt>누적 작업 시간</dt><dd><time id="total" datetime="PT0S">00:00</time></dd></div>
+        </dl>
+        <p id="timing-warning" class="timing-warning" hidden>누적 시간을 저장할 수 없습니다.</p>
         <div class="result-body" id="result">
+          <dl id="work-plan" class="work-plan" aria-label="자동으로 찾은 작업 범위" hidden></dl>
           <div id="empty" class="empty">
             <div class="empty-icon" aria-hidden="true"><i></i><i></i><i></i></div>
             <strong>초안을 기다리는 중</strong>

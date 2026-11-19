@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 from hashlib import sha1
+from itertools import count
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -54,17 +55,21 @@ class DraftDocumentsTests(unittest.TestCase):
 
 
 class FixtureProvider:
-    def __init__(self, path, text):
+    def __init__(self, path, text, before=None):
         self.path = path
         self.text = text
+        self.before = before
         self.prompt = ""
 
     def generate(self, prompt, **options):
         self.prompt = prompt
         assert options["allow_generation"] and options["structured"]
-        return UntrustedGeneration(json.dumps({
-            "summary": "prepared draft", "files": [{"path": self.path, "content": self.text}],
-        }), "qwen3:4b-instruct")
+        reply = {"summary": "prepared draft"}
+        if self.before is None:
+            reply["files"] = [{"path": self.path, "content": self.text}]
+        else:
+            reply["edits"] = [{"path": self.path, "before": self.before, "after": self.text}]
+        return UntrustedGeneration(json.dumps(reply), "qwen3:4b-instruct")
 
 
 class LocalDraftsTests(unittest.TestCase):
@@ -112,7 +117,7 @@ class LocalDraftsTests(unittest.TestCase):
             result = self.await_result(app)
             self.assertEqual(result["state"], "error")
             self.assertFalse((root / "other.py").exists())
-            self.assertEqual(list((root / "drafts").iterdir()), [])
+            self.assertFalse(any(path.is_dir() for path in (root / "drafts").iterdir()))
 
     def test_new_file_can_be_drafted_from_documents_alone(self):
         with TemporaryDirectory() as directory:
@@ -124,6 +129,73 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(result["state"], "done", result["message"])
             self.assertIn("New files only", provider.prompt)
             self.assertTrue((Path(result["folder"]) / "report.py").is_file())
+
+    def test_pasted_handoff_resolves_docs_and_updates_original_from_an_exact_anchor(self):
+        revision = "2" * 40
+        path = "src/server.py"
+        original = "OPTION = 7\r\n" + ("# keep the remaining file as-is\r\n" * 100)
+        document = "The server should default to OPTION = 8."
+        repo = "/repos/example/project"
+        responses = {
+            f"{repo}/commits/integration%2Fone": revision.encode(),
+            f"{repo}/git/trees/{revision}?recursive=1": json.dumps({
+                "tree": [
+                    {"path": name, "size": size, "mode": "100644", "type": "blob"}
+                    for name, size in ((path, len(original)), ("src/gui/server.py", 20))
+                ],
+            }).encode(),
+        }
+        for name, text in ((path, original), ("docs/final.md", document)):
+            content = text.encode()
+            responses[f"{repo}/contents/{name}?ref={revision}"] = json.dumps({
+                "type": "file", "encoding": "base64", "path": name, "size": len(content),
+                "content": base64.b64encode(content).decode(),
+                "sha": sha1(f"blob {len(content)}\0".encode() + content).hexdigest(),
+            }).encode()
+        message = (
+            "Repository: example/project\nBranch: integration/one\n"
+            "## 읽을 문서\n- docs/final.md\n"
+            "## 작업 우선순위\nChange the server default option to 8.\n"
+            "## 제외\n- src/gui/**\n"
+            "## 범위\n수정 허용 대상:\n\n- src/**\n"
+        )
+        provider = FixtureProvider(path, "OPTION = 8\n", "OPTION = 7\n")
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            with patch("my_local_ai.ax_runtime.draft_documents._github_get",
+                       side_effect=lambda endpoint, *args: responses[endpoint]), patch(
+                       "my_local_ai.ax_runtime.manual_draft.monotonic", side_effect=count(50)):
+                app = LocalDrafts(root, provider=provider)
+                started = app.start({"message": message})
+                result = self.await_result(app)
+            self.assertEqual(started["state"], "working")
+            self.assertEqual(result["state"], "done", result["message"])
+            self.assertEqual(result["plan"]["paths"], [path])
+            self.assertTrue(result["plan"]["narrowed"])
+            self.assertEqual(result["plan"]["revision"], revision)
+            self.assertIn(document, provider.prompt)
+            self.assertEqual(result["sources"][-1]["revision"], revision)
+            expected = original.replace("OPTION = 7", "OPTION = 8")
+            self.assertEqual((Path(result["folder"]) / path).read_bytes(), expected.encode())
+            self.assertGreater(result["elapsed_ms"], 0)
+            self.assertEqual(result["total_ms"], result["elapsed_ms"])
+            self.assertEqual(LocalDrafts(root).snapshot()["total_ms"], result["total_ms"])
+
+    def test_pasted_message_can_create_a_file_and_a_failed_job_keeps_total(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            provider = FixtureProvider("src/report.py", "READY = True\n")
+            clock = count(50)
+            with patch("my_local_ai.ax_runtime.manual_draft.monotonic", side_effect=clock):
+                app = LocalDrafts(root, provider=provider)
+                app.start({"message": "Create a local readiness module.\n작업 파일: src/report.py"})
+                first = self.await_result(app)
+                self.assertEqual(first["state"], "done", first["message"])
+                app.start({"message": "작업 파일: ../unsafe.py"})
+                second = self.await_result(app)
+            self.assertEqual(second["state"], "error")
+            self.assertEqual(second["total_ms"], first["elapsed_ms"] + second["elapsed_ms"])
+            self.assertEqual(LocalDrafts(root).snapshot()["total_ms"], second["total_ms"])
 
 
 if __name__ == "__main__":
