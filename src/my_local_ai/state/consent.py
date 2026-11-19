@@ -665,6 +665,16 @@ def _validate_broker_binding(binding: dict) -> None:
         raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
 
 
+def _guard_broker_transport_deadline(deadline: float, now: float) -> None:
+    """Never accept a completed IPC operation after the overall timeout.
+
+    Per-I/O waits alone do not bound SCM identity checks or synchronous
+    WriteFile/ReadFile completions. Reject late evidence without retrying.
+    """
+    if now >= deadline:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+
+
 class _WindowsBrokerAPI:
     """System32-only Win32 calls; no shell, policy writes or private-key reads."""
     def __init__(self):
@@ -1074,7 +1084,9 @@ class _WindowsBrokerAPI:
         deadline = time.monotonic() + timeout
         try:
             with self.authenticate_pipe(pipe, role, roots):
+                _guard_broker_transport_deadline(deadline, time.monotonic())
                 def io(data: bytes | None, size: int) -> bytes:
+                    _guard_broker_transport_deadline(deadline, time.monotonic())
                     buffer = c.create_string_buffer(data, size) if data is not None else c.create_string_buffer(size)
                     ov = Overlapped()
                     ov.event = event_create(None, True, False, None)
@@ -1099,6 +1111,9 @@ class _WindowsBrokerAPI:
                                 raise ProtectedBrokerHold()
                         if not 1 <= count.value <= size:
                             raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                        # Successful synchronous calls can also take longer
+                        # than the request deadline; never accept late bytes.
+                        _guard_broker_transport_deadline(deadline, time.monotonic())
                         return buffer.raw[:count.value]
                     finally:
                         self.kernel.CloseHandle(ov.event)
@@ -1122,6 +1137,7 @@ class _WindowsBrokerAPI:
                 # disconnect and an unbounded synchronous FlushFileBuffers.
                 if io(b"\x06", 1) != b"\x06":
                     raise ProtectedBrokerHold("PROTECTED_BROKER_PROTOCOL")
+                _guard_broker_transport_deadline(deadline, time.monotonic())
                 return response
         finally:
             self.kernel.CloseHandle(pipe)
