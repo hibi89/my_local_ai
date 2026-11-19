@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time as _defender_time
 
 from my_local_ai.security.codeshield_contracts import CodeShieldHold
 
@@ -585,7 +586,20 @@ def _deny_truncated_defender_events(require_complete: bool, existing_count: int)
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
 
 
-def _defender_events_after(api, after_record: int, *, require_complete: bool = False) -> list[dict]:
+def _guard_defender_event_budget(started: float, stopped=None) -> None:
+    """Bound Defender event-log readback independently of scan-engine timeout.
+
+    A 257-record EvtNext loop can otherwise stall protected service handling
+    for several minutes when each native read consumes its own timeout.
+    Unknown, cancelled or incomplete evidence never becomes CLEAN.
+    """
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    if ((stopped is not None and stopped.is_set())
+        or _defender_time.monotonic() - started >= 20):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+
+
+def _defender_events_after(api, after_record: int, *, require_complete: bool = False, stopped=None) -> list[dict]:
     """Read bounded event XML via wevtapi. No PowerShell or mutable log file."""
     import xml.etree.ElementTree as ET
     from my_local_ai.state.consent import ProtectedBrokerHold
@@ -605,14 +619,18 @@ def _defender_events_after(api, after_record: int, *, require_complete: bool = F
     if not handle:
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     result = []
+    started = _defender_time.monotonic()
     ns = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
     try:
         # Oldest records may be omitted only during the pre-scan cursor
         # snapshot. Post-scan queries must probe record 257 and HOLD rather
         # than silently truncate policy-change or malware evidence.
         for _ in range(257 if require_complete else 256):
+            _guard_defender_event_budget(started, stopped)
             event, count = w.HANDLE(), w.DWORD()
-            if not next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count)):
+            received = next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count))
+            _guard_defender_event_budget(started, stopped)
+            if not received:
                 if c.get_last_error() == 259:
                     break
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
@@ -640,10 +658,12 @@ def _defender_events_after(api, after_record: int, *, require_complete: bool = F
                     fields[name] = item.text or ""
                 result.append({"record": record, "id": event_id, "fields": fields,
                                "evidence_sha256": _sha256(xml.encode("utf-8")).hexdigest()})
+                _guard_defender_event_budget(started, stopped)
             finally:
                 close(event)
     finally:
         close(handle)
+    _guard_defender_event_budget(started, stopped)
     return result
 
 
@@ -776,7 +796,7 @@ def _serve_defender_scan(api, binding: dict, payload: dict, scope: dict, stopped
             api.pin_path(staged, private=True)
             if _read_bounded_untrusted_scan_target(staged) != (before_digest, before_size):
                 raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
-            prior_events = _defender_events_after(api, 0)
+            prior_events = _defender_events_after(api, 0, stopped=stopped)
             cursor = max((item["record"] for item in prior_events), default=0)
             root = os.environ.get("SystemRoot", r"C:\Windows")
             env = {"SystemRoot": root, "WINDIR": root,
@@ -787,7 +807,7 @@ def _serve_defender_scan(api, binding: dict, payload: dict, scope: dict, stopped
                 cwd=image.parent, env=env, timeout_seconds=payload["timeout_seconds"],
                 stopped=stopped, output_limit=1024 * 1024,
             )
-            after_events = _defender_events_after(api, cursor, require_complete=True)
+            after_events = _defender_events_after(api, cursor, require_complete=True, stopped=stopped)
             if any(item["id"] in {5001, 5004, 5007, 5010, 5012} for item in after_events):
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             completed, detections = _defender_completion_evidence(after_events, str(staged), cursor)
