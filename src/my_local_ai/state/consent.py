@@ -1693,6 +1693,41 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
             if (current.st_dev, current.st_ino, current.st_mode) != (device, inode, mode):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
 
+    def _assert_signer_pins_current(self):
+        """Recheck immutable Owner/SCM key pins before EACH protected signature.
+
+        A service holds an NCrypt key handle across requests. Changing the
+        administrator-protected role, key name, public pin, owner session or
+        provider mode must revoke that existing handle, not just new starts.
+        No registry writes, account/ACL grants, service changes or key opens.
+        """
+        import winreg
+        try:
+            if _read_pinned_cng_mode(self) != self.settings["KeyProviderMode"]:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            if self.role == "owner-ui":
+                sid, session, key_name, public, image_sha = _owner_ui_read_pins(self)
+                if ((sid, image_sha, public) != self.roots["owner-ui"]
+                    or session != self.owner_session_id
+                    or key_name != self.settings["KeyName"]
+                    or self.load_roots() != self.service_roots):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            elif self.role in _SERVICE_ROLES:
+                if self.load_roots() != self.roots:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                name = r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1" + "\\" + self.role
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, name, 0,
+                                    winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+                    self.check_acl(int(key), 4, 0xD0000 | 0x26 | 0x50000000)
+                    live_name, kind = winreg.QueryValueEx(key, "KeyName")
+                if (kind != winreg.REG_SZ or type(live_name) is not str
+                    or live_name != self.settings["KeyName"]):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            else:
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        except (OSError, ValueError, KeyError, TypeError):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY") from None
+
     def _key_acl(self, raw: bytes):
         """Restrict existing key use to its service SID and system administrators."""
         c, w = self.c, self.w
@@ -1789,6 +1824,7 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                 or length.value != 72 or public.raw != self.roots[self.role][2]):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
             def sign_body(body: dict) -> bytes:
+                self._assert_signer_pins_current()  # Revoked/rotated pin -> HOLD before signing.
                 digest = _digest(b"mla-protected-broker/v1|" + _broker_canonical(body)).digest()
                 output, size = c.create_string_buffer(64), w.DWORD()
                 if (sign(key, None, c.create_string_buffer(digest), 32,
@@ -1951,6 +1987,7 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
 class _OwnerInteractiveAPI(_WindowsBrokerAPI):
     """Frozen Owner-session UI; neither a Controller nor a protected service."""
     _key_acl = _WindowsProtectedServiceAPI._key_acl
+    _assert_signer_pins_current = _WindowsProtectedServiceAPI._assert_signer_pins_current
     signer = _WindowsProtectedServiceAPI.signer
     pin_path = _WindowsProtectedServiceAPI.pin_path
 
@@ -2011,6 +2048,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             self.resources.close()
             raise
         self.service_roots, self.owner_sid = roots,owner_sid
+        self.owner_session_id = session_id
 
     def close(self):
         self.resources.close()

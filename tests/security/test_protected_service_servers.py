@@ -8,6 +8,8 @@ import base64
 import hashlib
 import hmac
 import json
+import inspect
+import types
 from pathlib import Path
 import secrets
 import sqlite3
@@ -786,6 +788,97 @@ class ProtectedPipeClientTokenTests(unittest.TestCase):
         self.assertNotIn("api.process_sid(peer)", source)
         client_source = inspect.getsource(c._WindowsBrokerAPI.transact)
         self.assertIn("0x00110000", client_source)  # SQOS IDENTIFICATION
+
+
+class ProtectedSignerLiveRevocationTests(unittest.TestCase):
+    """Protected live pin changes revoke an open signer handle before use.
+
+    Synthetic winreg/OwnerUI only: no native key access or OS writes.
+    """
+    def setUp(self):
+        self.roots = {
+            "owner": ("S-1-5-21-1-2-3-1001", "a" * 64, b"A" * 72),
+            "reviewer": ("S-1-5-21-1-2-3-1002", "b" * 64, b"B" * 72),
+            "scanner": ("S-1-5-21-1-2-3-1003", "c" * 64, b"C" * 72),
+        }
+        self.key_name = "MyLocalAI.OwnerKey"
+        reg = types.ModuleType("winreg")
+        reg.HKEY_LOCAL_MACHINE, reg.KEY_READ, reg.KEY_WOW64_64KEY, reg.REG_SZ = 1, 2, 4, 1
+        class Key:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def __int__(self): return 123
+        self.reg = reg
+        self.reads = []
+        def open_key(hive, path, reserved, permissions):
+            self.reads.append(("open", path))
+            return Key()
+        def query_value(key, name):
+            self.reads.append(("query", name))
+            return self.key_name, reg.REG_SZ
+        reg.OpenKey, reg.QueryValueEx = open_key, query_value
+
+    def service(self):
+        return types.SimpleNamespace(
+            role="owner", roots=self.roots.copy(),
+            settings={"KeyName": self.key_name, "KeyProviderMode": "SOFTWARE_CNG_OWNER_APPROVED_V1"},
+            load_roots=lambda: self.roots.copy(),
+            check_acl=lambda *args: self.reads.append(("acl",)),
+        )
+
+    def call(self, api, *, live_mode="SOFTWARE_CNG_OWNER_APPROVED_V1", owner_pins=None):
+        with patch.dict(sys.modules, {"winreg": self.reg}), \
+             patch.object(c, "_read_pinned_cng_mode", return_value=live_mode), \
+             patch.object(c, "_owner_ui_read_pins", return_value=owner_pins):
+            c._WindowsProtectedServiceAPI._assert_signer_pins_current(api)
+
+    def test_live_service_pins_pass_then_revoke_on_profile_key_or_other_role(self):
+        api = self.service()
+        self.call(api)
+        self.assertIn(("acl",), self.reads)
+        self.assertIn(("query", "KeyName"), self.reads)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            self.call(api, live_mode="TPM_V1")
+        old = self.key_name
+        self.key_name = "MyLocalAI.RotatedKey"
+        with self.assertRaises(c.ProtectedBrokerHold):
+            self.call(api)
+        self.key_name = old
+        self.roots["reviewer"] = ("S-1-5-21-1-2-3-1002", "e" * 64, b"E" * 72)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            self.call(api)
+
+    def test_ownerui_rejects_session_key_and_service_root_revocation(self):
+        owner = ("S-1-5-21-1-2-3-1004", "d" * 64, b"D" * 72)
+        api = types.SimpleNamespace(
+            role="owner-ui", roots={"owner-ui": owner},
+            service_roots=self.roots.copy(), owner_session_id=2,
+            settings={"KeyName":"MyLocalAI.OwnerUiKey",
+                      "KeyProviderMode":"SOFTWARE_CNG_OWNER_APPROVED_V1"},
+            load_roots=lambda: self.roots.copy(),
+        )
+        pins=(owner[0],2,"MyLocalAI.OwnerUiKey",owner[2],owner[1])
+        self.call(api, owner_pins=pins)
+        for changed in (
+            (owner[0],3,pins[2],owner[2],owner[1]),
+            (owner[0],2,"MyLocalAI.Rotated",owner[2],owner[1]),
+            (owner[0],2,pins[2],b"X"*72,owner[1]),
+        ):
+            with self.subTest(changed=changed), self.assertRaises(c.ProtectedBrokerHold):
+                self.call(api, owner_pins=changed)
+        self.roots["reviewer"] = ("S-1-5-21-1-2-3-1002","e"*64,b"E"*72)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            self.call(api, owner_pins=pins)
+
+    def test_live_pin_recheck_is_inside_every_sign_not_only_on_key_open(self):
+        source=inspect.getsource(c._WindowsProtectedServiceAPI.signer)
+        body=source[source.index("def sign_body(body: dict)"):]
+        self.assertIn("self._assert_signer_pins_current()", body)
+        self.assertLess(body.index("self._assert_signer_pins_current()"),
+                        body.index("sign(key,"))
+        self.assertNotIn("NCryptCreatePersistedKey", source)
+        self.assertNotIn("NCryptDeleteKey", source)
+        self.assertTrue(hasattr(c._OwnerInteractiveAPI, "_assert_signer_pins_current"))
 
 
 class SCMPrincipalBindingTests(unittest.TestCase):
