@@ -22,6 +22,7 @@ from .draft_documents import (
     DOCUMENT_LIMIT, DraftDocument, DraftError, github_files, read_document, read_github_ci, read_github_file,
 )
 from .draft_evidence import PinnedEvidence
+from .approved_workflow import eligible_profile, execute_once, initial_receipt
 from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, read_handoff_documents, text_path
 from .draft_recovery import GeminiDraftAdvisor, MAX_DRAFT_ATTEMPTS, RECOVERY_ACTIONS
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
@@ -125,6 +126,7 @@ class _WorkQueue:
     auto_drafts: bool = True
     failures: dict[str, dict] = field(default_factory=dict)
     recovery: dict[str, dict] = field(default_factory=dict)
+    executions: dict[str, dict] = field(default_factory=dict)
 
 
 def _draft_paths(spec: str) -> tuple[str, ...]:
@@ -474,6 +476,14 @@ class LocalDrafts:
                 records = saved.get(name, {})
                 setattr(queue, name, {item.key: records[item.key] for item in items
                                       if type(records.get(item.key)) is dict})
+            queue.executions = {item.key: saved.get("executions", {})[item.key]
+                                for item in items if type(saved.get("executions", {}).get(item.key)) is dict}
+            # The network dispatch may already have succeeded before a crash.
+            # Never silently send it again on restore.
+            for report in queue.executions.values():
+                if report.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING"):
+                    report.update(state="HOLD", code="HOLD_INTERRUPTED_NO_REDISPATCH",
+                                  p2_gate_accepted=False)
             queue.auto_drafts = False
             if saved.get("active") and not saved.get("active_inspection"):
                 active = saved["active"]
@@ -508,6 +518,7 @@ class LocalDrafts:
                 "inspections": queue.inspections,
                 "rechecks": sorted(queue.rechecks),
                 "failures": queue.failures, "recovery": queue.recovery,
+                "executions": queue.executions,
                 "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
@@ -530,12 +541,19 @@ class LocalDrafts:
                         "active": active.key if active else "",
                         "active_mode": ("inspection" if self._request.inspect_only else "draft") if active else "",
                         "gemini_configured": self.advisor.configured,
-                        "verified_count": 0,  # The workbench currently has no protected verifier.
+                        "verified_count": 0,  # An audit smoke cannot accept a P2 gate.
+                        "executed_count": sum(record.get("state") == "PASS"
+                                              for record in queue.executions.values()),
+                        "executing": any(record.get("state") in
+                                         ("INTENT_RECORDED", "DISPATCHING", "RUNNING")
+                                         for record in queue.executions.values()),
                         "elapsed_ms": queue.elapsed_ms + current_ms,
                         "items": [
                             {"id": item.key, "title": item.title, "detail": item.detail,
                              "draft": queue.drafts.get(item.key),
                              "inspection": queue.inspections.get(item.key),
+                             "execution": queue.executions.get(item.key),
+                             "can_execute": self._can_execute(queue, item),
                              "failure": queue.failures.get(item.key),
                              "recovery": queue.recovery.get(item.key),
                              "hold": self._item_hold(queue, item) if item != active else None,
@@ -618,9 +636,12 @@ class LocalDrafts:
         if (type(payload) is not dict or set(payload) not in (
             names, {"message"}, {"reply", "attempt"}, {"queue", "item", "paths", "change"},
             {"queue", "resume"}, {"queue", "refresh"},
+            {"queue", "execute", "item"},
         )
             or any(type(text) is not str or "\0" in text for text in payload.values())):
             raise DraftError("입력값의 형식을 확인하세요.")
+        if "execute" in payload:
+            return self._start_approved_execution(payload)
         if "resume" in payload:
             with self._lock:
                 if (payload["resume"] != "remaining" or not self._queue or not self._queue.baseline
@@ -683,6 +704,57 @@ class LocalDrafts:
             self._state["submission_notice"] = "같은 지시문을 받았습니다. 지금 바로 시작할 수 있는 파트가 없습니다."
         return self._snapshot_locked()
 
+    @staticmethod
+    def _can_execute(queue: _WorkQueue, item: HandoffTask) -> bool:
+        baseline = queue.baseline
+        return (baseline is not None and item.key not in queue.executions
+                and item.key in queue.inspections
+                and eligible_profile(baseline.scope.repository, baseline.scope.branch,
+                                     baseline.plan.get("revision", ""), item.title))
+
+    def _start_approved_execution(self, payload: dict[str, str]) -> dict:
+        """A deliberate owner click authorizes only the single pinned manual workflow."""
+        with self._lock:
+            queue = self._queue
+            if (payload["execute"] != "reqea-manual" or not queue or not queue.baseline
+                or payload["queue"] != queue.key or self._state["state"] == "working"):
+                raise DraftError("실행할 작업표와 승인된 실행 범위를 확인해 주세요.")
+            item = next((item for item in queue.items if item.key == payload["item"]), None)
+            if item is None or not self._can_execute(queue, item):
+                raise DraftError("이미 실행했거나 고정된 승인 대상이 아닙니다. 다시 제출해도 재실행하지 않습니다.")
+            if any(entry.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING")
+                   for entry in queue.executions.values()):
+                raise DraftError("앞선 승인 실행 결과를 확인해 주세요.")
+            revision = queue.baseline.plan["revision"]
+            queue.executions[item.key] = initial_receipt(revision)
+            self._state.pop("checkpoint_error", None)
+            self._checkpoint_locked()
+            if self._state.get("checkpoint_error"):
+                del queue.executions[item.key]
+                raise DraftError("실행 의도를 저장하지 못했습니다. 외부 실행을 시작하지 않습니다.")
+            Thread(target=self._execute_approved, args=(queue.key, item.key, revision),
+                   daemon=True).start()
+            return self._snapshot_locked()
+
+    def _execute_approved(self, key: str, item_key: str, revision: str) -> None:
+        def persist(report: dict) -> None:
+            with self._lock:
+                queue = self._queue
+                if not queue or queue.key != key or item_key not in queue.executions:
+                    return
+                previous = queue.executions[item_key]
+                # Immutable identity; no status response may change target SHA/test ID.
+                cleaned = {k: v for k, v in report.items()
+                           if k not in ("source_sha", "test_id", "workflow")}
+                queue.executions[item_key] = {**previous, **cleaned}
+                self._checkpoint_locked()
+        try:
+            execute_once(revision, persist)
+        except Exception:
+            # A network dispatch may have succeeded. Never automatically retry.
+            persist({"state": "HOLD", "code": "HOLD_EXECUTION_UNCERTAIN_NO_REDISPATCH",
+                     "p2_gate_accepted": False})
+
     def _start_item(self, payload: dict[str, str]) -> dict:
         paths = _draft_paths(payload["paths"])
         change = payload["change"].strip()
@@ -734,6 +806,12 @@ class LocalDrafts:
     def _item_hold(self, queue: _WorkQueue, item: HandoffTask) -> dict | None:
         if not queue.baseline or self._can_draft(queue, item) or self._can_inspect(queue, item):
             return None
+        if execution := queue.executions.get(item.key):
+            return {"kind": "execution", "label": "실제 실행 " + execution["state"],
+                    "detail": "원격 CLI 감사 결과입니다. 전체 P2 검증이나 독립 감사가 아닙니다."}
+        if self._can_execute(queue, item):
+            return {"kind": "execution", "label": "승인된 실제 실행 대기",
+                    "detail": "확인된 GitHub Actions 수동 CLI 감사를 한 번 실행할 수 있습니다. 사용자 확인이 필요합니다."}
         if dependencies := item.dependencies():
             return {"kind": "dependency", "label": "선행 검증 보류",
                     "detail": "필수 선행 파트의 실행 결과가 필요합니다. " + ", ".join(dependencies)}
