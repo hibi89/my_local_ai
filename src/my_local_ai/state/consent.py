@@ -1828,7 +1828,18 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                 or length.value != 72 or public.raw != self.roots[self.role][2]):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
             def sign_body(body: dict) -> bytes:
-                self._assert_signer_pins_current()  # Revoked/rotated pin -> HOLD before signing.
+                self._assert_signer_pins_current()  # Revoked/rotated HKLM pin -> HOLD.
+                # An open NCrypt key handle outlives an ACL/export-policy edit.
+                # Inspect the live handle on EACH use; the startup check alone
+                # must never authorize later signatures after key-policy drift.
+                if int.from_bytes(prop("Export Policy"), "little") != 0:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                self._key_acl(prop("Security Descr", 5 | 0x40))
+                if mode == _CNG_SOFTWARE_MODE and (
+                    dword(key, "Key Type") != 0x20 or
+                    dword(key, "Key Usage") != 0x2
+                ):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
                 digest = _digest(b"mla-protected-broker/v1|" + _broker_canonical(body)).digest()
                 output, size = c.create_string_buffer(64), w.DWORD()
                 if (sign(key, None, c.create_string_buffer(digest), 32,
