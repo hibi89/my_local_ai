@@ -1112,6 +1112,27 @@ class DefenderEvidenceTests(unittest.TestCase):
             with self.subTest(changed=changed):
                 self.assertEqual(self.classify(**changed).state, "RESULT_REJECTED_HOLD")
 
+    def test_postscan_event_overflow_fails_closed_without_native_scan(self):
+        # Local synthetic policy check only: no Defender, OS services or
+        # protected scan executed. Pre-scan cursor discovery is reverse-order
+        # bounded; post-scan decision cannot omit an older safety event.
+        for count in (0, 1, 255):
+            with self.subTest(count=count):
+                d._deny_truncated_defender_events(5, count)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            d._deny_truncated_defender_events(5, 256)
+        with self.assertRaises(c.ProtectedBrokerHold):
+            d._deny_truncated_defender_events(5, 257)
+        d._deny_truncated_defender_events(0, 256)
+        for bad in (-1, True, 1.5):
+            with self.subTest(bad=bad), self.assertRaises(c.ProtectedBrokerHold):
+                d._deny_truncated_defender_events(bad, 0)
+        code = inspect.getsource(d._defender_events_after)
+        self.assertIn("range(257 if after_record else 256)", code)
+        self.assertIn("_deny_truncated_defender_events(after_record, len(result))", code)
+        self.assertLess(code.index("_deny_truncated_defender_events(after_record, len(result))"),
+                        code.index("render(None, event, 1, 0"))
+
     def test_event_completion_is_exact_scan_and_resource(self):
         target = r"C:\private\scan_123.py"
         events = [
