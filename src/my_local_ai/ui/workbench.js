@@ -26,6 +26,8 @@ const selectedTitle = document.querySelector('#queue-selected-title');
 const advisorState = document.querySelector('#advisor-state');
 const itemRecovery = document.querySelector('#item-recovery');
 const queueInspection = document.querySelector('#queue-inspection');
+const executeApproved = document.querySelector('#execute-approved');
+const queueExecution = document.querySelector('#queue-execution');
 const messageInput = chatForm.elements.message;
 const forms = [chatForm, form, replyForm, itemForm];
 const submitButtons = forms.map(current => current.querySelector('[type="submit"]'));
@@ -255,6 +257,24 @@ function selectItem(id, selectedByUser = false) {
   document.querySelector('#queue-selection').hidden = !item;
   itemOptions.hidden = !item || !workQueue.ready || queueWorking || item.hold?.kind === 'dependency';
   showInspection(item?.inspection);
+  executeApproved.hidden = !item?.can_execute;
+  queueExecution.hidden = !item?.execution;
+  if (item?.execution) {
+    const execution = item.execution;
+    document.querySelector('#execution-state').textContent =
+      '상태 ' + execution.state + (execution.code ? ' · ' + execution.code : '') +
+      ' · 고정 테스트 ' + execution.test_id;
+    document.querySelector('#execution-evidence').textContent =
+      '기준 SHA ' + execution.source_sha + ' · 실행 ID ' + (execution.run_id || '미확정') +
+      ' · 결론 ' + (execution.conclusion || '미확정') + ' · 독립 검증 미실행';
+    const url = document.querySelector('#execution-url');
+    const expected = 'https://github.com/hibi89/REQ-Evidence-Auditor-A-/actions/runs/';
+    const safe = Number.isSafeInteger(execution.run_id) && execution.run_id > 0 &&
+      execution.url === expected + execution.run_id;
+    url.hidden = !safe;
+    url.removeAttribute('href');
+    if (safe) url.href = execution.url;
+  }
   if (!item) return;
   for (const button of queueItems.querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.dataset.item === id));
@@ -289,6 +309,7 @@ function showQueue(value, working) {
   refreshEvidence.hidden = !value.can_refresh;
   const saved = items.filter(item => item.draft).length;
   const inspected = items.filter(item => item.inspection?.state === 'observed').length;
+  const executed = items.filter(item => item.execution?.state === 'PASS').length;
   const held = items.filter(item => item.hold).length;
   const blocker = items.find(item => item.id === value.blocked);
   holdBanner.hidden = !blocker;
@@ -298,11 +319,11 @@ function showQueue(value, working) {
   }
   advisorState.textContent = value.gemini_configured ? '복구 조언 · Gemini 키 설정됨' : '복구 조언 · 로컬 재시도';
   document.querySelector('#queue-summary').textContent =
-    items.length + '개 파트 · 읽기 확인 ' + inspected + '개 · 초안 ' + saved + '개 · 실행 검증 ' + value.verified_count + '개' +
+    items.length + '개 파트 · 읽기 확인 ' + inspected + '개 · 초안 ' + saved + '개 · 실제 CLI 감사 완료 ' + executed + '개 · P2 수용 ' + value.verified_count + '개' +
     (held ? ' · 보류 ' + held + '개' : '');
   nextItem.disabled = items.length < 2;
   const signature = JSON.stringify([value.id, value.active_mode, ...items.map(item =>
-    [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts])]);
+    [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts, item.execution?.state, item.can_execute])]);
   if (queueSignature !== signature) {
     queueSignature = signature;
     queueItems.replaceChildren(...items.map(item => {
@@ -314,7 +335,11 @@ function showQueue(value, working) {
       button.dataset.item = item.id;
       button.addEventListener('click', () => selectItem(item.id, true));
       name.textContent = item.title;
-      if (item.hold) {
+      if (item.execution) {
+        status.textContent = '실행 ' + item.execution.state;
+      } else if (item.can_execute) {
+        status.textContent = '실제 실행 승인 대기';
+      } else if (item.hold) {
         status.textContent = item.state === 'inspected' && item.hold.kind === 'verification'
           ? '읽기 확인 · 검증 보류' : item.hold.label;
       } else if (item.state === 'working' && value.active_mode === 'inspection') {
@@ -344,6 +369,11 @@ function showQueue(value, working) {
     ? '실측을 수행할 때의 관찰 시간' : draftEstimate ? '자동 초안 기준 · 실행 검증 미산정' : '구현·검증 범위 확인 필요';
 }
 
+executeApproved.addEventListener('click', () => {
+  if (!workQueue || !selectedItem || executeApproved.hidden) return;
+  runQueueAction({execute: 'reqea-manual', item: selectedItem});
+});
+
 nextItem.addEventListener('click', () => {
   if (!workQueue) return;
   const index = workQueue.items.findIndex(item => item.id === selectedItem);
@@ -367,7 +397,7 @@ async function runQueueAction(command) {
   const previousAttempt = attempt;
   clearTimeout(retry);
   queueSubmission = { version, queue: workQueue.id, refresh: Boolean(command.refresh) };
-  showReceipt(queueReceipt, command.refresh ? '읽기 결과를 다시 조회하는 중입니다.' : '초안 재개를 요청하는 중입니다.');
+  showReceipt(queueReceipt, command.execute ? '승인된 실제 GitHub 실행을 요청했습니다.' : command.refresh ? '읽기 결과를 다시 조회하는 중입니다.' : '초안 재개를 요청하는 중입니다.');
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
@@ -382,7 +412,7 @@ async function runQueueAction(command) {
       return;
     }
     showResult(result);
-    if (result.state === 'working') retry = setTimeout(() => poll(version), 750);
+    if (result.state === 'working' || result.work_queue?.executing) retry = setTimeout(() => poll(version), 750);
   } catch {
     showReceipt(queueReceipt, '응답이 늦어 작업 상태를 확인 중입니다.');
     void poll(version, false, previousAttempt);
@@ -432,6 +462,7 @@ function setBusy(busy) {
   for (const button of submitButtons) button.disabled = busy;
   resumeQueue.disabled = busy;
   refreshEvidence.disabled = busy;
+  executeApproved.disabled = busy;
   for (const input of forms) input.setAttribute('aria-busy', String(busy));
 }
 
@@ -553,7 +584,7 @@ async function poll(version = submission, retried = false, confirmAttempt) {
         showReceipt(chatReceipt, '작업 접수가 확인되지 않았습니다. 다시 보내 주세요.', 'error');
       }
     }
-    if (status.state === 'working') retry = setTimeout(() => poll(version), 1100);
+    if (status.state === 'working' || status.work_queue?.executing) retry = setTimeout(() => poll(version), 1100);
   } catch {
     if (version !== submission) return;
     if (!retried) {
