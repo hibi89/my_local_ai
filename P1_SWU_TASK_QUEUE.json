@@ -737,12 +737,12 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "64041221b1163598c74aa9f6267d39d7170dea73",
+      "partial_source_sha": "fd7a95d0b5adc0ee2a25cacdd98f73fe51a77631",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
-      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths.  Read-only protected authority scope now rejects repository/disposable path ancestor overlap, not just exact equality; owner consent UI not invoked on conflict. 2026-11-18 owner-approved redesign: Owner protected service signs action+lease+source scope challenge and writes via atomic exchange; separately pinned frozen Owner UI verifies service signature and native owner SID/session/image, displays exact action, signs decision with distinct pre-provisioned nonexportable CNG key; service re-verifies decision/nonces/TTL and live authority before signing; WTS cross-session disabled. Still BLOCKED_TRUST with OS/P2 NOT_RUN.",
-      "runtime_gap": "Owner-session v2 source and synthetic request/response roundtrip implemented; real separate Windows Owner account/session, protected EXE image/ACL, interactive TPM CNG key, shared directory provisioning and native E2E NOT_RUN. WTS error 5 source dependency removed, NOT device-level acceptance.",
+      "partial_source_description": "Real Windows native DPAPI CurrentUser REG_BINARY read with bounded size and UI forbidden; decrypted key used only for existing MAC+live SQLite LOCAL_PLAN inspection, key bytes best-effort zero; result authority flags always false; no key provisioning/owner signer issuance. Work still BLOCKED_TRUST: HKCU DPAPI is same-user, not owner-protected separate Windows identity. Live approved-grant decision now compares WAL sidecars including size/mtime, denies newly created WAL, checks SQLite data_version before/after lookup, and preserves only benign new SHM creation when an existing stable WAL was observed. Context-managed consent lookup now closes its readonly sqlite3 connection deterministically instead of relying on Connection.__exit__/GC; no ACL, OS, DB schema, original data or authority changes.\n2026-11-18 @ 1cd25dfb7f1be5f67dae8cb89359a9c8c5620485: Actual native current-process token posture observer (no protected principal or key custody claim), System32-only DPAPI library load, no OS configuration mutation. Protected service scope now validates the original PlanSpec Windows-safe relative path contract before the Owner consent UI; rejects device aliases, globs, non-ASCII and secret paths.  Read-only protected authority scope now rejects repository/disposable path ancestor overlap, not just exact equality; owner consent UI not invoked on conflict. 2026-11-18 owner-approved redesign: Owner protected service signs action+lease+source scope challenge and writes via atomic exchange; separately pinned frozen Owner UI verifies service signature and native owner SID/session/image, displays exact action, signs decision with distinct pre-provisioned nonexportable CNG key; service re-verifies decision/nonces/TTL and live authority before signing; WTS cross-session disabled. Still BLOCKED_TRUST with OS/P2 NOT_RUN. 2026-11-19 approved fallback SOURCE: protected 64-bit HKLM KeyProviderMode TPM_V1(default) or SOFTWARE_CNG_OWNER_APPROVED_V1; all three protected services plus OwnerUI use the same explicit pin; software provider flags/machine key/sign-only/ACL/support/EC256/nonexport/public pin enforced; no automatic fallback, no OS provision.",
+      "runtime_gap": "TPM-less conditional software CNG SOURCE implemented, but software key is NOT hardware-backed. Separate Windows local OwnerUI/service identities, protected HKLM/ancestor/key ACLs, four key pins, native Owner approval and F18/Defender E2E are NOT_RUN; no signed authorization or implementation completion. Actual provisioning still requires separate owner scope/GO.",
       "partial_source_safety": "GitHub Actions targeted syntax+synthetic unit+integration+F18 security PASS at 44090617033,44090757495,44091036151,44091094939,44091236138. No real Windows principal or model.",
       "legacy_attempt_policy_20261117": {
         "target": 1,
@@ -815,7 +815,20 @@
           ]
         }
       ],
-      "legacy_attempts_used_are_not_necessarily_failures": true
+      "legacy_attempts_used_are_not_necessarily_failures": true,
+      "no_tpm_redesign": {
+        "design_sha": "0799de94dbb6a2d6a526f5e92e21e8bb1e14454e",
+        "source_sha": "fd7a95d0b5adc0ee2a25cacdd98f73fe51a77631",
+        "approved_source_only_kst": "2026-11-19",
+        "profile": "SOFTWARE_CNG_OWNER_APPROVED_V1",
+        "legacy_default": "TPM_V1",
+        "native_windows_key_custody": "NOT_RUN",
+        "p1_implemented": false,
+        "p2_verified": false,
+        "local_synthetic_checks": "PENDING_ACTIONS",
+        "trust_gate": "BLOCKED_TRUST",
+        "software_key_hardware_equivalence": false
+      }
     },
     {
       "id": "MLA-SWU-009",
