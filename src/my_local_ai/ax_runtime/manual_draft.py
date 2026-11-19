@@ -21,6 +21,7 @@ from .budgets import BudgetGuard, ModelBudget
 from .draft_documents import (
     DOCUMENT_LIMIT, DraftDocument, DraftError, github_files, read_document, read_github_ci, read_github_file,
 )
+from .draft_evidence import PinnedEvidence
 from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, read_handoff_documents, text_path
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
 from .ollama_provider import OllamaProvider, STRUCTURED_OUTPUT_TOKENS
@@ -82,6 +83,7 @@ class _DraftRequest:
     handoff: bool
     replies: tuple[str, ...] = ()
     item: HandoffTask | None = None
+    inspect_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -106,6 +108,9 @@ class _WorkQueue:
     attempted: set[str] = field(default_factory=set)
     scheduled: dict[str, tuple[tuple[str, ...], str]] = field(default_factory=dict)
     forecast: dict | None = None
+    inspections: dict[str, dict] = field(default_factory=dict)
+    evidence_reader: PinnedEvidence | None = None
+    auto_drafts: bool = True
 
 
 def _draft_paths(spec: str) -> tuple[str, ...]:
@@ -442,7 +447,10 @@ class LocalDrafts:
                             if item.key in saved["drafts"]}
             queue.interrupted = set(saved["interrupted"])
             queue.attempted = set(saved["attempted"])
-            if saved.get("active"):
+            queue.inspections = {item.key: report for item in items
+                                 if isinstance(report := saved.get("inspections", {}).get(item.key), dict)}
+            queue.auto_drafts = False
+            if saved.get("active") and not saved.get("active_inspection"):
                 queue.interrupted.add(saved["active"])
             queue.elapsed_ms = max(0, int(saved["elapsed_ms"]))
             queue.item_elapsed_ms = {item.key: max(0, int(saved["item_elapsed_ms"].get(item.key, 0)))
@@ -453,6 +461,8 @@ class LocalDrafts:
             return
         self._queue = queue
         self._state.update(state="ready", message=f"작업표 {len(items)}개 파트와 진행 기록을 복구했습니다.", plan=plan)
+        with self._lock:
+            self._start_next_item_locked()
 
     def _checkpoint_locked(self, *, replace: bool = False) -> None:
         queue = self._queue
@@ -467,6 +477,8 @@ class LocalDrafts:
                               for doc in baseline.documents],
                 "drafts": queue.drafts, "attempted": sorted(queue.attempted),
                 "interrupted": sorted(queue.interrupted), "active": active.key if active else "",
+                "inspections": queue.inspections,
+                "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
         except (OSError, ValueError, sqlite3.Error):
@@ -485,16 +497,20 @@ class LocalDrafts:
             current_ms = elapsed if self._state["state"] == "working" else 0
             worklist = {"id": queue.key, "ready": queue.baseline is not None,
                         "active": active.key if active else "",
+                        "active_mode": ("inspection" if self._request.inspect_only else "draft") if active else "",
                         "elapsed_ms": queue.elapsed_ms + current_ms,
                         "items": [
                             {"id": item.key, "title": item.title, "detail": item.detail,
                              "draft": queue.drafts.get(item.key),
+                             "inspection": queue.inspections.get(item.key),
+                             "auto_inspection": self._can_inspect(queue, item),
                              "scheduled": item.key in queue.scheduled,
                              "observation_hours": item.observation_hours(),
                              "elapsed_ms": queue.item_elapsed_ms.get(item.key, 0) + (current_ms if item == active else 0),
                              "state": ("working" if item == active and self._state["state"] == "working"
                                        else "error" if item.key in queue.interrupted
-                                       else "draft" if item.key in queue.drafts else "pending")}
+                                       else "draft" if item.key in queue.drafts
+                                       else "inspected" if item.key in queue.inspections else "pending")}
                             for item in queue.items
                         ]}
             if queue.forecast:
@@ -509,12 +525,15 @@ class LocalDrafts:
                 "timing_saved": not self._timing_error,
                 "can_reply": self._state["state"] == "error" and bool(self._request and self._request.handoff)}
 
-    def _set(self, state: str, message: str, *, sample: tuple[str, int] | None = None, **values) -> None:
+    def _set(self, state: str, message: str, *, sample: tuple[str, int] | None = None,
+             inspection: dict | None = None, **values) -> None:
         with self._lock:
             self._state.update(state=state, message=message, **values)
             item = self._request.item if self._request else None
             if self._queue and item:
-                if state == "done":
+                if inspection is not None:
+                    self._queue.inspections[item.key] = inspection
+                elif state == "done":
                     self._queue.drafts[item.key] = {"summary": values["summary"], "folder": values["folder"]}
                     self._queue.interrupted.discard(item.key)
                 elif state == "error":
@@ -528,7 +547,7 @@ class LocalDrafts:
                         elapsed = self._queue.item_elapsed_ms.get(item.key, 0)
                         self._queue.item_elapsed_ms[item.key] = elapsed + self._elapsed_ms
                 self._refresh_total(self._elapsed_ms, sample=sample)
-                self._checkpoint_locked(replace=state == "ready")
+                self._checkpoint_locked(replace=state == "ready" and item is None)
                 if self._queue and (item or state == "ready"):
                     self._start_next_item_locked()
 
@@ -552,6 +571,7 @@ class LocalDrafts:
                 if (payload["resume"] != "remaining" or not self._queue or not self._queue.baseline
                     or payload["queue"] != self._queue.key or self._state["state"] == "working"):
                     raise DraftError("작업표에서 재개할 수 있는 자동 초안을 확인해 주세요.")
+                self._queue.auto_drafts = True
                 if not self._start_next_item_locked():
                     raise DraftError("파일과 변경 내용이 정해진 다음 파트가 없습니다.")
                 return self._snapshot_locked()
@@ -622,11 +642,21 @@ class LocalDrafts:
     def _start_next_item_locked(self) -> bool:
         queue = self._queue
         for item in queue.items:
-            if item.key in queue.scheduled and item.key not in queue.attempted:
+            if queue.auto_drafts and item.key in queue.scheduled and item.key not in queue.attempted:
                 paths, change = queue.scheduled[item.key]
                 self._begin_item_locked(queue, item, paths, change)
                 return True
+            if self._can_inspect(queue, item):
+                self._begin(_DraftRequest(item.title, "", (), "", True, item=item, inspect_only=True),
+                            queue.baseline)
+                return True
         return False
+
+    @staticmethod
+    def _can_inspect(queue: _WorkQueue, item: HandoffTask) -> bool:
+        return (queue.baseline is not None and bool(queue.baseline.scope.repository)
+                and item.key not in queue.scheduled and item.key not in queue.drafts
+                and item.key not in queue.inspections)
 
     def _begin(self, request: _DraftRequest, context: _HandoffContext | None) -> dict:
         """Start the next attempt while the caller holds the workbench lock."""
@@ -637,8 +667,12 @@ class LocalDrafts:
         message = "붙여넣은 지시에서 작업 자료를 찾는 중입니다." if request.handoff else "작업 자료를 읽는 중입니다."
         if request.replies:
             message = "추가 지시를 반영해 다음 초안을 준비 중입니다."
+        if request.inspect_only:
+            message = "기준 커밋에서 이 파트의 소스와 기존 기록을 확인 중입니다."
         queue = self._queue
         plan = context.plan if context else queue.baseline.plan if queue and queue.baseline else None
+        if request.inspect_only:
+            plan = {**plan, "work_item": request.item.title}
         self._state = {"state": "working", "message": message, "attempt": secrets.token_hex(12),
                        "replies": list(request.replies), "plan": plan}
         if request.item:
@@ -731,6 +765,9 @@ class LocalDrafts:
         return scheduled
 
     def _run(self, request: _DraftRequest, prepared: _HandoffContext | None, queue: _WorkQueue | None) -> None:
+        if request.inspect_only:
+            self._inspect_item(request.item, queue)
+            return
         saving = False
         try:
             if queue and not request.item:
@@ -834,6 +871,19 @@ class LocalDrafts:
                     "code": "DRAFT_PROCESSING",
                     "hint": "지시문을 그대로 다시 보내세요. 같은 문제가 반복되면 아래 오류 코드를 보내 주세요.",
                 })
+
+    def _inspect_item(self, item: HandoffTask, queue: _WorkQueue) -> None:
+        plan = queue.baseline.plan
+        if queue.evidence_reader is None:
+            queue.evidence_reader = PinnedEvidence(queue.baseline.scope.repository, plan["revision"])
+        try:
+            report = queue.evidence_reader.inspect(item)
+        except (DraftError, OSError, ValueError, RecursionError):
+            report = {"revision": plan["revision"], "state": "limited", "files": [],
+                      "notes": ["자료를 읽는 중 오류가 발생했습니다."], "remaining": "실행 검증"}
+        count = len(queue.inspections) + 1
+        message = f"{count}개 파트 읽기 검사 종료 · 실제 검증이 필요한 항목은 대기 중입니다."
+        self._set("ready", message, plan=plan, inspection=report)
 
     def _save(self, files: list[dict], summary: str, sources: list[dict], plan: dict | None) -> Path:
         local_path_stat(self.root)

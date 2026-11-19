@@ -343,6 +343,60 @@ class LocalDraftsTests(unittest.TestCase):
                 app.start({"queue": result["work_queue"]["id"], "item": "1", "paths": "src/cli.py", "change": "ㄱ"})
             self.assertFalse(any(path.is_dir() for path in root.iterdir()))
 
+    def test_repository_inspections_advance_without_model_or_manual_input(self):
+        revision = "a" * 40
+        source = {
+            "src/demo/cli.py": "raise SystemExit(17)\n",
+            "tests/test_cli.py": "def test_command_line():\n    assert False\n",
+            "tests/test_watch.py": "def test_watch():\n    assert False\n",
+            ".github/workflows/audit.yml": "name: Audit\non:\n  workflow_dispatch:\n",
+        }
+        ci = {"repo": "example/project", "revision": revision, "runs": [
+            {"id": 19, "name": "Audit", "event": "push", "status": "completed", "conclusion": "success"},
+        ]}
+        message = (
+            "Repository: example/project\nBranch: stable\n## 작업 목록\n"
+            "### P2-A. CLI 통합 검증\n실제 동작 확인.\n"
+            "### P2-B. 감시·복구\n실제 시간 기반 24시간·48시간 관찰.\n"
+            "### P2-C. GitHub Actions 실행\n수동 워크플로 확인.\n"
+        )
+        with TemporaryDirectory() as directory, patch(
+            "my_local_ai.ax_runtime.manual_draft.read_handoff_documents", return_value=(revision, [])
+        ), patch(
+            "my_local_ai.ax_runtime.manual_draft.read_github_ci", return_value=ci
+        ), patch(
+            "my_local_ai.ax_runtime.draft_evidence.read_github_ci", return_value=ci
+        ), patch(
+            "my_local_ai.ax_runtime.draft_evidence.github_files",
+            return_value={path: len(text) for path, text in source.items()},
+        ) as inventory, patch("my_local_ai.ax_runtime.draft_evidence.read_github_file") as read:
+            def read_file(repo, ref, path):
+                if path == "tests/test_watch.py":
+                    raise DraftError("fixture read error")
+                return DraftDocument(source[path], f"https://github.com/{repo}/blob/{ref}/{path}", ref)
+
+            read.side_effect = read_file
+            root = Path(directory).resolve() / "drafts"
+            provider = FixtureProvider("arbitrary.py", "READY = True\n")
+            app = LocalDrafts(root, provider=provider)
+            app.start({"message": message})
+            result = self.await_result(app)
+            self.assertEqual(result["state"], "ready", result["message"])
+            rows = result["work_queue"]["items"]
+            self.assertEqual([row["state"] for row in rows], ["inspected"] * 3)
+            self.assertEqual([row["inspection"]["state"] for row in rows], ["observed", "limited", "observed"])
+            cli, watch, actions = (row["inspection"] for row in rows)
+            self.assertTrue(any("테스트 정의 1개" in file["result"] for file in cli["files"]))
+            self.assertIn("24~48시간 실측", watch["remaining"])
+            self.assertIn("이 기준 커밋에서 확인한 수동 실행 기록 0건", actions["notes"])
+            self.assertTrue(any("수동 실행 선언 발견" in file["result"] for file in actions["files"]))
+            inventory.assert_called_once_with("example/project", revision)
+            self.assertTrue(all(call.args[1] == revision for call in read.call_args_list))
+            restored = LocalDrafts(root, provider=provider).snapshot()
+            self.assertEqual(restored["work_queue"]["items"], rows)
+            self.assertEqual(provider.prompt, "")
+            self.assertFalse(any(path.is_dir() for path in root.iterdir()))
+
 
 if __name__ == "__main__":
     unittest.main()

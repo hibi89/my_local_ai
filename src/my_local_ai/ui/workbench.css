@@ -138,6 +138,10 @@ button { cursor: pointer; }
 .queue-selection { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; }
 .queue-selection .sources { margin-top: 0; }
 #queue-detail { max-height: 235px; overflow: auto; white-space: pre-wrap; margin-top: 8px; }
+.queue-inspection { display: grid; gap: 5px; padding: 8px 10px; border-inline-start: 2px solid var(--accent);
+  background: var(--inset); color: var(--muted); font-size: .8rem; line-height: 1.55; }
+.queue-inspection h5 { margin: 0; color: var(--text); font-size: .82rem; }
+.queue-inspection ul { margin: 0; padding-inline-start: 17px; overflow-wrap: anywhere; }
 #item-form { display: grid; gap: 7px; }
 #item-form .primary { justify-self: start; }
 #item-notice { font-size: .82rem; color: var(--error); }

@@ -185,7 +185,7 @@ def read_github_ci(repository: str, revision: str) -> dict:
         raise DraftError("GitHub Actions 실행 목록을 읽을 수 없습니다.")
     runs = [
         {"id": run["id"], "name": run.get("name") or "GitHub Actions",
-         "status": run["status"], "conclusion": run.get("conclusion")}
+         "event": run.get("event"), "status": run["status"], "conclusion": run.get("conclusion")}
         for run in records[:20]
         if isinstance(run, dict) and run.get("head_sha") == revision
         and type(run.get("id")) is int and run["id"] > 0 and isinstance(run.get("status"), str)

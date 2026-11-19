@@ -8,12 +8,14 @@ const replyInput = replyForm.elements.reply;
 const replyNotice = document.querySelector('#reply-notice');
 const replyHistory = document.querySelector('#reply-history');
 const itemForm = document.querySelector('#item-form');
+const itemOptions = document.querySelector('#item-options');
 const itemNotice = document.querySelector('#item-notice');
 const queuePanel = document.querySelector('#work-queue');
 const queueItems = document.querySelector('#queue-items');
 const nextItem = document.querySelector('#next-item');
 const resumeQueue = document.querySelector('#resume-queue');
 const queueNotice = document.querySelector('#queue-notice');
+const queueInspection = document.querySelector('#queue-inspection');
 const messageInput = chatForm.elements.message;
 const forms = [chatForm, form, replyForm, itemForm];
 const submitButtons = forms.map(current => current.querySelector('[type="submit"]'));
@@ -54,6 +56,8 @@ let workQueue = null;
 let selectedItem = '';
 let queueSignature = '';
 let queueWorking = false;
+let followActive = true;
+let inspectedSignature = '';
 
 document.querySelector('#sample').addEventListener('click', () => {
   if (!messageInput.value.trim()) {
@@ -69,7 +73,8 @@ messageInput.addEventListener('keydown', event => {
   }
 });
 document.querySelector('#edit-message').addEventListener('click', () => {
-  if (lastInput === itemForm && !itemForm.hidden) {
+  if (lastInput === itemForm && !itemOptions.hidden) {
+    itemOptions.open = true;
     itemForm.elements.change.focus();
   } else if (lastInput === form) {
     form.closest('details').open = true;
@@ -158,7 +163,7 @@ function showTimeline() {
   } else if (clock.saving) {
     displayForecast('저장 중');
   } else if (!estimate) {
-    displayForecast('자료 확인 중');
+    displayForecast(workQueue?.active_mode === 'inspection' ? '읽기 검사 중' : '자료 확인 중');
   } else {
     const since = clock.elapsed + delta - estimate.from_elapsed_ms;
     const lower = Math.max(0, Math.ceil((estimate.lower_ms - since) / 1000));
@@ -199,15 +204,40 @@ function showReplies(replies) {
   replyHistory.hidden = !replies.length;
 }
 
-function selectItem(id) {
+function showInspection(report) {
+  const signature = JSON.stringify(report || null);
+  if (signature === inspectedSignature) return;
+  inspectedSignature = signature;
+  queueInspection.hidden = !report;
+  if (!report) return;
+  document.querySelector('#inspection-sha').textContent = '기준 커밋 ' + report.revision.slice(0, 12);
+  for (const [target, rows] of [
+    ['#inspection-files', report.files.map(file => file.path + ' · ' + file.result)],
+    ['#inspection-notes', report.notes],
+  ]) {
+    const list = document.querySelector(target);
+    list.hidden = !rows.length;
+    list.replaceChildren(...rows.map(text => {
+      const row = document.createElement('li');
+      row.textContent = text;
+      return row;
+    }));
+  }
+  document.querySelector('#inspection-remaining').textContent = '남은 검증 · ' + report.remaining;
+}
+
+function selectItem(id, selectedByUser = false) {
+  if (selectedByUser) followActive = id === workQueue.active;
   if (selectedItem !== id) {
     itemForm.reset();
     itemNotice.hidden = true;
+    itemOptions.open = false;
   }
   selectedItem = id;
   const item = workQueue?.items.find(row => row.id === id);
   document.querySelector('#queue-selection').hidden = !item;
-  itemForm.hidden = !item || !workQueue.ready || queueWorking;
+  itemOptions.hidden = !item || !workQueue.ready || queueWorking;
+  showInspection(item?.inspection);
   if (!item) return;
   for (const button of queueItems.querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.dataset.item === id));
@@ -221,6 +251,7 @@ function selectItem(id) {
 
 function showQueue(value, working) {
   const changed = workQueue?.id !== value?.id;
+  if (changed) followActive = true;
   workQueue = value;
   queueWorking = working;
   queuePanel.hidden = !value;
@@ -233,10 +264,12 @@ function showQueue(value, working) {
   const items = value.items;
   resumeQueue.hidden = !value.can_resume;
   const saved = items.filter(item => item.draft).length;
+  const inspected = items.filter(item => item.inspection).length;
   document.querySelector('#queue-summary').textContent =
-    items.length + '개 파트 · 초안 ' + saved + '개 · 실행 검증 대기 (보호 실행기 미연결)';
+    items.length + '개 파트 · 읽기 검사 ' + inspected + '개 · 초안 ' + saved + '개 · 실행 검증 대기';
   nextItem.disabled = items.length < 2;
-  const signature = JSON.stringify([value.id, ...items.map(item => [item.id, item.state])]);
+  const signature = JSON.stringify([value.id, value.active_mode, ...items.map(item =>
+    [item.id, item.state, item.inspection?.state, item.auto_inspection])]);
   if (queueSignature !== signature) {
     queueSignature = signature;
     queueItems.replaceChildren(...items.map(item => {
@@ -246,15 +279,24 @@ function showQueue(value, working) {
       const status = document.createElement('small');
       button.type = 'button';
       button.dataset.item = item.id;
-      button.addEventListener('click', () => selectItem(item.id));
+      button.addEventListener('click', () => selectItem(item.id, true));
       name.textContent = item.title;
-      status.textContent = item.scheduled && item.state === 'pending' ? '자동 초안 대기' : itemLabels[item.state];
+      if (item.state === 'inspected') {
+        status.textContent = item.inspection.state === 'observed' ? '읽기 확인 · 실행 대기' : '자료 확인 필요';
+      } else if (item.state === 'working' && value.active_mode === 'inspection') {
+        status.textContent = '읽기 검사 중';
+      } else if (item.state === 'pending' && item.auto_inspection) {
+        status.textContent = '읽기 검사 대기';
+      } else {
+        status.textContent = item.scheduled && item.state === 'pending' ? '자동 초안 대기' : itemLabels[item.state];
+      }
       button.append(name, status);
       row.append(button);
       return row;
     }));
   }
-  selectItem(changed || !selectedItem ? value.active || items[0]?.id : selectedItem);
+  const active = followActive && value.active;
+  selectItem(active || (changed ? '' : selectedItem) || items[0]?.id);
   const windows = items.map(item => item.observation_hours).filter(Boolean);
   const sums = windows.reduce(([lo, hi], [left, right]) => [lo + left, hi + right], [0, 0]);
   const forecast = value.forecast;
@@ -273,7 +315,7 @@ nextItem.addEventListener('click', () => {
   const index = workQueue.items.findIndex(item => item.id === selectedItem);
   const following = [...workQueue.items.slice(index + 1), ...workQueue.items.slice(0, index)];
   const next = following.find(item => item.state === 'pending') || following[0];
-  if (next) selectItem(next.id);
+  if (next) selectItem(next.id, true);
 });
 
 resumeQueue.addEventListener('click', async () => {
@@ -345,7 +387,8 @@ function showResult(state) {
   const stopped = state.state === 'error';
   const phaseMessage = stopped ? '' : state.message;
   if (phase.textContent !== phaseMessage) phase.textContent = phaseMessage;
-  stateBadge.textContent = stateLabels[state.state];
+  stateBadge.textContent = state.state === 'ready' && state.work_queue?.items.some(item => item.inspection)
+    ? '읽기 검사 종료' : stateLabels[state.state];
   stateBadge.dataset.state = state.state;
   setBusy(state.state === 'working');
   attempt = state.attempt || '';

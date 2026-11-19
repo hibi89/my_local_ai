@@ -148,7 +148,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <div><h3 id="queue-heading">전체 작업</h3><p id="queue-summary"></p></div>
               <div class="queue-actions">
                 <button type="button" id="resume-queue" class="quiet-button" hidden>자동 초안 재개</button>
-                <button type="button" id="next-item" class="quiet-button">다음 파트</button>
+                <button type="button" id="next-item" class="quiet-button">다음 파트 보기</button>
               </div>
             </div>
             <ol id="queue-items" class="queue-items"></ol>
@@ -157,15 +157,25 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <details class="sources">
                 <summary>이 파트의 원래 지시</summary><p id="queue-detail"></p>
               </details>
+              <section id="queue-inspection" class="queue-inspection" aria-label="이 파트의 읽기 검사" hidden>
+                <h5>읽기 검사 결과</h5>
+                <p id="inspection-sha"></p>
+                <ul id="inspection-files"></ul>
+                <ul id="inspection-notes"></ul>
+                <p id="inspection-remaining"></p>
+              </section>
               <p id="queue-saved" class="folder" hidden></p>
-              <form id="item-form" hidden>
-                <label for="item-paths">수정 파일 경로</label>
-                <textarea id="item-paths" name="paths" rows="2" placeholder="프로젝트 상대 경로를 한 줄에 하나씩" required></textarea>
-                <label for="item-change">발견한 문제 또는 원하는 동작</label>
-                <textarea id="item-change" name="change" rows="3" maxlength="450" placeholder="재현한 오류나 바뀌어야 할 동작을 적어 주세요." required></textarea>
-                <p id="item-notice" role="status" hidden></p>
-                <button type="submit" class="primary">선택한 파트 초안 시작 <span aria-hidden="true">→</span></button>
-              </form>
+              <details id="item-options" class="sources" hidden>
+                <summary>직접 수정 초안 요청</summary>
+                <form id="item-form">
+                  <label for="item-paths">수정 파일 경로</label>
+                  <textarea id="item-paths" name="paths" rows="2" placeholder="프로젝트 상대 경로를 한 줄에 하나씩" required></textarea>
+                  <label for="item-change">발견한 문제 또는 원하는 동작</label>
+                  <textarea id="item-change" name="change" rows="3" maxlength="450" placeholder="재현한 오류나 바뀌어야 할 동작을 적어 주세요." required></textarea>
+                  <p id="item-notice" role="status" hidden></p>
+                  <button type="submit" class="primary">선택한 파트 초안 시작 <span aria-hidden="true">→</span></button>
+                </form>
+              </details>
             </div>
           </section>
           <div id="empty" class="empty">
