@@ -710,17 +710,21 @@ def _defender_completion_evidence(events: list[dict], target: str, cursor: int) 
         resource = fields.get("Path", "").strip().casefold()
         if resource.startswith("file:_"):
             resource = resource[6:]
-        # A same-path detection with no Scan ID cannot be attributed to this
-        # one custom-file scan. It must also prevent a spurious CLEAN outcome
-        # if the engine happened to exit zero and the 1001 event exists.
-        # Explicit *foreign* scan IDs are unrelated; never borrow them.
-        if resource != normalized or fields.get("Scan ID") not in (None, "", scan_id):
-            continue
-        if (fields.get("Scan ID") != scan_id
-            or not fields.get("Threat ID") or not fields.get("Threat Name")
-            or type(event.get("evidence_sha256")) is not str):
+        # A detection tied to THIS scan ID must be for our single pinned
+        # file. A missing or different resource is inconsistent evidence,
+        # not an unrelated event to ignore and later label CLEAN.
+        # Conversely, a same-file detection with no Scan ID is ambiguous.
+        # Explicit foreign scan IDs remain unrelated.
+        event_scan_id = fields.get("Scan ID")
+        if event_scan_id == scan_id:
+            if (resource != normalized or not fields.get("Threat ID")
+                or not fields.get("Threat Name")
+                or type(event.get("evidence_sha256")) is not str
+                or re.fullmatch(r"[0-9a-f]{64}", event["evidence_sha256"]) is None):
+                return False, []
+            detections.append(event["evidence_sha256"])
+        elif resource == normalized and event_scan_id in (None, ""):
             return False, []
-        detections.append(event["evidence_sha256"])
     return completed, detections
 
 
