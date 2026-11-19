@@ -2166,12 +2166,24 @@
           "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_INDEPENDENT_F18_OS_AND_REQ14_EXECUTED_TESTS_STILL_BLOCKED",
           "nonprogress_failure": false,
           "checks": "ISOLATED_PYTHON_AST_AND_SYNTHETIC_NORMAL_AND_UNREADABLE_2_OF_2_PASS; FULL_REPO_AND_OWNER_WINDOWS_NOT_RUN"
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261119-GIT-WALK-RESOURCE-LIMIT",
+          "method": "Bound protected F18 Git bare mirror traversal to 10 seconds, <=1024 visited directories and <=1024 direct children, fail closed on stop signal, in addition to prior onerror deny",
+          "evidence_sha": "899b5a68b8cd76ff71a514a2e9a5f056a269cb8d",
+          "test_sha": "175943a14f0484d561fdc19c7b67949f04bae5bc",
+          "outcome": "POSITIVE_SOURCE_SAFETY_PROGRESS_REVIEWER_PRINCIPAL_AND_REQ14_EXECUTED_TEST_STILL_BLOCKED",
+          "nonprogress_failure": false,
+          "checks": "ISOLATED_EXACT_FUNCTION_PYTHON_AST_PASS; 6/6 SYNTHETIC (normal, unreadable, excess dirs, excess fanout, deadline, stopped) PASS; FULL REPO CI WINDOWS NOT_RUN"
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true,
       "latest_git_mirror_walk_source_sha": "1d97d0f83937944a790e94f372ca6f611e048c71",
       "latest_git_mirror_walk_regression_sha": "f2778038736d75bc1bd183a4525ca2b5913ce80b",
-      "latest_git_mirror_walk_status": "SOURCE_PARTIAL_BLOCKED_TRUST_NO_OS_GO_NO_F18_INDEPENDENT_ATTESTATION"
+      "latest_git_mirror_walk_status": "SOURCE_PARTIAL_BLOCKED_TRUST_NO_OS_GO_NO_F18_INDEPENDENT_ATTESTATION",
+      "latest_mirror_resource_cap_sha": "899b5a68b8cd76ff71a514a2e9a5f056a269cb8d",
+      "latest_mirror_resource_cap_test_sha": "175943a14f0484d561fdc19c7b67949f04bae5bc",
+      "latest_mirror_resource_cap_status": "SOURCE_PARTIAL_BLOCKED_TRUST_UNVERIFIED_REAL_WINDOWS"
     },
     {
       "id": "MLA-SWU-022",
