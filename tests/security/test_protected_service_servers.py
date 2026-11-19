@@ -1118,20 +1118,22 @@ class DefenderEvidenceTests(unittest.TestCase):
         # bounded; post-scan decision cannot omit an older safety event.
         for count in (0, 1, 255):
             with self.subTest(count=count):
-                d._deny_truncated_defender_events(5, count)
-        with self.assertRaises(c.ProtectedBrokerHold):
-            d._deny_truncated_defender_events(5, 256)
-        with self.assertRaises(c.ProtectedBrokerHold):
-            d._deny_truncated_defender_events(5, 257)
-        d._deny_truncated_defender_events(0, 256)
-        for bad in (-1, True, 1.5):
+                d._deny_truncated_defender_events(True, count)
+        for count in (256, 257):
+            with self.subTest(count=count), self.assertRaises(c.ProtectedBrokerHold):
+                d._deny_truncated_defender_events(True, count)
+        d._deny_truncated_defender_events(False, 256)
+        for bad in (-1, 1.5, None):
             with self.subTest(bad=bad), self.assertRaises(c.ProtectedBrokerHold):
                 d._deny_truncated_defender_events(bad, 0)
         code = inspect.getsource(d._defender_events_after)
-        self.assertIn("range(257 if after_record else 256)", code)
-        self.assertIn("_deny_truncated_defender_events(after_record, len(result))", code)
-        self.assertLess(code.index("_deny_truncated_defender_events(after_record, len(result))"),
+        self.assertIn("range(257 if require_complete else 256)", code)
+        self.assertIn("_deny_truncated_defender_events(require_complete, len(result))", code)
+        self.assertLess(code.index("_deny_truncated_defender_events(require_complete, len(result))"),
                         code.index("render(None, event, 1, 0"))
+        service = inspect.getsource(d._serve_defender_scan)
+        self.assertIn("_defender_events_after(api, 0)", service)
+        self.assertIn("_defender_events_after(api, cursor, require_complete=True)", service)
 
     def test_event_completion_is_exact_scan_and_resource(self):
         target = r"C:\private\scan_123.py"
