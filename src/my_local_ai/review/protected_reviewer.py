@@ -616,6 +616,22 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
     return result
 
 
+
+def _walk_verified_protected_git_mirror(root: _Path):
+    """Yield all mirror directories; a partially unreadable tree is a HOLD.
+
+    os.walk silently skips scandir failures without onerror. Skipping even
+    one Git object/config directory would permit a protected review to use
+    repository material that was never checked or pinned.
+    """
+    from my_local_ai.state.consent import ProtectedBrokerHold
+
+    def unreadable(_error: OSError) -> None:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY") from None
+
+    yield from _os.walk(root, followlinks=False, onerror=unreadable)
+
+
 def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> dict[str, bytes]:
     """Read immutable Git objects with one pinned, non-filtering Git operator.
 
@@ -650,7 +666,7 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
         # read-only bare mirror is a provisioning requirement, not a claim in
         # the Controller request. Packed and loose objects are both supported.
         count = 0
-        for directory, subdirs, filenames in _os.walk(root, followlinks=False):
+        for directory, subdirs, filenames in _walk_verified_protected_git_mirror(root):
             for name in (*subdirs, *filenames):
                 node = _Path(directory) / name
                 info = node.lstat()
