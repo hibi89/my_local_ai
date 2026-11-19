@@ -16,7 +16,7 @@ _MODEL = re.compile(r"qwen(?:3|3-coder|2\.5-coder):[A-Za-z0-9_.+-]{1,64}\Z", re.
 class ProviderHold(RuntimeError):
     """Safe, redacted reason to hold an unavailable/unsafe local provider."""
 
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, detail: str = ""):
         if code not in {
             "UNSAFE_ENDPOINT", "UNAPPROVED_MODEL", "GENERATION_DISABLED",
             "NO_MODEL_LOCK", "NO_BUDGET", "MODEL_ABSENT", "OLLAMA_UNAVAILABLE",
@@ -24,6 +24,9 @@ class ProviderHold(RuntimeError):
         }:
             code = "OLLAMA_UNAVAILABLE"
         self.code = code
+        self.detail = detail if detail in {
+            "PROMPT_TOO_LARGE", "MODEL_BUSY", "MODEL_LOCK", "OUTPUT_TOO_LARGE", "TIMEOUT",
+        } else ""
         super().__init__(code)
 
 

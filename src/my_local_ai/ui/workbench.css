@@ -95,6 +95,15 @@ button { cursor: pointer; }
 .timers dd, .work-plan dd { margin: 0; }
 .timers dd { margin-top: 4px; font: 650 clamp(1.12rem, 2vw, 1.38rem) "Cascadia Mono", Consolas, monospace; }
 .timing-warning { padding: 10px 21px 0; color: var(--error); font-size: .8rem; }
+.error-guide { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 9px; }
+.message-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  background: var(--accent-wash); color: var(--accent); border: 1px solid var(--line); font: 700 .83rem Consolas, monospace; }
+.error-message { display: grid; justify-items: start; gap: 6px; padding: 11px 13px;
+  border: 1px solid var(--line); border-radius: 4px 10px 10px; background: var(--inset);
+  color: var(--text); font-size: .84rem; line-height: 1.55; overflow-wrap: anywhere; }
+.error-message strong { color: var(--accent); font-size: .77rem; }
+.error-message small, #error-progress { color: var(--muted); }
+.error-message .quiet-button { margin-top: 3px; }
 .work-plan { margin: 0; display: grid; gap: 7px; padding: 12px 13px; background: var(--inset);
   border: 1px solid var(--line); border-radius: 8px; }
 .work-plan > div { display: grid; grid-template-columns: minmax(4.7rem, max-content) minmax(0,1fr); gap: 10px; align-items: baseline; }

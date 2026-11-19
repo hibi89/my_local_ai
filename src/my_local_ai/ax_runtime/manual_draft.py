@@ -22,17 +22,51 @@ from .draft_documents import (
 )
 from .draft_intake import parse_handoff, read_handoff_documents, text_path
 from .draft_timing import recorded_time
-from .ollama_provider import OllamaProvider
+from .ollama_provider import OllamaProvider, STRUCTURED_OUTPUT_TOKENS
 from .provider_policy import ProviderHold
 from .worker_lock import ModelLockUnsafe, OneModelLock
 
 
 REQUEST_LIMIT = 1_800_000  # Space for JSON escaping of two UTF-8 documents.
 _CONTEXT = 8192
-_INPUT_LIMIT = _CONTEXT - 1536
-_CHAT_INPUT_LIMIT = 10_400
+_SHORT_CONTEXT = 4096
+_INPUT_LIMIT = _CONTEXT - STRUCTURED_OUTPUT_TOKENS
 _OUTPUT_LIMIT = 60_000
 _KEYWORDS = re.compile(r"[A-Za-z0-9_\uac00-\ud7a3]{2,}")
+_MODEL_ERRORS = {
+    "PROMPT_TOO_LARGE": (
+        "Qwen에 한 번에 보낼 수 있는 입력 크기를 넘었습니다.",
+        "지시문에서 지금 처리할 작업 하나를 남기고, 작업 파일을 한 개 지정해 다시 보내세요.",
+    ),
+    "MODEL_BUSY": (
+        "다른 MLA 작업이 이 Qwen 모델을 사용 중입니다.",
+        "실행 중인 MLA 작업이 끝나면 같은 지시문을 다시 보내세요.",
+    ),
+    "MODEL_LOCK": (
+        "초안 저장 폴더의 Qwen 잠금 파일을 열지 못했습니다.",
+        "MLA 실행기를 다시 열어 재시도하세요. 같은 문제가 반복되면 아래 오류 코드를 보내 주세요.",
+    ),
+    "MODEL_ABSENT": (
+        "Ollama에 qwen3:4b-instruct 모델이 없습니다.",
+        "PowerShell에서 ollama pull qwen3:4b-instruct를 실행한 뒤 다시 보내세요.",
+    ),
+    "OLLAMA_UNAVAILABLE": (
+        "MLA가 이 PC의 Ollama에 연결하지 못했습니다.",
+        "Windows에서 Ollama가 실행 중인지 확인하고, 꺼져 있으면 Ollama를 연 뒤 다시 보내세요.",
+    ),
+    "TIMEOUT": (
+        "Ollama가 정해진 시간 안에 Qwen 응답을 반환하지 못했습니다.",
+        "작업 파일 한 개와 그 파일에서 바꿀 부분을 지정해 다시 보내세요.",
+    ),
+    "OUTPUT_TOO_LARGE": (
+        "Qwen이 한 작업에서 저장할 수 있는 분량보다 큰 응답을 보냈습니다.",
+        "지시문에서 파일이나 변경 항목을 한 개로 좁혀 다시 보내세요.",
+    ),
+    "RESOURCE_LIMIT": (
+        "Qwen 작업이 자원 한도에 도달했습니다.",
+        "작업 내용을 한 파일의 작은 변경으로 좁혀 다시 보내세요.",
+    ),
+}
 
 
 def _unique_fields(pairs):
@@ -78,10 +112,10 @@ def _existing_sources(folder: str, paths: tuple[str, ...], draft_root: Path) -> 
     return current
 
 
-def _design_excerpt(text: str, query: str, limit: int) -> str:
+def _design_excerpt(text: str, query: str, limit: int, *, minimum: int = 500) -> str:
     if len(text.encode()) <= limit:
         return text
-    if limit < 500:
+    if limit < minimum:
         raise DraftError("작업명령문과 기존 파일을 줄여 모델이 설계도를 읽을 공간을 확보하세요.")
     sections = [part.strip() for part in re.split(r"\n{2,}|(?=^#{1,4} )", text, flags=re.M) if part.strip()]
     keywords = set(_KEYWORDS.findall(query.casefold()))
@@ -90,7 +124,7 @@ def _design_excerpt(text: str, query: str, limit: int) -> str:
     ))
     selected = {}
     for index in ranked:
-        if limit < 120:
+        if limit < min(120, minimum):
             break
         chunk = sections[index].encode()[:limit].decode("utf-8", errors="ignore")
         selected[index] = chunk
@@ -134,16 +168,20 @@ def _first_priority(message: str) -> str:
 
 
 def _source_excerpt(source: str, query: str, limit: int) -> str:
-    if len(source.encode()) <= limit:
+    if len(json.dumps(source, ensure_ascii=False).encode()) - 2 <= limit:
         return source
     keywords = set(_KEYWORDS.findall(query.casefold()))
     lines = source.splitlines(keepends=True)
+    sizes = [len(json.dumps(line, ensure_ascii=False).encode()) - 2 for line in lines]
     best = (-1, "")
-    # Score overlapping windows of whole lines so Qwen can copy exact anchors.
-    for start in range(0, len(lines), 12):
-        excerpt = _clip("".join(lines[start:start + 110]), limit)
-        if excerpt and not excerpt.endswith("\n"):
-            excerpt = excerpt.rpartition("\n")[0] + "\n" if "\n" in excerpt else ""
+    # Keep whole lines for exact edits and count their JSON escaping against the input budget.
+    starts = (index for index in range(len(lines)) if index % 12 == 0 or sizes[index - 1] > limit)
+    for start in starts:
+        end, available = start, limit
+        while end < min(start + 110, len(lines)) and sizes[end] <= available:
+            available -= sizes[end]
+            end += 1
+        excerpt = "".join(lines[start:end])
         score = len(keywords.intersection(_KEYWORDS.findall(excerpt.casefold())))
         if excerpt and score > best[0]:
             best = (score, excerpt)
@@ -155,9 +193,10 @@ def _source_excerpt(source: str, query: str, limit: int) -> str:
 def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], originals: dict[str, str],
                     source_docs: dict[str, DraftDocument], narrowed: bool) -> tuple[str, dict | None, list]:
     priority = _first_priority(task.text)
-    if len(task.text.encode()) > 3500:
-        begin = _clip(task.text, 750)
-        focus = _clip(priority, 1750) if priority != task.text else _design_excerpt(task.text, " ".join(originals), 1600)
+    if len(task.text.encode()) > 2350:
+        begin = _clip(task.text, 540)
+        focus = (_clip(priority, 1280) if priority != task.text
+                 else _design_excerpt(task.text, " ".join(originals), 1280))
         instructions = f"{begin}\n\n{focus}"
         used = len(begin) + len(focus) if priority != task.text else len(focus)
     else:
@@ -170,9 +209,6 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
                  "Do not mark checks as passed or invent test or execution results.\n") if narrowed else ""
     preamble = selection + "Use the attached document excerpts as context for the change."
     if len(encoded.encode()) > 1900:
-        per_file = min(3600, 3800 // len(originals))
-        fragments = {path: _source_excerpt(source.replace("\r\n", "\n"), query, per_file)
-                     for path, source in originals.items()}
         prompt = (
             'Return one JSON object: {"summary":"short Korean summary","edits":[{"path":"exact path",'
             '"before":"unique exact block from the excerpt, including indentation and line breaks",'
@@ -180,11 +216,21 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
             'For an empty file only, use an empty before and include the whole new file as after. '
             'Use only the listed paths. Return at least one edit. Do not return Markdown or commands.\n'
             + preamble + '\nWork instructions:\n' + instructions
-            + '\nCurrent source excerpts:\n' + json.dumps(fragments, ensure_ascii=False)
+            + '\nCurrent source excerpts:\n'
         )
+        # Leave room for the referenced documents before selecting source excerpts.
+        document_room = min(1560, 195 * len(documents))
+        source_room = min(3000, _INPUT_LIMIT - len(prompt.encode()) - document_room)
+        paths_size = len(json.dumps(dict.fromkeys(originals, ""), ensure_ascii=False).encode())
+        per_file = (source_room - paths_size) // len(originals)
+        if per_file < 1:
+            raise DraftError("작업 파일 경로가 Qwen 입력 범위를 넘었습니다. 작업 파일을 나누어 주세요.")
+        fragments = {path: _source_excerpt(source.replace("\r\n", "\n"), query, per_file)
+                     for path, source in originals.items()}
+        prompt += json.dumps(fragments, ensure_ascii=False)
     else:
         prompt, _ = _create_prompt(instructions + "\n\n" + preamble, "", originals)
-    room = _CHAT_INPUT_LIMIT - len(prompt.encode())
+    room = _INPUT_LIMIT - len(prompt.encode())
     if room < 0:
         raise DraftError("붙여넣은 작업과 파일을 한 번에 읽기 어렵습니다. 작업 파일을 나누어 주세요.")
     if documents:
@@ -192,7 +238,7 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
         for document in documents:
             name = document.origin.split("/")[-1]
             limit = per_document - len(name.encode()) - 16
-            excerpt = (_design_excerpt(document.text, query, limit) if limit >= 500
+            excerpt = (_design_excerpt(document.text, query, limit, minimum=80) if limit >= 80
                        else _clip(document.text, limit))
             if excerpt:
                 prompt += f"\n\n[{name}]\n{excerpt}"
@@ -407,6 +453,7 @@ class LocalDrafts:
         return prompt, originals, fragments, evidence, plan
 
     def _run(self, instruction: str, design: str, paths: tuple[str, ...], folder: str, handoff: bool) -> None:
+        saving = False
         try:
             fragments = None
             plan = None
@@ -422,7 +469,7 @@ class LocalDrafts:
                 if blueprint:
                     evidence.append(blueprint.evidence(used))
             self._set("working", "로컬 Qwen이 파일 초안을 작성 중입니다.", plan=plan)
-            context = 4096 if len(prompt.encode()) <= 2560 else _CONTEXT
+            context = _SHORT_CONTEXT if len(prompt.encode()) <= _SHORT_CONTEXT - STRUCTURED_OUTPUT_TOKENS else _CONTEXT
             generate = self.provider.generate(
                 prompt, model_lock=OneModelLock(self.root),
                 budget=BudgetGuard(ModelBudget(max_calls=1, max_seconds=270,
@@ -434,21 +481,31 @@ class LocalDrafts:
             reply = _apply_model_edits(generate.text, originals, fragments) if fragments is not None else generate.text
             summary, files = _model_files(reply, originals)
             self._set("working", "변경 내용을 정리해 별도 폴더에 저장 중입니다.")
+            saving = True
             destination = self._save(files, summary, evidence, plan)
             message = "첫 작업의 로컬 초안을 저장했습니다." if plan and plan["narrowed"] else "초안 파일을 저장했습니다."
             self._set("done", message, summary=summary,
                       folder=str(destination / "files"), files=files, sources=evidence)
         except DraftError as exc:
             self._set("error", str(exc))
-        except ProviderHold as exc:
-            messages = {
-                "MODEL_ABSENT": "Ollama에 qwen3:4b-instruct 모델이 설치되어 있어야 합니다.",
-                "OLLAMA_UNAVAILABLE": "Ollama에 연결하지 못했거나 응답 시간이 지났습니다.",
-                "RESOURCE_LIMIT": "로컬 모델이 사용 중이거나 작업 한도를 넘었습니다.",
-            }
-            self._set("error", messages.get(exc.code, "Qwen 응답을 다시 확인해 주세요."))
-        except (OSError, ValueError, OverflowError, RuntimeError, ModelLockUnsafe):
-            self._set("error", "작업 자료나 초안 저장 폴더를 확인하세요.")
+        except (ProviderHold, ModelLockUnsafe) as exc:
+            code = (exc.detail or exc.code) if isinstance(exc, ProviderHold) else "MODEL_LOCK"
+            title, hint = _MODEL_ERRORS.get(code, (
+                "Ollama에서 받은 Qwen 응답을 처리할 수 없습니다.",
+                "같은 지시문을 다시 보내세요. 같은 문제가 반복되면 아래 오류 코드를 보내 주세요.",
+            ))
+            self._set("error", title, error={"code": code, "hint": hint})
+        except (OSError, ValueError, OverflowError, RuntimeError):
+            if saving:
+                self._set("error", "Qwen의 초안을 파일로 저장하지 못했습니다.", error={
+                    "code": "DRAFT_SAVE",
+                    "hint": f"탐색기에서 이 폴더에 파일을 만들 수 있는지 확인해 주세요. {self.root}",
+                })
+            else:
+                self._set("error", "작업을 준비하거나 Qwen에 넘기는 중 오류가 발생했습니다.", error={
+                    "code": "DRAFT_PROCESSING",
+                    "hint": "지시문을 그대로 다시 보내세요. 같은 문제가 반복되면 아래 오류 코드를 보내 주세요.",
+                })
 
     def _save(self, files: list[dict], summary: str, sources: list[dict], plan: dict | None) -> Path:
         local_path_stat(self.root)

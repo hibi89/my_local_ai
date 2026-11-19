@@ -17,6 +17,7 @@ from .worker_lock import ModelLockBusy, ModelLockUnsafe, OneModelLock
 
 _TAGS_LIMIT = 131_072
 _MAX_PROMPT_BYTES = 65_536
+STRUCTURED_OUTPUT_TOKENS = 1536
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,7 @@ class OllamaProvider:
                 raise ProviderHold("OLLAMA_UNAVAILABLE")
             data = response.read(limit + 1)
             if len(data) > limit:
-                raise ProviderHold("RESOURCE_LIMIT")
+                raise ProviderHold("RESOURCE_LIMIT", detail="OUTPUT_TOO_LARGE" if payload else "")
             if not isinstance(data, bytes):
                 raise ProviderHold("OLLAMA_RESPONSE_INVALID")
             def reject_duplicate_keys(pairs):
@@ -91,7 +92,9 @@ class OllamaProvider:
             return parsed
         except ProviderHold:
             raise
-        except (OSError, TimeoutError, http.client.HTTPException):
+        except TimeoutError:
+            raise ProviderHold("OLLAMA_UNAVAILABLE", detail="TIMEOUT") from None
+        except (OSError, http.client.HTTPException):
             raise ProviderHold("OLLAMA_UNAVAILABLE") from None
         except (UnicodeError, json.JSONDecodeError, ValueError, TypeError, OverflowError):
             raise ProviderHold("OLLAMA_RESPONSE_INVALID") from None
@@ -137,6 +140,9 @@ class OllamaProvider:
             prompt_bytes = prompt.encode("utf-8")
             if len(prompt_bytes) > _MAX_PROMPT_BYTES or "\x00" in prompt:
                 raise ProviderHold("UNSAFE_INPUT")
+            # The resource guard conservatively counts prompt bytes as tokens.
+            if len(prompt_bytes) > budget.limits.max_context_tokens:
+                raise ProviderHold("RESOURCE_LIMIT", detail="PROMPT_TOO_LARGE")
             budget.check(context_tokens=len(prompt_bytes), output_bytes=0)
         except (UnicodeError, BudgetExceeded):
             raise ProviderHold("RESOURCE_LIMIT") from None
@@ -157,7 +163,7 @@ class OllamaProvider:
                 }
                 if structured:
                     payload["format"] = "json"
-                    payload["options"].update(temperature=0, num_predict=1536)
+                    payload["options"].update(temperature=0, num_predict=STRUCTURED_OUTPUT_TOKENS)
                 result = self._request("POST", "/api/generate", payload=payload,
                     limit=min(1_048_576, budget.limits.max_output_bytes + 16384))
                 answer = result.get("response")
@@ -168,8 +174,12 @@ class OllamaProvider:
                 except UnicodeError:
                     raise ProviderHold("OLLAMA_RESPONSE_INVALID") from None
                 if len(encoded) > budget.limits.max_output_bytes:
-                    raise ProviderHold("RESOURCE_LIMIT")
+                    raise ProviderHold("RESOURCE_LIMIT", detail="OUTPUT_TOO_LARGE")
                 budget.check(output_bytes=len(encoded))
                 return UntrustedGeneration(answer, self.model)
-        except (ModelLockBusy, ModelLockUnsafe, BudgetExceeded, OSError):
+        except ModelLockBusy:
+            raise ProviderHold("RESOURCE_LIMIT", detail="MODEL_BUSY") from None
+        except (ModelLockUnsafe, OSError):
+            raise ProviderHold("RESOURCE_LIMIT", detail="MODEL_LOCK") from None
+        except BudgetExceeded:
             raise ProviderHold("RESOURCE_LIMIT") from None

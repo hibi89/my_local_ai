@@ -101,6 +101,17 @@ def render_workbench(session_path: str, layout: str) -> bytes:
         </dl>
         <p id="timing-warning" class="timing-warning" hidden>누적 시간을 저장할 수 없습니다.</p>
         <div class="result-body" id="result">
+          <aside id="error-guide" class="error-guide" aria-label="MLA 안내" hidden>
+            <span class="message-avatar" aria-hidden="true">M</span>
+            <div class="error-message">
+              <strong>MLA</strong>
+              <p id="error-progress" hidden></p>
+              <p id="error-message" role="status"></p>
+              <p id="error-hint" hidden></p>
+              <small id="error-code" hidden></small>
+              <button type="button" class="quiet-button" id="edit-message">입력창으로 이동</button>
+            </div>
+          </aside>
           <dl id="work-plan" class="work-plan" aria-label="자동으로 찾은 작업 범위" hidden></dl>
           <div id="empty" class="empty">
             <div class="empty-icon" aria-hidden="true"><i></i><i></i><i></i></div>

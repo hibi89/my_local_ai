@@ -16,10 +16,15 @@ const copyFile = document.querySelector('#copy-file');
 const copyFolder = document.querySelector('#copy-folder');
 const details = document.querySelector('#details');
 const empty = document.querySelector('#empty');
+const errorGuide = document.querySelector('#error-guide');
+const errorMessage = document.querySelector('#error-message');
+const errorProgress = document.querySelector('#error-progress');
+const errorHint = document.querySelector('#error-hint');
+const errorCode = document.querySelector('#error-code');
 const plan = document.querySelector('#work-plan');
 const elapsed = document.querySelector('#elapsed');
 const total = document.querySelector('#total');
-const stateLabels = { idle: '대기', working: '작업 중', done: '초안 저장됨', error: '확인 필요' };
+const stateLabels = { idle: '대기', working: '작업 중', done: '초안 저장됨', error: '작업 중단' };
 
 let activeFile = null;
 let renderedFolder = null;
@@ -28,6 +33,7 @@ let retry = null;
 let submission = 0;
 let clock = null;
 let renderedPlan = '';
+let lastInput = chatForm;
 
 document.querySelector('#sample').addEventListener('click', () => {
   if (!messageInput.value.trim()) {
@@ -40,6 +46,14 @@ messageInput.addEventListener('keydown', event => {
   if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.isComposing) {
     event.preventDefault();
     if (!submitButtons[0].disabled) chatForm.requestSubmit();
+  }
+});
+document.querySelector('#edit-message').addEventListener('click', () => {
+  if (lastInput === form) {
+    form.closest('details').open = true;
+    form.elements.instructions.focus();
+  } else {
+    messageInput.focus();
   }
 });
 
@@ -144,7 +158,9 @@ function setBusy(busy) {
 }
 
 function showResult(state) {
-  if (phase.textContent !== state.message) phase.textContent = state.message;
+  const stopped = state.state === 'error';
+  const phaseMessage = stopped ? '' : state.message;
+  if (phase.textContent !== phaseMessage) phase.textContent = phaseMessage;
   stateBadge.textContent = stateLabels[state.state];
   stateBadge.dataset.state = state.state;
   setBusy(state.state === 'working');
@@ -156,6 +172,15 @@ function showResult(state) {
     clock.running = false;
   }
   showPlan(state.plan);
+  errorGuide.hidden = !stopped;
+  errorMessage.textContent = stopped ? state.message : '';
+  const documentsRead = state.plan && 'revision' in state.plan ? state.plan.documents : 0;
+  errorProgress.hidden = !documentsRead;
+  errorProgress.textContent = documentsRead ? 'GitHub 문서 ' + documentsRead + '개를 읽었어요.' : '';
+  errorHint.hidden = !state.error?.hint;
+  errorHint.textContent = state.error?.hint || '';
+  errorCode.hidden = !state.error?.code;
+  errorCode.textContent = state.error?.code ? '오류 코드 ' + state.error.code : '';
   details.hidden = state.state !== 'done';
   empty.hidden = !details.hidden || state.state === 'error' || (state.state === 'working' && !plan.hidden);
   if (state.state !== 'done' || renderedFolder === state.folder) return;
@@ -213,6 +238,7 @@ async function submit(event) {
   if (submitButtons[0].disabled) return;
   const version = ++submission;
   clearTimeout(retry);
+  lastInput = event.currentTarget;
   const payload = Object.fromEntries(new FormData(event.currentTarget));
   setBusy(true);
   try {

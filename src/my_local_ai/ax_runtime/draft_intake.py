@@ -91,7 +91,7 @@ class Handoff:
                 continue
             candidates.append((-int(exact), -matches, path not in referenced, leaf.parts[0] == "tests", size, path))
         if not candidates:
-            raise DraftError("저장소에서 작업 파일을 좁히지 못했습니다. 메시지에 ‘작업 파일: src/파일명.py’를 적어 주세요.")
+            raise DraftError("어느 파일부터 작업할까요? 왼쪽 지시문에 ‘작업 파일: src/파일명.py’를 추가해 주세요.")
         return min(candidates)[-1]
 
 
@@ -163,7 +163,7 @@ def parse_handoff(message: str) -> Handoff:
 
     candidates = repository_links or document_repos
     if not repository and len(candidates) > 1:
-        raise DraftError("여러 GitHub 저장소가 있습니다. ‘Repository: 소유자/저장소’로 작업 대상을 적어 주세요.")
+        raise DraftError("어느 GitHub 저장소에서 작업할까요? 왼쪽 지시문에 ‘Repository: 소유자/저장소’를 추가해 주세요.")
     repository = repository or next(iter(candidates), "")
     branch = branch or repository_links.get(repository, "")
     if not repository and (documents and any(doc.repository for doc in documents) or branch):

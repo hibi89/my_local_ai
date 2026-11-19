@@ -13,7 +13,8 @@ from unittest.mock import patch
 
 from my_local_ai.ax_runtime.draft_documents import DraftError, read_document
 from my_local_ai.ax_runtime.manual_draft import LocalDrafts
-from my_local_ai.ax_runtime.ollama_provider import UntrustedGeneration
+from my_local_ai.ax_runtime.ollama_provider import OllamaProvider, UntrustedGeneration
+from my_local_ai.ax_runtime.worker_lock import OneModelLock
 
 
 class DraftDocumentsTests(unittest.TestCase):
@@ -55,21 +56,17 @@ class DraftDocumentsTests(unittest.TestCase):
 
 
 class FixtureProvider:
-    def __init__(self, path, text, before=None):
+    def __init__(self, path, text):
         self.path = path
         self.text = text
-        self.before = before
         self.prompt = ""
 
     def generate(self, prompt, **options):
         self.prompt = prompt
         assert options["allow_generation"] and options["structured"]
-        reply = {"summary": "prepared draft"}
-        if self.before is None:
-            reply["files"] = [{"path": self.path, "content": self.text}]
-        else:
-            reply["edits"] = [{"path": self.path, "before": self.before, "after": self.text}]
-        return UntrustedGeneration(json.dumps(reply), "qwen3:4b-instruct")
+        return UntrustedGeneration(json.dumps({
+            "summary": "prepared draft", "files": [{"path": self.path, "content": self.text}],
+        }), "qwen3:4b-instruct")
 
 
 class LocalDraftsTests(unittest.TestCase):
@@ -133,8 +130,9 @@ class LocalDraftsTests(unittest.TestCase):
     def test_pasted_handoff_resolves_docs_and_updates_original_from_an_exact_anchor(self):
         revision = "2" * 40
         path = "src/server.py"
-        original = "OPTION = 7\r\n" + ("# keep the remaining file as-is\r\n" * 100)
-        document = "The server should default to OPTION = 8."
+        original = "OPTION = 7\r\n" + ('# keep the "remaining" \\ server configuration as-is\r\n' * 100)
+        document = "The server should default to OPTION = 8.\n\n"
+        document_paths = [f"docs/design-{index}.md" for index in range(8)]
         repo = "/repos/example/project"
         responses = {
             f"{repo}/commits/integration%2Fone": revision.encode(),
@@ -145,7 +143,7 @@ class LocalDraftsTests(unittest.TestCase):
                 ],
             }).encode(),
         }
-        for name, text in ((path, original), ("docs/final.md", document)):
+        for name, text in [(path, original), *((name, document * 170) for name in document_paths)]:
             content = text.encode()
             responses[f"{repo}/contents/{name}?ref={revision}"] = json.dumps({
                 "type": "file", "encoding": "base64", "path": name, "size": len(content),
@@ -154,17 +152,24 @@ class LocalDraftsTests(unittest.TestCase):
             }).encode()
         message = (
             "Repository: example/project\nBranch: integration/one\n"
-            "## 읽을 문서\n- docs/final.md\n"
-            "## 작업 우선순위\nChange the server default option to 8.\n"
-            "## 제외\n- src/gui/**\n"
-            "## 범위\n수정 허용 대상:\n\n- src/**\n"
+            "## 읽을 문서\n" + "\n".join(f"- {name}" for name in document_paths)
+            + "\n## 작업 우선순위\nChange the server default option to 8.\n"
+            + "## 제외\n- src/gui/**\n"
+            + "## 범위\n수정 허용 대상:\n\n- src/**\n"
+            + "## 배경\n" + "기존 구현과 문서의 나머지 항목을 유지합니다.\n" * 180
         )
-        provider = FixtureProvider(path, "OPTION = 8\n", "OPTION = 7\n")
+        provider = OllamaProvider()
+        reply = {"summary": "prepared draft", "edits": [
+            {"path": path, "before": "OPTION = 7\n", "after": "OPTION = 8\n"},
+        ]}
+        ollama_responses = [{"models": [{"name": "qwen3:4b-instruct"}]},
+                            {"done": True, "response": json.dumps(reply)}]
         with TemporaryDirectory() as directory:
             root = Path(directory).resolve() / "drafts"
             with patch("my_local_ai.ax_runtime.draft_documents._github_get",
                        side_effect=lambda endpoint, *args: responses[endpoint]), patch(
-                       "my_local_ai.ax_runtime.manual_draft.monotonic", side_effect=count(50)):
+                       "my_local_ai.ax_runtime.manual_draft.monotonic", side_effect=count(50)), patch.object(
+                       provider, "_request", side_effect=ollama_responses) as transport:
                 app = LocalDrafts(root, provider=provider)
                 started = app.start({"message": message})
                 result = self.await_result(app)
@@ -173,7 +178,14 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(result["plan"]["paths"], [path])
             self.assertTrue(result["plan"]["narrowed"])
             self.assertEqual(result["plan"]["revision"], revision)
-            self.assertIn(document, provider.prompt)
+            commands = [call.args for call in transport.call_args_list]
+            self.assertEqual(commands, [("GET", "/api/tags"), ("POST", "/api/generate")])
+            request = transport.call_args.kwargs["payload"]
+            self.assertIn(document.strip(), request["prompt"])
+            self.assertLessEqual(len(request["prompt"].encode()),
+                                 request["options"]["num_ctx"] - request["options"]["num_predict"])
+            self.assertEqual(result["plan"]["documents"], 8)
+            self.assertTrue(all(source["characters_used"] for source in result["sources"]))
             self.assertEqual(result["sources"][-1]["revision"], revision)
             expected = original.replace("OPTION = 7", "OPTION = 8")
             self.assertEqual((Path(result["folder"]) / path).read_bytes(), expected.encode())
@@ -196,6 +208,21 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(second["state"], "error")
             self.assertEqual(second["total_ms"], first["elapsed_ms"] + second["elapsed_ms"])
             self.assertEqual(LocalDrafts(root).snapshot()["total_ms"], second["total_ms"])
+
+    def test_busy_provider_reports_specific_action_without_sending_generation_request(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            provider = OllamaProvider()
+            app = LocalDrafts(root, provider=provider)
+            with OneModelLock(root), patch.object(provider, "_request", return_value={
+                "models": [{"name": "qwen3:4b-instruct"}],
+            }) as request:
+                app.start({"message": "Draft a readiness flag."})
+                result = self.await_result(app)
+            self.assertEqual(result["state"], "error")
+            self.assertEqual(result["error"]["code"], "MODEL_BUSY")
+            self.assertIn("끝나면", result["error"]["hint"])
+            request.assert_called_once_with("GET", "/api/tags")
 
 
 if __name__ == "__main__":
