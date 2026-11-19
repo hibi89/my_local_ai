@@ -205,8 +205,11 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
         }
 
     def test_nonwindows_is_hold_and_does_not_probe(self):
+        # Import before temporarily changing os.name on Windows; pathlib
+        # must never be asked to instantiate an unsupported PosixPath.
+        from my_local_ai.ops import windows_local_operator as local_op
         with patch.object(preflight.os, "name", "posix"), \
-             patch("my_local_ai.ops.windows_local_operator.run_operator_request") as probe:
+             patch.object(local_op, "run_operator_request") as probe:
             result = preflight.host_readonly_prerequisites()
         self.assertEqual(result["reason"], "WINDOWS_REQUIRED")
         self.assertEqual(result["decision"], "HOLD")
