@@ -709,6 +709,35 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(c._BROKER_PIPE_CLIENT_ACCESS & 0xC0000000, 0)
 
 
+class ProtectedTransportDeadlineTests(unittest.TestCase):
+    """Synthetic monotonic IPC deadline; never connects to native Windows."""
+
+    def test_expired_and_boundary_clock_fail_closed(self):
+        for now in (30.0, 30.001, 500.0):
+            with self.subTest(now=now), self.assertRaises(c.ProtectedBrokerHold) as caught:
+                c._guard_broker_transport_deadline(30.0, now)
+            self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+        for now in (0.0, 29.0, 29.999):
+            with self.subTest(now=now):
+                c._guard_broker_transport_deadline(30.0, now)
+
+    def test_client_checks_deadline_after_auth_and_synchronous_io(self):
+        source = inspect.getsource(c._WindowsBrokerAPI.transact)
+        # Initial authentication, before every I/O, after each completed
+        # native I/O, and before returning signed data.
+        self.assertGreaterEqual(
+            source.count("_guard_broker_transport_deadline(deadline, time.monotonic())"), 4
+        )
+        self.assertLess(
+            source.index("with self.authenticate_pipe(pipe, role, roots):"),
+            source.index("_guard_broker_transport_deadline(deadline, time.monotonic())"),
+        )
+        self.assertLess(
+            source.index("if not 1 <= count.value <= size:"),
+            source.index("return buffer.raw[:count.value]"),
+        )
+
+
 class ProtectedPipeClientTokenTests(unittest.TestCase):
     """Synthetic Win32 token-query contract; no real OS impersonation."""
 
