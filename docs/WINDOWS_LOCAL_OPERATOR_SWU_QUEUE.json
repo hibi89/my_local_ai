@@ -1,0 +1,98 @@
+{
+  "schema": "mla-local-op-swu/v1",
+  "project": "hibi89/my_local_ai",
+  "feature": "WINDOWS_LOCAL_OPERATOR_READ_ONLY_V1",
+  "approved_date_kst": "2026-11-19",
+  "design_branch": "design/final-blueprint-v1",
+  "design_sha": "8e8a2165b14d0b368c9b11b357fe990760f4c06d",
+  "active_branch": "dev/instant-implementation-v1",
+  "baseline_v13_swu_total": 55,
+  "baseline_v13_swu_completed_at_addition": 52,
+  "p1_source_swu_total": 3,
+  "p1_source_swu_completed": 3,
+  "combined_p1_source_swu_total": 58,
+  "combined_p1_source_swu_completed": 55,
+  "p2": "LOCKED",
+  "p2_accepted_swu": 0,
+  "verified_rate": "UNASSESSED",
+  "real_windows": "NOT_RUN",
+  "independent_audit": "NOT_RUN",
+  "owner_go": false,
+  "default_execution": "ONLY_FIXED_READ_ONLY_DIAGNOSTICS",
+  "no_arbitrary_shell": true,
+  "no_os_policy_or_acl_change": true,
+  "no_external_network": true,
+  "source_evidence": {
+    "operator_module_blob_sha": "2232a5a83e7e7e37620ede26f305e766df35942b",
+    "cli_blob_sha": "1f32f4273603c91ea26dfe0bb02f7888436adea8",
+    "unit_test_blob_sha": "3ce564fcdb8f0cc8bc1c398bf1b9ef3811662a47"
+  },
+  "local_syntax": "PASS",
+  "local_smoke": {
+    "result": "PASS_6_OF_6",
+    "scope": "isolated module in temporary local runtime; CLI cross-module integration NOT_RUN"
+  },
+  "tasks": [
+    {
+      "id": "MLA-OP-SWU-001",
+      "req_ids": [
+        "REQ-OP-01"
+      ],
+      "title": "Strict owner-pasted request parser and catalog",
+      "code_depends_on": [],
+      "allowed_paths": [
+        "src/my_local_ai/ops/windows_local_operator.py"
+      ],
+      "caller_to_callee": "fixed Korean alias or schema JSON -> strict parser -> allowed action",
+      "acceptance": "unknown/duplicate/oversized/untrusted commands reject, no shell fallback",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "verified": false,
+      "owner_go": false,
+      "p2_windows": "NOT_RUN"
+    },
+    {
+      "id": "MLA-OP-SWU-002",
+      "req_ids": [
+        "REQ-OP-02"
+      ],
+      "title": "Fixed read-only Windows TPM/Defender/protected-folder probes",
+      "code_depends_on": [
+        "MLA-OP-SWU-001"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/ops/windows_local_operator.py"
+      ],
+      "caller_to_callee": "allowlisted action -> bounded fixed OS probe -> sanitized result/HOLD",
+      "acceptance": "no arbitrary command/script execution, never modifies Defender/ACL/TPM, non-Windows HOLD",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "verified": false,
+      "owner_go": false,
+      "p2_windows": "NOT_RUN"
+    },
+    {
+      "id": "MLA-OP-SWU-003",
+      "req_ids": [
+        "REQ-OP-03"
+      ],
+      "title": "CLI catalog/run command and source/P2 count display",
+      "code_depends_on": [
+        "MLA-OP-SWU-001",
+        "MLA-OP-SWU-002"
+      ],
+      "allowed_paths": [
+        "src/my_local_ai/cli.py"
+      ],
+      "caller_to_callee": "python -m my_local_ai local-op run --request -> typed dispatch -> redacted JSON and exit/HOLD",
+      "acceptance": "CLI status reports old 52/55 alongside new 3/3 and combined 55/58, P2 0 accepted UNASSESSED",
+      "code_status": "SOURCE_COMPLETE_P2_PENDING",
+      "verified": false,
+      "owner_go": false,
+      "p2_windows": "NOT_RUN"
+    }
+  ],
+  "risk_gates": {
+    "privileged_windows_operator": "OUT_OF_SCOPE_REQUIRES_SEPARATE_APPROVAL",
+    "p2": "LOCKED",
+    "release": "HOLD"
+  }
+}

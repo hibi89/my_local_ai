@@ -1,4 +1,4 @@
-"""Read-only MVP CLI; never invokes shell, models, network or local task execution."""
+"""P1 CLI. Only explicit read-only local operators may issue fixed OS probes."""
 from __future__ import annotations
 
 import argparse
@@ -124,6 +124,11 @@ def _parser() -> argparse.ArgumentParser:
     resume.add_argument("--task-id", required=True)
     resume.add_argument("--plan-file", type=Path)
     resume.add_argument("--state-db", type=Path)
+    operator = subs.add_parser("local-op", help="Strict read-only Windows diagnostics only")
+    operator_sub = operator.add_subparsers(dest="operator_action", required=True)
+    operator_sub.add_parser("catalog", help="Show fixed safe diagnostic request examples")
+    op_run = operator_sub.add_parser("run", help="Run one allowlisted read-only request")
+    op_run.add_argument("--request", required=True)
     return parser
 
 def _v13_swu_progress() -> dict:
@@ -256,6 +261,57 @@ def _v13_swu_progress() -> dict:
     }
 
 
+def _local_operator_swu_progress() -> dict:
+    """New add-on counters; never rewrite original V1.3 55-SWU audit."""
+    base = _v13_swu_progress()
+    record = _read_json(_ROOT / "docs" / "WINDOWS_LOCAL_OPERATOR_SWU_QUEUE.json")
+    expected = {"MLA-OP-SWU-001", "MLA-OP-SWU-002", "MLA-OP-SWU-003"}
+    if (type(record) is not dict or record.get("schema") != "mla-local-op-swu/v1"
+        or record.get("project") != "hibi89/my_local_ai"
+        or record.get("p1_source_swu_total") != 3
+        or record.get("p2") != "LOCKED" or record.get("verified_rate") != "UNASSESSED"
+        or record.get("owner_go") is not False
+        or type(record.get("p2_accepted_swu")) is not int
+        or record["p2_accepted_swu"] != 0
+        or type(record.get("tasks")) is not list or len(record["tasks"]) != 3):
+        raise ValueError("invalid Local Operator SWU inventory")
+    ids, completed = set(), 0
+    for task in record["tasks"]:
+        if (type(task) is not dict or task.get("id") not in expected
+            or task["id"] in ids
+            or task.get("code_status") not in {"READY_CODE_ONLY", "SOURCE_COMPLETE_P2_PENDING"}
+            or task.get("verified") is not False
+            or task.get("owner_go") is not False
+            or type(task.get("allowed_paths")) is not list
+            or not task["allowed_paths"]):
+            raise ValueError("inconsistent Local Operator evidence")
+        ids.add(task["id"])
+        if task["code_status"] == "SOURCE_COMPLETE_P2_PENDING":
+            if any(not (_ROOT / p).is_file() for p in task["allowed_paths"]):
+                raise ValueError("missing Local Operator source")
+            completed += 1
+    if ids != expected or completed != record.get("p1_source_swu_completed"):
+        raise ValueError("stale Local Operator counts")
+    total = base["v13_implementation_source_swu_total"] + 3
+    done = base["v13_implementation_source_swu_completed"] + completed
+    return {
+        "local_op_p1_swu_completed": completed,
+        "local_op_p1_swu_total": 3,
+        "local_op_p1_source_percent": round(completed * 100 / 3, 2),
+        "overall_p1_source_swu_completed": done,
+        "overall_p1_source_swu_total": total,
+        "overall_p1_source_swu_percent": round(done * 100 / total, 2),
+        "overall_p2_swu_accepted": 0,
+        "overall_p2_swu_total": total,
+        "overall_p2_swu_recorded_pass_percent": 0.0,
+        "overall_p2_formal_verified_rate": "UNASSESSED",
+        "local_op_windows_real_test": "NOT_RUN",
+        "local_op_arbitrary_shell_authorized": False,
+        "local_op_privileged_execution_authorized": False,
+        "p2": "LOCKED",
+    }
+
+
 def _status() -> dict:
     gates = _read_json(_ROOT / "WORK_PHASE_GATES.json")
     if not isinstance(gates, dict) or gates.get("program") != "my_local_ai":
@@ -315,7 +371,7 @@ def _queue_status() -> dict:
             raise ValueError("malformed queue")
         key = task["status"]
         counts[key] = counts.get(key, 0) + 1
-    return {**state, **_v13_swu_progress(), "task_counts": counts, "tasks_total": len(queue["tasks"])}
+    return {**state, **_v13_swu_progress(), **_local_operator_swu_progress(), "task_counts": counts, "tasks_total": len(queue["tasks"])}
 
 def _safe_code_queue() -> tuple[dict, list[str]]:
     queue=_read_json(_ROOT / "INSTANT_TASK_QUEUE.json")
@@ -744,7 +800,15 @@ def main(argv: list[str] | None = None) -> int:
                 "actual_windows_isolation": "NOT_RUN",
             }
         elif args.command == "status":
-            payload = {**_status(), **_v13_swu_progress()}
+            payload = {**_status(), **_v13_swu_progress(), **_local_operator_swu_progress()}
+        elif args.command == "local-op" and args.operator_action == "catalog":
+            from my_local_ai.ops.windows_local_operator import operator_catalog
+            payload = operator_catalog()
+        elif args.command == "local-op" and args.operator_action == "run":
+            from my_local_ai.ops.windows_local_operator import run_operator_request
+            payload = run_operator_request(args.request)
+            print(json.dumps(payload, sort_keys=True, ensure_ascii=True))
+            return 0 if payload["state"] == "READ_ONLY_RESULT" else 2
         elif args.command == "plan" and args.plan_action == "validate":
             payload = _validate_plan(args.file)
         elif args.command == "plan" and args.plan_action == "approve":

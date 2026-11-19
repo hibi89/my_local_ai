@@ -69,3 +69,25 @@ EAI 독립 CPU Cognition/Intent/ResultSpec 및 bounded typed goals = REQ-05/06/1
 | EXT-08 | 라이브 무료 tier 선택형 시험 | 해당 계정·model ID·ToS·허용 데이터 scope 별도 owner GO | EXT-HYD-08 | BLOCKED_OWNER_APPROVAL |
 
 **상세 구조:** `docs/DETACHABLE_MULTI_MODEL_WORKERS.md`; **독립 작업 큐:** `docs/OPTIONAL_PROVIDER_TASK_QUEUE.json`; **완료율:** 기존 30 필수 REQ에 미산입, 별도 선택형 설계 상태만 보고.
+
+---
+
+## V1.2 선택형 경험학습 확장 요구사항 EXT-EXP-01~07 (설계만)
+2026-11-17 사용자 최종설계 변경: 모델 Q&A를 대량 암기·학습시키기보다는 **자기 개발 작업의 독립 검증된 실패/수정/복구/테스트 증거**로부터 안전한 스킬·계획·도구 추천을 개선한다. 기존 `REQ-01~30` 필수 P1 구현 100% 후보와 `REQ-31/32` 후행, P2 8검증 분모를 소급 변경하지 않는다.
+
+| ID | 개발 범위 | 수용 조건 | 작업 | 상태 |
+|---|---|---|---|---|
+| EXP-01 | immutable Event/Suggestion 권리·SHA/비신뢰 계약 | 위조 trusted/owner GO 거부 | EXT-EXP-01 | DESIGN_ONLY |
+| EXP-02 | SQLite redacted 경험 수집과 backup/migration | private/secret 외부·로그 0, APP_ID 원본 보존 | EXT-EXP-02 | DESIGN_ONLY |
+| EXP-03 | local search/FTS5 optional + 안전·충돌 필터 | 근거 높은 관련 top3, no-match 정상 | EXT-EXP-03 | DESIGN_ONLY |
+| EXP-04 | 후보 skill 버전·검증/승인/격리/롤백 | 모델 자기 PASS로 활성 불가 | EXT-EXP-04 | DESIGN_ONLY |
+| EXP-05 | Controller 읽기전용 추천 연결 | 계획·allowed_paths·F18 우회 0, OFF 회귀 | EXT-EXP-05 | DESIGN_ONLY |
+| EXP-06 | read-only 경험 상태 UI·CLI | 비밀/원본 미노출, 학습/삭제/승인은 별도 | EXT-EXP-06 | DESIGN_ONLY |
+| EXP-07 | 합성 own-data A/B·전체 수용 | accepted REQ/hour/안전/재작업 동일 SHA 비교, P2 별도 | EXT-EXP-07 | DESIGN_ONLY |
+
+외부 Sol Max 출력 대량 수집·모델 가중치 학습·비공개 추론 추출은 설계 범위 외. 합성/mock 범위 외의 실제 사용자 데이터 자동 수집, 외부송신·유료/계정 승인, 권한·GitHub 원격 변경은 명시적 사용자 GO 전 금지. 세부 `docs/EXPERIENCE_LEARNING_ENGINE.md` 및 `docs/OPTIONAL_EXPERIENCE_TASK_QUEUE.json`.
+
+
+## 2026-11-19 — Owner-approved Windows Local Operator additive requirements
+
+The new approved read-only local operator is documented at [Windows Local Operator final design](docs/WINDOWS_LOCAL_OPERATOR_FINAL_DESIGN_20261119.md). **REQ-OP-01** exact allowlist/JSON+Korean alias; **REQ-OP-02** bounded native TPM/Defender/fixed-folder diagnostics, no arbitrary shell/elevation; **REQ-OP-03** CLI/catalog + redacted status and truthful SWU counters. These three *additive* REQ and SWU do not change the existing 30 P1 REQ / 39 MLA SWU / 16 CodeShield SWU acceptance or 2+2 history. Combined P1 SWU denominator grows from 55 to 58. P2 actual accepted evidence remains NOT_RUN/UNASSESSED and privileged operation remains separately gated.
