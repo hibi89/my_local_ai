@@ -1269,6 +1269,27 @@ class DefenderEvidenceTests(unittest.TestCase):
             with self.subTest(changed=changed):
                 self.assertEqual(self.classify(**changed).state, "RESULT_REJECTED_HOLD")
 
+    def test_defender_event_collection_has_shared_time_and_stop_budget(self):
+        # Synthetic budget validation only. No Defender service, event log,
+        # Windows policy or file scan is accessed by this test.
+        with patch.object(d._defender_time, "monotonic", return_value=19.99):
+            d._guard_defender_event_budget(0.0)
+        with patch.object(d._defender_time, "monotonic", return_value=20.0):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                d._guard_defender_event_budget(0.0)
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+        stopped = threading.Event()
+        stopped.set()
+        with patch.object(d._defender_time, "monotonic", return_value=0.0):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                d._guard_defender_event_budget(0.0, stopped)
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+        source = inspect.getsource(d._defender_events_after)
+        self.assertGreaterEqual(
+            source.count("_guard_defender_event_budget(started, stopped)"), 4
+        )
+
+
     def test_postscan_event_overflow_fails_closed_without_native_scan(self):
         # Local synthetic policy check only: no Defender, OS services or
         # protected scan executed. Pre-scan cursor discovery is reverse-order
@@ -1289,7 +1310,8 @@ class DefenderEvidenceTests(unittest.TestCase):
         self.assertLess(code.index("_deny_truncated_defender_events(require_complete, len(result))"),
                         code.index("render(None, event, 1, 0"))
         service = inspect.getsource(d._serve_defender_scan)
-        self.assertIn("_defender_events_after(api, 0)", service)
+        self.assertIn("_defender_events_after(api, 0, stopped=stopped)", service)
+        self.assertIn("_defender_events_after(api, cursor, require_complete=True, stopped=stopped)", service)
         self.assertIn("_defender_events_after(api, cursor, require_complete=True)", service)
 
     def test_event_completion_is_exact_scan_and_resource(self):
