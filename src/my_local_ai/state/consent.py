@@ -1713,7 +1713,11 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                     or self.load_roots() != self.service_roots):
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             elif self.role in _SERVICE_ROLES:
-                if self.load_roots() != self.roots:
+                # An already-open signing handle must also be revoked when
+                # the Controller SID, interactive Owner SID, or Owner session
+                # pin changes. Service public-key pins alone are insufficient.
+                if (self._settings() != self.settings
+                    or self.load_roots() != self.roots):
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 name = r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1" + "\\" + self.role
                 with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, name, 0,
