@@ -1121,6 +1121,25 @@ class ProtectedGitMirrorTraversalTests(unittest.TestCase):
 
 
 
+    def test_protected_git_mirror_per_entry_timeout_and_stop_fail_closed(self):
+        # The helper also gates child lstat/pinning in _read_protected_git_candidate.
+        with patch.object(r._timeForReview, "monotonic", return_value=10.0):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                r._guard_protected_mirror_scan_budget(0.0, threading.Event())
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+
+        stopped = threading.Event()
+        stopped.set()
+        with patch.object(r._timeForReview, "monotonic", return_value=0.0):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                r._guard_protected_mirror_scan_budget(0.0, stopped)
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+
+        source = inspect.getsource(r._read_protected_git_candidate)
+        self.assertGreaterEqual(source.count(
+            "_guard_protected_mirror_scan_budget(mirror_started, stopped)"), 4)
+
+
 class DefenderEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.request = d.DefenderOwnerScanRequest("a" * 64, "b" * 40, "SYNTHETIC-ONLY",
