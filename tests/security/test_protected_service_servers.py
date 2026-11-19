@@ -1006,8 +1006,42 @@ class ProtectedGitMirrorTraversalTests(unittest.TestCase):
             with self.assertRaises(c.ProtectedBrokerHold) as caught:
                 list(r._walk_verified_protected_git_mirror(Path("/synthetic/mirror")))
         self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
-        self.assertIn("_walk_verified_protected_git_mirror(root)",
+        self.assertIn("_walk_verified_protected_git_mirror(root, stopped=stopped)",
                       inspect.getsource(r._read_protected_git_candidate))
+
+    def test_protected_git_mirror_directory_count_and_fanout_bounded(self):
+        # These generators simulate huge protected mirrors; no Git invoked.
+        def many_directories(*args, **kwargs):
+            for index in range(1025):
+                yield str(index), [], []
+        with patch.object(r._os, "walk", many_directories):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                list(r._walk_verified_protected_git_mirror(Path("/fake")))
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
+
+        def excess_fanout(*args, **kwargs):
+            yield "/fake", [str(i) for i in range(1025)], []
+        with patch.object(r._os, "walk", excess_fanout):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                list(r._walk_verified_protected_git_mirror(Path("/fake")))
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
+
+    def test_protected_git_mirror_deadline_and_stop_denied(self):
+        def two_directories(*args, **kwargs):
+            yield "/fake", [], []
+            yield "/fake/objects", [], []
+        with patch.object(r._os, "walk", two_directories):
+            with patch.object(r._timeForReview, "monotonic", side_effect=[0.0, 0.0, 10.0]):
+                with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                    list(r._walk_verified_protected_git_mirror(Path("/fake")))
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
+
+        stopped = threading.Event()
+        stopped.set()
+        with patch.object(r._os, "walk", two_directories):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                list(r._walk_verified_protected_git_mirror(Path("/fake"), stopped=stopped))
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_TIMEOUT")
 
 
 
