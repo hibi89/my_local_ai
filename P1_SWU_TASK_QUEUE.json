@@ -737,8 +737,9 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "65df3c30976565a85944996ee23251bad67eadac",
-      "latest_synthetic_regression_source_sha": "a2358dec5a6102b97bdd54b7bf6b9a58f5ce6e53",
+      "partial_source_sha": "b7b313dfa7ccb658412958545c0c7dd85e994868",
+      "latest_synthetic_regression_source_sha": "c3deec6879c07197ed10f7b95854e1c8cac2d780",
+      "latest_live_key_policy_source_progress_20261119": "Open CNG signer handle now rechecks export policy, existing security descriptor ACL, and software key type/sign-only usage immediately before every signature. Local isolated exact guard excerpt syntax/negative-path smoke 4/4 PASS; full repository Python/Windows/native tests NOT_RUN; GitHub CI conclusion UNVERIFIED. No Owner machine key/service/ACL provision; still BLOCKED_TRUST, no SWU completion delta.",
       "latest_source_progress_20261119": "Protected service live CNG signing now rechecks the entire existing HKLM ControllerSid/InteractiveOwnerSid/OwnerSessionId/KeyName/KeyProviderMode settings snapshot before each signature; rotated/missing/unreadable profile denies stale open-key signing. Synthetic regression code added; exact-SHA CI, owner-machine protected CNG signer, F18 and P2 NOT_VERIFIED/NOT_RUN. Positive security source progress only, SWU remains BLOCKED_TRUST, no OS provisioning or GO.",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
