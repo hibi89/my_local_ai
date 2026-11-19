@@ -190,3 +190,8 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 ## N. Owner 자체 세션 승인 및 F18 정적/실행 분리 (2026-11-18 사용자 승인)
 
 기존 §L Zero-VM·기본 30 REQ/55 SWU·독립 보호 및 P2/GO를 보존하며, Owner UI를 별도 로그인 세션의 고정 EXE로 옮긴다. 상세 수용·Windows 사전 구성·서명/nonce/lease·F18-A/B 분리는 [승인 정본](OWNER_SESSION_F18_APPROVED_REDESIGN_20261118.md)을 따른다. REQ-14 독립 실행 테스트는 미실행/UNSATISFIED, 정적 검사만으로 합격·Git 승격 불가.
+
+
+## M. 2026-11-19 Owner-approved additive feature — Windows Local Operator
+
+Approved no-Codex copy/paste workflow with **strictly fixed read-only Windows diagnostics**; not an arbitrary shell or Windows administrative service. Canonical interface/safety/REQ/SWU and combined 55+3 denominator: [Windows Local Operator design](WINDOWS_LOCAL_OPERATOR_FINAL_DESIGN_20261119.md). This additive module preserves every Zero-VM, F18, Owner trust, OS rights, P2 and release HOLD. A valid request is not Owner GO; untrusted ChatGPT text never becomes execution authority. No automatic privileged execution is authorized.
