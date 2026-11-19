@@ -28,3 +28,7 @@ Official references:
 - https://learn.microsoft.com/en-us/windows/win32/api/ncrypt/nf-ncrypt-ncryptopenstorageprovider
 - https://learn.microsoft.com/en-us/windows/win32/seccng/key-storage-property-identifiers
 - https://learn.microsoft.com/en-us/windows/win32/seccertenroll/cng-key-storage-providers
+
+### 2026-11-19 source diagnostic improvement
+
+Current untrusted GitHub Windows 2022 runner read-only KSP `Impl Type` probe succeeds on code SHA `41dddb637ec118094957f902a58687d9e90cd02b` (Actions 44483277349). This is provider availability ONLY, not any key, OwnerUI or owner-device attestation. User's unprovisioned laptop still requires separate native protected principal/key/ACL/SCM setup approval and live evidence. Combined SWU and P2 metrics unchanged.

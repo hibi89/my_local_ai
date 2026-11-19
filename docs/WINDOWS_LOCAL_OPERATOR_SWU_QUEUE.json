@@ -15,7 +15,7 @@
   "p2": "LOCKED",
   "p2_accepted_swu": 0,
   "verified_rate": "UNASSESSED",
-  "real_windows": "NOT_RUN",
+  "real_windows": "OWNER_SIGNER_AND_NATIVE_OWNER_E2E_NOT_RUN",
   "independent_audit": "NOT_RUN",
   "owner_go": false,
   "default_execution": "ONLY_FIXED_READ_ONLY_DIAGNOSTICS",
@@ -27,10 +27,11 @@
     "cli_blob_sha": "1f32f4273603c91ea26dfe0bb02f7888436adea8",
     "unit_test_blob_sha": "3ce564fcdb8f0cc8bc1c398bf1b9ef3811662a47"
   },
-  "local_syntax": "PASS",
+  "local_syntax": "PASS_ACTIONS_44483276782",
   "local_smoke": {
-    "result": "PASS_6_OF_6",
-    "scope": "isolated module in temporary local runtime; CLI cross-module integration NOT_RUN"
+    "result": "PASS_SYNTHETIC_44483276782",
+    "windows_native_readonly_cng": "PASS_GITHUB_WINDOWS_44483277349",
+    "owner_windows_signed_runtime": "NOT_RUN"
   },
   "tasks": [
     {
@@ -67,7 +68,15 @@
       "code_status": "SOURCE_COMPLETE_P2_PENDING",
       "verified": false,
       "owner_go": false,
-      "p2_windows": "NOT_RUN"
+      "p2_windows": "NOT_RUN",
+      "latest_readonly_diagnostic": "cng-provider-status",
+      "native_query_scope": "Microsoft Software Key Storage Provider Impl Type and existing protected HKLM KeyProviderMode only; no private key open/creation or signature",
+      "native_windows_ci": {
+        "source_sha": "41dddb637ec118094957f902a58687d9e90cd02b",
+        "run_id": 44483277349,
+        "conclusion": "SUCCESS_GITHUB_RUNNER_ONLY",
+        "owner_machine": "NOT_RUN"
+      }
     },
     {
       "id": "MLA-OP-SWU-003",
@@ -94,5 +103,6 @@
     "privileged_windows_operator": "OUT_OF_SCOPE_REQUIRES_SEPARATE_APPROVAL",
     "p2": "LOCKED",
     "release": "HOLD"
-  }
+  },
+  "latest_source_sha": "41dddb637ec118094957f902a58687d9e90cd02b"
 }
