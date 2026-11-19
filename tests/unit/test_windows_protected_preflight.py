@@ -184,5 +184,91 @@ class ReadOnlyPreflightTests(unittest.TestCase):
         self.assertFalse(result["runtime_authorized"])
 
 
+
+class HostReadOnlyIntakeTests(unittest.TestCase):
+    """Local synthetic probes; neither provisioning nor owner-device attestation."""
+
+    def simulated_report(self):
+        return {
+            "read_only": True, "os_settings_changed": False,
+            "execution_authority_granted": False,
+            "checks": {
+                "tpm-status": {"state": "READ_ONLY_RESULT", "tpm_present": False},
+                "defender-status": {"state": "DEFENDER_ACTIVE_READONLY"},
+                "protected-path-presence": {"state": "HOLD_PATH_UNAVAILABLE"},
+                "cng-provider-status": {
+                    "state": "READ_ONLY_RESULT",
+                    "profile": "SOFTWARE_CNG_OWNER_APPROVED_V1",
+                    "software_ksp_available": True,
+                },
+            },
+        }
+
+    def test_nonwindows_is_hold_and_does_not_probe(self):
+        with patch.object(preflight.os, "name", "posix"), \\
+             patch("my_local_ai.ops.windows_local_operator.run_operator_request") as probe:
+            result = preflight.host_readonly_prerequisites()
+        self.assertEqual(result["reason"], "WINDOWS_REQUIRED")
+        self.assertEqual(result["decision"], "HOLD")
+        self.assertEqual(result["checks"], {})
+        probe.assert_not_called()
+
+    def test_successful_synthetic_host_probe_is_still_non_authoritative(self):
+        with patch.object(preflight.os, "name", "nt"), \\
+             patch("my_local_ai.ops.windows_local_operator.run_operator_request",
+                   return_value=self.simulated_report()) as probe:
+            result = preflight.host_readonly_prerequisites()
+        probe.assert_called_once_with("MLA 보안 환경 진단")
+        self.assertEqual(result["precheck"], "OBSERVED_UNATTESTED")
+        self.assertEqual(result["decision"], "HOLD")
+        self.assertFalse(result["runtime_authorized"])
+        self.assertFalse(result["owner_approval_verified"])
+        self.assertFalse(result["protected_signer_verified"])
+        self.assertEqual(result["cng_profile"], "SOFTWARE_CNG_OWNER_APPROVED_V1")
+        serialized = json.dumps(result)
+        self.assertNotIn("tpm_present", serialized)
+        self.assertNotIn("S-1-5-", serialized)
+        self.assertNotIn("PrivateKey", serialized)
+
+    def test_malformed_or_privileged_operator_result_is_denied_without_leaks(self):
+        for change in (
+            {"read_only": False},
+            {"os_settings_changed": True},
+            {"execution_authority_granted": True},
+            {"checks": {"arbitrary": {"state": "READ_ONLY_RESULT"}}},
+            {"checks": {**self.simulated_report()["checks"],
+                        "tpm-status": {"state": "SECRET:PRIVATE_PATH"}}},
+        ):
+            sample = {**self.simulated_report(), **change}
+            with self.subTest(change=str(change)[:35]), \\
+                 patch.object(preflight.os, "name", "nt"), \\
+                 patch("my_local_ai.ops.windows_local_operator.run_operator_request",
+                       return_value=sample):
+                result = preflight.host_readonly_prerequisites()
+            self.assertEqual(result["decision"], "HOLD")
+            self.assertEqual(result["precheck"], "BLOCKED")
+            self.assertEqual(result["checks"], {})
+            self.assertNotIn("SECRET", json.dumps(result))
+
+    def test_probe_exception_redacted_and_never_authorized(self):
+        with patch.object(preflight.os, "name", "nt"), \\
+             patch("my_local_ai.ops.windows_local_operator.run_operator_request",
+                   side_effect=OSError("sensitive account name")):
+            result = preflight.host_readonly_prerequisites()
+        self.assertEqual(result["reason"], "LOCAL_READ_ONLY_DIAGNOSTIC_UNAVAILABLE")
+        self.assertEqual(result["decision"], "HOLD")
+        self.assertNotIn("sensitive account name", json.dumps(result))
+
+    def test_host_readonly_cli_requires_no_bundle_and_exits_nonzero(self):
+        with patch.object(preflight, "host_readonly_prerequisites",
+                          return_value={"decision": "HOLD", "runtime_authorized": False}) as inspect:
+            with redirect_stdout(io.StringIO()) as stdout:
+                code = preflight.main(["--host-readonly"])
+        inspect.assert_called_once_with()
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(stdout.getvalue())["decision"], "HOLD")
+
+
+
 if __name__ == "__main__":
     unittest.main()
