@@ -39,6 +39,10 @@ class PinnedEvidence:
         self._files: dict[str, dict] = {}
         self._ci: dict | None = None
 
+    @property
+    def current_ci(self) -> dict | None:
+        return self._ci or None
+
     def _paths(self, item: HandoffTask, topic: str, keywords: tuple[str, ...]) -> list[str]:
         paths = self._inventory or {}
         if topic == "actions":

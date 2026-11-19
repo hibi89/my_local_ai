@@ -73,6 +73,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <kbd>Ctrl+Enter</kbd>
             </div>
           </div>
+          <p id="chat-receipt" class="chat-receipt" role="status" hidden></p>
           <p id="chat-hint">MLA가 작업 자료와 파일을 찾아 초안을 별도 폴더에 저장합니다.</p>
         </form>
         <details class="advanced-input">

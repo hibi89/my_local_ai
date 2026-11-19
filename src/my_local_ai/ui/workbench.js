@@ -3,6 +3,7 @@
 const session = document.body.dataset.session;
 const form = document.querySelector('#draft-form');
 const chatForm = document.querySelector('#chat-form');
+const chatReceipt = document.querySelector('#chat-receipt');
 const replyForm = document.querySelector('#reply-form');
 const replyInput = replyForm.elements.reply;
 const replyNotice = document.querySelector('#reply-notice');
@@ -47,6 +48,7 @@ let renderedFolder = null;
 let showDiff = true;
 let retry = null;
 let submission = 0;
+let chatSubmission = null;
 let clock = null;
 let renderedPlan = '';
 let lastInput = chatForm;
@@ -158,7 +160,9 @@ function showTimeline() {
     }
   }
   const estimate = clock.forecast;
-  if (clock.state !== 'working') {
+  if (clock.disconnected) {
+    displayForecast('연결 확인 필요');
+  } else if (clock.state !== 'working') {
     displayForecast({ idle: '—', error: '중단', done: '완료', ready: '대기' }[clock.state] || '—');
   } else if (clock.saving) {
     displayForecast('저장 중');
@@ -213,7 +217,7 @@ function showInspection(report) {
   document.querySelector('#inspection-sha').textContent = '기준 커밋 ' + report.revision.slice(0, 12);
   for (const [target, rows] of [
     ['#inspection-files', report.files.map(file => file.path + ' · ' + file.result)],
-    ['#inspection-notes', report.notes],
+    ['#inspection-notes', report.recheck_note ? [...report.notes, report.recheck_note] : report.notes],
   ]) {
     const list = document.querySelector(target);
     list.hidden = !rows.length;
@@ -383,10 +387,21 @@ function setBusy(busy) {
   for (const input of forms) input.setAttribute('aria-busy', String(busy));
 }
 
+function showChatReceipt(text, error = false) {
+  if (chatReceipt.textContent !== text) chatReceipt.textContent = text;
+  chatReceipt.hidden = !text;
+  chatReceipt.dataset.error = String(error);
+}
+
 function showResult(state) {
   const stopped = state.state === 'error';
-  const phaseMessage = stopped ? '' : state.message;
+  const phaseMessage = stopped ? '' : state.submission_notice || state.message;
   if (phase.textContent !== phaseMessage) phase.textContent = phaseMessage;
+  if (chatSubmission === submission) {
+    showChatReceipt(stopped && !state.submission_notice
+      ? '요청 처리 중 문제가 생겼습니다. 작업 결과의 안내를 확인해 주세요.'
+      : '요청을 받았습니다.', stopped && !state.submission_notice);
+  }
   stateBadge.textContent = state.state === 'ready' && state.work_queue?.items.some(item => item.inspection)
     ? '읽기 검사 종료' : stateLabels[state.state];
   stateBadge.dataset.state = state.state;
@@ -456,17 +471,34 @@ function showResult(state) {
   }
 }
 
-async function poll(version = submission) {
+async function poll(version = submission, retried = false, confirmAttempt) {
   try {
-    const response = await fetch(session + '/status');
+    const response = await fetch(session + '/status', { signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error();
     const status = await response.json();
     if (version !== submission) return;
     showResult(status);
+    if (confirmAttempt !== undefined && (status.attempt || '') === confirmAttempt
+      && status.state !== 'working' && !status.submission_notice) {
+      showChatReceipt('작업 접수가 확인되지 않았습니다. 다시 보내 주세요.', true);
+    }
     if (status.state === 'working') retry = setTimeout(() => poll(version), 1100);
   } catch {
     if (version !== submission) return;
-    showResult({ state: 'error', message: '작업대에 연결할 수 없습니다. 실행 창과 주소를 확인하세요.' });
+    if (!retried) {
+      phase.textContent = '작업 상태를 다시 확인 중입니다.';
+      if (chatSubmission === version) showChatReceipt(phase.textContent);
+      retry = setTimeout(() => poll(version, true, confirmAttempt), 800);
+      return;
+    }
+    phase.textContent = '작업대와 연결이 끊겼습니다. 실행기를 확인한 뒤 이 탭을 새로고침해 주세요.';
+    if (chatSubmission === version) showChatReceipt(phase.textContent, true);
+    if (clock) {
+      clock.running = false;
+      clock.disconnected = true;
+      showTimeline();
+    }
+    setBusy(false);
   }
 }
 
@@ -476,6 +508,8 @@ async function submit(event) {
   const version = ++submission;
   clearTimeout(retry);
   const input = event.currentTarget;
+  const chatting = input === chatForm;
+  const previousAttempt = attempt;
   const replying = input === replyForm;
   const startingItem = input === itemForm;
   const notice = replying ? replyNotice : startingItem ? itemNotice : null;
@@ -491,16 +525,22 @@ async function submit(event) {
     payload.item = selectedItem;
     itemNotice.hidden = true;
   }
+  chatSubmission = chatting ? version : null;
+  showChatReceipt(chatting ? '시작 요청을 보내는 중입니다.' : '');
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12000),
     });
     const status = await response.json();
     if (!response.ok) {
-      if (notice) {
+      if (chatting) {
+        showChatReceipt(status.message || '작업대가 요청을 받지 못했습니다.', true);
+        setBusy(false);
+      } else if (notice) {
         notice.textContent = status.message;
         notice.hidden = false;
         setBusy(false);
@@ -513,7 +553,10 @@ async function submit(event) {
     showResult(status);
     if (status.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
-    if (notice) {
+    if (chatting) {
+      showChatReceipt('접수 응답이 늦어 작업 상태를 확인 중입니다.');
+      void poll(version, false, previousAttempt);
+    } else if (notice) {
       notice.textContent = '요청을 전달하지 못했습니다. 이 탭에서 새로고침해 작업 상태를 확인하세요.';
       notice.hidden = false;
       setBusy(false);

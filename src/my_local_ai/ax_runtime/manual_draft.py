@@ -109,6 +109,7 @@ class _WorkQueue:
     scheduled: dict[str, tuple[tuple[str, ...], str]] = field(default_factory=dict)
     forecast: dict | None = None
     inspections: dict[str, dict] = field(default_factory=dict)
+    rechecks: set[str] = field(default_factory=set)
     evidence_reader: PinnedEvidence | None = None
     auto_drafts: bool = True
 
@@ -449,6 +450,7 @@ class LocalDrafts:
             queue.attempted = set(saved["attempted"])
             queue.inspections = {item.key: report for item in items
                                  if isinstance(report := saved.get("inspections", {}).get(item.key), dict)}
+            queue.rechecks = {item.key for item in items if item.key in saved.get("rechecks", ())}
             queue.auto_drafts = False
             if saved.get("active") and not saved.get("active_inspection"):
                 queue.interrupted.add(saved["active"])
@@ -478,6 +480,7 @@ class LocalDrafts:
                 "drafts": queue.drafts, "attempted": sorted(queue.attempted),
                 "interrupted": sorted(queue.interrupted), "active": active.key if active else "",
                 "inspections": queue.inspections,
+                "rechecks": sorted(queue.rechecks),
                 "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
@@ -532,7 +535,15 @@ class LocalDrafts:
             item = self._request.item if self._request else None
             if self._queue and item:
                 if inspection is not None:
-                    self._queue.inspections[item.key] = inspection
+                    queue = self._queue
+                    if queue.baseline is not None and "plan" in values:
+                        queue.baseline = replace(queue.baseline, plan=values["plan"])
+                    before = queue.inspections.get(item.key)
+                    if (item.key in queue.rechecks and before and before.get("state") == "observed"
+                        and inspection["state"] == "limited"):
+                        inspection = {**before, "recheck_note": "이번 재확인에서 자료를 읽지 못해 이전 읽기 결과를 표시합니다."}
+                    queue.inspections[item.key] = inspection
+                    queue.rechecks.discard(item.key)
                 elif state == "done":
                     self._queue.drafts[item.key] = {"summary": values["summary"], "folder": values["folder"]}
                     self._queue.interrupted.discard(item.key)
@@ -608,9 +619,17 @@ class LocalDrafts:
                 raise DraftError("현재 작업이 끝나면 다음 작업을 시작할 수 있습니다.")
             if (items and self._queue and self._queue.baseline
                 and self._queue.baseline.task.text == instruction):
-                return self._snapshot_locked()
+                return self._resubmit_queue_locked(self._queue)
             self._queue = _WorkQueue(secrets.token_hex(12), items) if items else None
             return self._begin(_DraftRequest(instruction, design, paths, folder, handoff), None)
+
+    def _resubmit_queue_locked(self, queue: _WorkQueue) -> dict:
+        queue.auto_drafts = True
+        queue.evidence_reader = None
+        queue.rechecks = {item.key for item in queue.items if self._can_inspect(queue, item, recheck=True)}
+        if not self._start_next_item_locked():
+            self._state["submission_notice"] = "같은 지시문을 받았습니다. 저장된 작업표에서 시작할 새 작업이 없습니다."
+        return self._snapshot_locked()
 
     def _start_item(self, payload: dict[str, str]) -> dict:
         paths = _draft_paths(payload["paths"])
@@ -653,10 +672,10 @@ class LocalDrafts:
         return False
 
     @staticmethod
-    def _can_inspect(queue: _WorkQueue, item: HandoffTask) -> bool:
+    def _can_inspect(queue: _WorkQueue, item: HandoffTask, *, recheck: bool = False) -> bool:
         return (queue.baseline is not None and bool(queue.baseline.scope.repository)
                 and item.key not in queue.scheduled and item.key not in queue.drafts
-                and item.key not in queue.inspections)
+                and (recheck or item.key in queue.rechecks or item.key not in queue.inspections))
 
     def _begin(self, request: _DraftRequest, context: _HandoffContext | None) -> dict:
         """Start the next attempt while the caller holds the workbench lock."""
@@ -667,9 +686,11 @@ class LocalDrafts:
         message = "붙여넣은 지시에서 작업 자료를 찾는 중입니다." if request.handoff else "작업 자료를 읽는 중입니다."
         if request.replies:
             message = "추가 지시를 반영해 다음 초안을 준비 중입니다."
-        if request.inspect_only:
-            message = "기준 커밋에서 이 파트의 소스와 기존 기록을 확인 중입니다."
         queue = self._queue
+        if request.inspect_only:
+            message = ("같은 지시문을 받았습니다. 기준 커밋의 읽기 검사와 기존 기록을 다시 확인 중입니다."
+                       if request.item.key in queue.rechecks
+                       else "기준 커밋에서 이 파트의 소스와 기존 기록을 확인 중입니다.")
         plan = context.plan if context else queue.baseline.plan if queue and queue.baseline else None
         if request.inspect_only:
             plan = {**plan, "work_item": request.item.title}
@@ -881,7 +902,10 @@ class LocalDrafts:
         except (DraftError, OSError, ValueError, RecursionError):
             report = {"revision": plan["revision"], "state": "limited", "files": [],
                       "notes": ["자료를 읽는 중 오류가 발생했습니다."], "remaining": "실행 검증"}
-        count = len(queue.inspections) + 1
+        ci = queue.evidence_reader.current_ci
+        if ci is not None:
+            plan = {**plan, "baseline_ci": ci, "ci_unavailable": False}
+        count = len(queue.inspections.keys() | {item.key})
         message = f"{count}개 파트 읽기 검사 종료 · 실제 검증이 필요한 항목은 대기 중입니다."
         self._set("ready", message, plan=plan, inspection=report)
 

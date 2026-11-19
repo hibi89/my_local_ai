@@ -341,6 +341,9 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual([item["state"] for item in result["work_queue"]["items"]], ["pending", "pending"])
             with self.assertRaises(DraftError):
                 app.start({"queue": result["work_queue"]["id"], "item": "1", "paths": "src/cli.py", "change": "ㄱ"})
+            repeat = app.start({"message": message})
+            self.assertIn("같은 지시문을 받았습니다", repeat["submission_notice"])
+            self.assertEqual(repeat["work_queue"]["id"], result["work_queue"]["id"])
             self.assertFalse(any(path.is_dir() for path in root.iterdir()))
 
     def test_repository_inspections_advance_without_model_or_manual_input(self):
@@ -370,8 +373,10 @@ class LocalDraftsTests(unittest.TestCase):
             "my_local_ai.ax_runtime.draft_evidence.github_files",
             return_value={path: len(text) for path, text in source.items()},
         ) as inventory, patch("my_local_ai.ax_runtime.draft_evidence.read_github_file") as read:
+            rechecking = False
+
             def read_file(repo, ref, path):
-                if path == "tests/test_watch.py":
+                if (path == "tests/test_watch.py" and not rechecking) or (rechecking and "cli" in path):
                     raise DraftError("fixture read error")
                 return DraftDocument(source[path], f"https://github.com/{repo}/blob/{ref}/{path}", ref)
 
@@ -392,8 +397,24 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertTrue(any("수동 실행 선언 발견" in file["result"] for file in actions["files"]))
             inventory.assert_called_once_with("example/project", revision)
             self.assertTrue(all(call.args[1] == revision for call in read.call_args_list))
-            restored = LocalDrafts(root, provider=provider).snapshot()
+            reopened = LocalDrafts(root, provider=provider)
+            restored = reopened.snapshot()
             self.assertEqual(restored["work_queue"]["items"], rows)
+
+            rechecking = True
+            submitted = reopened.start({"message": message})
+            self.assertEqual(submitted["work_queue"]["id"], result["work_queue"]["id"])
+            self.assertEqual(submitted["state"], "working")
+            self.assertIn("다시 확인 중", submitted["message"])
+            self.assertEqual(submitted["work_queue"]["items"][0]["inspection"], cli)
+            repeat = self.await_result(reopened)
+            past, now, _ = [item["inspection"] for item in repeat["work_queue"]["items"]]
+            self.assertEqual(repeat["state"], "ready", repeat["message"])
+            self.assertIn("3개 파트", repeat["message"])
+            self.assertEqual(past["files"], cli["files"])
+            self.assertIn("이전 읽기 결과", past["recheck_note"])
+            self.assertEqual(now["state"], "observed")
+            self.assertEqual(inventory.call_count, 2)
             self.assertEqual(provider.prompt, "")
             self.assertFalse(any(path.is_dir() for path in root.iterdir()))
 
