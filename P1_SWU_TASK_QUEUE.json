@@ -825,6 +825,15 @@
           "nonprogress_failure": false,
           "github_actions_synthetic_ci": 44487174255,
           "github_actions_windows_untrusted_bundle_ci": 44487173900
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261119-FROZEN-SERVICE-OWNERUI-BUNDLE-COMPLETE-WALK",
+          "method": "Unify protected frozen service and independent OwnerUI bundle validation. Explicit os.walk(onerror=...) fails closed on unreadable subtrees; bounds directories, per-directory entries, files, bytes and 15-second scan; reject symlinks/nonregular/hardlinks and empty packages before trust",
+          "evidence_sha": "59271929c9ddba3c3aa2552309ee2a4109b70b60",
+          "test_sha": "11da26ba035a782bdb377f8a3f862219bc8e6be2",
+          "outcome": "SOURCE_SECURITY_PROGRESS_ONLY_PROTECTED_SIGNER_WINDOWS_GO_STILL_BLOCKED",
+          "nonprogress_failure": false,
+          "checks": "Python AST exact standalone helper PASS; isolated normal/unreadable/excess dirs/excess fanout/empty/timeout synthetic cases 6/6 PASS; full repository tests and native Windows service NOT_RUN"
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true,
@@ -841,7 +850,10 @@
         "trust_gate": "BLOCKED_TRUST",
         "software_key_hardware_equivalence": false,
         "windows_untrusted_bundle": "IN_PROGRESS_44482802596"
-      }
+      },
+      "latest_trust_bundle_source_sha": "59271929c9ddba3c3aa2552309ee2a4109b70b60",
+      "latest_trust_bundle_regression_sha": "11da26ba035a782bdb377f8a3f862219bc8e6be2",
+      "latest_trust_bundle_status": "SOURCE_PARTIAL_BLOCKED_TRUST_REAL_WINDOWS_NOT_RUN"
     },
     {
       "id": "MLA-SWU-009",
