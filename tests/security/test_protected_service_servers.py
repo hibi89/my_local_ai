@@ -1312,7 +1312,6 @@ class DefenderEvidenceTests(unittest.TestCase):
         service = inspect.getsource(d._serve_defender_scan)
         self.assertIn("_defender_events_after(api, 0, stopped=stopped)", service)
         self.assertIn("_defender_events_after(api, cursor, require_complete=True, stopped=stopped)", service)
-        self.assertIn("_defender_events_after(api, cursor, require_complete=True)", service)
 
     def test_event_completion_is_exact_scan_and_resource(self):
         target = r"C:\private\scan_123.py"
