@@ -737,7 +737,9 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "68622ff1ac054167be68ed1f251700a1ee687856",
+      "partial_source_sha": "65df3c30976565a85944996ee23251bad67eadac",
+      "latest_synthetic_regression_source_sha": "a2358dec5a6102b97bdd54b7bf6b9a58f5ce6e53",
+      "latest_source_progress_20261119": "Protected service live CNG signing now rechecks the entire existing HKLM ControllerSid/InteractiveOwnerSid/OwnerSessionId/KeyName/KeyProviderMode settings snapshot before each signature; rotated/missing/unreadable profile denies stale open-key signing. Synthetic regression code added; exact-SHA CI, owner-machine protected CNG signer, F18 and P2 NOT_VERIFIED/NOT_RUN. Positive security source progress only, SWU remains BLOCKED_TRUST, no OS provisioning or GO.",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
