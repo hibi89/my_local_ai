@@ -289,11 +289,27 @@ def host_readonly_prerequisites() -> dict:
             or type(observed.get("checks")) is not dict
             or set(observed["checks"]) != set(fixed)):
             raise ValueError("unsafe operator report")
+        # An alphanumeric pattern is not redaction: a compromised diagnostic
+        # could put an all-uppercase secret in "state". Forward only statuses
+        # authored by the existing fixed operators, never arbitrary strings.
+        states = {
+            "tpm-status": {"READ_ONLY_RESULT", "HOLD_OS_CLI_UNAVAILABLE",
+                           "HOLD_QUERY_FAILED", "HOLD_CHECK_FAILED"},
+            "defender-status": {"DEFENDER_ACTIVE_READONLY",
+                                "HOLD_AV_PASSIVE_OR_STALE", "HOLD_AV_UNAVAILABLE",
+                                "HOLD_PLATFORM_UNSUPPORTED", "HOLD_CHECK_FAILED"},
+            "protected-path-presence": {"PRESENT_UNVERIFIED", "NOT_PRESENT",
+                "HOLD_UNSAFE_ALIAS", "HOLD_NOT_DIRECTORY",
+                "HOLD_PATH_UNAVAILABLE", "HOLD_CHECK_FAILED"},
+            "cng-provider-status": {"READ_ONLY_RESULT", "HOLD_KSP_UNAVAILABLE",
+                "HOLD_KSP_CAPABILITY", "HOLD_PIN_INVALID",
+                "HOLD_PIN_ACCESS_DENIED", "HOLD_PIN_UNREADABLE",
+                "HOLD_CHECK_FAILED"},
+        }
         for name in fixed:
             entry = observed["checks"][name]
             state = entry.get("state") if type(entry) is dict else None
-            if (type(state) is not str
-                or re.fullmatch(r"[A-Z][A-Z0-9_]{1,63}", state) is None):
+            if type(state) is not str or state not in states[name]:
                 raise ValueError("invalid fixed diagnostic state")
             result["checks"][name] = state
         mode = observed["checks"]["cng-provider-status"].get("profile")
