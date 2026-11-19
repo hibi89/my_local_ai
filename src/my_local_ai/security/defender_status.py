@@ -629,12 +629,16 @@ def _defender_events_after(api, after_record: int, *, require_complete: bool = F
             _guard_defender_event_budget(started, stopped)
             event, count = w.HANDLE(), w.DWORD()
             received = next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count))
-            _guard_defender_event_budget(started, stopped)
             if not received:
+                _guard_defender_event_budget(started, stopped)
                 if c.get_last_error() == 259:
                     break
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             try:
+                # After successful EvtNext, check the deadline *inside*
+                # the EvtClose(event) finally: cancellation cannot leak a
+                # native event handle even on the timeout/error path.
+                _guard_defender_event_budget(started, stopped)
                 _deny_truncated_defender_events(require_complete, len(result))
                 length, properties = w.DWORD(), w.DWORD()
                 render(None, event, 1, 0, None, c.byref(length), c.byref(properties))
