@@ -27,10 +27,10 @@
     "cli_blob_sha": "1f32f4273603c91ea26dfe0bb02f7888436adea8",
     "unit_test_blob_sha": "3ce564fcdb8f0cc8bc1c398bf1b9ef3811662a47"
   },
-  "local_syntax": "PASS_ACTIONS_44483276782",
+  "local_syntax": "PASS_GITHUB_ACTIONS_44484557848",
   "local_smoke": {
-    "result": "PASS_SYNTHETIC_44483276782",
-    "windows_native_readonly_cng": "PASS_GITHUB_WINDOWS_44483277349",
+    "result": "PASS_SYNTHETIC_44484557848",
+    "windows_native_readonly_cng": "PASS_GITHUB_WINDOWS_44484557893",
     "owner_windows_signed_runtime": "NOT_RUN"
   },
   "tasks": [
@@ -70,13 +70,20 @@
       "owner_go": false,
       "p2_windows": "NOT_RUN",
       "latest_readonly_diagnostic": "cng-provider-status",
-      "native_query_scope": "Microsoft Software Key Storage Provider Impl Type and existing protected HKLM KeyProviderMode only; no private key open/creation or signature",
+      "native_query_scope": "Independent fixed MS Software KSP Impl Type even if protected HKLM pin unavailable; both states returned, pin failure remains HOLD, no private key open/creation/signature",
       "native_windows_ci": {
-        "source_sha": "41dddb637ec118094957f902a58687d9e90cd02b",
-        "run_id": 44483277349,
+        "source_sha": "347718f1df7b49530a6ac30055f89bb5078d7201",
+        "run_id": 44484557893,
         "conclusion": "SUCCESS_GITHUB_RUNNER_ONLY",
-        "owner_machine": "NOT_RUN"
-      }
+        "owner_machine": "RECHECK_PENDING"
+      },
+      "owner_reported_windows_diagnostic": {
+        "source_head_at_observation": "705c110c211704a3fa5790335088aca5e90e24ca",
+        "observed": "HOLD_PIN_UNREADABLE",
+        "software_ksp_availability": "NOT_QUERIED_DUE_TO_PRIOR_REGISTRY_ERROR",
+        "classification": "OWNER_REPORTED_NOT_INDEPENDENTLY_VERIFIED"
+      },
+      "last_source_fix_sha": "347718f1df7b49530a6ac30055f89bb5078d7201"
     },
     {
       "id": "MLA-OP-SWU-003",
@@ -104,5 +111,5 @@
     "p2": "LOCKED",
     "release": "HOLD"
   },
-  "latest_source_sha": "41dddb637ec118094957f902a58687d9e90cd02b"
+  "latest_source_sha": "347718f1df7b49530a6ac30055f89bb5078d7201"
 }
