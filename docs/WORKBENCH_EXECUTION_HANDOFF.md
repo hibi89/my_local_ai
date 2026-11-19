@@ -1,5 +1,14 @@
 # MLA 작업대 실행 검증 인수인계
 
+## 2026-11-20 KST — 실제 실행 브리지 및 Windows EXE 증거 (최신)
+
+- 구현/빌드 기준 SHA: `7e20f77a3318c76e6c5befdd078a156633425e0d` on `dev/instant-implementation-v1`; Windows unsigned packaged EXE, actual runner-hosted loopback workbench HTML request: [Actions #44569179722](https://github.com/hibi89/my_local_ai/actions/runs/44569179722) **SUCCESS**; synthetic CI [#44569179564](https://github.com/hibi89/my_local_ai/actions/runs/44569179564) **SUCCESS**. Windows build artifact: `MLA-Windows-workbench-unsigned-EXE`, ID `14554595730` (GitHub Actions run artifacts; retention 7 days). Actual owner Windows 11 test: **NOT_RUN**.
+- 실제 backend: `approved_workflow.py` adds a fixed public read-only GitHub Actions `REQEA-P2-E-MANUAL-CLI-AUDIT-SMOKE` execution path for `hibi89/REQ-Evidence-Auditor-A-@integration/reqea-p1-20261118`, `reqea-audit.yml` (`fc98f672173926b0364b472235d7ba1593a1efeb`), only `docs/FINAL_BLUEPRINT.md`. GitHub CLI and its existing local authentication required. The initial owner click records an intent first, sends one workflow_dispatch, then observes the remote Actions run SHA, ID, timestamp, conclusion and link, with explicit PASS/FAIL/HOLD and no automatic re-dispatch after crash or ambiguous result. Manual click is required, not arbitrary clipboard execution.
+- Workbench UI: P2-E inspection-selected item shows an explicit `승인된 REQEA 수동 CLI 감사 실제 실행 (1회)` button, result/trace, and P2 acceptance remains 0. Recorded `PASS` is only the particular remote CLI audit smoke and **not** P2-A/entire REQEA 14-gate verification, independent security audit, F18 or automatic source defect correction. Generated code/tests execution remains blocked under existing protected-execution rules.
+- Owner next action: download/use the EXE from Actions artifact, on own Windows 11 run in writable folder, with existing authenticated GitHub CLI authorized for the target REQEA repository's Actions workflow dispatch; paste original instruction; select inspected P2-E and click once. Preserve the displayed exact target SHA/run ID/outcome. No permission/secret/OS provisioning or commercial GO is implied. **Actual workflow_dispatch execution with existing owner auth NOT_RUN**, current model environment lacks the owner's Windows GitHub CLI token; full P2-A suite and the other five parts are **NOT_IMPLEMENTED/HOLD**.
+- The original 2026-11-19 below documents the **prior missing execution scheduler** as historical context; it is not the current state for the one approved P2-E smoke. Canonical MLA P1 source candidate 55/58, P2 accepted 0/8, official UNASSESSED/LOCKED, release HOLD.
+
+
 작업 브랜치는 `dev/instant-implementation-v1`입니다. 아래 확인 결과는 작업대 소스 커밋 `02a47de9bd6632fc81f2804647e35580a5e72494`에 해당합니다. 재개할 때는 브랜치 최신 HEAD에서 저장소 지침과 단계 잠금을 먼저 확인합니다. 작업대에 제출된 지시문의 `P2-A`는 대상 프로젝트의 파트 이름입니다. MLA 자체 검증 단계는 별도 게이트에 따릅니다. [저장소 지침](../AGENTS.md) · [MLA 단계 게이트](PHASE_GATES.md)
 
 ## 구현 및 확인한 범위
