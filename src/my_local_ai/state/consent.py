@@ -1567,6 +1567,54 @@ def _read_service_scope(path: Path, binding: dict, role: str, operation: str) ->
     return scope
 
 
+
+def _pin_frozen_trust_bundle(bundle: Path, pin_file) -> None:
+    """Pin a complete, bounded frozen _internal tree before protected use.
+
+    os.walk without onerror silently skips directories on scandir failure.
+    A partially inspected executable/DLL tree must never receive protected
+    service or OwnerUI signing authority. This helper never writes the tree.
+    """
+    import os
+    import time
+    if (not isinstance(bundle, Path) or not bundle.is_absolute()
+        or not bundle.is_dir() or not callable(pin_file)):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    info = bundle.lstat()
+    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & _REPARSE:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+
+    def unreadable(_error: OSError) -> None:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY") from None
+
+    started = time.monotonic()
+    directories, files, total = 0, 0, 0
+    for folder, subdirs, names in os.walk(
+        bundle, followlinks=False, onerror=unreadable
+    ):
+        directories += 1
+        if (directories > 2048 or len(subdirs) + len(names) > 2048
+            or time.monotonic() - started >= 15):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        for name in (*subdirs, *names):
+            node = Path(folder) / name
+            info = node.lstat()
+            if (stat.S_ISLNK(info.st_mode)
+                or getattr(info, "st_file_attributes", 0) & _REPARSE):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        for name in names:
+            file_path = Path(folder) / name
+            info = file_path.lstat()
+            files += 1
+            total += info.st_size
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or files > 2048 or total > 512 * 1024 * 1024
+                or time.monotonic() - started >= 15):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            pin_file(file_path)
+    if files == 0:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+
 class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
     """SCM/pipe/TPM native server backend. No provisioning APIs are used."""
     def __init__(self, role: str):
@@ -1600,20 +1648,7 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
         image_parent = Path(sys.executable).parent
         if not bundle.is_absolute() or bundle.parent != image_parent or bundle.name != "_internal":
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-        total, count = 0, 0
-        for directory, subdirs, files in os.walk(bundle, followlinks=False):
-            for name in (*subdirs, *files):
-                node = Path(directory) / name
-                info = node.lstat()
-                if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & _REPARSE:
-                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-            for name in files:
-                path = Path(directory) / name
-                count += 1
-                total += path.stat().st_size
-                if count > 2048 or total > 512 * 1024 * 1024:
-                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                self.pin_path(path)
+        _pin_frozen_trust_bundle(bundle, self.pin_path)
 
     def close(self):
         self.resources.close()
@@ -2044,21 +2079,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             self.pin_path(exe)
             if hashlib.sha256(exe.read_bytes()).hexdigest() != image_sha:
                 raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-            count = total = 0
-            for folder, dirs, names in os.walk(bundle,followlinks=False):
-                for name in (*dirs,*names):
-                    node = Path(folder)/name
-                    info = node.lstat()
-                    if (stat.S_ISLNK(info.st_mode)
-                        or getattr(info,"st_file_attributes",0) & _REPARSE):
-                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                for name in names:
-                    node = Path(folder)/name
-                    count += 1
-                    total += node.stat().st_size
-                    if count > 2048 or total > 512*1024*1024:
-                        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-                    self.pin_path(node)
+            _pin_frozen_trust_bundle(bundle, self.pin_path)
         except BaseException:
             self.resources.close()
             raise
