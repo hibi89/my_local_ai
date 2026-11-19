@@ -548,6 +548,67 @@ _BROKER_LIMIT = 2 * 1024 * 1024
 # FILE_CREATE_PIPE_INSTANCE for pipes. GENERIC_WRITE would request that right.
 _BROKER_PIPE_CLIENT_ACCESS = 0x0012019B
 
+# Key custody is a PRE-PROVISIONED, administrator-protected HKLM decision.
+# No fallback on a missing TPM, missing key or rejected Windows CNG operation.
+_CNG_TPM_MODE = "TPM_V1"
+_CNG_SOFTWARE_MODE = "SOFTWARE_CNG_OWNER_APPROVED_V1"
+_CNG_PROVIDERS = {
+    _CNG_TPM_MODE: "Microsoft Platform Crypto Provider",
+    _CNG_SOFTWARE_MODE: "Microsoft Software Key Storage Provider",
+}
+
+
+def _pinned_cng_provider(mode: object) -> str:
+    """Never accept a user/request/environment-selected or unknown KSP."""
+    if type(mode) is not str or mode not in _CNG_PROVIDERS:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    return _CNG_PROVIDERS[mode]
+
+
+def _read_pinned_cng_mode(api) -> str:
+    """Read existing 64-bit HKLM profile after ACL check, never write it.
+
+    Missing pin is legacy TPM-only, not an opt-in to software fallback.
+    This function is called by both OwnerUI and each independent service.
+    """
+    import winreg
+    base = r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1"
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base, 0,
+                        winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+        api.check_acl(int(key), 4, 0xD0000 | 0x26 | 0x50000000)
+        try:
+            mode, kind = winreg.QueryValueEx(key, "KeyProviderMode")
+        except FileNotFoundError:
+            mode, kind = _CNG_TPM_MODE, winreg.REG_SZ
+    if kind != winreg.REG_SZ:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+    _pinned_cng_provider(mode)
+    return mode
+
+
+def _require_cng_capabilities(mode: str, implementation: int, *,
+                              key_type: int | None = None,
+                              key_usage: int | None = None,
+                              security_descriptor_supported: int | None = None) -> None:
+    """Verify native provider classification and SOFTWARE persisted key scope.
+
+    SOFTWARE mode only: machine-scoped signing-only nonexportable key with
+    supported KSP ACL; key/public/nonexport policy verified in signer().
+    This does NOT prove hardware/nonextractable key custody.
+    """
+    _pinned_cng_provider(mode)
+    if type(implementation) is not int:
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    if mode == _CNG_TPM_MODE:
+        if not implementation & 0x1 or implementation & 0x2:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+    elif (not implementation & 0x2 or implementation & (0x1 | 0x8)
+          or type(key_type) is not int or key_type != 0x20
+          or type(key_usage) is not int or key_usage != 0x2
+          or type(security_descriptor_supported) is not int
+          or security_descriptor_supported != 1):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+
 
 def _broker_canonical(value: object) -> bytes:
     import json
@@ -1581,6 +1642,7 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
                  *(entry[0] for entry in self.roots.values())}) != 5
             or re.fullmatch(r"MyLocalAI\.[A-Za-z0-9_.-]{3,64}", values["KeyName"]) is None):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        values["KeyProviderMode"] = _read_pinned_cng_mode(self)
         return values
 
     def pin_path(self, path: Path, *, private=False, writable=False):
@@ -1662,7 +1724,11 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
 
     @_contextmanager
     def signer(self):
-        """Open an EXISTING TPM ECDSA key; private material never enters Python."""
+        """Open existing HKLM-pinned CNG P-256 machine key, never provision it.
+
+        Software KSP has a weaker custody boundary than a real TPM. A failed
+        provider/key/ACL/pin/signature check never falls back to another KSP.
+        """
         c, w = self.c, self.w
         ncrypt = c.WinDLL("ncrypt.dll", use_last_error=True, winmode=0x800)
         handle_type = c.c_size_t
@@ -1679,9 +1745,32 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
         sign = self._bind(ncrypt, "NCryptSignHash", [handle_type, c.c_void_p,
             c.c_void_p, w.DWORD, c.c_void_p, w.DWORD, c.POINTER(w.DWORD), w.DWORD], c.c_long)
         try:
-            if (open_provider(c.byref(provider), "Microsoft Platform Crypto Provider", 0) != 0
-                or open_key(provider, c.byref(key), self.settings["KeyName"], 0, 0x60) != 0):
+            mode = self.settings["KeyProviderMode"]
+            provider_name = _pinned_cng_provider(mode)
+            if (_read_pinned_cng_mode(self) != mode
+                or open_provider(c.byref(provider), provider_name, 0) != 0):
                 raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+            def dword(handle, name):
+                data, length = w.DWORD(), w.DWORD()
+                if (get(handle, name, c.byref(data), c.sizeof(data),
+                        c.byref(length), 0x40) != 0 or length.value != 4):
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                return data.value
+            # A software provider must really be software, must support key
+            # security descriptors and must use a persisted machine-only,
+            # signing-only key. A mismatched provider/profile always HOLDs.
+            implementation = dword(provider, "Impl Type")
+            if mode == _CNG_SOFTWARE_MODE:
+                if open_key(provider, c.byref(key), self.settings["KeyName"], 0, 0x60) != 0:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
+                _require_cng_capabilities(
+                    mode, implementation, key_type=dword(key, "Key Type"),
+                    key_usage=dword(key, "Key Usage"),
+                    security_descriptor_supported=dword(provider, "Security Descr Support"))
+            else:
+                _require_cng_capabilities(mode, implementation)
+                if open_key(provider, c.byref(key), self.settings["KeyName"], 0, 0x60) != 0:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
             def prop(name, flags=0x40):
                 length = w.DWORD()
                 if get(key, name, None, 0, c.byref(length), flags) != 0 or not 1 <= length.value <= 65536:
@@ -1753,7 +1842,7 @@ def _owner_ui_read_pins(api):
         or not re.fullmatch(r"[0-9a-f]{64}",image_sha)
         or any(sid == root[0] for root in api.load_roots().values())):
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-    return sid, session, name, public, image_sha
+    return sid, session, name, public, image_sha, _read_pinned_cng_mode(api)
 
 
 @_contextmanager
@@ -1823,7 +1912,7 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
     import time
     if api.role != "owner":
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-    owner_sid,_,_,public,_=_owner_ui_read_pins(api)
+    owner_sid,_,_,public,_,_=_owner_ui_read_pins(api)
     ticket=_build_owner_ui_ticket(request,action,scope,signer=sign_body,
         issued_at=int(time.time()),lifespan_seconds=120)
     nonce=ticket["body"]["ticket_nonce"]
@@ -1875,7 +1964,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             or len(sys.argv) > 1
             or Path(sys.executable).name.casefold() != "mylocalai.ownerui.exe"):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-        owner_sid, session_id, key_name, public, image_sha = _owner_ui_read_pins(self)
+        owner_sid, session_id, key_name, public, image_sha, key_provider_mode = _owner_ui_read_pins(self)
         roots = self.load_roots()
         if (public in {value[2] for value in roots.values()}
             or image_sha in {value[1] for value in roots.values()}):
@@ -1891,7 +1980,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         self.role = "owner-ui"
         self.roots = {"owner-ui":(owner_sid,image_sha,public)}
-        self.settings = {"KeyName":key_name}
+        self.settings = {"KeyName":key_name, "KeyProviderMode":key_provider_mode}
         self.resources = ExitStack()
         exe = Path(sys.executable)
         bundle = Path(getattr(sys,"_MEIPASS",""))

@@ -113,6 +113,21 @@ class ReadOnlyPreflightTests(unittest.TestCase):
         (self.installed / name / "_internal" / "data.bin").write_bytes(b"tamper")
         self.assertEqual(self.check()["code"], "STAGED_INSTALLED_HASH_MISMATCH")
 
+    def test_software_cng_profile_is_only_readonly_precheck(self):
+        self.settings["key_provider_mode"] = "SOFTWARE_CNG_OWNER_APPROVED_V1"
+        result = self.check()
+        self.assertEqual(result["precheck"], "MATCHED_UNATTESTED")
+        self.assertEqual(result["cng_provider_mode"], "SOFTWARE_CNG_OWNER_APPROVED_V1")
+        self.assertFalse(result["cng_hardware_attested"])
+        self.assertFalse(result["runtime_authorized"])
+        self.assertEqual(result["decision"], "HOLD")
+
+    def test_invalid_cng_profile_is_denied(self):
+        self.settings["key_provider_mode"] = "Microsoft Software Key Storage Provider"
+        self.assertEqual(self.check()["code"], "CNG_PROVIDER_PIN_INVALID")
+        self.settings["key_provider_mode"] = False
+        self.assertEqual(self.check()["code"], "CNG_PROVIDER_PIN_INVALID")
+
     def test_owner_key_or_image_pin_mismatch(self):
         self.settings["owner_ui_sha"] = "f"*64
         self.assertEqual(self.check()["code"], "OWNER_IMAGE_PIN_MISMATCH")

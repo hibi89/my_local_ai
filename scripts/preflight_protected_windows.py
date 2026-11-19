@@ -140,6 +140,10 @@ def _native_settings() -> dict:
         "owner_ui_public": read(base, "OwnerUiPublicKeyBlob", winreg.REG_BINARY),
         "roles": {},
     }
+    try:
+        settings["key_provider_mode"] = read(base, "KeyProviderMode", winreg.REG_SZ)
+    except FileNotFoundError:
+        settings["key_provider_mode"] = "TPM_V1"  # Legacy TPM-only, no auto fallback.
     for role in SERVICE_ROLES:
         prefix = base + "\\" + role
         service = r"SYSTEM\CurrentControlSet\Services\MyLocalAI." + role + ".v1"
@@ -164,6 +168,10 @@ def verify_pins(pins: dict, destination: dict, installed: Path) -> None:
     if type(pins) is not dict or type(pins.get("roles")) is not dict:
         raise PreflightHold("REGISTRY_PINS_INVALID")
     roles = pins["roles"]
+    profile = pins.get("key_provider_mode", "TPM_V1")
+    if (type(profile) is not str or profile not in (
+            "TPM_V1", "SOFTWARE_CNG_OWNER_APPROVED_V1")):
+        raise PreflightHold("CNG_PROVIDER_PIN_INVALID")
     if set(roles) != set(SERVICE_ROLES):
         raise PreflightHold("REGISTRY_PINS_INVALID")
     sids = [pins.get("controller_sid"), pins.get("owner_sid")]
@@ -219,7 +227,7 @@ def preflight(bundle: Path, installed: Path, *, settings: dict | None = None) ->
         "defender_scan_verified": False,
         "required_field_checks": [
             "ACTUAL_SCMSERVICE_PRINCIPAL_AND_RUNNING_IMAGE",
-            "ACL_ANCESTRY_AND_CNG_TPM_NONEXPORTABILITY",
+            "ACL_ANCESTRY_AND_PINNED_CNG_NONEXPORT_POLICY_KEY_USAGE",
             "SEPARATE_INTERACTIVE_OWNER_SESSION_SIGNED_E2E",
             "INDEPENDENT_F18_RUNTIME_AND_REQ14_ACCEPTANCE",
             "OWNER_APPROVED_WINDOWS_DEFENDER_SCAN",
@@ -232,6 +240,8 @@ def preflight(bundle: Path, installed: Path, *, settings: dict | None = None) ->
         verify_pins(settings, destination, installed)
         result["precheck"] = "MATCHED_UNATTESTED"
         result["code"] = "PIN_AND_IMAGE_MATCH_NOT_RUNTIME_TRUST"
+        result["cng_provider_mode"] = settings.get("key_provider_mode", "TPM_V1")
+        result["cng_hardware_attested"] = False
         result["image_sha256"] = {
             role: destination[name]["image_sha256"]
             for role, name, _ in IMAGES
