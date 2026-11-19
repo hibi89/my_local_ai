@@ -983,6 +983,34 @@ class SCMPrincipalBindingTests(unittest.TestCase):
         self.assertNotIn("SetEntriesInAclW", code)
 
 
+
+class ProtectedGitMirrorTraversalTests(unittest.TestCase):
+    """Pure synthetic directory traversal: no Git, Windows service or F18 GO."""
+
+    def test_protected_git_mirror_walk_is_complete_or_denies(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root) / "objects"
+            directory.mkdir()
+            (directory / "safe-object").write_bytes(b"synthetic")
+            rows = list(r._walk_verified_protected_git_mirror(Path(root)))
+            self.assertEqual(len(rows), 2)
+            self.assertTrue(any("safe-object" in names for _, _, names in rows))
+
+        def synthetic_unreadable(*args, **kwargs):
+            self.assertFalse(kwargs.get("followlinks"))
+            self.assertTrue(callable(kwargs["onerror"]))
+            kwargs["onerror"](PermissionError("synthetic unreadable mirror"))
+            yield from ()
+
+        with patch.object(r._os, "walk", synthetic_unreadable):
+            with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                list(r._walk_verified_protected_git_mirror(Path("/synthetic/mirror")))
+        self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
+        self.assertIn("_walk_verified_protected_git_mirror(root)",
+                      inspect.getsource(r._read_protected_git_candidate))
+
+
+
 class DefenderEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.request = d.DefenderOwnerScanRequest("a" * 64, "b" * 40, "SYNTHETIC-ONLY",
