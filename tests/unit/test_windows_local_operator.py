@@ -88,6 +88,10 @@ class WindowsLocalOperatorTests(unittest.TestCase):
             events.append(("registry_read", root, access))
             if pin == "missing":
                 raise FileNotFoundError()
+            if pin == "denied":
+                raise PermissionError("PRIVATE_KEY_PATH_NOT_TO_EXPOSE")
+            if pin == "other_oserror":
+                raise OSError("INTERNAL_SENSITIVE_DETAILS")
             return Key()
         def value_read(key, name):
             events.append(("value_read", name))
@@ -159,6 +163,44 @@ class WindowsLocalOperatorTests(unittest.TestCase):
                 if any(e[0] == "open" and config.get("open_status", 0) == 0
                        for e in events):
                     self.assertTrue(any(e[0] == "free" for e in events))
+
+
+    def test_cng_denied_registry_still_checks_provider_without_grant(self):
+        reg, native, events = self._simulate_native_cng(pin="denied")
+        with patch.dict(sys.modules, {"winreg": reg}), \
+             patch.object(ctypes, "WinDLL", native, create=True):
+            result = op._cng_provider_status()
+        self.assertEqual(result["state"], "HOLD_PIN_ACCESS_DENIED")
+        self.assertEqual(result["ksp_state"], "READ_ONLY_RESULT")
+        self.assertTrue(result["software_ksp_available"])
+        self.assertFalse(result["profile_enabled"])
+        self.assertFalse(result["protected_trust_verified"])
+        self.assertFalse(result["key_provisioned_verified"])
+        self.assertFalse(result["runtime_authorized"])
+        self.assertEqual([e[0] for e in events if e[0] in ("open","get","free")],
+                         ["open","get","free"])
+        self.assertNotIn("PRIVATE_KEY_PATH_NOT_TO_EXPOSE", json.dumps(result))
+
+    def test_cng_registry_and_provider_errors_stay_independent(self):
+        for kwargs, expected, available in (
+            ({"pin": "denied", "open_status": 1},
+             "HOLD_PIN_ACCESS_DENIED", False),
+            ({"pin": "other_oserror"}, "HOLD_PIN_UNREADABLE", True),
+            ({"pin": "SOFTWARE_CNG_OWNER_APPROVED_V1", "kind": 4},
+             "HOLD_PIN_INVALID", True),
+        ):
+            with self.subTest(kwargs=kwargs):
+                reg, native, events = self._simulate_native_cng(**kwargs)
+                with patch.dict(sys.modules, {"winreg": reg}), \
+                     patch.object(ctypes, "WinDLL", native, create=True):
+                    result = op._cng_provider_status()
+                self.assertEqual(result["state"], expected)
+                self.assertEqual(result["software_ksp_available"], available)
+                self.assertFalse(result["profile_enabled"])
+                self.assertFalse(result["protected_trust_verified"])
+                self.assertFalse(result["key_provisioned_verified"])
+                self.assertIn("ksp_state", result)
+                self.assertNotIn("INTERNAL_SENSITIVE_DETAILS", json.dumps(result))
 
 
 

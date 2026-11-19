@@ -132,6 +132,7 @@ def _cng_provider_status() -> dict:
 
     # No request can influence the KSP name or registry location.
     pin_mode = "NOT_CONFIGURED"
+    pin_error = None
     try:
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
                 r"SOFTWARE\MyLocalAI\ProtectedBrokers\v1", 0,
@@ -144,16 +145,21 @@ def _cng_provider_status() -> dict:
                 if kind != winreg.REG_SZ or type(value) is not str or value not in {
                     "TPM_V1", "SOFTWARE_CNG_OWNER_APPROVED_V1"
                 }:
-                    return {"state": "HOLD_PIN_INVALID", "probe_executed": True,
-                            "profile": "INVALID", "protected_trust_verified": False,
-                            "key_provisioned_verified": False}
-                pin_mode = value
+                    pin_error = "HOLD_PIN_INVALID"
+                    pin_mode = "INVALID"
+                else:
+                    pin_mode = value
     except FileNotFoundError:
         pass  # An unprovisioned PC is expected, never an implicit software GO.
-    except OSError:
-        return {"state": "HOLD_PIN_UNREADABLE", "probe_executed": True,
-                "profile": "UNREADABLE", "protected_trust_verified": False,
-                "key_provisioned_verified": False}
+    except OSError as exc:
+        # Do not expose privileged registry details or silently enable a key.
+        # A denied/malformed registry pin remains a hard HOLD, but still
+        # permit an independent, provider-HANDLE-only readiness observation.
+        pin_mode = "UNREADABLE"
+        pin_error = ("HOLD_PIN_ACCESS_DENIED"
+                     if isinstance(exc, PermissionError)
+                     or getattr(exc, "winerror", None) == 5
+                     else "HOLD_PIN_UNREADABLE")
 
     provider = c.c_size_t()
     try:
@@ -170,26 +176,37 @@ def _cng_provider_status() -> dict:
         free.restype = c.c_long
         if open_provider(c.byref(provider),
                          "Microsoft Software Key Storage Provider", 0) != 0:
-            return {"state": "HOLD_KSP_UNAVAILABLE", "probe_executed": True,
-                    "profile": pin_mode, "protected_trust_verified": False,
-                    "key_provisioned_verified": False}
+            return {"state": pin_error or "HOLD_KSP_UNAVAILABLE",
+                    "ksp_state": "HOLD_KSP_UNAVAILABLE",
+                    "software_ksp_available": False,
+                    "probe_executed": True, "profile": pin_mode,
+                    "profile_enabled": False, "protected_trust_verified": False,
+                    "key_provisioned_verified": False, "runtime_authorized": False}
         flags, length = w.DWORD(), w.DWORD()
         ok = get_property(provider.value, "Impl Type", c.byref(flags),
                           c.sizeof(flags), c.byref(length), 0x40)
         if (ok != 0 or length.value != 4 or not flags.value & 0x2
             or flags.value & (0x1 | 0x8)):
-            return {"state": "HOLD_KSP_CAPABILITY", "probe_executed": True,
-                    "profile": pin_mode, "protected_trust_verified": False,
-                    "key_provisioned_verified": False}
-        return {"state": "READ_ONLY_RESULT", "probe_executed": True,
+            return {"state": pin_error or "HOLD_KSP_CAPABILITY",
+                    "ksp_state": "HOLD_KSP_CAPABILITY",
+                    "software_ksp_available": False,
+                    "probe_executed": True, "profile": pin_mode,
+                    "profile_enabled": False, "protected_trust_verified": False,
+                    "key_provisioned_verified": False, "runtime_authorized": False}
+        return {"state": pin_error or "READ_ONLY_RESULT",
+                "ksp_state": "READ_ONLY_RESULT", "probe_executed": True,
                 "software_ksp_available": True, "profile": pin_mode,
-                "profile_enabled": pin_mode == "SOFTWARE_CNG_OWNER_APPROVED_V1",
+                "profile_enabled": pin_error is None and
+                    pin_mode == "SOFTWARE_CNG_OWNER_APPROVED_V1",
                 "protected_trust_verified": False, "key_provisioned_verified": False,
                 "runtime_authorized": False}
     except (OSError, ValueError, TypeError, AttributeError):
-        return {"state": "HOLD_KSP_UNAVAILABLE", "probe_executed": False,
-                "profile": pin_mode, "protected_trust_verified": False,
-                "key_provisioned_verified": False}
+        return {"state": pin_error or "HOLD_KSP_UNAVAILABLE",
+                "ksp_state": "HOLD_KSP_UNAVAILABLE",
+                "software_ksp_available": None,
+                "probe_executed": False, "profile": pin_mode,
+                "profile_enabled": False, "protected_trust_verified": False,
+                "key_provisioned_verified": False, "runtime_authorized": False}
     finally:
         if provider.value:
             free(provider.value)
