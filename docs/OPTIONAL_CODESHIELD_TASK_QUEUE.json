@@ -1002,7 +1002,7 @@
       "owner_go": false,
       "code_only_attempt_allowed": true,
       "p1_code_only_scope": "Owner-scope validation and redacted scan result contract only; no Start-MpScan/Defender policy change without owner-action grant",
-      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE. Scan request contract now carries replay-bound context metadata; owner action verification/native Start-MpScan remain HOLD. Defender event correlation now rejects reused scan ID, stale pre-start and mismatched foreign detection events; actual Windows scan and protected signer still HOLD.",
+      "code_only_progress": "Owner-scope path+SHA bounded lstat/fstat file preflight and redacted immutable Defender scan request. Start-MpScan never called. Missing protected action grant/signature and native scan result adapter; full SWU NOT COMPLETE. Scan request contract now carries replay-bound context metadata; owner action verification/native Start-MpScan remain HOLD. Defender event correlation now rejects reused scan ID, stale pre-start and mismatched foreign detection events; actual Windows scan and protected signer still HOLD. 2026-11-19: Missing Scan ID or threat metadata on same-file detection now invalidates current scan completion (UNKNOWN/HOLD), foreign explicit IDs ignored; synthetic security tests and Windows bundle CI PASS. Actual Owner signing/Defender file scan never executed.",
       "code_only_attempts": [
         {
           "attempt_id": "CS012-20261118-A1",
@@ -1025,8 +1025,20 @@
           "evidence_sha": "ea577e8cfe9ce2f17476c961f07096a426aedb78",
           "nonprogress_failure": false,
           "github_actions_run_id": 44262555404
+        },
+        {
+          "attempt_id": "CS012-20261119-AMBIGUOUS-SCAN-ID",
+          "method": "Reject same-target Defender detection events missing or malformed Scan ID or threat attribution after scan start; stop spurious MALWARE_DETECTED and CLEAN outcomes by conservatively invalidating correlated completion",
+          "outcome": "POSITIVE_SOURCE_SECURITY_FIX_NO_OWNER_SCAN_RUNTIME",
+          "evidence_sha": "b2568ca27d795b474fd5d04e3810869db1597d05",
+          "nonprogress_failure": false,
+          "github_actions_synthetic_run_id": 44485710058,
+          "github_actions_windows_bundle_run_id": 44485710070
         }
-      ]
+      ],
+      "last_security_source_fix_sha": "b2568ca27d795b474fd5d04e3810869db1597d05",
+      "runtime_scan_executed": false,
+      "owner_scan_acceptance_verified": false
     },
     {
       "task_id": "CS-SWU-013",

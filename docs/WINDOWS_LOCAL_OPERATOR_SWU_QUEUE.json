@@ -15,7 +15,7 @@
   "p2": "LOCKED",
   "p2_accepted_swu": 0,
   "verified_rate": "UNASSESSED",
-  "real_windows": "OWNER_SIGNER_AND_NATIVE_OWNER_E2E_NOT_RUN",
+  "real_windows": "OWNER_REPORTED_SOFTWARE_KSP_AVAILABLE; PROTECTED_RUNTIME_NOT_RUN",
   "independent_audit": "NOT_RUN",
   "owner_go": false,
   "default_execution": "ONLY_FIXED_READ_ONLY_DIAGNOSTICS",
@@ -75,13 +75,18 @@
         "source_sha": "347718f1df7b49530a6ac30055f89bb5078d7201",
         "run_id": 44484557893,
         "conclusion": "SUCCESS_GITHUB_RUNNER_ONLY",
-        "owner_machine": "RECHECK_PENDING"
+        "owner_machine": "OWNER_REPORTED_KSP_AVAILABLE_PIN_ACCESS_DENIED_NOT_TRUST"
       },
       "owner_reported_windows_diagnostic": {
-        "source_head_at_observation": "705c110c211704a3fa5790335088aca5e90e24ca",
-        "observed": "HOLD_PIN_UNREADABLE",
-        "software_ksp_availability": "NOT_QUERIED_DUE_TO_PRIOR_REGISTRY_ERROR",
-        "classification": "OWNER_REPORTED_NOT_INDEPENDENTLY_VERIFIED"
+        "source_head_at_observation": "bc8fb7956988a2562edad67dd6ea563567c3326d",
+        "observed": "HOLD_PIN_ACCESS_DENIED",
+        "ksp_state": "READ_ONLY_RESULT",
+        "software_ksp_available": true,
+        "key_provisioned_verified": false,
+        "protected_trust_verified": false,
+        "profile": "UNREADABLE",
+        "classification": "OWNER_REPORTED_LIVE_DEVICE_DIAGNOSTIC",
+        "os_settings_changed": false
       },
       "last_source_fix_sha": "347718f1df7b49530a6ac30055f89bb5078d7201"
     },
