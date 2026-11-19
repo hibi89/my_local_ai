@@ -288,6 +288,61 @@ class LocalDraftsTests(unittest.TestCase):
                              {"lower_ms": 41250, "upper_ms": 97500, "runs": 2})
             self.assertEqual(estimated_duration(root, "long")["runs"], 1)
 
+    def test_work_queue_keeps_verification_pending_and_restores_completed_draft_parts(self):
+        message = (
+            "## 잔여 작업 우선순위\n"
+            "### P2-A. 초안 상태 추가\n작업 파일: src/queued.py\n변경 내용: Set QUEUED to True.\n"
+            "### P2-B. 완료 상태 추가\n작업 파일: src/done.py\n변경 내용: Set DONE to True.\n"
+            "### P2-C. 관찰 검증\n실제 시간 기반 24시간·48시간 감시\n"
+        )
+
+        class Model:
+            def __init__(self):
+                self.inputs = []
+
+            def generate(self, prompt, **kwargs):
+                self.inputs.append(prompt)
+                path, content = (("src/queued.py", "QUEUED = True\n") if "Set QUEUED" in prompt
+                                 else ("src/done.py", "DONE = True\n"))
+                return UntrustedGeneration(json.dumps({
+                    "summary": "state added", "files": [{"path": path, "content": content}],
+                }), "qwen3:4b-instruct")
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            model = Model()
+            app = LocalDrafts(root, provider=model)
+            app.start({"message": message})
+            status = self.await_result(app)
+            worklist = status["work_queue"]
+            self.assertEqual(status["state"], "done", status["message"])
+            self.assertEqual([item["state"] for item in worklist["items"]], ["draft", "draft", "pending"])
+            self.assertEqual(worklist["items"][2]["observation_hours"], (24, 48))
+            self.assertEqual(len(model.inputs), 2)
+            self.assertIn("Set QUEUED", model.inputs[0])
+            self.assertIn("Set DONE", model.inputs[1])
+            self.assertGreaterEqual(worklist["elapsed_ms"], sum(item["elapsed_ms"] for item in worklist["items"]))
+            restored = LocalDrafts(root, provider=model).snapshot()
+            self.assertEqual(restored["state"], "ready")
+            self.assertEqual(restored["work_queue"]["items"], worklist["items"])
+            self.assertEqual(restored["work_queue"]["elapsed_ms"], worklist["elapsed_ms"])
+            self.assertEqual(len(model.inputs), 2)
+
+    def test_verification_brief_does_not_manufacture_a_change(self):
+        message = "## 작업 목록\n### P2-A. 통합 검사\n기존 테스트 결과 확인\n### P2-B. 실행 검증\nCI 확인\n"
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            provider = FixtureProvider("arbitrary.py", "PASS = True\n")
+            app = LocalDrafts(root, provider=provider)
+            app.start({"message": message})
+            result = self.await_result(app)
+            self.assertEqual(result["state"], "ready", result["message"])
+            self.assertEqual(provider.prompt, "")
+            self.assertEqual([item["state"] for item in result["work_queue"]["items"]], ["pending", "pending"])
+            with self.assertRaises(DraftError):
+                app.start({"queue": result["work_queue"]["id"], "item": "1", "paths": "src/cli.py", "change": "ㄱ"})
+            self.assertFalse(any(path.is_dir() for path in root.iterdir()))
+
 
 if __name__ == "__main__":
     unittest.main()

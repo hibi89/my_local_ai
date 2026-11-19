@@ -174,6 +174,25 @@ def github_files(repository: str, revision: str) -> dict[str, int]:
     }
 
 
+def read_github_ci(repository: str, revision: str) -> dict:
+    """Report Actions evidence for the exact commit without creating a run."""
+    root = _repo_root(repository)
+    if not _SHA.fullmatch(revision):
+        raise DraftError("CI 확인에 필요한 GitHub 커밋을 확인해 주세요.")
+    response = _api_object(_github_get(f"{root}/actions/runs?head_sha={revision}&per_page=20"))
+    records = response.get("workflow_runs")
+    if not isinstance(records, list):
+        raise DraftError("GitHub Actions 실행 목록을 읽을 수 없습니다.")
+    runs = [
+        {"id": run["id"], "name": run.get("name") or "GitHub Actions",
+         "status": run["status"], "conclusion": run.get("conclusion")}
+        for run in records[:20]
+        if isinstance(run, dict) and run.get("head_sha") == revision
+        and type(run.get("id")) is int and run["id"] > 0 and isinstance(run.get("status"), str)
+    ]
+    return {"repo": repository, "revision": revision, "runs": runs}
+
+
 def _read_github(url: str, refs: dict[tuple[str, str], str]) -> DraftDocument:
     site = urlsplit(url)
     repository, parts = github_path_info(url)

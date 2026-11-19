@@ -13,7 +13,7 @@ dependencies = []
 where = ["src"]
 
 [tool.setuptools.package-data]
-"my_local_ai.ui" = ["dashboard.css", "workbench.css", "workbench.js"]
+"my_local_ai.ui" = ["dashboard.css", "workbench.css", "workbench.js", "workbench-music.js", "music-*.ogg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

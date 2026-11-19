@@ -1,5 +1,6 @@
 """Cumulative timing and recent successful model durations for the workbench."""
 from contextlib import closing
+import json
 from pathlib import Path
 import sqlite3
 import stat
@@ -70,3 +71,28 @@ def estimated_duration(root: Path, kind: str) -> dict:
         lower = max(5_000, min(times) * 3 // 4)
         upper = min(270_000, max(times) * 5 // 4 + 10_000)
     return {"lower_ms": lower, "upper_ms": upper, "runs": len(times)}
+
+
+def save_work_queue(root: Path, value: dict, *, replace: bool = False) -> None:
+    payload = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    with closing(sqlite3.connect(_timing_path(root), timeout=3.0)) as db, db:
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("CREATE TABLE IF NOT EXISTS work_queue "
+                   "(slot INTEGER PRIMARY KEY, queue_key TEXT NOT NULL, payload TEXT NOT NULL)")
+        db.execute("INSERT INTO work_queue VALUES (1, ?, ?) ON CONFLICT (slot) DO UPDATE "
+                   "SET queue_key = excluded.queue_key, payload = excluded.payload "
+                   "WHERE work_queue.queue_key = excluded.queue_key OR ?",
+                   (value["key"], payload, int(replace)))
+
+
+def load_work_queue(root: Path) -> dict | None:
+    try:
+        path = _timing_path(root)
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1.0)) as db:
+            db.execute("PRAGMA trusted_schema=OFF")
+            row = db.execute("SELECT payload FROM work_queue WHERE slot = 1 "
+                             "AND length(payload) <= 6400000").fetchone()
+        result = json.loads(row[0]) if row else None
+        return result if type(result) is dict else None
+    except (OSError, sqlite3.Error, ValueError, RecursionError):
+        return None

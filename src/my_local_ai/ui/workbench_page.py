@@ -26,6 +26,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
   <title>MLA 작업대 · My Local AI</title>
   <link rel="stylesheet" href="/workbench.css">
   <script src="/workbench.js" defer></script>
+  <script src="/workbench-music.js" defer></script>
 </head>
 <body data-session="{escape(session_path, quote=True)}">
   <a class="skip-link" href="#content">본문으로 이동</a>
@@ -35,7 +36,17 @@ def render_workbench(session_path: str, layout: str) -> bytes:
         <span class="brand-monogram" aria-hidden="true">M<span></span></span>
         <span>My Local AI</span>
       </a>
-      <div class="top-meta"><span class="model-name">Qwen3 4B</span><a href="/">시스템 상태</a></div>
+      <div class="top-meta">
+        <div class="music-control" role="group" aria-label="배경음악">
+          <span id="music-title" aria-live="polite">픽셀 스타트</span>
+          <button type="button" id="music-toggle" class="quiet-button" aria-pressed="false">
+            <span aria-hidden="true">♪</span> <span id="music-toggle-label">음악 켜기</span>
+          </button>
+          <button type="button" id="music-next" class="quiet-button">다음 곡</button>
+          <audio id="music" loop preload="none"></audio>
+        </div>
+        <span class="model-name">Qwen3 4B</span><a href="/">시스템 상태</a>
+      </div>
     </div>
   </header>
   <main id="content" class="shell">
@@ -95,7 +106,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
           <p id="phase" role="status" aria-live="polite">작업을 시작하면 진행 상황이 표시됩니다.</p></div>
           <span id="state" class="state" data-state="idle">대기</span>
         </header>
-        <dl class="timers" aria-label="작업 시간">
+        <dl class="timers" id="draft-timing" aria-label="작업 시간">
           <div><dt>이번 작업 시간</dt><dd><time id="elapsed" datetime="PT0S">00:00</time></dd></div>
           <div><dt>누적 작업 시간</dt><dd><time id="total" datetime="PT0S">00:00</time></dd></div>
           <div class="forecast">
@@ -103,7 +114,14 @@ def render_workbench(session_path: str, layout: str) -> bytes:
             <dd><span id="forecast">—</span><small id="forecast-basis" hidden></small></dd>
           </div>
         </dl>
+        <dl id="queue-timing" class="timers queue-timing" aria-label="전체와 현재 파트의 작업 시간" hidden>
+          <div class="forecast"><dt>전체 예상 작업 시간</dt><dd><span id="queue-estimate">미산정</span><small id="queue-estimate-note"></small></dd></div>
+          <div><dt>전체 경과 시간</dt><dd id="queue-elapsed">00:00</dd></div>
+          <div class="forecast"><dt>현재 파트 예상 시간</dt><dd><span id="part-estimate">—</span><small id="part-estimate-note"></small></dd></div>
+          <div><dt>현재 파트 경과 시간</dt><dd id="part-elapsed">—</dd></div>
+        </dl>
         <p id="timing-warning" class="timing-warning" hidden>누적 시간을 저장할 수 없습니다.</p>
+        <p id="queue-notice" class="timing-warning" role="status" hidden></p>
         <div class="result-body" id="result">
           <ol id="reply-history" class="reply-history" aria-label="내가 보낸 추가 지시" hidden></ol>
           <aside id="error-guide" class="error-guide" aria-label="MLA 안내" hidden>
@@ -125,6 +143,31 @@ def render_workbench(session_path: str, layout: str) -> bytes:
             </div>
           </aside>
           <dl id="work-plan" class="work-plan" aria-label="자동으로 찾은 작업 범위" hidden></dl>
+          <section id="work-queue" class="work-queue" aria-labelledby="queue-heading" hidden>
+            <div class="queue-header">
+              <div><h3 id="queue-heading">전체 작업</h3><p id="queue-summary"></p></div>
+              <div class="queue-actions">
+                <button type="button" id="resume-queue" class="quiet-button" hidden>자동 초안 재개</button>
+                <button type="button" id="next-item" class="quiet-button">다음 파트</button>
+              </div>
+            </div>
+            <ol id="queue-items" class="queue-items"></ol>
+            <div id="queue-selection" class="queue-selection" hidden>
+              <h4 id="queue-selected-title"></h4>
+              <details class="sources">
+                <summary>이 파트의 원래 지시</summary><p id="queue-detail"></p>
+              </details>
+              <p id="queue-saved" class="folder" hidden></p>
+              <form id="item-form" hidden>
+                <label for="item-paths">수정 파일 경로</label>
+                <textarea id="item-paths" name="paths" rows="2" placeholder="프로젝트 상대 경로를 한 줄에 하나씩" required></textarea>
+                <label for="item-change">발견한 문제 또는 원하는 동작</label>
+                <textarea id="item-change" name="change" rows="3" maxlength="450" placeholder="재현한 오류나 바뀌어야 할 동작을 적어 주세요." required></textarea>
+                <p id="item-notice" role="status" hidden></p>
+                <button type="submit" class="primary">선택한 파트 초안 시작 <span aria-hidden="true">→</span></button>
+              </form>
+            </div>
+          </section>
           <div id="empty" class="empty">
             <div class="empty-icon" aria-hidden="true"><i></i><i></i><i></i></div>
             <strong>초안을 기다리는 중</strong>

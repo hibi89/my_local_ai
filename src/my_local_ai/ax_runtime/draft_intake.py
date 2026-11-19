@@ -32,6 +32,55 @@ _TEXT_EXTENSIONS = {
     ".java", ".cs", ".c", ".cpp", ".h", ".svelte", ".vue", ".swift", ".kt", ".sh", ".ps1",
 }
 _PRIVATE_NAMES = {"secrets", "credentials", "tokens", "certificate", "private_key"}
+_TASK_SECTION = re.compile(r"작업\s*(?:목록|우선순위)|tasks?\s*(?:list|in priority order)|remaining work", re.I)
+_TASK_HEADING = re.compile(r"^((?:P\d+|REQ|SWU)-[A-Z0-9]+(?:-[A-Z0-9]+)*)[.\s:：–—-]+(.+)$", re.I)
+_OBSERVATION = re.compile(r"(?:실제\s*시간\s*기반|실측)\s*(\d{1,3})\s*시간(?:\s*[·~–-]\s*(\d{1,3})\s*시간)?")
+
+
+@dataclass(frozen=True)
+class HandoffTask:
+    key: str
+    title: str
+    detail: str
+
+    def observation_hours(self) -> tuple[int, int] | None:
+        match = _OBSERVATION.search(self.detail)
+        if not match:
+            return None
+        lower = int(match[1])
+        upper = int(match[2]) if match[2] else lower
+        return min(lower, upper), max(lower, upper)
+
+    def draft_spec(self) -> tuple[str, str] | None:
+        """Find a file and a required change explicitly provided for this part."""
+        values = {}
+        for line in self.detail.splitlines():
+            if field := _FIELD.match(line):
+                values[field[1].strip().casefold()] = field[2].strip()
+        paths = values.get("작업 파일") or values.get("target files")
+        change = values.get("변경 내용") or values.get("수정 내용") or values.get("required change")
+        return (paths, change) if paths and change else None
+
+
+def handoff_tasks(message: str) -> tuple[HandoffTask, ...]:
+    """Keep the order and scope of an explicit work list in the handoff."""
+    lines = message.splitlines()
+    headings = [(index, len(match[1]), match[2].strip())
+                for index, line in enumerate(lines)
+                if (match := re.match(r"^\s*(#{1,6})\s+(.+)", line))]
+    section_level = 0
+    tasks = []
+    for position, (start, level, title) in enumerate(headings):
+        if section_level and level <= section_level:
+            section_level = 0
+        if _TASK_SECTION.search(title):
+            section_level = level
+            continue
+        if not (_TASK_HEADING.match(title) or section_level and level == section_level + 1):
+            continue
+        end = next((index for index, depth, _ in headings[position + 1:] if depth <= level), len(lines))
+        tasks.append(HandoffTask(str(len(tasks) + 1), title, "\n".join(lines[start + 1:end]).strip()))
+    return tuple(tasks) if len(tasks) > 1 else ()
 
 
 def text_path(path: str) -> str:

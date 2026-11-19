@@ -53,7 +53,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy",
                          "default-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; "
                          "base-uri 'none'; form-action 'none';"
-                         + (" script-src 'self'; connect-src 'self';" if workbench else ""))
+                         + (" script-src 'self'; connect-src 'self'; media-src 'self';" if workbench else ""))
         if status == 405:
             self.send_header("Allow", "GET, HEAD")
         self.end_headers()
@@ -177,9 +177,16 @@ class LocalStatusServer(ThreadingHTTPServer):
         self.workbench_path = "/work/" + secrets.token_urlsafe(32) if drafts is not None else ""
         self.workbench_assets = {}
         if drafts is not None:
-            for name, kind in (("workbench.css", "text/css"), ("workbench.js", "text/javascript")):
+            for name, kind in (
+                ("workbench.css", "text/css; charset=utf-8"),
+                ("workbench.js", "text/javascript; charset=utf-8"),
+                ("workbench-music.js", "text/javascript; charset=utf-8"),
+                ("music-pixel-start.ogg", "audio/ogg"),
+                ("music-bubble-square.ogg", "audio/ogg"),
+                ("music-sunset-hill.ogg", "audio/ogg"),
+            ):
                 self.workbench_assets["/" + name] = (
-                    _CSS.with_name(name).read_bytes(), kind + "; charset=utf-8",
+                    _CSS.with_name(name).read_bytes(), kind,
                 )
         self._sample_lock = Lock()
         _, self._previous_cpu = sample_local_resources()

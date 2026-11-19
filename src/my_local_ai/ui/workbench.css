@@ -38,6 +38,10 @@ button, a, textarea, input, summary { -webkit-tap-highlight-color: transparent; 
 .top-meta { font-size: .82rem; color: var(--muted); }
 .top-meta a { text-decoration: none; padding: 7px 0; }
 .top-meta a:hover { text-decoration: underline; }
+.music-control { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.music-control .quiet-button { min-height: 30px; }
+.music-control [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#music-title { margin-inline-end: 4px; white-space: nowrap; }
 .model-name { font: .83rem Consolas, monospace; color: var(--accent); padding: 5px 8px;
   background: var(--accent-wash); border-radius: 5px; white-space: nowrap; }
 .shell { padding-top: clamp(24px, 5vw, 50px); padding-bottom: 50px; }
@@ -97,6 +101,9 @@ button { cursor: pointer; }
 .timers dd { margin-top: 4px; font: 650 clamp(1.12rem, 2vw, 1.38rem) "Cascadia Mono", Consolas, monospace; }
 .timers .forecast dd { font: 650 clamp(.83rem, 1.6vw, 1.13rem) "Segoe UI", "Malgun Gothic", sans-serif; }
 .forecast small { display: block; margin-top: 3px; color: var(--muted); font-size: .7rem; font-weight: 450; }
+.queue-timing { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.queue-timing > div { padding-inline: 13px; }
+.queue-timing dd { overflow-wrap: anywhere; }
 .timing-warning { padding: 10px 21px 0; color: var(--error); font-size: .8rem; }
 .error-guide { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 9px; }
 .message-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
@@ -117,6 +124,23 @@ button { cursor: pointer; }
 .reply-history li { justify-self: end; max-width: min(88%, 420px); padding: 9px 12px;
   border: 1px solid var(--line); border-radius: 10px 4px 10px 10px; background: var(--accent-wash);
   white-space: pre-wrap; overflow-wrap: anywhere; font-size: .84rem; line-height: 1.5; }
+.work-queue { display: grid; gap: 10px; margin-block: 5px; min-width: 0; }
+.queue-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.queue-header h3, .queue-selection h4 { margin: 0; font-size: .92rem; }
+.queue-header p { margin-top: 4px; color: var(--muted); font-size: .78rem; }
+.queue-actions { display: flex; justify-content: end; flex-wrap: wrap; gap: 5px; }
+.queue-items { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
+.queue-items button { display: flex; justify-content: space-between; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--inset); color: var(--text);
+  text-align: left; overflow-wrap: anywhere; font-size: .82rem; }
+.queue-items button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-wash); }
+.queue-items small { color: var(--muted); white-space: nowrap; font-size: .72rem; }
+.queue-selection { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; }
+.queue-selection .sources { margin-top: 0; }
+#queue-detail { max-height: 235px; overflow: auto; white-space: pre-wrap; margin-top: 8px; }
+#item-form { display: grid; gap: 7px; }
+#item-form .primary { justify-self: start; }
+#item-notice { font-size: .82rem; color: var(--error); }
 .work-plan { margin: 0; display: grid; gap: 7px; padding: 12px 13px; background: var(--inset);
   border: 1px solid var(--line); border-radius: 8px; }
 .work-plan > div { display: grid; grid-template-columns: minmax(4.7rem, max-content) minmax(0,1fr); gap: 10px; align-items: baseline; }
@@ -201,6 +225,13 @@ pre span { display:block; width:max-content; min-width: 100%; padding-inline: 6p
   [data-layout="desk"] .review { border-left: 0; border-top: 1px solid var(--line); }
   [data-layout="desk"] .empty { min-height: 150px; }
   .empty { min-height: 155px; }
+}
+@media(max-width: 610px) {
+  .top-inner { flex-wrap: wrap; gap: 7px; padding-block: 10px; }
+  .top-meta { flex-wrap: wrap; gap: 6px 10px; }
+  .queue-timing { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .queue-timing > div:nth-child(3) { border-left: 0; }
+  .queue-timing > div:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
 @media(max-width: 475px) {
   .top-inner, .shell { padding-inline: 14px; }
