@@ -251,17 +251,84 @@ def preflight(bundle: Path, installed: Path, *, settings: dict | None = None) ->
     return result
 
 
+def host_readonly_prerequisites() -> dict:
+    """One fixed, redacted Windows intake; never a key/SCM/Owner GO.
+
+    Reuse the existing read-only Local Operator instead of inventing a second
+    OS probe. Keep only bounded check states and the nonsecret CNG profile.
+    No owner SID, principal name, registry value, executable path, public
+    key, original content or exception message crosses this boundary.
+    """
+    result = {
+        "schema": "mla-protected-host-intake/v1", "decision": "HOLD",
+        "precheck": "BLOCKED", "reason": "READ_ONLY_INTAKE_NOT_RUN",
+        "read_only": True, "os_settings_changed": False,
+        "owner_approval_verified": False, "runtime_authorized": False,
+        "protected_signer_verified": False,
+        "independent_f18_verified": False, "defender_scan_verified": False,
+        "p2": "LOCKED", "formal_verified_rate": "UNASSESSED",
+        "checks": {}, "next_gates": [
+            "OWNER_REVIEW_EXACT_PRINCIPALS_KEYS_ACLS_SERVICES_AND_ROLLBACK",
+            "SEPARATE_SCOPED_WINDOWS_PROVISIONING_APPROVAL",
+            "REAL_CNG_SIGNER_AND_OWNER_SESSION_E2E",
+            "REQ14_EXECUTED_TEST_ISOLATION_DECISION",
+            "INDEPENDENT_F18_AND_REAL_DEFENDER_SCAN",
+        ],
+    }
+    if os.name != "nt":
+        result["reason"] = "WINDOWS_REQUIRED"
+        return result
+    try:
+        from my_local_ai.ops.windows_local_operator import run_operator_request
+        observed = run_operator_request("MLA 보안 환경 진단")
+        fixed = ("tpm-status", "defender-status", "protected-path-presence",
+                 "cng-provider-status")
+        if (type(observed) is not dict or observed.get("read_only") is not True
+            or observed.get("os_settings_changed") is not False
+            or observed.get("execution_authority_granted") is not False
+            or type(observed.get("checks")) is not dict
+            or set(observed["checks"]) != set(fixed)):
+            raise ValueError("unsafe operator report")
+        for name in fixed:
+            entry = observed["checks"][name]
+            state = entry.get("state") if type(entry) is dict else None
+            if (type(state) is not str
+                or re.fullmatch(r"[A-Z][A-Z0-9_]{1,63}", state) is None):
+                raise ValueError("invalid fixed diagnostic state")
+            result["checks"][name] = state
+        mode = observed["checks"]["cng-provider-status"].get("profile")
+        result["cng_profile"] = (mode if mode in (
+            "NOT_CONFIGURED", "TPM_V1_LEGACY", "TPM_V1",
+            "SOFTWARE_CNG_OWNER_APPROVED_V1", "UNREADABLE", "INVALID",
+        ) else "UNVERIFIED")
+        result["precheck"] = "OBSERVED_UNATTESTED"
+        result["reason"] = "READ_ONLY_GATES_PENDING"
+    except (ImportError, OSError, ValueError, TypeError, KeyError, AttributeError):
+        result["precheck"] = "BLOCKED"
+        result["reason"] = "LOCAL_READ_ONLY_DIAGNOSTIC_UNAVAILABLE"
+        result["checks"] = {}
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--bundle", type=Path, required=True,
+    parser.add_argument("--host-readonly", action="store_true",
+                        help="Read-only host diagnostics without staged/install images; always HOLD")
+    parser.add_argument("--bundle", type=Path,
                         help="Absolute folder with the original untrusted build manifest")
-    parser.add_argument("--installed-root", type=Path, required=True,
+    parser.add_argument("--installed-root", type=Path,
                         help="Absolute existing protected installation root (read only)")
     args = parser.parse_args(argv)
-    result = preflight(args.bundle, args.installed_root)
+    if args.host_readonly:
+        if args.bundle is not None or args.installed_root is not None:
+            parser.error("--host-readonly cannot be combined with image paths")
+        result = host_readonly_prerequisites()
+    else:
+        if args.bundle is None or args.installed_root is None:
+            parser.error("--bundle and --installed-root are required together")
+        result = preflight(args.bundle, args.installed_root)
     print(json.dumps(result, sort_keys=True, indent=2))
-    # Even a perfect image/HKLM comparison never authorizes a protected action.
-    # A non-zero exit prevents CI/install wrappers from treating this as GO.
+    # Every read-only inspection is HOLD, even with matching image/HKLM pins.
     return 2
 
 
