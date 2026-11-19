@@ -29,6 +29,10 @@ def _parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--project-root", type=Path, help="Local MLA source checkout")
     dashboard.add_argument("--port", type=int, default=0, help="Loopback port (0 selects a free port)")
     dashboard.add_argument("--open", action="store_true", help="Open the dashboard in your browser")
+    workbench = subs.add_parser("workbench", help="Generate local Qwen source drafts in a separate folder")
+    workbench.add_argument("--draft-root", type=Path, default=Path("mla-drafts"), help="Local draft output folder")
+    workbench.add_argument("--port", type=int, default=0, help="Loopback port (0 selects a free port)")
+    workbench.add_argument("--open", action="store_true", help="Open the workbench in your browser")
     plan = subs.add_parser("plan", help="Validate an untrusted plan (never approves it)")
     plan_sub = plan.add_subparsers(dest="plan_action", required=True)
     validate = plan_sub.add_parser("validate")
@@ -606,11 +610,12 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "status":
             base = _v13_swu_progress()
             payload = {**_status(), **base, **_local_operator_swu_progress(base)}
-        elif args.command == "dashboard":
+        elif args.command in ("dashboard", "workbench"):
             from .ui.local_dashboard import launch_dashboard
-            root = args.project_root or (_ROOT if (_ROOT / "WORK_PHASE_GATES.json").is_file() else Path.cwd())
+            root = getattr(args, "project_root", None) or (_ROOT if (_ROOT / "WORK_PHASE_GATES.json").is_file() else Path.cwd())
             try:
-                launch_dashboard(root, port=args.port, open_browser=args.open)
+                launch_dashboard(root, port=args.port, open_browser=args.open,
+                                 draft_root=getattr(args, "draft_root", None))
             except KeyboardInterrupt:
                 pass
             return 0

@@ -41,7 +41,7 @@ class OllamaProvider:
     ) -> None:
         self.endpoint = LoopbackEndpoint.parse(endpoint)
         self.model = require_qwen_model(model)
-        if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 30:
+        if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 270:
             raise ProviderHold("RESOURCE_LIMIT")
         self.timeout_seconds = timeout_seconds
         self._connection_factory = connection_factory or http.client.HTTPConnection
@@ -119,7 +119,8 @@ class OllamaProvider:
             return ProviderStatus("HOLD", error.code, self.model)
 
     def generate(self, prompt: str, *, model_lock: OneModelLock,
-                 budget: BudgetGuard, allow_generation: bool = False) -> UntrustedGeneration:
+                 budget: BudgetGuard, allow_generation: bool = False,
+                 structured: bool = False) -> UntrustedGeneration:
         # No owner consent is minted here: caller must provide a trusted
         # authorization and explicitly opt in. Always HOLD by default.
         if allow_generation is not True:
@@ -128,6 +129,8 @@ class OllamaProvider:
             raise ProviderHold("NO_MODEL_LOCK")
         if not isinstance(budget, BudgetGuard):
             raise ProviderHold("NO_BUDGET")
+        if type(structured) is not bool:
+            raise ProviderHold("UNSAFE_INPUT")
         if not isinstance(prompt, str) or not prompt.strip():
             raise ProviderHold("UNSAFE_INPUT")
         try:
@@ -145,13 +148,18 @@ class OllamaProvider:
         try:
             with model_lock:
                 budget.reserve_call()
-                result = self._request("POST", "/api/generate", payload={
+                payload = {
                     "model": self.model,
                     "prompt": prompt,
                     "stream": False,
                     "keep_alive": 0,
                     "options": {"num_ctx": budget.limits.max_context_tokens},
-                }, limit=min(1_048_576, budget.limits.max_output_bytes + 16384))
+                }
+                if structured:
+                    payload["format"] = "json"
+                    payload["options"].update(temperature=0, num_predict=1536)
+                result = self._request("POST", "/api/generate", payload=payload,
+                    limit=min(1_048_576, budget.limits.max_output_bytes + 16384))
                 answer = result.get("response")
                 if result.get("done") is not True or not isinstance(answer, str):
                     raise ProviderHold("OLLAMA_RESPONSE_INVALID")
