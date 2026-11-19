@@ -1,12 +1,45 @@
 # My Local AI — Acceptance Evidence Ledger (2026-11-17 KST)
 
+## 2026-11-19 KST · Windows 구현 점검
+
+소스 커밋 `102f80a55865072fe1e19639652a0062787301bf` (`dev/instant-implementation-v1`). P1 구현 후보 **55/58 (94.83%)**, 공식 P2 수용 **0/8**, 가중 검증률 `UNASSESSED`, 운영 `HOLD`. 아래 결과는 구현 점검과 실기기 진단 근거다.
+
+| 게이트 | 실제 확인 | 공식 수용에 필요한 근거 |
+|---|---|---|
+| MLA-V001 | Windows 11 Pro 26200 / Python 3.11.9에서 구문 검사, **681 PASS, 25 SKIP**, 서브테스트 799 PASS. Wheel 작성과 CSS 포함/CRC 확인, Windows 고정 이미지 네 개 빌드 PASS. [합성 CI](https://github.com/hibi89/my_local_ai/actions/runs/44523780687), [Windows 빌드 CI](https://github.com/hibi89/my_local_ai/actions/runs/44523780866). | High 구현 후보 인수 및 P2 정확 SHA 게이트 |
+| MLA-V002 | 저장소의 위조·권한·비밀·경로·취소 테스트 실행. POSIX 전용 사례와 현 Windows 세션에 심볼릭 링크 권한이 필요한 사례는 SKIP. | 별도 보호 계정과 실기기 권한 경계 |
+| MLA-V003 | 실기기 Ollama loopback의 설치된 `qwen3:4b-instruct`가 합성 고정 입력에 정확히 응답. 1회 벽시계 35.14초, 응답 2토큰. | 승인된 Controller 모델 실행 여정과 자원·열 한계 측정 |
+| MLA-V004 | Windows 네이티브 임시 파이프 SID·`RevertToSelf` PASS, 메모리 내 BCrypt ECDSA P-256 서명 검증과 변형 입력 거부 PASS. 합성 Owner 승인 왕복 및 열린 승인 도중 공개키 교체 거부 PASS. | SCM/실제 별도 Owner 세션, 잠긴 머신 키, 보호 F18-A 및 실행 F18-B |
+| MLA-V005 | Windows 임시 SQLite·복구/재개·CAS 거부 테스트 실행. 테스트가 임시 DB를 닫은 뒤 이동·복구를 검증하도록 수정. | 보호 환경의 실제 Git CAS, 원본 SHA 대조 및 권한 경계 |
+| MLA-V006 | `NOT_RUN`. | F18 수용 뒤 실기기 24시간 무인 운용 |
+| MLA-V007 | Chrome 157.0.8103.79의 loopback UI를 1440/820/390/320px에서 확인. 키보드, 본문 건너뛰기, 차단 상세, 다운로드, 새로고침, axe 자동 접근성 검사, 콘솔과 네트워크까지 PASS. Host/Origin과 변경 요청 거부 확인. | 공식 P2 게이트와 별도 UI/UX 감사 |
+| MLA-V008 | 현재 3개 차단 SWU와 8개 게이트를 UI 및 원장과 대조. | 승인된 가중치와 전수 수용 근거 |
+
+### MLA-SWU-008 · Windows 보호 설치안
+
+- 실기기 현재 토큰은 중간 무결성이다. TPM 사용 가능 상태와 보호 HKLM/폴더를 확인하지 못했고 Software KSP 읽기 전용 조회는 성공했다. 보호 서비스 3개는 조회 결과에 없었다. 별도 관리자 작업 세션과 별도 대화형 Owner 세션이 필요하다.
+- 제안 서비스 계정은 `MLAOwnerBroker`, `MLAReviewBroker`, `MLAScanBroker`이며 대화형 승인은 `MLAOwnerUI`에 할당한다. Controller는 별도 SID로 유지한다. 설치 전 실제 SID, 로그인 세션 ID 및 기존 동명 자원 존재 여부를 보호 운영 환경에서 검증한다.
+- 고정 EXE 및 `_internal`은 `C:\Program Files\MyLocalAI\Protected\v1` 아래 역할별 디렉터리에 배치한다. 상태·nonce 장부는 `C:\ProgramData\MyLocalAI\Protected\v1`, 교환 디렉터리는 `C:\ProgramData\MyLocalAI\OwnerExchange\v1`이다. 파일·조상과 64비트 HKLM의 소유자는 SYSTEM 또는 Administrators로 지정한다. 다른 역할에는 필요한 읽기 권한만 부여한다. 각 서비스의 사설 장부는 해당 역할, 교환 디렉터리는 Owner 서비스와 대화형 Owner에게 쓰기를 한정한다.
+- 제안 머신 키 이름은 `MyLocalAI.Owner.v1`, `MyLocalAI.Reviewer.v1`, `MyLocalAI.Scanner.v1`, `MyLocalAI.OwnerUI.v1`이다. `SOFTWARE_CNG_OWNER_APPROVED_V1`을 명시하고 각 역할별 비수출 ECDSA P-256 서명 전용 키의 ACL, 공개키·이미지 SHA, 서비스 SID를 핀으로 사용한다. 세 서비스는 요구 시에만 시작한다. Reviewer에는 독립 보호 bare Git 미러와 고정 Git 이미지, Scanner에는 활성 Defender 플랫폼의 고정 `MpCmdRun.exe` 이미지가 필요하다.
+- 적용 전에 실제 SID, ACL, SCM 설정, HKLM 핀, 기존 장부와 교환 디렉터리의 백업·복원 기준을 운영자 전용 저장소에 기록한다. 겹치는 설치가 발견되면 보존 경로를 먼저 확인한다. 중단 시 해당 서비스 세 개만 정지하고 기존 핀과 데이터 스냅샷을 복구한다. 키 회전이나 Owner 세션 변경은 새 세션에서 왕복 서명을 다시 확인한다.
+
+### MLA-SWU-021 · F18 수용 경로
+
+F18-A는 보호된 별도 Reviewer의 정적 Git 읽기와 SHA 고정, 정적 서명 영수증으로 확인한다. REQ-14의 F18-B에는 정확한 소스·후보·테스트 SHA, 실행한 검사 목록과 결과, 독립 서명과 유효 lease가 필요하다. 현 설계의 Windows 호스트에서는 생성 후보의 실행이 잠겨 있다. 별도 물리 검증 환경은 Zero-VM 조건을 지키면서 실행 증거를 수집할 수 있는 후보이며, 독립 검수자·격리 환경·증거 인수 계약이 필요하다. 현재 호스트의 검토된 합성 스위트는 제품 회귀 확인 범위에 해당한다.
+
+### CS-SWU-012 · Defender 실기기 진단
+
+실제 활성 Defender에서 유효한 `Microsoft Windows Publisher` 서명이 거부되던 문제를 재현하고 수정했다. 제한된 Windows 환경에 고정 시스템 폴더를 포함하자 합성 파일 스캔의 native 종료 코드는 `0`으로 바뀌었다(기존 `0x800700A1`). 대상 해시 재대조와 이벤트 채널 읽기는 성공했다. 해당 대상과 일치하는 스캔 시작·완료 이벤트는 대기 후에도 확보하지 못했다. 보호 서비스 명의 CLEAN 결과는 `NOT_RUN`, CS-SWU-012는 `BLOCKED_TRUST`다. 탐지 결과도 정확한 대상과 독립 증거를 요구한다. [Microsoft Defender 명령 계약](https://learn.microsoft.com/en-us/defender-endpoint/command-line-arguments-microsoft-defender-antivirus#commands-and-options)
+
+P3 독립 코드·UX 감사 및 P4 최종 인수는 `NOT_RUN`. 이번 변경 범위는 작업 브랜치와 격리된 로컬 작업 폴더다. 재부팅 제외 조건을 지켰다.
+
 ## Scope separation
 P1 is source implementation candidate; P2 is locked until High exact SHA gate and full REQ-01..30 implementation. A passing GitHub synthetic test does not prove owner Windows F18, protected signer, runtime feature working, 24-hour soak, browser/a11y, real local model or launch approval.
 
 | Verification item | Evidence level | Status | Meaning |
 |---|---|---|---|
 | Existing Python 3.11 unit/security/GitHub CI | synthetic CI | observed per exact run SHA | compile/pure contract tests, NOT OS test |
-| Independent Windows Sandbox reviewer | owner OS | NOT_RUN | no real protected reviewer principal/evidence |
+| Independent Windows reviewer (Zero-VM) | owner OS | NOT_RUN | protected reviewer principal and REQ-14 execution evidence required |
 | Owner signer and revocation on Windows | protected owner device | NOT_RUN | model cannot mint operating grant |
 | Actual Qwen/Ollama/OpenCode integration | owner Windows | NOT_RUN | no real local code worker execution |
 | Actual Git isolated local CAS | trusted owner OS | NOT_RUN | only nonexecuting intent tests written |
