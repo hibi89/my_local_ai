@@ -657,6 +657,22 @@ class ServerTests(unittest.TestCase):
             with self.subTest(role=role), self.assertRaises(c.ProtectedBrokerHold):
                 c.protected_service_main(role)
 
+    def test_scm_running_waits_for_signer_and_shutdown_is_accepted(self):
+        # Static native-entry contract. A synthetic local test cannot prove
+        # SCM startup, CNG key custody or protected OS principal readiness.
+        code = inspect.getsource(c.protected_service_main)
+        self.assertEqual(code.count("with api.signer() as sign_body:"), 1)
+        self.assertEqual(code.count("report(4)"), 1)
+        self.assertLess(code.index("with api.signer() as sign_body:"),
+                        code.index("server = _ProtectedActionServer(api, sign_body, stopped)"))
+        self.assertLess(code.index("server = _ProtectedActionServer(api, sign_body, stopped)"),
+                        code.index("                    report(4)"))
+        self.assertLess(code.index("                    report(4)"),
+                        code.index("_serve_named_pipe(api, server, stopped)"))
+        self.assertIn("0x5 if state == 4 else 0", code)
+        self.assertIn("if code in (1, 5):", code)
+        self.assertIn('raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")', code)
+
     def test_runtime_ipc_never_modifies_live_process_or_token_dacls(self):
         # SCM/Owner UI must fail closed if independently provisioned read-only
         # token query access is missing. P1 code must not fix this by granting
