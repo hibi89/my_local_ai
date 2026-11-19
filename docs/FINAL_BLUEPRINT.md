@@ -195,3 +195,8 @@ Google 공개 2026-11-12 모델 카드: https://deepmind.google/models/model-car
 ## M. 2026-11-19 Owner-approved additive feature — Windows Local Operator
 
 Approved no-Codex copy/paste workflow with **strictly fixed read-only Windows diagnostics**; not an arbitrary shell or Windows administrative service. Canonical interface/safety/REQ/SWU and combined 55+3 denominator: [Windows Local Operator design](WINDOWS_LOCAL_OPERATOR_FINAL_DESIGN_20261119.md). This additive module preserves every Zero-VM, F18, Owner trust, OS rights, P2 and release HOLD. A valid request is not Owner GO; untrusted ChatGPT text never becomes execution authority. No automatic privileged execution is authorized.
+
+
+## O. 2026-11-19 — Owner-approved conditional no-TPM CNG signer redesign
+
+The owner's Windows preflight reports no accessible TPM; this **does not** prove hardware absence. Canonical **additive** approved design: [TPM-less protected signer with explicit pinned software KSP](TPMLESS_CNG_OWNER_SIGNER_REDESIGN_20261119.md). TPM-first remains default; software CNG is an explicit pre-provisioned HKLM protected profile, never automatic fallback. Software KSP is lower assurance and cannot attest TPM hardware key protection. Existing MLA-SWU-008/021, CS-SWU-012 and all F18/Zero-VM, owner OS-change GO, P2 LOCKED, release HOLD remain. No change to 55+3 SWU denominator, P1 55/58, formal P2 UNASSESSED until actual evidence.
