@@ -617,19 +617,32 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
 
 
 
-def _walk_verified_protected_git_mirror(root: _Path):
-    """Yield all mirror directories; a partially unreadable tree is a HOLD.
+def _walk_verified_protected_git_mirror(root: _Path, *, stopped=None):
+    """Yield a complete, bounded protected mirror; partial scans always HOLD.
 
-    os.walk silently skips scandir failures without onerror. Skipping even
-    one Git object/config directory would permit a protected review to use
-    repository material that was never checked or pinned.
+    os.walk silently skips scandir failures without onerror. A malicious or
+    damaged mirror can also contain unbounded *empty directories*, bypassing
+    the caller's file-count limit before its Git deadline even begins.
     """
     from my_local_ai.state.consent import ProtectedBrokerHold
 
     def unreadable(_error: OSError) -> None:
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY") from None
 
-    yield from _os.walk(root, followlinks=False, onerror=unreadable)
+    started = _timeForReview.monotonic()
+    directories = 0
+    for directory, subdirs, filenames in _os.walk(
+        root, followlinks=False, onerror=unreadable
+    ):
+        directories += 1
+        if stopped is not None and stopped.is_set():
+            raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+        if _timeForReview.monotonic() - started >= 10:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+        if (directories > 1024 or len(subdirs) > 1024
+            or len(filenames) > 1024):
+            raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+        yield directory, subdirs, filenames
 
 
 def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> dict[str, bytes]:
@@ -666,7 +679,7 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
         # read-only bare mirror is a provisioning requirement, not a claim in
         # the Controller request. Packed and loose objects are both supported.
         count = 0
-        for directory, subdirs, filenames in _walk_verified_protected_git_mirror(root):
+        for directory, subdirs, filenames in _walk_verified_protected_git_mirror(root, stopped=stopped):
             for name in (*subdirs, *filenames):
                 node = _Path(directory) / name
                 info = node.lstat()
