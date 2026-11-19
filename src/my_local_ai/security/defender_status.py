@@ -570,6 +570,20 @@ def _verify_microsoft_image(api, image: Path) -> None:
         verify(w.HWND(-1), c.byref(guid), c.byref(data))
 
 
+def _deny_truncated_defender_events(after_record: int, existing_count: int) -> None:
+    """Fail closed if scan-time event history exceeds the bounded capture.
+
+    The pre-scan query is intentionally reverse-ordered: its newest record
+    alone establishes the cursor. Post-scan evidence is different: dropping
+    even one matching safety/detection event makes CLEAN untrustworthy.
+    """
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    if (type(after_record) is not int or after_record < 0
+        or type(existing_count) is not int or existing_count < 0
+        or (after_record > 0 and existing_count >= 256)):
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
+
+
 def _defender_events_after(api, after_record: int) -> list[dict]:
     """Read bounded event XML via wevtapi. No PowerShell or mutable log file."""
     import xml.etree.ElementTree as ET
@@ -589,13 +603,17 @@ def _defender_events_after(api, after_record: int) -> list[dict]:
     result = []
     ns = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
     try:
-        for _ in range(256):
+        # Oldest records may be omitted only during the pre-scan cursor
+        # snapshot. Post-scan queries must probe record 257 and HOLD rather
+        # than silently truncate policy-change or malware evidence.
+        for _ in range(257 if after_record else 256):
             event, count = w.HANDLE(), w.DWORD()
             if not next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count)):
                 if c.get_last_error() == 259:
                     break
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             try:
+                _deny_truncated_defender_events(after_record, len(result))
                 length, properties = w.DWORD(), w.DWORD()
                 render(None, event, 1, 0, None, c.byref(length), c.byref(properties))
                 if not 1 <= length.value <= 65536:
