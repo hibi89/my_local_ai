@@ -2157,9 +2157,21 @@
             44273979237,
             44274084752
           ]
+        },
+        {
+          "attempt_id": "MLA-SWU-021-20261119-GIT-WALK-INCOMPLETE-HOLD",
+          "method": "Fail-closed on unreadable protected bare Git mirror directories: os.walk onerror callback refuses silently skipped subtrees before F18 source evidence; synthetic regression",
+          "evidence_sha": "1d97d0f83937944a790e94f372ca6f611e048c71",
+          "test_sha": "f2778038736d75bc1bd183a4525ca2b5913ce80b",
+          "outcome": "POSITIVE_SOURCE_SECURITY_PROGRESS_INDEPENDENT_F18_OS_AND_REQ14_EXECUTED_TESTS_STILL_BLOCKED",
+          "nonprogress_failure": false,
+          "checks": "ISOLATED_PYTHON_AST_AND_SYNTHETIC_NORMAL_AND_UNREADABLE_2_OF_2_PASS; FULL_REPO_AND_OWNER_WINDOWS_NOT_RUN"
         }
       ],
-      "legacy_attempts_used_are_not_necessarily_failures": true
+      "legacy_attempts_used_are_not_necessarily_failures": true,
+      "latest_git_mirror_walk_source_sha": "1d97d0f83937944a790e94f372ca6f611e048c71",
+      "latest_git_mirror_walk_regression_sha": "f2778038736d75bc1bd183a4525ca2b5913ce80b",
+      "latest_git_mirror_walk_status": "SOURCE_PARTIAL_BLOCKED_TRUST_NO_OS_GO_NO_F18_INDEPENDENT_ATTESTATION"
     },
     {
       "id": "MLA-SWU-022",
