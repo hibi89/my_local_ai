@@ -905,6 +905,24 @@ class ProtectedSignerLiveRevocationTests(unittest.TestCase):
         self.assertNotIn("NCryptDeleteKey", source)
         self.assertTrue(hasattr(c._OwnerInteractiveAPI, "_assert_signer_pins_current"))
 
+    def test_live_cng_key_acl_export_and_usage_recheck_precedes_signing(self):
+        # Source contract only. A real protected Windows CNG handle is P2 HOLD.
+        body = inspect.getsource(c._WindowsProtectedServiceAPI.signer)
+        body = body[body.index("def sign_body(body: dict)"):]
+        signature = body.index("if (sign(key,")
+        for guard in (
+            "self._assert_signer_pins_current()",
+            'prop("Export Policy")',
+            'self._key_acl(prop("Security Descr", 5 | 0x40))',
+            'dword(key, "Key Type")',
+            'dword(key, "Key Usage")',
+        ):
+            with self.subTest(guard=guard):
+                self.assertLess(body.index(guard), signature)
+        self.assertLess(body.index('prop("Export Policy")'),
+                        body.index('self._key_acl(prop("Security Descr", 5 | 0x40))'))
+        self.assertIn('raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")', body)
+
 
 class SCMPrincipalBindingTests(unittest.TestCase):
     """Pure synthetic SCM name constraints; no Windows account/API changed."""
