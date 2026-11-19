@@ -664,13 +664,17 @@ def _defender_completion_evidence(events: list[dict], target: str, cursor: int) 
         resource = fields.get("Path", "").strip().casefold()
         if resource.startswith("file:_"):
             resource = resource[6:]
-        # Some Defender detection events omit Scan ID. A present ID must
-        # match this scan; no unrelated event may become evidence of malware
-        # for this owner's single file scan.
-        if (resource == normalized
-            and fields.get("Threat ID") and fields.get("Threat Name")
-            and fields.get("Scan ID", scan_id) == scan_id):
-            detections.append(event["evidence_sha256"])
+        # A same-path detection with no Scan ID cannot be attributed to this
+        # one custom-file scan. It must also prevent a spurious CLEAN outcome
+        # if the engine happened to exit zero and the 1001 event exists.
+        # Explicit *foreign* scan IDs are unrelated; never borrow them.
+        if resource != normalized or fields.get("Scan ID") not in (None, "", scan_id):
+            continue
+        if (fields.get("Scan ID") != scan_id
+            or not fields.get("Threat ID") or not fields.get("Threat Name")
+            or type(event.get("evidence_sha256")) is not str):
+            return False, []
+        detections.append(event["evidence_sha256"])
     return completed, detections
 
 

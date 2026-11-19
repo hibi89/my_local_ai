@@ -920,6 +920,55 @@ class DefenderEvidenceTests(unittest.TestCase):
             (True, ["d" * 64]),
         )
 
+    def test_same_path_detection_without_scan_id_is_ambiguous_hold(self):
+        target = r"C:\\private\\scan_123.py"
+        events = [
+            {"record": 5, "id": 1000, "fields": {
+                "Scan Resources": "file:_" + target, "Scan ID": "scan-1"},
+             "evidence_sha256": "a" * 64},
+            {"record": 6, "id": 1001, "fields": {
+                "Scan ID": "scan-1"}, "evidence_sha256": "b" * 64},
+        ]
+        for suspicious in (
+            {"Path": target, "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            {"Path": target, "Scan ID": "", "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            {"Path": target, "Scan ID": "scan-1", "Threat ID": "T-1"},
+            {"Path": target, "Scan ID": "scan-1", "Threat Name": "Synthetic"},
+        ):
+            with self.subTest(fields=suspicious):
+                ambiguous = {"record": 7, "id": 1116, "fields": suspicious,
+                             "evidence_sha256": "c" * 64}
+                self.assertEqual(
+                    d._defender_completion_evidence(events + [ambiguous], target, 4),
+                    (False, []),
+                )
+        # A clearly unrelated explicit scan ID remains unrelated.
+        foreign = {"record": 7, "id": 1116, "fields": {
+            "Path": target, "Scan ID": "other-scan",
+            "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            "evidence_sha256": "d" * 64}
+        self.assertEqual(d._defender_completion_evidence(events + [foreign], target, 4),
+                         (True, []))
+
+    def test_same_scan_detection_requires_exact_scan_id(self):
+        target = r"C:\\private\\scan_123.py"
+        events = [
+            {"record": 5, "id": 1000, "fields": {
+                "Scan Resources": "file:_" + target, "Scan ID": "scan-1"},
+             "evidence_sha256": "a" * 64},
+            {"record": 6, "id": 1001, "fields": {
+                "Scan ID": "scan-1"}, "evidence_sha256": "b" * 64},
+            {"record": 7, "id": 1006, "fields": {
+                "Path": target, "Scan ID": "scan-1",
+                "Threat ID": "T-1", "Threat Name": "Synthetic"},
+             "evidence_sha256": "c" * 64},
+        ]
+        self.assertEqual(d._defender_completion_evidence(events, target, 4),
+                         (True, ["c" * 64]))
+        events[-1]["fields"]["Scan ID"] = None
+        self.assertEqual(d._defender_completion_evidence(events, target, 4),
+                         (False, []))
+
     def test_file_hash_policy_and_bool_count_spoofs_rejected(self):
         for changed in ({"content_sha256": "0" * 64}, {"content_size": 11},
                         {"policy_changed": True}, {"remediation": "ENABLED"},
