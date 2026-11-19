@@ -14,7 +14,7 @@ import sqlite3
 import stat
 import tempfile
 from threading import Lock, Thread
-from time import monotonic
+from time import monotonic, sleep
 
 from ..state.local_files import local_path_stat, read_bounded_regular
 from .budgets import BudgetGuard, ModelBudget
@@ -23,6 +23,7 @@ from .draft_documents import (
 )
 from .draft_evidence import PinnedEvidence
 from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, read_handoff_documents, text_path
+from .draft_recovery import GeminiDraftAdvisor, MAX_DRAFT_ATTEMPTS, RECOVERY_ACTIONS
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
 from .ollama_provider import OllamaProvider, STRUCTURED_OUTPUT_TOKENS
 from .provider_policy import ProviderHold
@@ -71,7 +72,17 @@ _MODEL_ERRORS = {
         "Qwen 작업이 자원 한도에 도달했습니다.",
         "작업 내용을 한 파일의 작은 변경으로 좁혀 다시 보내세요.",
     ),
+    "DRAFT_FORMAT": ("Qwen 초안의 파일 또는 수정 위치를 확인할 수 없었습니다.",
+                     "파일과 해당 파일에서 바꿀 내용을 구체적으로 적어 주세요."),
+    "DRAFT_SYNTAX": ("Qwen 초안이 Python 구문 검사에 실패했습니다.",
+                     "검사에서 실패한 파트의 수정 범위를 좁혀 주세요."),
 }
+
+
+class _DraftOutputError(DraftError):
+    def __init__(self, message: str, code: str = "DRAFT_FORMAT"):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -112,6 +123,8 @@ class _WorkQueue:
     rechecks: set[str] = field(default_factory=set)
     evidence_reader: PinnedEvidence | None = None
     auto_drafts: bool = True
+    failures: dict[str, dict] = field(default_factory=dict)
+    recovery: dict[str, dict] = field(default_factory=dict)
 
 
 def _draft_paths(spec: str) -> tuple[str, ...]:
@@ -246,7 +259,7 @@ def _source_excerpt(source: str, query: str, limit: int) -> str:
 
 def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], originals: dict[str, str],
                     source_docs: dict[str, DraftDocument], narrowed: bool, *,
-                    replies: tuple[str, ...] = ()) -> tuple[str, dict | None, list]:
+                    replies: tuple[str, ...] = (), compact: bool = False) -> tuple[str, dict | None, list]:
     focused = narrowed or bool(replies)
     input_limit = _FOCUSED_INPUT_LIMIT if focused else _INPUT_LIMIT
     priority = _first_priority(task.text)
@@ -283,6 +296,8 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
                  "If there is no pertinent change to make, return a short Korean reason and an empty array. "
                  "Keep the reply short. Do not claim to have run checks.\n") if focused else ""
     preamble = selection + "Use the attached document excerpts as context for the change."
+    if compact:
+        preamble += " Return only the required JSON fields and the smallest exact edit."
     if len(encoded.encode()) > 1900 or (focused and any(originals.values())):
         prompt = (
             'Return one JSON object: {"summary":"short Korean summary","edits":[{"path":"exact path",'
@@ -295,6 +310,8 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
         )
         # Leave room for the referenced documents before selecting source excerpts.
         document_room = min(720, 90 * len(documents)) if focused else min(1560, 195 * len(documents))
+        if compact:
+            document_room = min(document_room, 200)
         source_room = min(1900 if focused else 3000, input_limit - len(prompt.encode()) - document_room)
         paths_size = len(json.dumps(dict.fromkeys(originals, ""), ensure_ascii=False).encode())
         per_file = (source_room - paths_size) // len(originals)
@@ -309,7 +326,7 @@ def _handoff_prompt(task: DraftDocument, documents: list[DraftDocument], origina
     if room < 0:
         raise DraftError("붙여넣은 작업과 파일을 한 번에 읽기 어렵습니다. 작업 파일을 나누어 주세요.")
     if documents:
-        per_document = min(2300, room // len(documents))
+        per_document = min(180 if compact else 2300, room // len(documents))
         for document in documents:
             name = document.origin.split("/")[-1]
             limit = per_document - len(name.encode()) - 16
@@ -360,7 +377,7 @@ def _apply_model_edits(raw: str, originals: dict[str, str], fragments: dict[str,
             files.append({"path": path, "content": source})
         return json.dumps({"summary": data["summary"], "files": files}, ensure_ascii=False)
     except (ValueError, RecursionError):
-        raise DraftError("Qwen이 제안한 수정 위치를 원본에서 정확히 확인할 수 없습니다. 수정 대상을 더 좁혀 주세요.") from None
+        raise _DraftOutputError("Qwen이 제안한 수정 위치를 원본에서 정확히 확인할 수 없습니다. 수정 대상을 더 좁혀 주세요.") from None
 
 
 def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
@@ -395,7 +412,7 @@ def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
                 "원본/" + path, "초안/" + path, lineterm=""))
             files.append({"path": path, "content": source, "diff": diff, "syntax": syntax})
     except (UnicodeError, ValueError, RecursionError):
-        raise DraftError("Qwen 응답의 파일 목록을 확인할 수 없습니다. 작업 범위를 줄여 다시 시작하세요.") from None
+        raise _DraftOutputError("Qwen 응답의 파일 목록을 확인할 수 없습니다. 작업 범위를 줄여 다시 시작하세요.") from None
     if not files:
         if not data["files"] and data["summary"].strip():
             raise DraftError("만들 수 있는 수정이 확인되지 않았습니다. Qwen 설명 · " + data["summary"].strip()[:240])
@@ -404,7 +421,8 @@ def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
 
 
 class LocalDrafts:
-    def __init__(self, output: Path, *, provider: OllamaProvider | None = None):
+    def __init__(self, output: Path, *, provider: OllamaProvider | None = None,
+                 advisor: GeminiDraftAdvisor | None = None):
         root = _local_absolute(os.path.abspath(output))
         local_path_stat(root.parent)
         root.mkdir(exist_ok=True)
@@ -419,6 +437,7 @@ class LocalDrafts:
         self._queue: _WorkQueue | None = None
         self._started = None
         self._elapsed_ms = self._total_ms = 0
+        self.advisor = GeminiDraftAdvisor() if advisor is None else advisor
         self._timing_error = False
         self._refresh_total()
         self._restore_queue()
@@ -451,9 +470,16 @@ class LocalDrafts:
             queue.inspections = {item.key: report for item in items
                                  if isinstance(report := saved.get("inspections", {}).get(item.key), dict)}
             queue.rechecks = {item.key for item in items if item.key in saved.get("rechecks", ())}
+            for name in ("failures", "recovery"):
+                records = saved.get(name, {})
+                setattr(queue, name, {item.key: records[item.key] for item in items
+                                      if type(records.get(item.key)) is dict})
             queue.auto_drafts = False
             if saved.get("active") and not saved.get("active_inspection"):
-                queue.interrupted.add(saved["active"])
+                active = saved["active"]
+                queue.interrupted.add(active)
+                queue.failures[active] = {"message": "MLA가 닫히면서 초안 시도가 중단됐습니다.",
+                                          "hint": "저장된 결과를 확인한 뒤 이 파트에 추가 지시를 보내세요."}
             queue.elapsed_ms = max(0, int(saved["elapsed_ms"]))
             queue.item_elapsed_ms = {item.key: max(0, int(saved["item_elapsed_ms"].get(item.key, 0)))
                                      for item in items}
@@ -481,6 +507,7 @@ class LocalDrafts:
                 "interrupted": sorted(queue.interrupted), "active": active.key if active else "",
                 "inspections": queue.inspections,
                 "rechecks": sorted(queue.rechecks),
+                "failures": queue.failures, "recovery": queue.recovery,
                 "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
@@ -496,21 +523,27 @@ class LocalDrafts:
         queue = self._queue
         worklist = None
         if queue:
-            active = self._request.item if self._request else None
-            current_ms = elapsed if self._state["state"] == "working" else 0
+            working = self._state["state"] == "working"
+            active = self._request.item if self._request and working else None
+            current_ms = elapsed if working else 0
             worklist = {"id": queue.key, "ready": queue.baseline is not None,
                         "active": active.key if active else "",
                         "active_mode": ("inspection" if self._request.inspect_only else "draft") if active else "",
+                        "gemini_configured": self.advisor.configured,
+                        "verified_count": 0,  # The workbench currently has no protected verifier.
                         "elapsed_ms": queue.elapsed_ms + current_ms,
                         "items": [
                             {"id": item.key, "title": item.title, "detail": item.detail,
                              "draft": queue.drafts.get(item.key),
                              "inspection": queue.inspections.get(item.key),
+                             "failure": queue.failures.get(item.key),
+                             "recovery": queue.recovery.get(item.key),
+                             "hold": self._item_hold(queue, item) if item != active else None,
                              "auto_inspection": self._can_inspect(queue, item),
                              "scheduled": item.key in queue.scheduled,
                              "observation_hours": item.observation_hours(),
                              "elapsed_ms": queue.item_elapsed_ms.get(item.key, 0) + (current_ms if item == active else 0),
-                             "state": ("working" if item == active and self._state["state"] == "working"
+                             "state": ("working" if item == active
                                        else "error" if item.key in queue.interrupted
                                        else "draft" if item.key in queue.drafts
                                        else "inspected" if item.key in queue.inspections else "pending")}
@@ -520,9 +553,17 @@ class LocalDrafts:
                 worklist["forecast"] = queue.forecast
                 worklist["automated_count"] = len(queue.scheduled)
             worklist["can_resume"] = (
-                queue.baseline is not None and self._state["state"] != "working"
-                and bool(queue.scheduled.keys() - queue.attempted)
+                queue.baseline is not None and not working
+                and any(self._can_draft(queue, item) for item in queue.items)
             )
+            worklist["can_refresh"] = not working and any(
+                item.key in queue.inspections and self._can_inspect(queue, item, recheck=True)
+                for item in queue.items
+            )
+            if queue.baseline and not working and not worklist["can_resume"]:
+                held = [row for row in worklist["items"] if row["hold"]]
+                next_row = next((row for row in held if row["hold"]["kind"] != "dependency"), None)
+                worklist["blocked"] = (next_row or (held[0] if held else None) or {}).get("id", "")
         return {**self._state, "elapsed_ms": elapsed, "work_queue": worklist,
                 "total_ms": self._total_ms + (elapsed if self._started is not None else 0),
                 "timing_saved": not self._timing_error,
@@ -547,8 +588,10 @@ class LocalDrafts:
                 elif state == "done":
                     self._queue.drafts[item.key] = {"summary": values["summary"], "folder": values["folder"]}
                     self._queue.interrupted.discard(item.key)
+                    self._queue.failures.pop(item.key, None)
                 elif state == "error":
                     self._queue.interrupted.add(item.key)
+                    self._queue.failures[item.key] = {"message": message, **values.get("error", {})}
             if state in ("ready", "done", "error"):
                 self._elapsed_ms = int((monotonic() - self._started) * 1000)
                 self._started = None
@@ -573,7 +616,8 @@ class LocalDrafts:
     def start(self, payload: object) -> dict:
         names = {"instructions", "blueprint", "paths", "workspace"}
         if (type(payload) is not dict or set(payload) not in (
-            names, {"message"}, {"reply", "attempt"}, {"queue", "item", "paths", "change"}, {"queue", "resume"},
+            names, {"message"}, {"reply", "attempt"}, {"queue", "item", "paths", "change"},
+            {"queue", "resume"}, {"queue", "refresh"},
         )
             or any(type(text) is not str or "\0" in text for text in payload.values())):
             raise DraftError("입력값의 형식을 확인하세요.")
@@ -585,6 +629,16 @@ class LocalDrafts:
                 self._queue.auto_drafts = True
                 if not self._start_next_item_locked():
                     raise DraftError("파일과 변경 내용이 정해진 다음 파트가 없습니다.")
+                return self._snapshot_locked()
+        if "refresh" in payload:
+            with self._lock:
+                queue = self._queue
+                if (payload["refresh"] != "evidence" or not queue or not queue.baseline
+                    or payload["queue"] != queue.key or self._state["state"] == "working"):
+                    raise DraftError("읽기 결과를 다시 확인할 작업표를 열어 주세요.")
+                queue.evidence_reader = None
+                queue.rechecks = {item.key for item in queue.items if self._can_inspect(queue, item, recheck=True)}
+                self._start_next_item_locked()
                 return self._snapshot_locked()
         if "queue" in payload:
             return self._start_item(payload)
@@ -625,10 +679,8 @@ class LocalDrafts:
 
     def _resubmit_queue_locked(self, queue: _WorkQueue) -> dict:
         queue.auto_drafts = True
-        queue.evidence_reader = None
-        queue.rechecks = {item.key for item in queue.items if self._can_inspect(queue, item, recheck=True)}
         if not self._start_next_item_locked():
-            self._state["submission_notice"] = "같은 지시문을 받았습니다. 저장된 작업표에서 시작할 새 작업이 없습니다."
+            self._state["submission_notice"] = "같은 지시문을 받았습니다. 저장된 작업표의 남은 단계를 확인해 주세요."
         return self._snapshot_locked()
 
     def _start_item(self, payload: dict[str, str]) -> dict:
@@ -651,17 +703,20 @@ class LocalDrafts:
             return self._begin_item_locked(queue, item, paths, change)
 
     def _begin_item_locked(self, queue: _WorkQueue, item: HandoffTask, paths: tuple[str, ...], change: str) -> dict:
+        if item.dependencies():
+            raise DraftError("이 파트의 필수 선행 검증을 먼저 완료해 주세요.")
         scope = queue.baseline.scope
         if any(not scope.permits(path) or (scope.paths and path not in scope.paths) for path in paths):
             raise DraftError("작업 파일이 원래 인수인계에 적힌 수정 범위를 벗어납니다.")
         queue.attempted.add(item.key)
+        queue.recovery.pop(item.key, None)
         return self._begin(_DraftRequest(f"{item.title}\n{item.detail}", "", paths, scope.workspace,
                                          True, (change,), item), None)
 
     def _start_next_item_locked(self) -> bool:
         queue = self._queue
         for item in queue.items:
-            if queue.auto_drafts and item.key in queue.scheduled and item.key not in queue.attempted:
+            if queue.auto_drafts and self._can_draft(queue, item):
                 paths, change = queue.scheduled[item.key]
                 self._begin_item_locked(queue, item, paths, change)
                 return True
@@ -670,6 +725,33 @@ class LocalDrafts:
                             queue.baseline)
                 return True
         return False
+
+    @staticmethod
+    def _can_draft(queue: _WorkQueue, item: HandoffTask) -> bool:
+        return (item.key in queue.scheduled and item.key not in queue.attempted
+                and item.key not in queue.drafts and not item.dependencies())
+
+    def _item_hold(self, queue: _WorkQueue, item: HandoffTask) -> dict | None:
+        if not queue.baseline or self._can_draft(queue, item) or self._can_inspect(queue, item):
+            return None
+        if dependencies := item.dependencies():
+            return {"kind": "dependency", "label": "선행 검증 보류",
+                    "detail": "필수 선행 파트의 실행 결과가 필요합니다. " + ", ".join(dependencies)}
+        if failure := queue.failures.get(item.key):
+            return {"kind": "failed", "label": "초안 작업 보류", "detail": failure["message"]}
+        if item.key in queue.interrupted:
+            return {"kind": "failed", "label": "초안 작업 보류", "detail": "이 파트의 수정 지시를 확인해 주세요."}
+        if item.key in queue.drafts:
+            return {"kind": "verification", "label": "초안 검증 보류",
+                    "detail": "초안이 저장됐습니다. 실제 검증에는 보호 실행기가 필요합니다."}
+        if inspection := queue.inspections.get(item.key):
+            if inspection["state"] == "limited":
+                return {"kind": "source", "label": "읽기 자료 확인 필요",
+                        "detail": "저장소 접근과 검사할 파일을 확인한 뒤 읽기 결과를 새로 조회할 수 있습니다."}
+            return {"kind": "verification", "label": "실행 검증 보류",
+                    "detail": f"남은 검증은 {inspection['remaining']}입니다. 보호 실행기가 연결되어 있지 않습니다."}
+        return {"kind": "input", "label": "작업 범위 확인 필요",
+                "detail": "초안을 시작하려면 작업 파일과 구체적인 변경 내용이 필요합니다."}
 
     @staticmethod
     def _can_inspect(queue: _WorkQueue, item: HandoffTask, *, recheck: bool = False) -> bool:
@@ -688,7 +770,7 @@ class LocalDrafts:
             message = "추가 지시를 반영해 다음 초안을 준비 중입니다."
         queue = self._queue
         if request.inspect_only:
-            message = ("같은 지시문을 받았습니다. 기준 커밋의 읽기 검사와 기존 기록을 다시 확인 중입니다."
+            message = ("기준 커밋의 읽기 검사와 기존 기록을 다시 확인 중입니다."
                        if request.item.key in queue.rechecks
                        else "기준 커밋에서 이 파트의 소스와 기존 기록을 확인 중입니다.")
         plan = context.plan if context else queue.baseline.plan if queue and queue.baseline else None
@@ -846,32 +928,17 @@ class LocalDrafts:
                 evidence = [task.evidence(len(task.text))]
                 if blueprint:
                     evidence.append(blueprint.evidence(used))
-            output_tokens = _FOCUSED_OUTPUT_TOKENS if focused else STRUCTURED_OUTPUT_TOKENS
-            context = _SHORT_CONTEXT if len(prompt.encode()) <= _SHORT_CONTEXT - output_tokens else _CONTEXT
-            kind = "focused" if focused else ("short" if context == _SHORT_CONTEXT else "long")
-            forecast = estimated_duration(self.root, kind)
-            model_started = monotonic()
-            forecast["from_elapsed_ms"] = int((model_started - self._started) * 1000)
-            self._set("working", "로컬 Qwen이 파일 초안을 작성 중입니다.", plan=plan, forecast=forecast)
-            generate = self.provider.generate(
-                prompt, model_lock=OneModelLock(self.root),
-                budget=BudgetGuard(ModelBudget(max_calls=1, max_seconds=270,
-                    max_context_tokens=context, max_output_bytes=_OUTPUT_LIMIT)),
-                allow_generation=True, structured=True, structured_tokens=output_tokens,
+            summary, files, evidence, sample = self._generate_draft(
+                request, queue, prepared, plan, focused, originals, prompt, fragments, evidence,
             )
-            if generate.untrusted is not True:
-                raise DraftError("Qwen 초안의 출처를 확인할 수 없습니다.")
-            reply = _apply_model_edits(generate.text, originals, fragments) if fragments is not None else generate.text
-            summary, files = _model_files(reply, originals)
-            if request.item and any(file["syntax"] == "Python 문법 확인 필요" for file in files):
-                raise DraftError("이 항목의 초안이 Python 구문 검사에서 실패했습니다. 수정 범위를 구체화해 다시 시도해 주세요.")
             self._set("working", "변경 내용을 정리해 별도 폴더에 저장 중입니다.", saving=True)
             saving = True
             destination = self._save(files, summary, evidence, plan)
             message = "첫 작업의 로컬 초안을 저장했습니다." if plan and plan["narrowed"] else "초안 파일을 저장했습니다."
-            self._set("done", message, summary=summary,
-                      folder=str(destination / "files"), files=files, sources=evidence,
-                      sample=(kind, int((monotonic() - model_started) * 1000)))
+            self._set("done", message, summary=summary, sample=sample,
+                      folder=str(destination / "files"), files=files, sources=evidence)
+        except _DraftOutputError as exc:
+            self._set("error", str(exc), error={"code": exc.code, "hint": _MODEL_ERRORS[exc.code][1]})
         except DraftError as exc:
             self._set("error", str(exc))
         except (ProviderHold, ModelLockUnsafe) as exc:
@@ -893,6 +960,76 @@ class LocalDrafts:
                     "hint": "지시문을 그대로 다시 보내세요. 같은 문제가 반복되면 아래 오류 코드를 보내 주세요.",
                 })
 
+    def _generate_draft(self, request: _DraftRequest, queue: _WorkQueue | None,
+                        prepared: _HandoffContext | None, plan: dict | None, focused: bool,
+                        originals: dict[str, str], prompt: str, fragments: dict | None, evidence: list):
+        limit = MAX_DRAFT_ATTEMPTS if request.item else 1
+        output_tokens = _FOCUSED_OUTPUT_TOKENS if focused else STRUCTURED_OUTPUT_TOKENS
+        compact = False
+        for number in range(1, limit + 1):
+            context = _SHORT_CONTEXT if len(prompt.encode()) <= _SHORT_CONTEXT - output_tokens else _CONTEXT
+            kind = "focused" if focused else ("short" if context == _SHORT_CONTEXT else "long")
+            forecast = estimated_duration(self.root, kind)
+            model_started = monotonic()
+            forecast["from_elapsed_ms"] = int((model_started - self._started) * 1000)
+            message = "로컬 Qwen이 파일 초안을 작성 중입니다."
+            if number > 1:
+                message = f"로컬 Qwen이 파일 초안을 다시 작성 중입니다. ({number}/{limit}회)"
+            self._set("working", message, plan=plan, forecast=forecast, recovering=False)
+            try:
+                generation = self.provider.generate(
+                    prompt, model_lock=OneModelLock(self.root),
+                    budget=BudgetGuard(ModelBudget(max_calls=1, max_seconds=270,
+                        max_context_tokens=context, max_output_bytes=_OUTPUT_LIMIT)),
+                    allow_generation=True, structured=True, structured_tokens=output_tokens,
+                )
+                if generation.untrusted is not True:
+                    raise DraftError("Qwen 초안의 출처를 확인할 수 없습니다.")
+                reply = (_apply_model_edits(generation.text, originals, fragments)
+                         if fragments is not None else generation.text)
+                summary, files = _model_files(reply, originals)
+                if request.item and any(file["syntax"] == "Python 문법 확인 필요" for file in files):
+                    raise _DraftOutputError("Qwen 초안이 Python 구문 검사에 실패했습니다.", "DRAFT_SYNTAX")
+                sample = kind, int((monotonic() - model_started) * 1000)
+                return summary, files, evidence, sample
+            except (ProviderHold, _DraftOutputError) as exc:
+                code = (exc.detail or exc.code) if isinstance(exc, ProviderHold) else exc.code
+                if not request.item or code not in RECOVERY_ACTIONS:
+                    raise
+                self._record_failure(queue, request.item, code, number)
+                if number == limit:
+                    raise
+                if self.advisor.configured:
+                    self._set("working", f"Gemini에 복구 방법을 확인 중입니다. ({number}/{limit}회 실패)",
+                              forecast=None, recovering=True)
+                advice = self.advisor.advise(code, number)
+                choices = RECOVERY_ACTIONS[code]
+                accepted = advice in choices
+                action = advice if accepted else choices[0]
+                self._record_failure(queue, request.item, code, number, action=action,
+                                     advisor="gemini" if accepted else "local")
+                if action == "compact" and not compact and prepared:
+                    prompt, fragments, evidence = _handoff_prompt(
+                        prepared.task, prepared.documents, originals, prepared.source_docs, plan["narrowed"],
+                        replies=request.replies, compact=True,
+                    )
+                    compact = True
+                if code in {"OLLAMA_UNAVAILABLE", "MODEL_BUSY"}:
+                    self._set("working", "로컬 Qwen 연결을 잠시 기다린 뒤 재시도합니다.",
+                              forecast=None, recovering=True)
+                    sleep(number * 5)
+        raise RuntimeError("draft attempt limit exhausted")
+
+    def _record_failure(self, queue: _WorkQueue, item: HandoffTask, code: str, number: int, *,
+                        action: str = "", advisor: str = "") -> None:
+        with self._lock:
+            previous = queue.recovery.get(item.key, {})
+            queue.recovery[item.key] = {**previous, "code": code, "failed_attempts": number,
+                                        "limit": MAX_DRAFT_ATTEMPTS}
+            if action:
+                queue.recovery[item.key].update(action=action, advisor=advisor)
+            self._checkpoint_locked()
+
     def _inspect_item(self, item: HandoffTask, queue: _WorkQueue) -> None:
         plan = queue.baseline.plan
         if queue.evidence_reader is None:
@@ -906,7 +1043,7 @@ class LocalDrafts:
         if ci is not None:
             plan = {**plan, "baseline_ci": ci, "ci_unavailable": False}
         count = len(queue.inspections.keys() | {item.key})
-        message = f"{count}개 파트 읽기 검사 종료 · 실제 검증이 필요한 항목은 대기 중입니다."
+        message = f"{count}개 파트의 읽기 검사 결과를 기록했습니다."
         self._set("ready", message, plan=plan, inspection=report)
 
     def _save(self, files: list[dict], summary: str, sources: list[dict], plan: dict | None) -> Path:

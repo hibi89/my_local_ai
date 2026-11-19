@@ -5,6 +5,7 @@ import base64
 from hashlib import sha1
 from itertools import count
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import time
@@ -12,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from my_local_ai.ax_runtime.draft_documents import DraftDocument, DraftError, read_document
+from my_local_ai.ax_runtime.draft_recovery import GeminiDraftAdvisor
 from my_local_ai.ax_runtime.draft_timing import estimated_duration, recorded_time
 from my_local_ai.ax_runtime.manual_draft import LocalDrafts
 from my_local_ai.ax_runtime.ollama_provider import OllamaProvider, UntrustedGeneration
@@ -400,9 +402,17 @@ class LocalDraftsTests(unittest.TestCase):
             reopened = LocalDrafts(root, provider=provider)
             restored = reopened.snapshot()
             self.assertEqual(restored["work_queue"]["items"], rows)
+            self.assertEqual(restored["work_queue"]["blocked"], "1")
+            self.assertEqual(restored["work_queue"]["active"], "")
+            self.assertEqual(rows[0]["hold"]["kind"], "verification")
+
+            submitted = reopened.start({"message": message})
+            self.assertEqual(submitted["state"], "ready")
+            self.assertEqual(submitted["work_queue"]["blocked"], "1")
+            inventory.assert_called_once()
 
             rechecking = True
-            submitted = reopened.start({"message": message})
+            submitted = reopened.start({"queue": restored["work_queue"]["id"], "refresh": "evidence"})
             self.assertEqual(submitted["work_queue"]["id"], result["work_queue"]["id"])
             self.assertEqual(submitted["state"], "working")
             self.assertIn("다시 확인 중", submitted["message"])
@@ -417,6 +427,88 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(inventory.call_count, 2)
             self.assertEqual(provider.prompt, "")
             self.assertFalse(any(path.is_dir() for path in root.iterdir()))
+
+    def test_draft_recovery_holds_one_part_and_advances_independent_work(self):
+        message = (
+            "## 작업 목록\n"
+            "### P2-A. Slow draft\n작업 파일: src/slow.py\n변경 내용: Add SLOW.\n"
+            "### P2-B. Dependent draft\n선행 작업: P2-A\n작업 파일: src/next.py\n변경 내용: Add NEXT.\n"
+            "### P2-C. Independent draft\n작업 파일: src/fast.py\n변경 내용: Add FAST.\n"
+        )
+        calls = []
+        advice_calls = []
+
+        class Model:
+            def generate(self, prompt, **options):
+                calls.append(prompt)
+                if "Add SLOW." in prompt:
+                    raise ProviderHold("OLLAMA_UNAVAILABLE", detail="TIMEOUT")
+                if sum("Add FAST." in received for received in calls) == 1:
+                    return UntrustedGeneration("bad JSON", "qwen3:4b-instruct")
+                return FixtureProvider("src/fast.py", "FAST = True\n").generate(prompt, **options)
+
+        class Advisor:
+            configured = True
+
+            def advise(self, code, attempt):
+                advice_calls.append((code, attempt))
+                return "compact"
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve() / "drafts"
+            app = LocalDrafts(root, provider=Model(), advisor=Advisor())
+            app.start({"message": message})
+            result = self.await_result(app)
+            worklist = result["work_queue"]
+            self.assertEqual(len(calls), 5)
+            self.assertIn("smallest exact edit", calls[1])
+            self.assertIn("smallest exact edit", calls[4])
+            self.assertFalse(any("Add NEXT." in prompt for prompt in calls))
+            self.assertEqual(advice_calls, [("TIMEOUT", 1), ("TIMEOUT", 2), ("DRAFT_FORMAT", 1)])
+            first, dependent, independent = worklist["items"]
+            self.assertEqual(first["recovery"]["failed_attempts"], 3)
+            self.assertEqual(first["hold"]["kind"], "failed")
+            self.assertEqual(dependent["hold"]["kind"], "dependency")
+            self.assertEqual(independent["state"], "draft")
+            self.assertEqual(worklist["blocked"], first["id"])
+            self.assertEqual(worklist["active"], "")
+            self.assertFalse(worklist["can_resume"])
+            reopened = LocalDrafts(root, provider=Model(), advisor=Advisor())
+            self.assertEqual(reopened.start({"message": message})["work_queue"]["items"], worklist["items"])
+            self.assertEqual(len(calls), 5)
+            with self.assertRaisesRegex(DraftError, "선행 검증"):
+                reopened.start({"queue": worklist["id"], "item": dependent["id"],
+                                "paths": "src/next.py", "change": "Add NEXT."})
+
+    def test_gemini_advisor_sends_failure_codes_and_accepts_only_valid_choices(self):
+        with patch.dict(os.environ, {"MLA_GEMINI_API_KEY": "fixture-" + "a" * 27}), patch(
+            "my_local_ai.ax_runtime.draft_recovery.HTTPSConnection"
+        ) as connection:
+            advisor = GeminiDraftAdvisor()
+            response = connection.return_value.getresponse.return_value
+            response.status = 200
+
+            def answer(action):
+                response.read.return_value = json.dumps({"candidates": [{"finishReason": "STOP", "content": {
+                    "parts": [{"text": json.dumps({"action": action})}],
+                }}]}).encode()
+
+            self.assertIsNone(advisor.advise("F18_HOLD", 1))
+            connection.assert_not_called()
+            answer("compact")
+            self.assertEqual(advisor.advise("TIMEOUT", 1), "compact")
+            connection.assert_called_with("generativelanguage.googleapis.com", timeout=10)
+            args, kwargs = connection.return_value.request.call_args
+            self.assertEqual(args, ("POST", "/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+            self.assertIn(b"Failure code: TIMEOUT. Failed attempt: 1.", kwargs["body"])
+            self.assertNotIn(b"fixture-", kwargs["body"])
+            answer("run_command")
+            self.assertIsNone(advisor.advise("TIMEOUT", 2))
+            response.status = 429
+            self.assertIsNone(advisor.advise("TIMEOUT", 2))
+            prior_calls = connection.call_count
+            self.assertIsNone(advisor.advise("TIMEOUT", 1))
+            self.assertEqual(connection.call_count, prior_calls)
 
 
 if __name__ == "__main__":

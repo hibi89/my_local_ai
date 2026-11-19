@@ -149,9 +149,16 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <div><h3 id="queue-heading">전체 작업</h3><p id="queue-summary"></p></div>
               <div class="queue-actions">
                 <button type="button" id="resume-queue" class="quiet-button" hidden>자동 초안 재개</button>
+                <button type="button" id="refresh-evidence" class="quiet-button" hidden>읽기 결과 다시 조회</button>
                 <button type="button" id="next-item" class="quiet-button">다음 파트 보기</button>
               </div>
             </div>
+            <aside id="queue-hold" class="queue-hold" aria-label="작업 보류 사유" hidden>
+              <strong id="queue-hold-title"></strong>
+              <p id="queue-hold-reason"></p>
+              <button type="button" id="view-blocker" class="quiet-button">이 파트 보기</button>
+            </aside>
+            <p id="advisor-state" class="advisor-state"></p>
             <ol id="queue-items" class="queue-items"></ol>
             <div id="queue-selection" class="queue-selection" hidden>
               <h4 id="queue-selected-title"></h4>
@@ -166,6 +173,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
                 <p id="inspection-remaining"></p>
               </section>
               <p id="queue-saved" class="folder" hidden></p>
+              <p id="item-recovery" class="item-recovery" hidden></p>
               <details id="item-options" class="sources" hidden>
                 <summary>직접 수정 초안 요청</summary>
                 <form id="item-form">

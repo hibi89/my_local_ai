@@ -43,6 +43,16 @@ class HandoffTask:
     title: str
     detail: str
 
+    def dependencies(self) -> tuple[str, ...]:
+        dependencies = []
+        for line in self.detail.splitlines():
+            field = _FIELD.match(line)
+            if field and field[1].strip().casefold() in {"선행 작업", "선행 파트", "depends on", "prerequisites"}:
+                value = field[2].strip().replace("`", "")
+                if value.casefold() not in {"없음", "none", "-"}:
+                    dependencies.extend(part.strip() for part in re.split(r"[,;]", value) if part.strip())
+        return tuple(dict.fromkeys(dependencies))
+
     def observation_hours(self) -> tuple[int, int] | None:
         match = _OBSERVATION.search(self.detail)
         if not match:

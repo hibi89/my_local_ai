@@ -94,6 +94,7 @@ button { cursor: pointer; }
 .state { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; font-size: .75rem; }
 .state[data-state="working"], .state[data-state="done"] { color: var(--success); border-color: var(--success); }
 .state[data-state="error"] { color: var(--error); border-color: var(--error); }
+.state[data-state="held"] { color: #ffd597; border-color: #ad8449; }
 .timers { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)) minmax(0,1.2fr);
   border-bottom: 1px solid var(--line); }
 .timers > div { padding: 11px 21px 12px; }
@@ -131,6 +132,11 @@ button { cursor: pointer; }
 .queue-header h3, .queue-selection h4 { margin: 0; font-size: .92rem; }
 .queue-header p { margin-top: 4px; color: var(--muted); font-size: .78rem; }
 .queue-actions { display: flex; justify-content: end; flex-wrap: wrap; gap: 5px; }
+.queue-hold { display: grid; gap: 5px; justify-items: start; padding: 10px 12px; border: 1px solid #80653e;
+  border-radius: 8px; background: #30271d; color: #ffe2b8; font-size: .83rem; overflow-wrap: anywhere; }
+.queue-hold strong { font-size: .88rem; }
+.queue-hold button { margin-top: 3px; }
+.advisor-state, .item-recovery { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
 .queue-items { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
 .queue-items button { display: flex; justify-content: space-between; align-items: center; gap: 9px; width: 100%;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--inset); color: var(--text);

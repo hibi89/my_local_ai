@@ -15,7 +15,14 @@ const queuePanel = document.querySelector('#work-queue');
 const queueItems = document.querySelector('#queue-items');
 const nextItem = document.querySelector('#next-item');
 const resumeQueue = document.querySelector('#resume-queue');
+const refreshEvidence = document.querySelector('#refresh-evidence');
 const queueNotice = document.querySelector('#queue-notice');
+const holdBanner = document.querySelector('#queue-hold');
+const blockerTitle = document.querySelector('#queue-hold-title');
+const blockerReason = document.querySelector('#queue-hold-reason');
+const viewBlocker = document.querySelector('#view-blocker');
+const advisorState = document.querySelector('#advisor-state');
+const itemRecovery = document.querySelector('#item-recovery');
 const queueInspection = document.querySelector('#queue-inspection');
 const messageInput = chatForm.elements.message;
 const forms = [chatForm, form, replyForm, itemForm];
@@ -41,7 +48,8 @@ const total = document.querySelector('#total');
 const forecastText = document.querySelector('#forecast');
 const forecastBasis = document.querySelector('#forecast-basis');
 const stateLabels = { idle: '대기', working: '작업 중', ready: '작업표 준비됨', done: '초안 저장됨', error: '작업 중단' };
-const itemLabels = { pending: '수정 지시 대기', working: '초안 작업 중', draft: '초안 저장됨', error: '작업 중단' };
+const itemLabels = { pending: '수정 지시 대기', working: '초안 작업 중', draft: '초안 저장됨',
+  error: '작업 중단', inspected: '읽기 확인' };
 
 let activeFile = null;
 let renderedFolder = null;
@@ -166,6 +174,8 @@ function showTimeline() {
     displayForecast({ idle: '—', error: '중단', done: '완료', ready: '대기' }[clock.state] || '—');
   } else if (clock.saving) {
     displayForecast('저장 중');
+  } else if (clock.recovering) {
+    displayForecast('복구 중');
   } else if (!estimate) {
     displayForecast(workQueue?.active_mode === 'inspection' ? '읽기 검사 중' : '자료 확인 중');
   } else {
@@ -191,7 +201,7 @@ function displayForecast(text, basis = '') {
   if (forecastBasis.textContent !== basis) forecastBasis.textContent = basis;
   forecastBasis.hidden = !basis;
   if (workQueue) {
-    document.querySelector('#part-estimate').textContent = workQueue.active ? text : '대기';
+    document.querySelector('#part-estimate').textContent = workQueue.active ? text : workQueue.blocked ? '보류' : '대기';
     document.querySelector('#part-estimate-note').textContent = workQueue.active && basis ? '초안 · ' + basis : '';
   }
 }
@@ -240,7 +250,7 @@ function selectItem(id, selectedByUser = false) {
   selectedItem = id;
   const item = workQueue?.items.find(row => row.id === id);
   document.querySelector('#queue-selection').hidden = !item;
-  itemOptions.hidden = !item || !workQueue.ready || queueWorking;
+  itemOptions.hidden = !item || !workQueue.ready || queueWorking || item.hold?.kind === 'dependency';
   showInspection(item?.inspection);
   if (!item) return;
   for (const button of queueItems.querySelectorAll('button')) {
@@ -251,6 +261,12 @@ function selectItem(id, selectedByUser = false) {
   const saved = document.querySelector('#queue-saved');
   saved.hidden = !item.draft;
   saved.textContent = item.draft ? item.draft.summary + '\n' + item.draft.folder : '';
+  const recovery = item.recovery;
+  const note = recovery ? '실패 ' + recovery.failed_attempts + '/' + recovery.limit + '회' : '';
+  const advisor = recovery?.advisor === 'gemini' ? 'Gemini 조언 반영' : recovery?.advisor === 'local' ? '로컬 재시도' : '';
+  itemRecovery.textContent = [note, advisor, item.failure?.message, item.failure?.hint,
+    item.hold?.kind === 'dependency' ? item.hold.detail : ''].filter(Boolean).join(' · ');
+  itemRecovery.hidden = !itemRecovery.textContent;
 }
 
 function showQueue(value, working) {
@@ -267,13 +283,23 @@ function showQueue(value, working) {
   }
   const items = value.items;
   resumeQueue.hidden = !value.can_resume;
+  refreshEvidence.hidden = !value.can_refresh;
   const saved = items.filter(item => item.draft).length;
-  const inspected = items.filter(item => item.inspection).length;
+  const inspected = items.filter(item => item.inspection?.state === 'observed').length;
+  const held = items.filter(item => item.hold).length;
+  const blocker = items.find(item => item.id === value.blocked);
+  holdBanner.hidden = !blocker;
+  if (blocker) {
+    blockerTitle.textContent = blocker.title + ' · ' + blocker.hold.label;
+    blockerReason.textContent = blocker.hold.detail;
+  }
+  advisorState.textContent = value.gemini_configured ? '복구 조언 · Gemini 키 설정됨' : '복구 조언 · 로컬 재시도';
   document.querySelector('#queue-summary').textContent =
-    items.length + '개 파트 · 읽기 검사 ' + inspected + '개 · 초안 ' + saved + '개 · 실행 검증 대기';
+    items.length + '개 파트 · 읽기 확인 ' + inspected + '개 · 초안 ' + saved + '개 · 실행 검증 ' + value.verified_count + '개' +
+    (held ? ' · 보류 ' + held + '개' : '');
   nextItem.disabled = items.length < 2;
   const signature = JSON.stringify([value.id, value.active_mode, ...items.map(item =>
-    [item.id, item.state, item.inspection?.state, item.auto_inspection])]);
+    [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts])]);
   if (queueSignature !== signature) {
     queueSignature = signature;
     queueItems.replaceChildren(...items.map(item => {
@@ -285,8 +311,9 @@ function showQueue(value, working) {
       button.dataset.item = item.id;
       button.addEventListener('click', () => selectItem(item.id, true));
       name.textContent = item.title;
-      if (item.state === 'inspected') {
-        status.textContent = item.inspection.state === 'observed' ? '읽기 확인 · 실행 대기' : '자료 확인 필요';
+      if (item.hold) {
+        status.textContent = item.state === 'inspected' && item.hold.kind === 'verification'
+          ? '읽기 확인 · 검증 보류' : item.hold.label;
       } else if (item.state === 'working' && value.active_mode === 'inspection') {
         status.textContent = '읽기 검사 중';
       } else if (item.state === 'pending' && item.auto_inspection) {
@@ -299,7 +326,7 @@ function showQueue(value, working) {
       return row;
     }));
   }
-  const active = followActive && value.active;
+  const active = followActive && (value.active || value.blocked);
   selectItem(active || (changed ? '' : selectedItem) || items[0]?.id);
   const windows = items.map(item => item.observation_hours).filter(Boolean);
   const sums = windows.reduce(([lo, hi], [left, right]) => [lo + left, hi + right], [0, 0]);
@@ -322,16 +349,24 @@ nextItem.addEventListener('click', () => {
   if (next) selectItem(next.id, true);
 });
 
-resumeQueue.addEventListener('click', async () => {
-  if (!workQueue?.can_resume) return;
+viewBlocker.addEventListener('click', () => {
+  if (!workQueue?.blocked) return;
+  selectItem(workQueue.blocked, true);
+  for (const button of queueItems.querySelectorAll('button')) {
+    if (button.dataset.item === workQueue.blocked) button.focus();
+  }
+});
+
+async function runQueueAction(button, command) {
   const version = ++submission;
   clearTimeout(retry);
-  resumeQueue.disabled = true;
+  button.disabled = true;
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ queue: workQueue.id, resume: 'remaining' }),
+      body: JSON.stringify({ queue: workQueue.id, ...command }),
+      signal: AbortSignal.timeout(12000),
     });
     const result = await response.json();
     if (!response.ok) {
@@ -342,12 +377,18 @@ resumeQueue.addEventListener('click', async () => {
     showResult(result);
     if (result.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
-    queueNotice.textContent = '자동 초안 재개 요청을 확인할 수 없습니다.';
-    queueNotice.hidden = false;
+    void poll(version);
   } finally {
-    resumeQueue.disabled = false;
+    button.disabled = false;
     if (!queueWorking) setBusy(false);
   }
+}
+
+resumeQueue.addEventListener('click', () => {
+  if (workQueue?.can_resume) void runQueueAction(resumeQueue, { resume: 'remaining' });
+});
+refreshEvidence.addEventListener('click', () => {
+  if (workQueue?.can_refresh) void runQueueAction(refreshEvidence, { refresh: 'evidence' });
 });
 
 function showPlan(value) {
@@ -395,16 +436,17 @@ function showChatReceipt(text, error = false) {
 
 function showResult(state) {
   const stopped = state.state === 'error';
-  const phaseMessage = stopped ? '' : state.submission_notice || state.message;
+  const blocker = state.work_queue?.items.find(item => item.id === state.work_queue.blocked);
+  const phaseMessage = blocker ? '진행 가능한 단계를 처리했습니다. 아래에서 보류 사유를 확인하세요.'
+    : stopped ? '' : state.submission_notice || state.message;
   if (phase.textContent !== phaseMessage) phase.textContent = phaseMessage;
   if (chatSubmission === submission) {
     showChatReceipt(stopped && !state.submission_notice
       ? '요청 처리 중 문제가 생겼습니다. 작업 결과의 안내를 확인해 주세요.'
       : '요청을 받았습니다.', stopped && !state.submission_notice);
   }
-  stateBadge.textContent = state.state === 'ready' && state.work_queue?.items.some(item => item.inspection)
-    ? '읽기 검사 종료' : stateLabels[state.state];
-  stateBadge.dataset.state = state.state;
+  stateBadge.textContent = blocker ? '작업 보류' : stateLabels[state.state];
+  stateBadge.dataset.state = blocker ? 'held' : state.state;
   setBusy(state.state === 'working');
   attempt = state.attempt || '';
   showReplies(state.replies || []);
@@ -415,7 +457,7 @@ function showResult(state) {
   queueNotice.hidden = !state.checkpoint_error;
   if (typeof state.elapsed_ms === 'number') {
     clock = { running: state.state === 'working', at: performance.now(), elapsed: state.elapsed_ms,
-      total: state.total_ms, state: state.state, forecast: state.forecast, saving: state.saving };
+      total: state.total_ms, state: state.state, forecast: state.forecast, saving: state.saving, recovering: state.recovering };
     document.querySelector('#timing-warning').hidden = state.timing_saved !== false;
     showTimeline();
   } else if (clock) {
