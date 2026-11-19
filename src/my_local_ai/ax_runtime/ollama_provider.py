@@ -123,7 +123,8 @@ class OllamaProvider:
 
     def generate(self, prompt: str, *, model_lock: OneModelLock,
                  budget: BudgetGuard, allow_generation: bool = False,
-                 structured: bool = False) -> UntrustedGeneration:
+                 structured: bool = False,
+                 structured_tokens: int = STRUCTURED_OUTPUT_TOKENS) -> UntrustedGeneration:
         # No owner consent is minted here: caller must provide a trusted
         # authorization and explicitly opt in. Always HOLD by default.
         if allow_generation is not True:
@@ -132,7 +133,8 @@ class OllamaProvider:
             raise ProviderHold("NO_MODEL_LOCK")
         if not isinstance(budget, BudgetGuard):
             raise ProviderHold("NO_BUDGET")
-        if type(structured) is not bool:
+        if (type(structured) is not bool or type(structured_tokens) is not int
+            or not 64 <= structured_tokens <= STRUCTURED_OUTPUT_TOKENS):
             raise ProviderHold("UNSAFE_INPUT")
         if not isinstance(prompt, str) or not prompt.strip():
             raise ProviderHold("UNSAFE_INPUT")
@@ -163,7 +165,7 @@ class OllamaProvider:
                 }
                 if structured:
                     payload["format"] = "json"
-                    payload["options"].update(temperature=0, num_predict=STRUCTURED_OUTPUT_TOKENS)
+                    payload["options"].update(temperature=0, num_predict=structured_tokens)
                 result = self._request("POST", "/api/generate", payload=payload,
                     limit=min(1_048_576, budget.limits.max_output_bytes + 16384))
                 answer = result.get("response")

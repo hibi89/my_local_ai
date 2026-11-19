@@ -88,12 +88,15 @@ button { cursor: pointer; }
 .state { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; font-size: .75rem; }
 .state[data-state="working"], .state[data-state="done"] { color: var(--success); border-color: var(--success); }
 .state[data-state="error"] { color: var(--error); border-color: var(--error); }
-.timers { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); border-bottom: 1px solid var(--line); }
+.timers { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)) minmax(0,1.2fr);
+  border-bottom: 1px solid var(--line); }
 .timers > div { padding: 11px 21px 12px; }
 .timers > div + div { border-left: 1px solid var(--line); }
 .timers dt, .work-plan dt { color: var(--muted); font-size: .77rem; }
 .timers dd, .work-plan dd { margin: 0; }
 .timers dd { margin-top: 4px; font: 650 clamp(1.12rem, 2vw, 1.38rem) "Cascadia Mono", Consolas, monospace; }
+.timers .forecast dd { font: 650 clamp(.83rem, 1.6vw, 1.13rem) "Segoe UI", "Malgun Gothic", sans-serif; }
+.forecast small { display: block; margin-top: 3px; color: var(--muted); font-size: .7rem; font-weight: 450; }
 .timing-warning { padding: 10px 21px 0; color: var(--error); font-size: .8rem; }
 .error-guide { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 9px; }
 .message-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
@@ -104,6 +107,16 @@ button { cursor: pointer; }
 .error-message strong { color: var(--accent); font-size: .77rem; }
 .error-message small, #error-progress { color: var(--muted); }
 .error-message .quiet-button { margin-top: 3px; }
+#reply-form { display: grid; width: 100%; gap: 7px; padding-top: 8px; margin-top: 2px;
+  border-top: 1px solid var(--line); }
+#reply-form label { margin: 0; font-size: .81rem; }
+#reply-form textarea { font-size: .85rem; }
+#reply-form .primary { justify-self: start; }
+#reply-notice { color: var(--error); }
+.reply-history { display: grid; gap: 7px; list-style: none; padding: 0; margin: 0; }
+.reply-history li { justify-self: end; max-width: min(88%, 420px); padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 10px 4px 10px 10px; background: var(--accent-wash);
+  white-space: pre-wrap; overflow-wrap: anywhere; font-size: .84rem; line-height: 1.5; }
 .work-plan { margin: 0; display: grid; gap: 7px; padding: 12px 13px; background: var(--inset);
   border: 1px solid var(--line); border-radius: 8px; }
 .work-plan > div { display: grid; grid-template-columns: minmax(4.7rem, max-content) minmax(0,1fr); gap: 10px; align-items: baseline; }

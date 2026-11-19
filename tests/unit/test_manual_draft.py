@@ -11,9 +11,11 @@ import time
 import unittest
 from unittest.mock import patch
 
-from my_local_ai.ax_runtime.draft_documents import DraftError, read_document
+from my_local_ai.ax_runtime.draft_documents import DraftDocument, DraftError, read_document
+from my_local_ai.ax_runtime.draft_timing import estimated_duration, recorded_time
 from my_local_ai.ax_runtime.manual_draft import LocalDrafts
 from my_local_ai.ax_runtime.ollama_provider import OllamaProvider, UntrustedGeneration
+from my_local_ai.ax_runtime.provider_policy import ProviderHold
 from my_local_ai.ax_runtime.worker_lock import OneModelLock
 
 
@@ -223,6 +225,68 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(result["error"]["code"], "MODEL_BUSY")
             self.assertIn("끝나면", result["error"]["hint"])
             request.assert_called_once_with("GET", "/api/tags")
+
+    def test_reply_after_timeout_reuses_pinned_inputs_and_receives_its_own_budget(self):
+        revision = "2" * 40
+        path = "src/server.py"
+        source = "LABEL = 'old'\n" + "# Keep the surrounding configuration.\n" * 100
+        doc = DraftDocument("Keep the module's public interface.", "https://github.com/example/project/spec.md", revision)
+        original = DraftDocument(source, "https://github.com/example/project/server.py", revision)
+        repo = "Repository: example/project\nBranch: stable\n"
+        initial = repo + f"작업 파일: {path}\n" + "작업에 참고할 기존 설명입니다.\n" * 140
+        reply = "Change LABEL to 'new' and preserve the surrounding configuration."
+        result_body = {"done": True, "response": json.dumps({
+            "summary": "updated label",
+            "edits": [{"path": path, "before": "LABEL = 'old'\n", "after": "LABEL = 'new'\n"}],
+        })}
+        tags = {"models": [{"name": "qwen3:4b-instruct"}]}
+        provider = OllamaProvider()
+        with TemporaryDirectory() as directory:
+            draft_root = Path(directory).resolve() / "drafts"
+            app = LocalDrafts(draft_root, provider=provider)
+            with patch("my_local_ai.ax_runtime.manual_draft.read_handoff_documents",
+                       return_value=(revision, [doc])) as read_docs, patch(
+                           "my_local_ai.ax_runtime.manual_draft.read_github_file",
+                           return_value=original) as read_source, patch.object(
+                               provider, "_request", side_effect=[
+                                   tags, ProviderHold("OLLAMA_UNAVAILABLE", detail="TIMEOUT"),
+                                   tags, result_body,
+                               ]) as transport:
+                app.start({"message": initial})
+                failure = self.await_result(app)
+                self.assertEqual(failure["error"]["code"], "TIMEOUT")
+                self.assertTrue(failure["can_reply"])
+                self.assertGreater(failure["forecast"]["upper_ms"], failure["forecast"]["lower_ms"])
+                with self.assertRaises(DraftError):
+                    app.start({"reply": reply, "attempt": "stale"})
+                app.start({"reply": reply, "attempt": failure["attempt"]})
+                result = self.await_result(app)
+            self.assertEqual(result["state"], "done", result["message"])
+            self.assertEqual(result["replies"], [reply])
+            self.assertEqual(result["plan"]["revision"], revision)
+            self.assertEqual(result["files"][0]["content"], source.replace("'old'", "'new'"))
+            self.assertFalse(result["can_reply"])
+            read_docs.assert_called_once()
+            read_source.assert_called_once_with("example/project", revision, path, allow_missing=True)
+            first, second = (transport.call_args_list[index].kwargs["payload"] for index in (1, 3))
+            self.assertIn(reply, second["prompt"])
+            self.assertLess(second["options"]["num_predict"], first["options"]["num_predict"])
+            self.assertLessEqual(len(second["prompt"].encode()),
+                                 second["options"]["num_ctx"] - second["options"]["num_predict"])
+
+    def test_forecast_reads_only_recent_success_timings_for_the_matching_kind(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            recorded_time(root, 3500)
+            self.assertEqual(estimated_duration(root, "focused")["runs"], 0)
+            recorded_time(root, 60000, sample=("focused", 55000))
+            recorded_time(root, 250000)
+            recorded_time(root, 77000, sample=("focused", 70000))
+            recorded_time(root, 195000, sample=("long", 180000))
+            self.assertEqual(recorded_time(root), 585500)
+            self.assertEqual(estimated_duration(root, "focused"),
+                             {"lower_ms": 41250, "upper_ms": 97500, "runs": 2})
+            self.assertEqual(estimated_duration(root, "long")["runs"], 1)
 
 
 if __name__ == "__main__":

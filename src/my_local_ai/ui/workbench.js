@@ -3,8 +3,12 @@
 const session = document.body.dataset.session;
 const form = document.querySelector('#draft-form');
 const chatForm = document.querySelector('#chat-form');
+const replyForm = document.querySelector('#reply-form');
+const replyInput = replyForm.elements.reply;
+const replyNotice = document.querySelector('#reply-notice');
+const replyHistory = document.querySelector('#reply-history');
 const messageInput = chatForm.elements.message;
-const forms = [chatForm, form];
+const forms = [chatForm, form, replyForm];
 const submitButtons = forms.map(current => current.querySelector('[type="submit"]'));
 const phase = document.querySelector('#phase');
 const stateBadge = document.querySelector('#state');
@@ -24,6 +28,8 @@ const errorCode = document.querySelector('#error-code');
 const plan = document.querySelector('#work-plan');
 const elapsed = document.querySelector('#elapsed');
 const total = document.querySelector('#total');
+const forecastText = document.querySelector('#forecast');
+const forecastBasis = document.querySelector('#forecast-basis');
 const stateLabels = { idle: '대기', working: '작업 중', done: '초안 저장됨', error: '작업 중단' };
 
 let activeFile = null;
@@ -34,6 +40,8 @@ let submission = 0;
 let clock = null;
 let renderedPlan = '';
 let lastInput = chatForm;
+let attempt = '';
+let renderedReplies = '';
 
 document.querySelector('#sample').addEventListener('click', () => {
   if (!messageInput.value.trim()) {
@@ -117,15 +125,53 @@ function showTimeline() {
   const delta = clock.running ? performance.now() - clock.at : 0;
   for (const [node, ms] of [[elapsed, clock.elapsed], [total, clock.total]]) {
     const seconds = Math.floor((ms + delta) / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor(seconds / 60) % 60;
-    const stamp = [minutes, seconds % 60].map(value => String(value).padStart(2, '0')).join(':');
-    const text = hours ? hours + ':' + stamp : stamp;
+    const text = timestamp(seconds);
     if (node.textContent !== text) {
       node.textContent = text;
       node.dateTime = 'PT' + seconds + 'S';
     }
   }
+  const estimate = clock.forecast;
+  if (clock.state !== 'working') {
+    displayForecast({ idle: '—', error: '중단', done: '완료' }[clock.state] || '—');
+  } else if (clock.saving) {
+    displayForecast('저장 중');
+  } else if (!estimate) {
+    displayForecast('자료 확인 중');
+  } else {
+    const since = clock.elapsed + delta - estimate.from_elapsed_ms;
+    const lower = Math.max(0, Math.ceil((estimate.lower_ms - since) / 1000));
+    const upper = Math.max(0, Math.ceil((estimate.upper_ms - since) / 1000));
+    const basis = estimate.runs ? '최근 성공 ' + estimate.runs + '회 기준' : '초기 추정';
+    if (!upper) displayForecast('예상 범위 초과', 'Qwen 응답 대기 중');
+    else if (!lower) displayForecast('약 ' + timestamp(upper) + ' 이내', basis);
+    else displayForecast(timestamp(lower) + '–' + timestamp(upper) + ' 남음', basis);
+  }
+}
+
+function timestamp(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor(seconds / 60) % 60;
+  const stamp = [minutes, seconds % 60].map(value => String(value).padStart(2, '0')).join(':');
+  return hours ? hours + ':' + stamp : stamp;
+}
+
+function displayForecast(text, basis = '') {
+  if (forecastText.textContent !== text) forecastText.textContent = text;
+  if (forecastBasis.textContent !== basis) forecastBasis.textContent = basis;
+  forecastBasis.hidden = !basis;
+}
+
+function showReplies(replies) {
+  const key = JSON.stringify(replies);
+  if (key === renderedReplies) return;
+  renderedReplies = key;
+  replyHistory.replaceChildren(...replies.map(reply => {
+    const row = document.createElement('li');
+    row.textContent = reply;
+    return row;
+  }));
+  replyHistory.hidden = !replies.length;
 }
 
 function showPlan(value) {
@@ -164,12 +210,19 @@ function showResult(state) {
   stateBadge.textContent = stateLabels[state.state];
   stateBadge.dataset.state = state.state;
   setBusy(state.state === 'working');
+  attempt = state.attempt || '';
+  showReplies(state.replies || []);
+  replyForm.hidden = !state.can_reply;
+  replyNotice.hidden = true;
   if (typeof state.elapsed_ms === 'number') {
-    clock = { running: state.state === 'working', at: performance.now(), elapsed: state.elapsed_ms, total: state.total_ms };
+    clock = { running: state.state === 'working', at: performance.now(), elapsed: state.elapsed_ms,
+      total: state.total_ms, state: state.state, forecast: state.forecast, saving: state.saving };
     document.querySelector('#timing-warning').hidden = state.timing_saved !== false;
     showTimeline();
   } else if (clock) {
     clock.running = false;
+    clock.state = state.state;
+    displayForecast('중단');
   }
   showPlan(state.plan);
   errorGuide.hidden = !stopped;
@@ -238,8 +291,14 @@ async function submit(event) {
   if (submitButtons[0].disabled) return;
   const version = ++submission;
   clearTimeout(retry);
-  lastInput = event.currentTarget;
-  const payload = Object.fromEntries(new FormData(event.currentTarget));
+  const input = event.currentTarget;
+  const replying = input === replyForm;
+  if (!replying) lastInput = input;
+  const payload = Object.fromEntries(new FormData(input));
+  if (replying) {
+    payload.attempt = attempt;
+    replyNotice.hidden = true;
+  }
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
@@ -249,13 +308,26 @@ async function submit(event) {
     });
     const status = await response.json();
     if (!response.ok) {
-      showResult({ state: 'error', message: status.message });
+      if (replying) {
+        replyNotice.textContent = status.message;
+        replyNotice.hidden = false;
+        setBusy(false);
+      } else {
+        showResult({ state: 'error', message: status.message });
+      }
       return;
     }
+    if (replying) replyInput.value = '';
     showResult(status);
     if (status.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
-    showResult({ state: 'error', message: '작업 요청을 확인할 수 없습니다. 실행 창과 주소를 확인하세요.' });
+    if (replying) {
+      replyNotice.textContent = '답장을 전달하지 못했습니다. 이 탭에서 새로고침해 작업 상태를 확인하세요.';
+      replyNotice.hidden = false;
+      setBusy(false);
+    } else {
+      showResult({ state: 'error', message: '작업 요청을 확인할 수 없습니다. 실행 창과 주소를 확인하세요.' });
+    }
   }
 }
 

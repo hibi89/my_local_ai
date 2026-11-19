@@ -98,9 +98,14 @@ def render_workbench(session_path: str, layout: str) -> bytes:
         <dl class="timers" aria-label="작업 시간">
           <div><dt>이번 작업 시간</dt><dd><time id="elapsed" datetime="PT0S">00:00</time></dd></div>
           <div><dt>누적 작업 시간</dt><dd><time id="total" datetime="PT0S">00:00</time></dd></div>
+          <div class="forecast">
+            <dt>초안 예상 완료</dt>
+            <dd><span id="forecast">—</span><small id="forecast-basis" hidden></small></dd>
+          </div>
         </dl>
         <p id="timing-warning" class="timing-warning" hidden>누적 시간을 저장할 수 없습니다.</p>
         <div class="result-body" id="result">
+          <ol id="reply-history" class="reply-history" aria-label="내가 보낸 추가 지시" hidden></ol>
           <aside id="error-guide" class="error-guide" aria-label="MLA 안내" hidden>
             <span class="message-avatar" aria-hidden="true">M</span>
             <div class="error-message">
@@ -109,6 +114,13 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <p id="error-message" role="status"></p>
               <p id="error-hint" hidden></p>
               <small id="error-code" hidden></small>
+              <form id="reply-form" hidden>
+                <label for="reply">MLA에 추가 지시</label>
+                <textarea id="reply" name="reply" rows="2" maxlength="450" required
+                  placeholder="예시  이 파일의 오류 메시지 한 곳만 고쳐줘"></textarea>
+                <p id="reply-notice" role="status" hidden></p>
+                <button type="submit" class="primary">답장하고 다시 시도 <span aria-hidden="true">→</span></button>
+              </form>
               <button type="button" class="quiet-button" id="edit-message">입력창으로 이동</button>
             </div>
           </aside>
