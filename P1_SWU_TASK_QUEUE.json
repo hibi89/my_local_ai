@@ -737,7 +737,7 @@
         "F18_OWNER_HOLD"
       ],
       "partial_source_implemented": true,
-      "partial_source_sha": "fd7a95d0b5adc0ee2a25cacdd98f73fe51a77631",
+      "partial_source_sha": "285505114f9406c78e77b4e40ad084df51042096",
       "partial_source_paths": [
         "src/my_local_ai/state/consent.py"
       ],
@@ -818,16 +818,17 @@
       "legacy_attempts_used_are_not_necessarily_failures": true,
       "no_tpm_redesign": {
         "design_sha": "0799de94dbb6a2d6a526f5e92e21e8bb1e14454e",
-        "source_sha": "fd7a95d0b5adc0ee2a25cacdd98f73fe51a77631",
+        "source_sha": "285505114f9406c78e77b4e40ad084df51042096",
         "approved_source_only_kst": "2026-11-19",
         "profile": "SOFTWARE_CNG_OWNER_APPROVED_V1",
         "legacy_default": "TPM_V1",
         "native_windows_key_custody": "NOT_RUN",
         "p1_implemented": false,
         "p2_verified": false,
-        "local_synthetic_checks": "PENDING_ACTIONS",
+        "local_synthetic_checks": "PASS_GITHUB_ACTIONS_44482804986",
         "trust_gate": "BLOCKED_TRUST",
-        "software_key_hardware_equivalence": false
+        "software_key_hardware_equivalence": false,
+        "windows_untrusted_bundle": "IN_PROGRESS_44482802596"
       }
     },
     {
