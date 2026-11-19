@@ -834,6 +834,15 @@
           "outcome": "SOURCE_SECURITY_PROGRESS_ONLY_PROTECTED_SIGNER_WINDOWS_GO_STILL_BLOCKED",
           "nonprogress_failure": false,
           "checks": "Python AST exact standalone helper PASS; isolated normal/unreadable/excess dirs/excess fanout/empty/timeout synthetic cases 6/6 PASS; full repository tests and native Windows service NOT_RUN"
+        },
+        {
+          "attempt_id": "MLA-SWU-008-20261119-SCM-SIGNER-READINESS-AND-SHUTDOWN",
+          "method": "Native Windows SCM startup: report RUNNING only once pinned CNG signer is open and server/journal constructed; support matching advertised STOP and SHUTDOWN accepted controls; deny if stopped before/after report",
+          "evidence_sha": "6af263d49261f87fa88d7dcd3c45135df2966311",
+          "test_sha": "e33222bb4d09659b69ff256013c27f863348c204",
+          "outcome": "POSITIVE_P1_NATIVE_STARTUP_CORRECTNESS_PROGRESS_ONLY; NO_WINDOWS_SERVICE_OR_CNG_GO",
+          "nonprogress_failure": false,
+          "checks": "Exact connected GitHub source and regression readback: signer>server>report(4)>pipe and SERVICE_ACCEPT_STOP|SHUTDOWN PASS; regression test source authored but NOT_RUN; full repo AST/CI/native SCM/OwnerUI NOT_RUN"
         }
       ],
       "legacy_attempts_used_are_not_necessarily_failures": true,
@@ -853,7 +862,9 @@
       },
       "latest_trust_bundle_source_sha": "59271929c9ddba3c3aa2552309ee2a4109b70b60",
       "latest_trust_bundle_regression_sha": "11da26ba035a782bdb377f8a3f862219bc8e6be2",
-      "latest_trust_bundle_status": "SOURCE_PARTIAL_BLOCKED_TRUST_REAL_WINDOWS_NOT_RUN"
+      "latest_trust_bundle_status": "SOURCE_PARTIAL_BLOCKED_TRUST_REAL_WINDOWS_NOT_RUN",
+      "latest_scm_readiness_source_sha": "6af263d49261f87fa88d7dcd3c45135df2966311",
+      "latest_scm_readiness_regression_sha": "e33222bb4d09659b69ff256013c27f863348c204"
     },
     {
       "id": "MLA-SWU-009",
