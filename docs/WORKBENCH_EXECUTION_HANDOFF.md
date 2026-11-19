@@ -23,6 +23,16 @@ Pure Player는 후보를 비실행 상태로 검사합니다. 승인된 실행 �
 
 완료 근거는 P2-A 한 건의 실제 실행 결과입니다. 테스트 성공과 실패가 상태에 반영되는지, 권한이 빠진 경우 `NOT_RUN`으로 남는지, 같은 지시 재제출과 작업대 재시작이 실행을 중복하지 않는지 확인합니다. 다음 파트의 실제 실행과 장시간 관찰은 각각의 테스트와 근거가 준비되면 이어서 진행합니다.
 
+## Windows 테스트 전달물
+
+P2-A 실행 기능을 구현한 커밋으로 Windows x64용 `MLA.exe`를 빌드해 다운로드 가능한 파일로 첨부합니다. 빌드 기준 SHA와 Windows 확인 결과를 함께 전달합니다. Windows에서 실행 파일을 열어 작업대가 뜨는지 확인한 뒤, 그 실행 파일에서 승인된 P2-A를 실행해 종료 결과와 로그가 표시되는지 확인합니다.
+
+빌드 환경은 Windows x64, Python 3.11, PyInstaller 6.22.3입니다. 저장소 루트에서 다음 명령을 실행하면 `dist/mla-workbench/MLA.exe`가 생성됩니다.
+
+    py -3.11 -m PyInstaller --distpath dist/mla-workbench --workpath build/mla-workbench scripts/mla_workbench_windows.spec
+
+사용자는 `MLA.exe`를 쓰기 가능한 폴더에 저장하고 더블클릭해 작업대를 엽니다. Python은 실행 파일에 포함됩니다. Qwen 초안을 쓰려면 같은 PC에서 Ollama와 `qwen3:4b-instruct`가 필요합니다. 진행 기록과 초안은 기본적으로 실행 파일 옆의 `mla-drafts`에 저장됩니다. 기존 작업은 `--draft-root`로 저장 폴더를 지정해 열 수 있습니다.
+
 ## 실행과 확인에 참고할 코드
 
 작업대 실행 명령은 README에 있습니다. 진행 표시와 버튼 처리, 초안 실패 복구의 구현과 기존 테스트는 다음 파일에 있습니다. [실행 안내](../README.md#로컬-qwen-작업대) · [작업대 화면](../src/my_local_ai/ui/workbench.js) · [Gemini 복구 조언](../src/my_local_ai/ax_runtime/draft_recovery.py) · [회귀 테스트](../tests/unit/test_manual_draft.py)
