@@ -984,6 +984,66 @@ class SCMPrincipalBindingTests(unittest.TestCase):
 
 
 
+
+class FrozenProtectedBundleInspectionTests(unittest.TestCase):
+    """Synthetic image-tree verification; no Windows/SCM/CNG access."""
+
+    def test_complete_tree_is_pinned_for_services_and_owner_ui(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "_internal"
+            root.mkdir()
+            (root / "app.pyc").write_bytes(b"trusted fixture only")
+            nested = root / "native"
+            nested.mkdir()
+            (nested / "crypto.pyd").write_bytes(b"trusted fixture only")
+            pinned = []
+            c._pin_frozen_trust_bundle(root, pinned.append)
+            self.assertEqual({p.name for p in pinned}, {"app.pyc", "crypto.pyd"})
+        self.assertIn("_pin_frozen_trust_bundle(bundle, self.pin_path)",
+                      inspect.getsource(c._WindowsProtectedServiceAPI.__init__))
+        self.assertIn("_pin_frozen_trust_bundle(bundle, self.pin_path)",
+                      inspect.getsource(c._OwnerInteractiveAPI.__init__))
+
+    def test_unreadable_subdirectory_is_not_silently_skipped(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "sample.pyc").write_bytes(b"safe fixture")
+            def unreadable(*args, **kwargs):
+                self.assertFalse(kwargs["followlinks"])
+                kwargs["onerror"](PermissionError("synthetic scandir denied"))
+                yield from ()
+            with patch("os.walk", unreadable):
+                with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                    c._pin_frozen_trust_bundle(root, lambda _p: None)
+            self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
+
+    def test_directory_fanout_and_empty_bundle_fail_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with self.assertRaises(c.ProtectedBrokerHold):
+                c._pin_frozen_trust_bundle(root, lambda _p: None)
+            def excessive_fanout(*args, **kwargs):
+                yield str(root), ["dir"] * 2049, []
+            with patch("os.walk", excessive_fanout):
+                with self.assertRaises(c.ProtectedBrokerHold):
+                    c._pin_frozen_trust_bundle(root, lambda _p: None)
+            def excessive_depth(*args, **kwargs):
+                for _ in range(2049):
+                    yield str(root), [], []
+            with patch("os.walk", excessive_depth):
+                with self.assertRaises(c.ProtectedBrokerHold):
+                    c._pin_frozen_trust_bundle(root, lambda _p: None)
+
+    def test_elapsed_bundle_verification_budget_holds(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch("os.walk", return_value=iter([(str(root), [], [])])):
+                with patch("time.monotonic", side_effect=[0.0, 15.0]):
+                    with self.assertRaises(c.ProtectedBrokerHold) as caught:
+                        c._pin_frozen_trust_bundle(root, lambda _p: None)
+            self.assertEqual(caught.exception.code, "PROTECTED_BROKER_IDENTITY")
+
+
 class ProtectedGitMirrorTraversalTests(unittest.TestCase):
     """Pure synthetic directory traversal: no Git, Windows service or F18 GO."""
 
