@@ -1243,6 +1243,41 @@ class DefenderEvidenceTests(unittest.TestCase):
         self.assertEqual(d._defender_completion_evidence(events + [foreign], target, 4),
                          (True, []))
 
+    def test_same_scan_detection_missing_or_foreign_resource_blocks_clean(self):
+        # Same scan identifier but missing/wrong Path must never be treated
+        # as unrelated evidence. This is a synthetic log-only policy test.
+        target = r"C:\\private\\scan_123.py"
+        events = [
+            {"record": 5, "id": 1000, "fields": {
+                "Scan Resources": "file:_" + target, "Scan ID": "scan-1"},
+             "evidence_sha256": "a" * 64},
+            {"record": 6, "id": 1001, "fields": {"Scan ID": "scan-1"},
+             "evidence_sha256": "b" * 64},
+        ]
+        for wrong in (
+            {"Scan ID": "scan-1", "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            {"Scan ID": "scan-1", "Path": r"C:\\private\\other.py",
+             "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            {"Scan ID": "scan-1", "Path": target,
+             "Threat ID": "T-1", "Threat Name": "Synthetic"},
+        ):
+            with self.subTest(wrong=wrong):
+                detection = {"record": 7, "id": 1116, "fields": wrong,
+                             "evidence_sha256": "c" * 64 if "Path" not in wrong else "INVALID"}
+                self.assertEqual(
+                    d._defender_completion_evidence(events + [detection], target, 4),
+                    (False, []),
+                )
+        matching = {"record": 7, "id": 1116,
+            "fields": {"Scan ID": "scan-1", "Path": target,
+                       "Threat ID": "T-1", "Threat Name": "Synthetic"},
+            "evidence_sha256": "c" * 64}
+        self.assertEqual(
+            d._defender_completion_evidence(events + [matching], target, 4),
+            (True, ["c" * 64]),
+        )
+
+
     def test_same_scan_detection_requires_exact_scan_id(self):
         target = r"C:\\private\\scan_123.py"
         events = [
