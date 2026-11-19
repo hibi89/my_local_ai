@@ -819,9 +819,17 @@ class ProtectedSignerLiveRevocationTests(unittest.TestCase):
         reg.OpenKey, reg.QueryValueEx = open_key, query_value
 
     def service(self):
+        settings = {
+            "KeyName": self.key_name,
+            "KeyProviderMode": "SOFTWARE_CNG_OWNER_APPROVED_V1",
+            "ControllerSid": "S-1-5-21-1-2-3-1005",
+            "InteractiveOwnerSid": "S-1-5-21-1-2-3-1004",
+            "OwnerSessionId": 2,
+        }
         return types.SimpleNamespace(
             role="owner", roots=self.roots.copy(),
-            settings={"KeyName": self.key_name, "KeyProviderMode": "SOFTWARE_CNG_OWNER_APPROVED_V1"},
+            settings=settings,
+            _settings=lambda: {**settings, "KeyName": self.key_name},
             load_roots=lambda: self.roots.copy(),
             check_acl=lambda *args: self.reads.append(("acl",)),
         )
@@ -847,6 +855,23 @@ class ProtectedSignerLiveRevocationTests(unittest.TestCase):
         self.roots["reviewer"] = ("S-1-5-21-1-2-3-1002", "e" * 64, b"E" * 72)
         with self.assertRaises(c.ProtectedBrokerHold):
             self.call(api)
+
+    def test_open_service_signer_revoked_by_controller_owner_or_session_rotation(self):
+        api = self.service()
+        self.call(api)
+        live = api._settings
+        for field, changed in (
+            ("ControllerSid", "S-1-5-21-1-2-3-1999"),
+            ("InteractiveOwnerSid", "S-1-5-21-1-2-3-1888"),
+            ("OwnerSessionId", 3),
+        ):
+            api._settings = lambda field=field, changed=changed: {
+                **live(), field: changed,
+            }
+            with self.subTest(field=field), self.assertRaises(c.ProtectedBrokerHold):
+                self.call(api)
+        api._settings = live
+        self.call(api)
 
     def test_ownerui_rejects_session_key_and_service_root_revocation(self):
         owner = ("S-1-5-21-1-2-3-1004", "d" * 64, b"D" * 72)
