@@ -73,7 +73,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <kbd>Ctrl+Enter</kbd>
             </div>
           </div>
-          <p id="chat-receipt" class="chat-receipt" role="status" hidden></p>
+          <p id="chat-receipt" class="action-receipt" role="status" hidden></p>
           <p id="chat-hint">MLA가 작업 자료와 파일을 찾아 초안을 별도 폴더에 저장합니다.</p>
         </form>
         <details class="advanced-input">
@@ -153,6 +153,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
                 <button type="button" id="next-item" class="quiet-button">다음 파트 보기</button>
               </div>
             </div>
+            <p id="queue-receipt" class="action-receipt" role="status" hidden></p>
             <aside id="queue-hold" class="queue-hold" aria-label="작업 보류 사유" hidden>
               <strong id="queue-hold-title"></strong>
               <p id="queue-hold-reason"></p>
@@ -161,7 +162,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
             <p id="advisor-state" class="advisor-state"></p>
             <ol id="queue-items" class="queue-items"></ol>
             <div id="queue-selection" class="queue-selection" hidden>
-              <h4 id="queue-selected-title"></h4>
+              <h4 id="queue-selected-title" tabindex="-1"></h4>
               <details class="sources">
                 <summary>이 파트의 원래 지시</summary><p id="queue-detail"></p>
               </details>

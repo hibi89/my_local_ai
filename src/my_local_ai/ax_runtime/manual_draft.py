@@ -680,7 +680,7 @@ class LocalDrafts:
     def _resubmit_queue_locked(self, queue: _WorkQueue) -> dict:
         queue.auto_drafts = True
         if not self._start_next_item_locked():
-            self._state["submission_notice"] = "같은 지시문을 받았습니다. 저장된 작업표의 남은 단계를 확인해 주세요."
+            self._state["submission_notice"] = "같은 지시문을 받았습니다. 지금 바로 시작할 수 있는 파트가 없습니다."
         return self._snapshot_locked()
 
     def _start_item(self, payload: dict[str, str]) -> dict:
@@ -749,7 +749,7 @@ class LocalDrafts:
                 return {"kind": "source", "label": "읽기 자료 확인 필요",
                         "detail": "저장소 접근과 검사할 파일을 확인한 뒤 읽기 결과를 새로 조회할 수 있습니다."}
             return {"kind": "verification", "label": "실행 검증 보류",
-                    "detail": f"남은 검증은 {inspection['remaining']}입니다. 보호 실행기가 연결되어 있지 않습니다."}
+                    "detail": f"남은 검증은 {inspection['remaining']}입니다. 현재 작업대에 보호된 테스트 실행 경로가 없습니다."}
         return {"kind": "input", "label": "작업 범위 확인 필요",
                 "detail": "초안을 시작하려면 작업 파일과 구체적인 변경 내용이 필요합니다."}
 

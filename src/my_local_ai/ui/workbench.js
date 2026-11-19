@@ -17,10 +17,12 @@ const nextItem = document.querySelector('#next-item');
 const resumeQueue = document.querySelector('#resume-queue');
 const refreshEvidence = document.querySelector('#refresh-evidence');
 const queueNotice = document.querySelector('#queue-notice');
+const queueReceipt = document.querySelector('#queue-receipt');
 const holdBanner = document.querySelector('#queue-hold');
 const blockerTitle = document.querySelector('#queue-hold-title');
 const blockerReason = document.querySelector('#queue-hold-reason');
 const viewBlocker = document.querySelector('#view-blocker');
+const selectedTitle = document.querySelector('#queue-selected-title');
 const advisorState = document.querySelector('#advisor-state');
 const itemRecovery = document.querySelector('#item-recovery');
 const queueInspection = document.querySelector('#queue-inspection');
@@ -57,6 +59,7 @@ let showDiff = true;
 let retry = null;
 let submission = 0;
 let chatSubmission = null;
+let queueSubmission = null;
 let clock = null;
 let renderedPlan = '';
 let lastInput = chatForm;
@@ -256,7 +259,7 @@ function selectItem(id, selectedByUser = false) {
   for (const button of queueItems.querySelectorAll('button')) {
     button.setAttribute('aria-pressed', String(button.dataset.item === id));
   }
-  document.querySelector('#queue-selected-title').textContent = item.title;
+  selectedTitle.textContent = item.title;
   document.querySelector('#queue-detail').textContent = item.detail || item.title;
   const saved = document.querySelector('#queue-saved');
   saved.hidden = !item.draft;
@@ -346,21 +349,25 @@ nextItem.addEventListener('click', () => {
   const index = workQueue.items.findIndex(item => item.id === selectedItem);
   const following = [...workQueue.items.slice(index + 1), ...workQueue.items.slice(0, index)];
   const next = following.find(item => item.state === 'pending') || following[0];
-  if (next) selectItem(next.id, true);
+  if (next) {
+    selectItem(next.id, true);
+    selectedTitle.focus();
+  }
 });
 
 viewBlocker.addEventListener('click', () => {
   if (!workQueue?.blocked) return;
   selectItem(workQueue.blocked, true);
-  for (const button of queueItems.querySelectorAll('button')) {
-    if (button.dataset.item === workQueue.blocked) button.focus();
-  }
+  selectedTitle.focus();
 });
 
-async function runQueueAction(button, command) {
+async function runQueueAction(command) {
+  if (submitButtons[0].disabled) return;
   const version = ++submission;
+  const previousAttempt = attempt;
   clearTimeout(retry);
-  button.disabled = true;
+  queueSubmission = { version, queue: workQueue.id, refresh: Boolean(command.refresh) };
+  showReceipt(queueReceipt, command.refresh ? '읽기 결과를 다시 조회하는 중입니다.' : '초안 재개를 요청하는 중입니다.');
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
@@ -370,25 +377,23 @@ async function runQueueAction(button, command) {
     });
     const result = await response.json();
     if (!response.ok) {
-      queueNotice.textContent = result.message;
-      queueNotice.hidden = false;
+      showReceipt(queueReceipt, result.message || '작업대가 요청을 받지 못했습니다.', 'error');
+      setBusy(false);
       return;
     }
     showResult(result);
     if (result.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
-    void poll(version);
-  } finally {
-    button.disabled = false;
-    if (!queueWorking) setBusy(false);
+    showReceipt(queueReceipt, '응답이 늦어 작업 상태를 확인 중입니다.');
+    void poll(version, false, previousAttempt);
   }
 }
 
 resumeQueue.addEventListener('click', () => {
-  if (workQueue?.can_resume) void runQueueAction(resumeQueue, { resume: 'remaining' });
+  if (workQueue?.can_resume) void runQueueAction({ resume: 'remaining' });
 });
 refreshEvidence.addEventListener('click', () => {
-  if (workQueue?.can_refresh) void runQueueAction(refreshEvidence, { refresh: 'evidence' });
+  if (workQueue?.can_refresh) void runQueueAction({ refresh: 'evidence' });
 });
 
 function showPlan(value) {
@@ -425,32 +430,53 @@ function showPlan(value) {
 
 function setBusy(busy) {
   for (const button of submitButtons) button.disabled = busy;
+  resumeQueue.disabled = busy;
+  refreshEvidence.disabled = busy;
   for (const input of forms) input.setAttribute('aria-busy', String(busy));
 }
 
-function showChatReceipt(text, error = false) {
-  if (chatReceipt.textContent !== text) chatReceipt.textContent = text;
-  chatReceipt.hidden = !text;
-  chatReceipt.dataset.error = String(error);
+function showReceipt(node, text, tone = 'status') {
+  if (node.textContent !== text) node.textContent = text;
+  node.hidden = !text;
+  node.dataset.tone = tone;
 }
 
 function showResult(state) {
   const stopped = state.state === 'error';
+  const working = state.state === 'working';
   const blocker = state.work_queue?.items.find(item => item.id === state.work_queue.blocked);
-  const phaseMessage = blocker ? '진행 가능한 단계를 처리했습니다. 아래에서 보류 사유를 확인하세요.'
+  const holdMessage = blocker ? blocker.title + ' · ' + blocker.hold.detail : '';
+  const phaseMessage = blocker ? '아래에서 다음 작업의 보류 사유를 확인할 수 있습니다.'
     : stopped ? '' : state.submission_notice || state.message;
   if (phase.textContent !== phaseMessage) phase.textContent = phaseMessage;
   if (chatSubmission === submission) {
-    showChatReceipt(stopped && !state.submission_notice
-      ? '요청 처리 중 문제가 생겼습니다. 작업 결과의 안내를 확인해 주세요.'
-      : '요청을 받았습니다.', stopped && !state.submission_notice);
+    if (stopped && !state.submission_notice) {
+      showReceipt(chatReceipt, state.message, 'error');
+    } else if (blocker) {
+      showReceipt(chatReceipt, '작업 보류 · ' + holdMessage, 'held');
+    } else {
+      showReceipt(chatReceipt, state.submission_notice || (state.state === 'done' ? '초안을 저장했습니다.' : '요청을 받았습니다.'));
+    }
+  }
+  if (queueSubmission?.version === submission) {
+    if (state.work_queue?.id !== queueSubmission.queue) {
+      showReceipt(queueReceipt, '작업표가 바뀌었습니다. 현재 열린 작업표를 확인해 주세요.', 'held');
+    } else if (working || stopped) {
+      showReceipt(queueReceipt, state.message, stopped ? 'error' : 'status');
+    } else if (queueSubmission.refresh) {
+      showReceipt(queueReceipt, '읽기 결과 조회를 마쳤습니다. 실행 검증 ' + state.work_queue.verified_count + '개.');
+    } else if (blocker) {
+      showReceipt(queueReceipt, '작업 보류 · ' + holdMessage, 'held');
+    } else {
+      showReceipt(queueReceipt, state.message);
+    }
   }
   stateBadge.textContent = blocker ? '작업 보류' : stateLabels[state.state];
   stateBadge.dataset.state = blocker ? 'held' : state.state;
-  setBusy(state.state === 'working');
+  setBusy(working);
   attempt = state.attempt || '';
   showReplies(state.replies || []);
-  showQueue(state.work_queue || null, state.state === 'working');
+  showQueue(state.work_queue || null, working);
   replyForm.hidden = !state.can_reply;
   replyNotice.hidden = true;
   queueNotice.textContent = state.checkpoint_error || '';
@@ -520,21 +546,26 @@ async function poll(version = submission, retried = false, confirmAttempt) {
     const status = await response.json();
     if (version !== submission) return;
     showResult(status);
-    if (confirmAttempt !== undefined && (status.attempt || '') === confirmAttempt
-      && status.state !== 'working' && !status.submission_notice) {
-      showChatReceipt('작업 접수가 확인되지 않았습니다. 다시 보내 주세요.', true);
+    if (confirmAttempt !== undefined && (status.attempt || '') === confirmAttempt && status.state !== 'working') {
+      if (queueSubmission?.version === version) {
+        showReceipt(queueReceipt, '조회 또는 재개 요청의 접수를 확인하지 못했습니다. 다시 눌러 주세요.', 'error');
+      } else if (!status.submission_notice) {
+        showReceipt(chatReceipt, '작업 접수가 확인되지 않았습니다. 다시 보내 주세요.', 'error');
+      }
     }
     if (status.state === 'working') retry = setTimeout(() => poll(version), 1100);
   } catch {
     if (version !== submission) return;
     if (!retried) {
       phase.textContent = '작업 상태를 다시 확인 중입니다.';
-      if (chatSubmission === version) showChatReceipt(phase.textContent);
+      if (chatSubmission === version) showReceipt(chatReceipt, phase.textContent);
+      if (queueSubmission?.version === version) showReceipt(queueReceipt, phase.textContent);
       retry = setTimeout(() => poll(version, true, confirmAttempt), 800);
       return;
     }
     phase.textContent = '작업대와 연결이 끊겼습니다. 실행기를 확인한 뒤 이 탭을 새로고침해 주세요.';
-    if (chatSubmission === version) showChatReceipt(phase.textContent, true);
+    if (chatSubmission === version) showReceipt(chatReceipt, phase.textContent, 'error');
+    if (queueSubmission?.version === version) showReceipt(queueReceipt, phase.textContent, 'error');
     if (clock) {
       clock.running = false;
       clock.disconnected = true;
@@ -568,7 +599,8 @@ async function submit(event) {
     itemNotice.hidden = true;
   }
   chatSubmission = chatting ? version : null;
-  showChatReceipt(chatting ? '시작 요청을 보내는 중입니다.' : '');
+  showReceipt(queueReceipt, '');
+  showReceipt(chatReceipt, chatting ? '시작 요청을 보내는 중입니다.' : '');
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
@@ -580,7 +612,7 @@ async function submit(event) {
     const status = await response.json();
     if (!response.ok) {
       if (chatting) {
-        showChatReceipt(status.message || '작업대가 요청을 받지 못했습니다.', true);
+        showReceipt(chatReceipt, status.message || '작업대가 요청을 받지 못했습니다.', 'error');
         setBusy(false);
       } else if (notice) {
         notice.textContent = status.message;
@@ -596,7 +628,7 @@ async function submit(event) {
     if (status.state === 'working') retry = setTimeout(() => poll(version), 750);
   } catch {
     if (chatting) {
-      showChatReceipt('접수 응답이 늦어 작업 상태를 확인 중입니다.');
+      showReceipt(chatReceipt, '접수 응답이 늦어 작업 상태를 확인 중입니다.');
       void poll(version, false, previousAttempt);
     } else if (notice) {
       notice.textContent = '요청을 전달하지 못했습니다. 이 탭에서 새로고침해 작업 상태를 확인하세요.';
