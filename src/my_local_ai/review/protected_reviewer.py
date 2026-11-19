@@ -617,6 +617,19 @@ def _decode_protected_git_tree_listing(listing: bytes) -> dict[str, tuple[str, s
 
 
 
+def _guard_protected_mirror_scan_budget(started: float, stopped=None) -> None:
+    """Abort during large *single* directories, not only between os.walk yields.
+
+    One directory may hold 1024 children and each pinned object can require
+    many protected path/ACL checks. A check at directory boundaries alone
+    cannot enforce the 10-second mirror traversal budget or prompt STOP.
+    """
+    from my_local_ai.state.consent import ProtectedBrokerHold
+    if ((stopped is not None and stopped.is_set())
+        or _timeForReview.monotonic() - started >= 10):
+        raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+
+
 def _walk_verified_protected_git_mirror(root: _Path, *, stopped=None):
     """Yield a complete, bounded protected mirror; partial scans always HOLD.
 
@@ -635,10 +648,7 @@ def _walk_verified_protected_git_mirror(root: _Path, *, stopped=None):
         root, followlinks=False, onerror=unreadable
     ):
         directories += 1
-        if stopped is not None and stopped.is_set():
-            raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
-        if _timeForReview.monotonic() - started >= 10:
-            raise ProtectedBrokerHold("PROTECTED_BROKER_TIMEOUT")
+        _guard_protected_mirror_scan_budget(started, stopped)
         if (directories > 1024 or len(subdirs) > 1024
             or len(filenames) > 1024):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
@@ -679,19 +689,24 @@ def _read_protected_git_candidate(api, binding: dict, scope: dict, stopped) -> d
         # read-only bare mirror is a provisioning requirement, not a claim in
         # the Controller request. Packed and loose objects are both supported.
         count = 0
+        mirror_started = _timeForReview.monotonic()
         for directory, subdirs, filenames in _walk_verified_protected_git_mirror(root, stopped=stopped):
+            _guard_protected_mirror_scan_budget(mirror_started, stopped)
             for name in (*subdirs, *filenames):
+                _guard_protected_mirror_scan_budget(mirror_started, stopped)
                 node = _Path(directory) / name
                 info = node.lstat()
                 if (_stat.S_ISLNK(info.st_mode)
                     or getattr(info, "st_file_attributes", 0) & _REPARSE_ATTRIBUTE):
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
             for name in filenames:
+                _guard_protected_mirror_scan_budget(mirror_started, stopped)
                 path = _Path(directory) / name
                 count += 1
                 if count > 1024 or path.name in {"alternates", "http-alternates", "grafts"}:
                     raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
                 api.pin_path(path)
+        _guard_protected_mirror_scan_budget(mirror_started, stopped)
         if sha256(_Path(git_path).read_bytes()).hexdigest() != git_sha:
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         system_root = _os.environ.get("SystemRoot", r"C:\Windows")
