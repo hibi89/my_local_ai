@@ -173,6 +173,16 @@ def render_workbench(session_path: str, layout: str) -> bytes:
                 <ul id="inspection-notes"></ul>
                 <p id="inspection-remaining"></p>
               </section>
+              <section id="queue-execution" class="queue-inspection" hidden>
+                <h5>실제 GitHub Actions 실행 결과</h5>
+                <p id="execution-state"></p>
+                <p id="execution-evidence"></p>
+                <a id="execution-url" target="_blank" rel="noopener noreferrer" hidden>GitHub 실행 기록 보기</a>
+                <p>읽기 전용 CLI 감사 스모크만 수행합니다. P2 전체 수용·독립 감사로 인정하지 않습니다.</p>
+              </section>
+              <button id="execute-approved" type="button" class="quiet-button" hidden>
+                승인된 REQEA 수동 CLI 감사 실제 실행 (1회)
+              </button>
               <p id="queue-saved" class="folder" hidden></p>
               <p id="item-recovery" class="item-recovery" hidden></p>
               <details id="item-options" class="sources" hidden>
