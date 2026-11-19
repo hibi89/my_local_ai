@@ -52,6 +52,10 @@ jobs:
         shell: pwsh
         run: |
           $env:PYTHONPATH = 'src'
+          # GitHub pwsh may stop on an expected nonzero native exit. Explicitly
+          # disable only this shell's automatic native-error escalation and
+          # assert the precise fail-closed exit code below.
+          $PSNativeCommandUseErrorActionPreference = $false
           # A nonzero exit is intentional. This action never provisions keys,
           # services, accounts, ACLs, registry values, or Owner approval.
           $raw = python scripts/preflight_protected_windows.py --host-readonly
