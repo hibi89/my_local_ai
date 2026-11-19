@@ -1,0 +1,84 @@
+name: mla-windows-workbench-exe
+on:
+  push:
+    branches: [dev/instant-implementation-v1]
+    paths:
+      - '.github/workflows/mla-windows-workbench-exe.yml'
+      - 'src/my_local_ai/ax_runtime/approved_workflow.py'
+      - 'src/my_local_ai/ax_runtime/manual_draft.py'
+      - 'src/my_local_ai/ui/**'
+      - 'scripts/mla_workbench_windows.py'
+      - 'scripts/mla_workbench_windows.spec'
+      - 'tests/unit/test_approved_workflow.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unsigned-workbench:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned local packaging tool
+        run: python -m pip install --disable-pip-version-check PyInstaller==6.22.3
+      - name: Regression for bounded REQEA execution; no GitHub dispatch
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'src'
+          python -m unittest discover -s tests/unit -p 'test_approved_workflow.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'execution contract regression failed' }
+      - name: Build unsigned Windows workbench EXE (not installed)
+        run: python -m PyInstaller --distpath dist/mla-workbench --workpath build/mla-workbench scripts/mla_workbench_windows.spec
+      - name: Launch packaged EXE on loopback and render real workbench
+        shell: pwsh
+        run: |
+          @'
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import tempfile
+          import time
+          from urllib.request import urlopen
+          exe = Path('dist/mla-workbench/MLA.exe').absolute()
+          assert exe.is_file(), 'Windows EXE was not produced'
+          with tempfile.TemporaryDirectory() as root:
+              log = Path(root) / 'stdout.txt'
+              with log.open('w+', encoding='utf-8') as out:
+                  process = subprocess.Popen([str(exe), '--no-open', '--draft-root', str(Path(root) / 'drafts')],
+                                             stdout=out, stderr=subprocess.STDOUT, cwd=root)
+                  try:
+                      for attempt in range(60):
+                          out.flush()
+                          txt = log.read_text(encoding='utf-8', errors='replace')
+                          match = re.search(r'MLA dashboard: (http://127\.0\.0\.1:\d+/work/[A-Za-z0-9_-]+)', txt)
+                          if match:
+                              with urlopen(match.group(1), timeout=5) as res:
+                                  html = res.read().decode('utf-8')
+                                  assert res.status == 200
+                                  assert 'id="execute-approved"' in html
+                                  assert 'id="work-queue"' in html
+                              print('WINDOWS_FROZEN_WORKBENCH_LOOPBACK_PASS')
+                              break
+                          if process.poll() is not None:
+                              raise RuntimeError('EXE exited before starting: ' + txt[:500])
+                          time.sleep(1)
+                      else:
+                          raise RuntimeError('EXE startup timed out')
+                  finally:
+                      process.terminate()
+                      try: process.wait(timeout=10)
+                      except subprocess.TimeoutExpired: process.kill(); process.wait()
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Windows executable smoke failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MLA-Windows-workbench-unsigned-EXE
+          path: dist/mla-workbench/MLA.exe
+          if-no-files-found: error
+          retention-days: 7
