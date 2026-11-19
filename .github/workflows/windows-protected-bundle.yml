@@ -34,6 +34,20 @@ jobs:
         run: python -m unittest discover -s tests/unit -p test_windows_protected_build.py -v
       - name: Native Win32 ephemeral pipe SID and RevertToSelf gate (no Owner trust)
         run: python -m unittest discover -s tests/windows -p test_pipe_client_identity_native.py -v
+      - name: Read-only native CNG Software KSP availability (no keys or Owner trust)
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'src'
+          $raw = python -m my_local_ai local-op run --request 'CNG 서명 공급자 확인'
+          if ($LASTEXITCODE -ne 0) { throw 'software KSP read-only preflight unavailable' }
+          $probe = $raw | ConvertFrom-Json
+          $item = $probe.checks.'cng-provider-status'
+          if ($probe.state -ne 'READ_ONLY_RESULT' -or $item.software_ksp_available -ne $true -or
+              $item.protected_trust_verified -ne $false -or $item.key_provisioned_verified -ne $false -or
+              $probe.execution_authority_granted -ne $false -or $probe.os_settings_changed -ne $false) {
+            throw 'unsafe software KSP or approval result'
+          }
+          Write-Host 'READ_ONLY_KSP_FOUND_NO_KEY_NO_OWNER_TRUST'
       - name: Build standalone one-folder images (NO install or service registration)
         run: python scripts/build_protected_windows.py --output dist/mla-protected-v1
       - name: Assert four binaries and untrusted manifest
