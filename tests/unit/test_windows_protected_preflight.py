@@ -237,7 +237,7 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
             {"execution_authority_granted": True},
             {"checks": {"arbitrary": {"state": "READ_ONLY_RESULT"}}},
             {"checks": {**self.simulated_report()["checks"],
-                        "tpm-status": {"state": "SECRET:PRIVATE_PATH"}}},
+                        "tpm-status": {"state": "PRIVATE_PASSWORD"}}},
         ):
             sample = {**self.simulated_report(), **change}
             with self.subTest(change=str(change)[:35]), \
@@ -248,7 +248,7 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
             self.assertEqual(result["decision"], "HOLD")
             self.assertEqual(result["precheck"], "BLOCKED")
             self.assertEqual(result["checks"], {})
-            self.assertNotIn("SECRET", json.dumps(result))
+            self.assertNotIn("PRIVATE_PASSWORD", json.dumps(result))
 
     def test_probe_exception_redacted_and_never_authorized(self):
         with patch.object(preflight.os, "name", "nt"), \
