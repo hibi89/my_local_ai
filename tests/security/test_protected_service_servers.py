@@ -164,8 +164,10 @@ class OwnerSessionProtocolTests(unittest.TestCase):
         def fake_preprovisioned_directory(_api, _sid):
             yield
 
-        for decision, expected in ((True,True),(False,False)):
-            with self.subTest(approved=decision), tempfile.TemporaryDirectory() as tmp:
+        owner_pins = ("S-1-5-21-OWNER", 1, "synthetic", self.key_owner, "e" * 64)
+        rotated_pins = (*owner_pins[:3], b"rotated key", owner_pins[4])
+        for decision, rotated in ((True, False), (False, False), (True, True)):
+            with self.subTest(approved=decision, rotated=rotated), tempfile.TemporaryDirectory() as tmp:
                 root=Path(tmp)
                 errors=[]
                 stopped=threading.Event()
@@ -204,19 +206,21 @@ class OwnerSessionProtocolTests(unittest.TestCase):
 
                 with (patch.object(c,"_OWNER_UI_EXCHANGE",root),
                       patch.object(c,"_owner_ui_read_pins",
-                          return_value=("S-1-5-21-OWNER",1,
-                                        "synthetic",self.key_owner,"e"*64)),
+                          side_effect=(owner_pins, rotated_pins if rotated else owner_pins)),
                       patch.object(c,"_owner_ui_locked_directory",
                           fake_preprovisioned_directory)):
                     worker=threading.Thread(target=serve_owner_ui,daemon=True)
                     worker.start()
-                    result=c._confirm_owner_session_request(
-                        FakeService(),self.request,self.action,self.scope,
-                        self.signer(self.key_service),stopped)
+                    args = (FakeService(), self.request, self.action, self.scope,
+                            self.signer(self.key_service), stopped)
+                    if rotated:
+                        with self.assertRaisesRegex(c.ProtectedBrokerHold, "PROTECTED_BROKER_IDENTITY"):
+                            c._confirm_owner_session_request(*args)
+                    else:
+                        self.assertIs(c._confirm_owner_session_request(*args), decision)
                     worker.join(timeout=2)
                     self.assertFalse(worker.is_alive())
                     self.assertEqual(errors,[])
-                    self.assertIs(result,expected)
                     self.assertEqual(list(root.iterdir()),[])
 
     def test_owner_ui_tampering_replay_expiry_and_wrong_identity_hold(self):
@@ -317,7 +321,6 @@ class ServerTests(unittest.TestCase):
                 c.owner_session_main()
 
     def test_owner_session_file_exchange_is_bounded_and_exclusive(self):
-        import os
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/"ticket.json"
             raw=c._broker_canonical({"fixture":"only"})
@@ -327,8 +330,16 @@ class ServerTests(unittest.TestCase):
                 c._owner_ui_write_file(path,raw)
             with self.assertRaises(c.ProtectedBrokerHold):
                 c._owner_ui_read_file(path,max_bytes=3)
-            path.unlink()
-            os.symlink("absent",path)
+
+    def test_owner_session_file_exchange_rejects_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "ticket.json"
+            try:
+                path.symlink_to("absent")
+            except OSError as error:
+                if getattr(error, "winerror", None) != 1314:
+                    raise
+                self.skipTest("symlink permissions not available")
             with self.assertRaises((c.ProtectedBrokerHold,FileNotFoundError)):
                 c._owner_ui_read_file(path)
 

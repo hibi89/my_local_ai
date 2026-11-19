@@ -1,126 +1,110 @@
-"""Explicit opt-in HTTP-only read-only loopback dashboard; P1 browser E2E deferred.
-
-No POST/commands, no cookies, no JS, no CORS, no user data in public payloads.
-Never starts on import; caller must explicitly run launch_dashboard() in P1.
-"""
+"""Explicit loopback server for the read-only MLA console."""
 from __future__ import annotations
 
-from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+from threading import Lock
 
-from .status_view import StatusSnapshot, SyntheticEvidenceSnapshot, load_snapshot, load_synthetic_evidence
+from ..ops.resource_monitor import ResourceReading, sample_local_resources
+from .dashboard_page import (
+    load_locked_verification_queue, load_project_overview, render_html, render_unavailable,
+)
+from .status_view import load_snapshot, load_synthetic_evidence
+
+
+_UNAVAILABLE = (ValueError, OSError, TypeError, KeyError, RecursionError)
+_CSS = Path(__file__).with_name("dashboard.css")
+
 
 def host_allowed(host: str | None, port: int) -> bool:
-    if not isinstance(host, str):
-        return False
     return host in (f"127.0.0.1:{port}", f"localhost:{port}")
 
-def origin_allowed(origin: str | None, port: int) -> bool:
-    if origin is None:
-        return True
-    return origin in (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
 
-def render_html(snapshot: StatusSnapshot, evidence: SyntheticEvidenceSnapshot | None = None) -> bytes:
-    state = snapshot.to_public_dict()
-    percent = state["implementation_percent"]
-    code_ready_names = ", ".join(escape(name) for name in state["p1_code_ready_ids"]) or "없음"
-    synthetic_note = (
-        f"마지막 합성 CI 보고: {evidence.run_id} / "
-        f"{evidence.unit_tests + evidence.mock_integration_tests + evidence.security_tests}개 검사"
-        if evidence is not None else "합성 CI 보고: 조회 화면에서 확인"
-    )
-    text = f"""<!doctype html>
-<html lang="ko"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Local AI — Local Status</title>
-<style>
-:root{{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101827;color:#f6f8ff}}
-body{{max-width:960px;margin:auto;padding:clamp(1rem,4vw,3rem);line-height:1.55}}
-h1{{font-size:clamp(1.4rem,4vw,2rem)}}main{{display:grid;gap:1.25rem}}
-.panel{{border:1px solid #43516b;border-radius:1rem;padding:1.3rem;background:#192338}}
-.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem}}
-strong.value{{display:block;font-size:1.8rem}}
-small,.muted{{color:#c1cde0}}
-progress{{width:100%;height:1rem;accent-color:#8bb5ff}}
-a{{color:#b5d4ff}}a:focus-visible{{outline:3px solid #fff;outline-offset:3px}}
-</style></head><body>
-<header><h1>My Local AI</h1><p class="muted">로컬 상태 보드 · 읽기 전용 · 자동 실행 비활성</p></header>
-<main aria-label="작업 상태">
-<section class="panel" aria-labelledby="impl"><h2 id="impl">구현 진행</h2>
-<p><strong class="value">{percent:.2f}%</strong> {state['completed_req']} / {state['total_req']} REQ</p>
-<progress max="100" value="{percent:.2f}" aria-label="구현완료율 {percent:.2f}퍼센트"></progress>
-<p class="muted">구현 코드 후보와 실제 검증 통과는 다릅니다.</p></section>
-<section class="cards" aria-label="작업 집계">
-<div class="panel"><h2>코드 작성 READY (P1)</h2><strong class="value">{state['p1_code_ready_tasks']}</strong></div>
-<div class="panel"><h2>실행 READY</h2><strong class="value">{state['ready_tasks']}</strong></div>
-<div class="panel"><h2>HOLD/차단</h2><strong class="value">{state['hold_tasks']}</strong></div>
-<div class="panel"><h2>코드 작성 후보</h2><strong class="value">{state['implemented_tasks']}</strong></div>
-<div class="panel"><h2>전체 작업</h2><strong class="value">{state['task_total']}</strong></div></section>
-<section class="panel" aria-labelledby="security"><h2 id="security">안전 게이트</h2>
-<p>코드 작성 대기 작업: <strong>{code_ready_names}</strong> (실행 허가 아님)</p>
-<p>단계: <strong>{escape(state['phase'])}</strong></p>
-<p>실사용 승인: <strong>{"승인됨" if state["owner_real_use_go"] else "미승인"}</strong></p>
-<p>실행 상태: <strong>HOLD · 사용자 승인 및 독립 검증 대기</strong></p>
-<p>중지·재개 제어: <strong>미연결 · 조회 전용</strong></p>
-<p>P2 전체 검증: <strong>LOCKED</strong></p>
-<p>공식 검증률: <strong>UNASSESSED</strong></p>
-<p>Hydrogen 원격 워커: <strong>OFF (미승인)</strong></p>
-<p>EAI 선택형 분석: <strong>기본 OFF · 승인 권한 없음</strong></p>
-<p>브라우저 전수 테스트: <strong>DEFERRED_TO_P2</strong></p>
-<p>합성 테스트 근거: <strong>{escape(synthetic_note)}</strong></p>
-<p><a href="/evidence.json">합성 CI 요약 JSON</a> · <code>python -m my_local_ai queue next</code></p>
-<p>작업 시작·중지·승인 변경: <strong>이 읽기 전용 화면에서는 불가</strong></p></section>
-</main><footer><small>로컬 전용. 고객 파일·비밀·모델 출력 미표시.</small></footer>
-</body></html>"""
-    return text.encode("utf-8")
+def origin_allowed(origin: str | None, port: int) -> bool:
+    return origin is None or origin in (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
+
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    project_root: Path
+    server: LocalStatusServer
+    server_version = "MLA"
+    sys_version = ""
+    timeout = 5
 
     def log_message(self, format: str, *args) -> None:
-        # No untrusted URL, query, Host, or raw headers are logged.
+        # Do not log untrusted URLs, queries or headers.
         return
 
     def _respond(self, status: int, payload: bytes, content_type: str) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(payload)))
+        if status != 204:
+            self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store, max-age=0")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Content-Security-Policy",
-                         "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+                         "default-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; "
+                         "base-uri 'none'; form-action 'none'")
+        if status == 405:
+            self.send_header("Allow", "GET, HEAD")
         self.end_headers()
-        if self.command != "HEAD":
+        if self.command != "HEAD" and payload:
             self.wfile.write(payload)
+
+    def _json(self, payload: dict) -> None:
+        self._respond(200, json.dumps(payload, sort_keys=True).encode("ascii"),
+                      "application/json; charset=utf-8")
 
     def _serve_read(self) -> None:
         port = self.server.server_address[1]
-        if (self.client_address[0] != "127.0.0.1"
-            or not host_allowed(self.headers.get("Host"), port)
-            or not origin_allowed(self.headers.get("Origin"), port)
-            or self.headers.get("Sec-Fetch-Site", "none") not in ("none", "same-origin")):
+        hosts = self.headers.get_all("Host", [])
+        origins = self.headers.get_all("Origin", [])
+        fetch_sites = self.headers.get_all("Sec-Fetch-Site", ["none"])
+        if (self.client_address[0] != "127.0.0.1" or len(hosts) != 1
+            or not host_allowed(hosts[0], port)
+            or (origins and origins != [f"http://{hosts[0]}"])
+            or fetch_sites not in (["none"], ["same-origin"])):
             return self._respond(403, b"forbidden", "text/plain; charset=utf-8")
+        if self.path == "/dashboard.css":
+            return self._respond(200, self.server.stylesheet, "text/css; charset=utf-8")
+        if self.path == "/favicon.ico":
+            return self._respond(204, b"", "image/x-icon")
         if self.path not in ("/", "/status.json", "/evidence.json"):
             return self._respond(404, b"not found", "text/plain; charset=utf-8")
+
+        root = self.server.project_root
         try:
-            snapshot = load_snapshot(self.server.project_root)
-        except (ValueError, OSError, TypeError, KeyError):
+            snapshot = load_snapshot(root)
+        except _UNAVAILABLE:
+            if self.path == "/":
+                return self._respond(503, render_unavailable(), "text/html; charset=utf-8")
             return self._respond(503, b"status unavailable", "text/plain; charset=utf-8")
         if self.path == "/status.json":
-            body = json.dumps(snapshot.to_public_dict(), sort_keys=True).encode("ascii")
-            return self._respond(200, body, "application/json; charset=utf-8")
+            return self._json(snapshot.to_public_dict())
+
         try:
-            evidence = load_synthetic_evidence(self.server.project_root)
-        except (ValueError, OSError, TypeError, KeyError):
-            return self._respond(503, b"evidence unavailable", "text/plain; charset=utf-8")
+            evidence = load_synthetic_evidence(root)
+        except _UNAVAILABLE:
+            evidence = None
         if self.path == "/evidence.json":
-            body=json.dumps(evidence.to_public_dict(), sort_keys=True).encode("ascii")
-            return self._respond(200,body,"application/json; charset=utf-8")
-        return self._respond(200,render_html(snapshot,evidence),"text/html; charset=utf-8")
+            if evidence is None:
+                return self._respond(503, b"evidence unavailable", "text/plain; charset=utf-8")
+            return self._json(evidence.to_public_dict())
+
+        try:
+            project = load_project_overview(root)
+        except _UNAVAILABLE:
+            project = None
+        try:
+            gates = load_locked_verification_queue(root)
+        except _UNAVAILABLE:
+            gates = ()
+        body = render_html(snapshot, evidence, project=project, gates=gates,
+                           resources=self.server.measure_resources())
+        return self._respond(200, body, "text/html; charset=utf-8")
 
     def do_GET(self) -> None:
         self._serve_read()
@@ -134,6 +118,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self._respond(405, b"read only", "text/plain; charset=utf-8")
 
+
 class LocalStatusServer(ThreadingHTTPServer):
     allow_reuse_address = False
     daemon_threads = True
@@ -142,10 +127,25 @@ class LocalStatusServer(ThreadingHTTPServer):
         if type(port) is not int or not 0 <= port <= 65535:
             raise ValueError("invalid local port")
         self.project_root = Path(project_root).absolute()
-        # Always bind IPv4 loopback only, never 0.0.0.0 or a LAN interface.
+        if self.project_root.drive.startswith(("\\\\", "//")):
+            raise ValueError("dashboard checkout must be on a local drive")
+        self.stylesheet = _CSS.read_bytes()
+        self._sample_lock = Lock()
+        _, self._previous_cpu = sample_local_resources()
         super().__init__(("127.0.0.1", port), DashboardHandler)
 
-def launch_dashboard(project_root: str | Path, port: int = 0) -> None:
-    """Explicit blocking local-only server, never launched automatically."""
+    def measure_resources(self) -> ResourceReading:
+        with self._sample_lock:
+            reading, self._previous_cpu = sample_local_resources(previous_cpu=self._previous_cpu)
+        return reading
+
+
+def launch_dashboard(project_root: str | Path, port: int = 0, *, open_browser: bool = False) -> None:
+    """Serve the console until interrupted."""
     with LocalStatusServer(project_root, port=port) as server:
+        url = f"http://127.0.0.1:{server.server_address[1]}/"
+        print(f"MLA dashboard: {url}", flush=True)
+        if open_browser:
+            import webbrowser
+            webbrowser.open(url, new=2)
         server.serve_forever(poll_interval=0.3)

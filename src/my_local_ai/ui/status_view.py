@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 from pathlib import Path
 import re
 
-_MAX_BYTES = 1_048_576
+from ..state.local_files import read_local_metadata as _read_limited
+
 _STATE_KEY = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
 
 @dataclass(frozen=True)
@@ -47,32 +47,6 @@ class StatusSnapshot:
             "browser_validation": "DEFERRED_TO_P2",
         }
 
-def _no_duplicate_keys(pairs):
-    obj = {}
-    for key, value in pairs:
-        if key in obj:
-            raise ValueError("duplicate status JSON key")
-        obj[key] = value
-    return obj
-
-
-def _reject_nonfinite(value):
-    raise ValueError("nonfinite status JSON")
-
-
-def _read_limited(path: Path) -> dict:
-    if path.is_symlink():
-        raise ValueError("symlink status file")
-    with path.open("rb") as stream:
-        raw = stream.read(_MAX_BYTES + 1)
-    if len(raw) > _MAX_BYTES:
-        raise ValueError("oversized status")
-    data = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicate_keys,
-                      parse_constant=_reject_nonfinite)
-    if not isinstance(data, dict):
-        raise ValueError("malformed status")
-    return data
-
 def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     root = Path(project_root).absolute()
     if not root.is_dir() or root.is_symlink():
@@ -89,11 +63,11 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
         or p1.get("high_approved_candidate") is not False
         or p4.get("owner_go") is not False):
         raise ValueError("P1 cannot claim final implementation or owner GO")
-    if p2.get("status") != "LOCKED":
+    if p2.get("status") != "LOCKED" or p2.get("verified_rate") != "UNASSESSED":
         # No dashboard should falsely display VERIFIED in this unfinished P1 build.
         raise ValueError("P2 gate no longer matches P1-only dashboard")
     done, total = p1.get("code_req_completed"), p1.get("code_req_total")
-    if type(done) is not int or type(total) is not int or total != 30 or not 0 <= done <= total:
+    if type(done) is not int or type(total) is not int or total != 30 or not 0 <= done < total:
         raise ValueError("invalid implementation metrics")
     phase = gate.get("current_phase")
     if phase != "P1_IMPLEMENTATION":
@@ -109,7 +83,8 @@ def load_snapshot(project_root: str | Path) -> StatusSnapshot:
     for task in tasks:
         if not isinstance(task, dict) or not isinstance(task.get("status"), str) or not _STATE_KEY.fullmatch(task["status"]):
             raise ValueError("untrusted task status")
-        if task.get("runtime_authorization") != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES":
+        if (task.get("runtime_authorization") != "HOLD_UNTIL_OWNER_GO_F18_AND_PHASE_GATES"
+            or task["status"] == "READY"):
             raise ValueError("unlocked runtime task in P1")
         statuses.append(task["status"])
     # P1 code authoring READY is deliberately not runtime/execution READY.

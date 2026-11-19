@@ -32,17 +32,18 @@ class StatusUiTests(unittest.TestCase):
     def test_dashboard_does_not_confuse_p1_code_ready_and_execution(self):
         html=render_html(load_snapshot(ROOT)).decode("utf-8")
         self.assertIn("코드 작성 READY",html)
-        self.assertIn("실행 READY",html)
+        self.assertIn("실행 가능한 작업",html)
         self.assertIn(load_snapshot(ROOT).to_public_dict()["p1_code_ready_ids"][0],html)
-        self.assertIn("실행 허가 아님",html)
+        self.assertIn("실사용 승인 대기",html)
         self.assertNotIn("<script",html)
 
     def test_accessible_static_html_has_no_script_or_actions(self):
-        html = render_html(load_snapshot(ROOT)).decode("utf-8")
+        from my_local_ai.ui.dashboard_page import load_project_overview
+        html = render_html(load_snapshot(ROOT), project=load_project_overview(ROOT)).decode("utf-8")
         self.assertIn('lang="ko"', html)
         self.assertIn('aria-label=', html)
-        self.assertIn("실사용 승인:", html)
-        self.assertIn("중지·재개 제어:", html)
+        self.assertIn("실사용 승인 대기", html)
+        self.assertIn("시작 · 중지 · 재개", html)
         self.assertIn("<progress", html)
         self.assertNotIn("<script", html)
         self.assertNotIn("<form", html)
@@ -69,6 +70,8 @@ class StatusUiTests(unittest.TestCase):
                 for request in (
                     Request(base + "/status.json", headers={"Host":"attacker.invalid"}),
                     Request(base + "/status.json", headers={"Origin":"http://attacker.invalid"}),
+                    Request(base + "/dashboard.css", headers={"Sec-Fetch-Site": "cross-site"}),
+                    Request(base + "/status.json", headers={"Origin": base.replace("127.0.0.1", "localhost")}),
                     Request(base + "/", data=b"write_attempt", method="POST"),
                 ):
                     with self.subTest(url=request.full_url), self.assertRaises(HTTPError) as e:
@@ -121,6 +124,8 @@ class StatusUiTests(unittest.TestCase):
             lambda gate, queue: gate["p4"].__setitem__("owner_go", True),
             lambda gate, queue: gate["p1"].__setitem__("implementation_complete_candidate", True),
             lambda gate, queue: gate["p1"].__setitem__("high_approved_candidate", True),
+            lambda gate, queue: gate["p2"].__setitem__("verified_rate", "100%"),
+            lambda gate, queue: queue["tasks"][0].__setitem__("status", "READY"),
             lambda gate, queue: queue["tasks"][0].__setitem__("runtime_authorization", "APPROVED"),
         ):
             with TemporaryDirectory() as temp:
@@ -145,6 +150,17 @@ class StatusUiTests(unittest.TestCase):
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as temp:
             self.assertRaises((OSError, ValueError),load_snapshot,temp)
+
+    def test_overview_uses_current_swu_and_verification_queues(self):
+        from my_local_ai.ui.dashboard_page import load_locked_verification_queue, load_project_overview
+        progress = load_project_overview(ROOT)
+        gates = load_locked_verification_queue(ROOT)
+        html = render_html(load_snapshot(ROOT), project=progress, gates=gates).decode("utf-8")
+        self.assertEqual((progress.completed, progress.total, progress.ready_count), (55, 58, 0))
+        self.assertEqual(len(gates), 8)
+        for task_id in ("MLA-SWU-008", "MLA-SWU-021", "CS-SWU-012", *gates):
+            self.assertIn(task_id, html)
+        self.assertIn("공식 검증률 미산정", html)
 
 if __name__ == "__main__":
     unittest.main()

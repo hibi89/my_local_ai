@@ -1,6 +1,6 @@
 """Owner Windows 11 acceptance source-only, never executed in P1.
 
-No admin calls, no Windows Sandbox feature enablement, no real device code
+No admin calls, virtualization changes, real device code
 execution, and no independent audit claim without a separately trusted runner.
 """
 from __future__ import annotations
@@ -11,9 +11,9 @@ import re
 WINDOWS_ACCEPTANCE=(
     "P2-WIN-001 actual Windows 11 owner OS build and reparse/hardlink attacks",
     "P2-WIN-002 offline exact Qwen model and OpenCode binary provenance",
-    "P2-WIN-003 Windows Sandbox isolated coder vs protected reviewer identity",
-    "P2-WIN-004 no protected HMAC owner key accessible from coding guest",
-    "P2-WIN-005 network egress DENY from coder and independent reviewer",
+    "P2-WIN-003 distinct protected Windows service and OwnerUI principals with pinned CNG keys",
+    "P2-WIN-004 protected owner signer key inaccessible from the Controller account",
+    "P2-WIN-005 loopback-only model transport and independent evidence of typed operator egress denial",
     "P2-WIN-006 revoked/expired owner GO denies every protected operation",
     "P2-WIN-007 guest-created VERIFIED receipt never promotes protected ref",
     "P2-WIN-008 actual interrupted SQLite WAL/run/restart lease fencing",
@@ -23,7 +23,7 @@ WINDOWS_ACCEPTANCE=(
 
 
 class OwnerWindowsAcceptanceTests(unittest.TestCase):
-    @unittest.skip("P2_LOCKED: real owner Windows Sandbox and Qwen NOT_RUN")
+    @unittest.skip("P2_LOCKED: real owner Windows protection and Qwen NOT_RUN")
     def test_windows_hardware_and_isolation(self):
         self.fail("Must supply independent host attestation and owner device")
 
@@ -40,7 +40,7 @@ if __name__=="__main__":
 def authored_windows_evidence_manifest(gates: dict, exact_sha: str | None) -> tuple[dict, ...]:
     """Exact-SHA owner Windows evidence schema; source-only and always NOT_RUN.
 
-    Explicitly never prompts to enable Sandbox or obtain elevated privileges.
+    Runs as a read-only schema check with current privileges.
     Real OS principal isolation, model output, protected owner signer and
     physical 24-hour evidence require a separately authorized runner in P2.
     """

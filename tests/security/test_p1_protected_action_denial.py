@@ -5,6 +5,7 @@ These checks prove the default denial, NOT the future protected runtime.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -109,7 +110,7 @@ class ControllerHoldCycleTests(unittest.TestCase):
                 db, plan_id=plan.plan_id, task_id="TEST-001",
                 plan_sha256=plan.digest, source_sha=A, blueprint_sha=A,
             )
-            with sqlite3.connect(db) as connection:
+            with closing(sqlite3.connect(db)) as connection, connection:
                 connection.execute(
                     "UPDATE tasks SET state='READY' "
                     "WHERE plan_id='TEST-001' AND task_id='TEST-001'"
@@ -129,7 +130,7 @@ class ControllerHoldCycleTests(unittest.TestCase):
             view=build_controller_hold_cycle_card(result)
             self.assertFalse(view["execution_allowed"])
             self.assertEqual(view["reviewer_result"],"NOT_RUN")
-            with sqlite3.connect(db) as connection:
+            with closing(sqlite3.connect(db)) as connection:
                 self.assertEqual(
                     connection.execute(
                         "SELECT state FROM tasks WHERE plan_id='TEST-001' "

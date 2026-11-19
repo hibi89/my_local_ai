@@ -1694,6 +1694,11 @@ class _WindowsProtectedServiceAPI(_WindowsBrokerAPI):
             or re.fullmatch(r"MyLocalAI\.[A-Za-z0-9_.-]{3,64}", values["KeyName"]) is None):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         values["KeyProviderMode"] = _read_pinned_cng_mode(self)
+        if self.role == "owner":
+            owner_pins = _owner_ui_read_pins(self)
+            if owner_pins[:2] != (values["InteractiveOwnerSid"], values["OwnerSessionId"]):
+                raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+            values["OwnerUiPins"] = owner_pins
         return values
 
     def pin_path(self, path: Path, *, private=False, writable=False):
@@ -1929,6 +1934,7 @@ def _owner_ui_read_pins(api):
     name, kt = vals["OwnerUiKeyName"]
     public, pt = vals["OwnerUiPublicKeyBlob"]
     image_sha, it = vals["OwnerUiImageSha256"]
+    roots = api.load_roots()
     sid_re = r"S-1-5-21-(?:[0-9]+-){3}[0-9]+"
     if (ct != winreg.REG_SZ or st != winreg.REG_SZ
         or type(c_sid) is not str or type(sid) is not str
@@ -1942,7 +1948,8 @@ def _owner_ui_read_pins(api):
         or len(public) != 72 or public[:8] != b"ECS1\x20\x00\x00\x00"
         or it != winreg.REG_SZ or type(image_sha) is not str
         or not re.fullmatch(r"[0-9a-f]{64}",image_sha)
-        or any(sid == root[0] for root in api.load_roots().values())):
+        or any(sid == root[0] or image_sha == root[1] or public == root[2]
+               for root in roots.values())):
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
     return sid, session, name, public, image_sha
 
@@ -2014,7 +2021,8 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
     import time
     if api.role != "owner":
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-    owner_sid,_,_,public,_=_owner_ui_read_pins(api)
+    owner_pins = _owner_ui_read_pins(api)
+    owner_sid, _, _, public, _ = owner_pins
     ticket=_build_owner_ui_ticket(request,action,scope,signer=sign_body,
         issued_at=int(time.time()),lifespan_seconds=120)
     nonce=ticket["body"]["ticket_nonce"]
@@ -2038,10 +2046,16 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
                 except FileNotFoundError:
                     time.sleep(0.1)
                     continue
-                return _check_owner_ui_decision(ticket,_broker_decode(raw),
+                approved = _check_owner_ui_decision(ticket,_broker_decode(raw),
                     expected_owner_sid=owner_sid,expected_owner_public=public,
                     verify_signature=api.verify_signature,
                     now_seconds=int(time.time()))
+                # Rotation revokes an already-issued dialog as well as new requests.
+                if _owner_ui_read_pins(api) != owner_pins:
+                    raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
+                if stopped.is_set() or time.monotonic() >= deadline:
+                    raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
+                return approved
             raise ProtectedBrokerHold("PROTECTED_OWNER_ACTION_DENIED")
         finally:
             pending_path.unlink(missing_ok=True)

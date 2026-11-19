@@ -330,7 +330,7 @@ class CliDurableActionRequestSafetyTests(unittest.TestCase):
             self.assertFalse(result["worker_stopped"])
             self.assertFalse(result["owner_go_verified"])
             self.assertFalse(result["execution_allowed"])
-            with sqlite3.connect(db_path) as db:
+            with contextlib.closing(sqlite3.connect(db_path)) as db:
                 self.assertEqual(db.execute(
                     "SELECT state FROM tasks WHERE plan_id=? AND task_id=?",
                     (spec.plan_id,"TEST-001"),
@@ -368,6 +368,6 @@ class CliDurableActionRequestSafetyTests(unittest.TestCase):
             self.assertFalse(denied["execution_allowed"])
             # The action must not bootstrap/approve an unknown plan.
             import sqlite3
-            with sqlite3.connect(db_path) as db:
+            with contextlib.closing(sqlite3.connect(db_path)) as db:
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM plans").fetchone(), (0,))
                 self.assertEqual(db.execute("SELECT COUNT(*) FROM events").fetchone(), (0,))

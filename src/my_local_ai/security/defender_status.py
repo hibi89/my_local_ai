@@ -561,10 +561,18 @@ def _verify_microsoft_image(api, image: Path) -> None:
         if not signer or signer.contents.count < 1 or not signer.contents.chain:
             raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
         cert = signer.contents.chain[0].cert
-        name = c.create_unicode_buffer(256)
+        if not cert:
+            raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
         get_name = api._bind(crypt, "CertGetNameStringW",
-            [c.c_void_p, w.DWORD, w.DWORD, c.c_void_p, w.LPWSTR, w.DWORD], w.DWORD)
-        if not 1 < get_name(cert, 4, 0, None, name, len(name)) < len(name) or name.value != "Microsoft Corporation":
+            [c.c_void_p, w.DWORD, w.DWORD, c.c_char_p, w.LPWSTR, w.DWORD], w.DWORD)
+        common_name = c.create_unicode_buffer(256)
+        organization = c.create_unicode_buffer(256)
+        common_size = get_name(cert, 3, 0, b"2.5.4.3", common_name, len(common_name))
+        org_size = get_name(cert, 3, 0, b"2.5.4.10", organization, len(organization))
+        if (not 1 < common_size < len(common_name)
+            or not 1 < org_size < len(organization)
+            or organization.value != "Microsoft Corporation"
+            or common_name.value not in {"Microsoft Corporation", "Microsoft Windows Publisher"}):
             raise ProtectedBrokerHold("PROTECTED_BROKER_SIGNATURE")
     finally:
         data.action = 2  # WTD_STATEACTION_CLOSE on every path.
@@ -807,8 +815,12 @@ def _serve_defender_scan(api, binding: dict, payload: dict, scope: dict, stopped
             prior_events = _defender_events_after(api, 0, stopped=stopped)
             cursor = max((item["record"] for item in prior_events), default=0)
             root = os.environ.get("SystemRoot", r"C:\Windows")
+            # MpCmdRun resolves machine folders from the environment. Supply
+            # fixed Windows paths while keeping the Controller environment out.
             env = {"SystemRoot": root, "WINDIR": root,
                    "PATH": str(Path(root) / "System32"),
+                   "SystemDrive": "C:", "ProgramFiles": r"C:\Program Files",
+                   "ProgramData": r"C:\ProgramData", "ALLUSERSPROFILE": r"C:\ProgramData",
                    "TEMP": str(stage_dir), "TMP": str(stage_dir)}
             code, stdout, stderr, timed_out = _run_bounded_fixed_process(
                 [str(image), "-Scan", "-ScanType", "3", "-File", str(staged), "-DisableRemediation"],

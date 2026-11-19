@@ -145,7 +145,7 @@
         "docs/SECURITY_MODEL.md",
         "docs/ACCEPTANCE_EVIDENCE.md"
       ],
-      "acceptance": "Run hostile forged guest receipt test on real Win11 Sandbox, prove separately trusted reviewer; no automatic integration from guest PASS",
+      "acceptance": "On the owner Windows device with Zero-VM and Zero-Container, verify distinct protected signer and reviewer identities, exact SHA and lease binding, and rejection of forged or replayed receipts. Verify F18-A as static-only evidence. Require separately authorized independent F18-B execution evidence for REQ-14 and keep integration held until it is accepted.",
       "safety_checks": [
         "F18_TRUST_BOUNDARY",
         "NO_HOST_FALLBACK"
@@ -156,7 +156,8 @@
       "evidence_sha": null,
       "verification_status": "NOT_RUN",
       "blockers": [
-        "owner Windows Sandbox",
+        "owner Windows protected signer, separate reviewer and authenticated native IPC",
+        "separately authorized isolated execution evidence for REQ-14 under the approved Zero-VM policy",
         "independent reviewer"
       ],
       "legacy_test_harness_migrated_from": [

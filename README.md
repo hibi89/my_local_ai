@@ -6,7 +6,18 @@
 
 **목표:** EAI에서 유용한 일부 분석 기술과 AX Dev Factory의 Ollama/OpenCode 실행 기술을 선택적으로 재사용해 **My Local AI 고유의 독립적인 24시간 로컬 자율개발 시스템**을 만든다. EAI 자체를 완성·복제·통합 제품으로 이름만 바꾸는 작업이 아니다. 대상: Windows 11 Pro / GTX1050Ti / RAM 16GB. 비용 0원·오프라인 우선, 24시간 승인 작업 큐 처리 지향.
 
-**현재:** 2026-11-17 설계 V1 후보. 코드 구현 0건, 신규 저장소 테스트 NOT_RUN, 구현률·공식 검증률 UNASSESSED, REAL-USE HOLD. 문서만으로 완성 주장 금지.
+**현재:** `dev/instant-implementation-v1`에서 로컬 운영 대시보드와 구현 후보를 확인할 수 있습니다. 공식 검증률은 미산정이며 Windows 보호 환경과 독립 실행 검증은 보류 상태입니다.
+
+## 로컬 운영 대시보드
+
+작업 브랜치를 내려받은 폴더에서 PowerShell로 실행합니다.
+
+```powershell
+$env:PYTHONPATH = 'src'
+python -m my_local_ai dashboard --open
+```
+
+이 PC의 브라우저에서 구현 후보, 실행 차단 이유, 검증 장부와 리소스 상태를 확인합니다. Python 3.11 이상이 필요합니다. 콘솔에서 `Ctrl+C`로 종료합니다.
 
 ## 시작 문서
 - [AGENTS.md](AGENTS.md): 역할·정본·안전
