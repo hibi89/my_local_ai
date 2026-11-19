@@ -1263,7 +1263,7 @@ class DefenderEvidenceTests(unittest.TestCase):
         ):
             with self.subTest(wrong=wrong):
                 detection = {"record": 7, "id": 1116, "fields": wrong,
-                             "evidence_sha256": "c" * 64 if "Path" not in wrong else "INVALID"}
+                             "evidence_sha256": "INVALID" if wrong.get("Path") == target else "c" * 64}
                 self.assertEqual(
                     d._defender_completion_evidence(events + [detection], target, 4),
                     (False, []),
