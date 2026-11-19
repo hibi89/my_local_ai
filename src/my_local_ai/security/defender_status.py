@@ -570,24 +570,28 @@ def _verify_microsoft_image(api, image: Path) -> None:
         verify(w.HWND(-1), c.byref(guid), c.byref(data))
 
 
-def _deny_truncated_defender_events(after_record: int, existing_count: int) -> None:
+def _deny_truncated_defender_events(require_complete: bool, existing_count: int) -> None:
     """Fail closed if scan-time event history exceeds the bounded capture.
 
     The pre-scan query is intentionally reverse-ordered: its newest record
-    alone establishes the cursor. Post-scan evidence is different: dropping
-    even one matching safety/detection event makes CLEAN untrustworthy.
+    alone establishes the cursor. Post-scan evidence must be complete even
+    if that cursor is zero (an empty event log). Missing any safety/detection
+    event makes CLEAN untrustworthy.
     """
     from my_local_ai.state.consent import ProtectedBrokerHold
-    if (type(after_record) is not int or after_record < 0
+    if (type(require_complete) is not bool
         or type(existing_count) is not int or existing_count < 0
-        or (after_record > 0 and existing_count >= 256)):
+        or (require_complete and existing_count >= 256)):
         raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
 
 
-def _defender_events_after(api, after_record: int) -> list[dict]:
+def _defender_events_after(api, after_record: int, *, require_complete: bool = False) -> list[dict]:
     """Read bounded event XML via wevtapi. No PowerShell or mutable log file."""
     import xml.etree.ElementTree as ET
     from my_local_ai.state.consent import ProtectedBrokerHold
+    if (type(after_record) is not int or after_record < 0
+        or type(require_complete) is not bool):
+        raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
     c, w = api.c, api.w
     dll = c.WinDLL("wevtapi.dll", use_last_error=True, winmode=0x800)
     query = api._bind(dll, "EvtQuery", [w.HANDLE, w.LPCWSTR, w.LPCWSTR, w.DWORD], w.HANDLE)
@@ -606,14 +610,14 @@ def _defender_events_after(api, after_record: int) -> list[dict]:
         # Oldest records may be omitted only during the pre-scan cursor
         # snapshot. Post-scan queries must probe record 257 and HOLD rather
         # than silently truncate policy-change or malware evidence.
-        for _ in range(257 if after_record else 256):
+        for _ in range(257 if require_complete else 256):
             event, count = w.HANDLE(), w.DWORD()
             if not next_fn(handle, 1, c.byref(event), 1000, 0, c.byref(count)):
                 if c.get_last_error() == 259:
                     break
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             try:
-                _deny_truncated_defender_events(after_record, len(result))
+                _deny_truncated_defender_events(require_complete, len(result))
                 length, properties = w.DWORD(), w.DWORD()
                 render(None, event, 1, 0, None, c.byref(length), c.byref(properties))
                 if not 1 <= length.value <= 65536:
@@ -783,7 +787,7 @@ def _serve_defender_scan(api, binding: dict, payload: dict, scope: dict, stopped
                 cwd=image.parent, env=env, timeout_seconds=payload["timeout_seconds"],
                 stopped=stopped, output_limit=1024 * 1024,
             )
-            after_events = _defender_events_after(api, cursor)
+            after_events = _defender_events_after(api, cursor, require_complete=True)
             if any(item["id"] in {5001, 5004, 5007, 5010, 5012} for item in after_events):
                 raise ProtectedBrokerHold("PROTECTED_RUNTIME_DENIED")
             completed, detections = _defender_completion_evidence(after_events, str(staged), cursor)
