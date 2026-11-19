@@ -1842,7 +1842,7 @@ def _owner_ui_read_pins(api):
         or not re.fullmatch(r"[0-9a-f]{64}",image_sha)
         or any(sid == root[0] for root in api.load_roots().values())):
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-    return sid, session, name, public, image_sha, _read_pinned_cng_mode(api)
+    return sid, session, name, public, image_sha
 
 
 @_contextmanager
@@ -1912,7 +1912,7 @@ def _confirm_owner_session_request(api,request,action,scope,sign_body,stopped):
     import time
     if api.role != "owner":
         raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-    owner_sid,_,_,public,_,_=_owner_ui_read_pins(api)
+    owner_sid,_,_,public,_=_owner_ui_read_pins(api)
     ticket=_build_owner_ui_ticket(request,action,scope,signer=sign_body,
         issued_at=int(time.time()),lifespan_seconds=120)
     nonce=ticket["body"]["ticket_nonce"]
@@ -1964,7 +1964,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             or len(sys.argv) > 1
             or Path(sys.executable).name.casefold() != "mylocalai.ownerui.exe"):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
-        owner_sid, session_id, key_name, public, image_sha, key_provider_mode = _owner_ui_read_pins(self)
+        owner_sid, session_id, key_name, public, image_sha = _owner_ui_read_pins(self)
         roots = self.load_roots()
         if (public in {value[2] for value in roots.values()}
             or image_sha in {value[1] for value in roots.values()}):
@@ -1980,7 +1980,7 @@ class _OwnerInteractiveAPI(_WindowsBrokerAPI):
             raise ProtectedBrokerHold("PROTECTED_BROKER_IDENTITY")
         self.role = "owner-ui"
         self.roots = {"owner-ui":(owner_sid,image_sha,public)}
-        self.settings = {"KeyName":key_name, "KeyProviderMode":key_provider_mode}
+        self.settings = {"KeyName":key_name, "KeyProviderMode":_read_pinned_cng_mode(self)}
         self.resources = ExitStack()
         exe = Path(sys.executable)
         bundle = Path(getattr(sys,"_MEIPASS",""))
