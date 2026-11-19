@@ -76,6 +76,10 @@ jobs:
             throw 'host intake leaked trust authority'
           }
           Write-Host 'WINDOWS_HOST_INTAKE_READ_ONLY_HOLD_CONFIRMED'
+          # The expected Python exit code 2 remains in LASTEXITCODE. A pwsh
+          # GitHub Actions wrapper can propagate that stale code despite all
+          # assertions passing. Finish only after checking the HOLD contract.
+          exit 0
       - name: Synthetic protected Windows preflight regression (NO Owner acceptance)
         shell: pwsh
         run: |
