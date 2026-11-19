@@ -2397,7 +2397,10 @@ def protected_service_main(role: str) -> int:
             "kind", "state", "accepted", "exit", "specific", "checkpoint", "wait_hint")]
     set_status = _WindowsBrokerAPI._bind(advapi, "SetServiceStatus", [w.HANDLE, c.POINTER(Status)], w.BOOL)
     def report(state, error=0):
-        status = Status(0x10, state, 1 if state == 4 else 0, error, 0,
+        # Handler accepts STOP (1) and SHUTDOWN (5). SCM sends shutdown
+        # only when SERVICE_ACCEPT_SHUTDOWN (0x4) is advertised. No controls
+        # are accepted during START/STOP_PENDING.
+        status = Status(0x10, state, 0x5 if state == 4 else 0, error, 0,
                         1 if state in (2, 3) else 0, 25000 if state in (2, 3) else 0)
         if status_handle and not set_status(status_handle, c.byref(status)):
             stopped.set()
@@ -2419,11 +2422,18 @@ def protected_service_main(role: str) -> int:
         try:
             api = _WindowsProtectedServiceAPI(role)
             try:
-                # StartServiceCtrlDispatcher/ServiceMain have completed before
-                # opening CNG (NCrypt in a dispatcher initialization can lock).
-                report(4)
+                # The native dispatcher and ServiceMain are established.
+                # Do NOT report RUNNING until the pinned CNG key has opened
+                # and the protected server/journal is initialized: a failed
+                # key must never briefly appear SCM-ready. Report RUNNING
+                # before pipe self-authentication, which checks live SCM state.
                 with api.signer() as sign_body:
                     server = _ProtectedActionServer(api, sign_body, stopped)
+                    if stopped.is_set():
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")
+                    report(4)
+                    if stopped.is_set():
+                        raise ProtectedBrokerHold("PROTECTED_BROKER_UNAVAILABLE")
                     _serve_named_pipe(api, server, stopped)
             finally:
                 api.close()
