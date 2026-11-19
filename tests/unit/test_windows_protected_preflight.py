@@ -185,6 +185,18 @@ class ReadOnlyPreflightTests(unittest.TestCase):
 
 
 
+    def test_preflight_distinguishes_unreadable_pins_from_missing_components(self):
+        for exc, code in (
+            (PermissionError("private registry value"), "PREFLIGHT_ACCESS_DENIED"),
+            (FileNotFoundError("private registry value"), "PREFLIGHT_COMPONENT_NOT_FOUND"),
+        ):
+            with self.subTest(code=code), patch.object(preflight, "_native_settings", side_effect=exc):
+                result = preflight.preflight(self.bundle, self.installed)
+            self.assertEqual(result["code"], code)
+            self.assertFalse(result["runtime_authorized"])
+            self.assertNotIn("private registry value", json.dumps(result))
+
+
 class HostReadOnlyIntakeTests(unittest.TestCase):
     """Local synthetic probes; neither provisioning nor owner-device attestation."""
 
@@ -271,6 +283,43 @@ class HostReadOnlyIntakeTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(json.loads(stdout.getvalue())["decision"], "HOLD")
 
+
+
+class InstallationInventoryTests(unittest.TestCase):
+    def test_directory_status_exercises_read_access(self):
+        with tempfile.TemporaryDirectory() as root:
+            base = Path(root).resolve()
+            file = base / "file"
+            file.write_text("test", encoding="ascii")
+            self.assertEqual(preflight._directory_state(base), "READABLE_UNATTESTED")
+            self.assertEqual(preflight._directory_state(file), "WRONG_TYPE")
+            self.assertEqual(preflight._directory_state(base / "missing"), "NOT_FOUND")
+            with patch.object(preflight.os, "scandir", side_effect=PermissionError):
+                self.assertEqual(preflight._directory_state(base), "ACCESS_DENIED")
+
+    def test_opening_paths_and_scm_separately_never_authorizes(self):
+        path_type = type(Path())
+        with patch.object(preflight.os, "name", "nt"), \
+             patch.object(preflight, "Path", path_type), \
+             patch.object(preflight, "_directory_state", return_value="ACCESS_DENIED"), \
+             patch.object(preflight, "_registry_state", return_value="READABLE_UNATTESTED"), \
+             patch.object(preflight, "_scm_states", return_value=(
+                 "READABLE_UNATTESTED", dict.fromkeys(preflight.SERVICE_ROLES, "NOT_FOUND"))):
+            report = preflight.installation_inventory()
+        self.assertEqual(report["services"], dict.fromkeys(preflight.SERVICE_ROLES, "NOT_FOUND"))
+        self.assertEqual(report["scm_manager"], "READABLE_UNATTESTED")
+        self.assertEqual(report["paths"]["install_parent"], "ACCESS_DENIED")
+        self.assertEqual(report["registry"]["base"], "READABLE_UNATTESTED")
+        self.assertEqual(report["decision"], "HOLD")
+        self.assertFalse(report["runtime_authorized"])
+
+    def test_cli_emits_redacted_held_inventory(self):
+        with patch.object(preflight, "installation_inventory", return_value={"decision": "HOLD"}) as inspect:
+            with redirect_stdout(io.StringIO()) as stdout:
+                status = preflight.main(["--installation-inventory"])
+        self.assertEqual(status, 2)
+        inspect.assert_called_once_with()
+        self.assertEqual(json.loads(stdout.getvalue()), {"decision": "HOLD"})
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 
 from build_protected_windows import IMAGES, PYINSTALLER_VERSION, _hash_file, inspect_image
@@ -33,9 +34,9 @@ class PreflightHold(ValueError):
 
 def _no_links(path: Path) -> None:
     """Reject links/junctions in the path's observed ancestry."""
-    for node in (path, *path.parents):
+    for node in reversed((path, *path.parents)):
         info = node.lstat()
-        if node.is_symlink() or getattr(info, "st_file_attributes", 0) & REPARSE:
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & REPARSE:
             raise PreflightHold("REPARSE_PATH_HOLD")
 
 
@@ -234,7 +235,7 @@ def preflight(bundle: Path, installed: Path, *, settings: dict | None = None) ->
         ],
     }
     try:
-        manifest, destination = verify_stage_and_install(bundle, installed)
+        _, destination = verify_stage_and_install(bundle, installed)
         if settings is None:
             settings = _native_settings()
         verify_pins(settings, destination, installed)
@@ -246,9 +247,110 @@ def preflight(bundle: Path, installed: Path, *, settings: dict | None = None) ->
             role: destination[name]["image_sha256"]
             for role, name, _ in IMAGES
         }
+    except PermissionError:
+        result["code"] = "PREFLIGHT_ACCESS_DENIED"
+    except FileNotFoundError:
+        result["code"] = "PREFLIGHT_COMPONENT_NOT_FOUND"
     except (PreflightHold, OSError, ValueError, KeyError, TypeError) as exc:
         result["code"] = exc.code if isinstance(exc, PreflightHold) else "READ_ONLY_PRECHECK_ERROR"
     return result
+
+
+def _directory_state(path: Path) -> str:
+    try:
+        _no_links(path)
+        if not stat.S_ISDIR(path.lstat().st_mode):
+            return "WRONG_TYPE"
+        with os.scandir(path) as entries:
+            next(entries, None)  # Exercise list access and discard the entry.
+    except PreflightHold:
+        return "REPARSE_PATH_HOLD"
+    except PermissionError:
+        return "ACCESS_DENIED"
+    except FileNotFoundError:
+        return "NOT_FOUND"
+    except OSError:
+        return "QUERY_FAILED"
+    return "READABLE_UNATTESTED"
+
+
+def _registry_state(path: str) -> str:
+    import winreg
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0,
+                            winreg.KEY_READ | winreg.KEY_WOW64_64KEY):
+            return "READABLE_UNATTESTED"
+    except PermissionError:
+        return "ACCESS_DENIED"
+    except FileNotFoundError:
+        return "NOT_FOUND"
+    except OSError:
+        return "QUERY_FAILED"
+
+
+def _scm_states() -> tuple[str, dict]:
+    import ctypes as c
+    from ctypes import wintypes as w
+
+    advapi = c.WinDLL("advapi32.dll", use_last_error=True, winmode=0x800)
+    open_manager = advapi.OpenSCManagerW
+    open_manager.argtypes = [w.LPCWSTR, w.LPCWSTR, w.DWORD]
+    open_manager.restype = w.HANDLE
+    open_service = advapi.OpenServiceW
+    open_service.argtypes = [w.HANDLE, w.LPCWSTR, w.DWORD]
+    open_service.restype = w.HANDLE
+    close = advapi.CloseServiceHandle
+    close.argtypes = [w.HANDLE]
+    close.restype = w.BOOL
+
+    manager = open_manager(None, None, 0x0001)  # SC_MANAGER_CONNECT
+    if not manager:
+        state = "ACCESS_DENIED" if c.get_last_error() == 5 else "QUERY_FAILED"
+        return state, dict.fromkeys(SERVICE_ROLES, "NOT_OBSERVED")
+    states = {}
+    try:
+        # Enumeration can omit services with restricted status ACLs.
+        # Query each exact name with the same read rights as the broker.
+        for role in SERVICE_ROLES:
+            handle = open_service(manager, f"MyLocalAI.{role}.v1", 0x20005)
+            if handle:
+                states[role] = "READABLE_UNATTESTED"
+                close(handle)
+            else:
+                states[role] = {5: "ACCESS_DENIED", 1060: "NOT_FOUND"}.get(
+                    c.get_last_error(), "QUERY_FAILED")
+    finally:
+        close(manager)
+    return "READABLE_UNATTESTED", states
+
+
+def installation_inventory() -> dict:
+    """Check fixed installation roots and SCM names without reading their contents."""
+    result = {"schema": "mla-protected-installation-inventory/v1",
+              "decision": "HOLD", "read_only": True, "runtime_authorized": False,
+              "paths": {}, "registry": {}, "scm_manager": "NOT_OBSERVED", "services": {}}
+    if os.name != "nt":
+        return {**result, "state": "WINDOWS_REQUIRED"}
+
+    images = Path(r"C:\Program Files\MyLocalAI")
+    data = Path(r"C:\ProgramData\MyLocalAI")
+    paths = {
+        "install_parent": images,
+        "installed_bundle": images / "Protected" / "v1",
+        "data_parent": data,
+        "protected_data": data / "Protected" / "v1",
+        "owner_exchange": data / "OwnerExchange" / "v1",
+    }
+    keys = {"base": BASE, **{role: BASE + "\\" + role for role in SERVICE_ROLES}}
+    result["paths"] = {label: _directory_state(path) for label, path in paths.items()}
+    result["registry"] = {label: _registry_state(key) for label, key in keys.items()}
+    try:
+        result["scm_manager"], result["services"] = _scm_states()
+    except OSError:
+        result["scm_manager"] = "QUERY_FAILED"
+        result["services"] = dict.fromkeys(SERVICE_ROLES, "NOT_OBSERVED")
+    return {**result, "state": "OBSERVED_UNATTESTED"}
 
 
 def host_readonly_prerequisites() -> dict:
@@ -328,17 +430,20 @@ def host_readonly_prerequisites() -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host-readonly", action="store_true",
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--host-readonly", action="store_true",
                         help="Read-only host diagnostics without staged/install images; always HOLD")
+    modes.add_argument("--installation-inventory", action="store_true",
+                       help="Query fixed Windows install paths, registry and SCM names; always HOLD")
     parser.add_argument("--bundle", type=Path,
                         help="Absolute folder with the original untrusted build manifest")
     parser.add_argument("--installed-root", type=Path,
                         help="Absolute existing protected installation root (read only)")
     args = parser.parse_args(argv)
-    if args.host_readonly:
+    if args.host_readonly or args.installation_inventory:
         if args.bundle is not None or args.installed_root is not None:
-            parser.error("--host-readonly cannot be combined with image paths")
-        result = host_readonly_prerequisites()
+            parser.error("read-only host modes cannot be combined with image paths")
+        result = installation_inventory() if args.installation_inventory else host_readonly_prerequisites()
     else:
         if args.bundle is None or args.installed_root is None:
             parser.error("--bundle and --installed-root are required together")

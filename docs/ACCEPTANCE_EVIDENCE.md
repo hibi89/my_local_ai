@@ -17,7 +17,9 @@
 
 ### MLA-SWU-008 · Windows 보호 설치안
 
-- 실기기 현재 토큰은 중간 무결성이다. TPM 사용 가능 상태와 보호 HKLM/폴더를 확인하지 못했고 Software KSP 읽기 전용 조회는 성공했다. 보호 서비스 3개는 조회 결과에 없었다. 별도 관리자 작업 세션과 별도 대화형 Owner 세션이 필요하다.
+- 실기기 일반 토큰은 중간 무결성이다. TPM 사용 가능 판정은 보류이며 Software KSP 조회는 성공했다. 일반 토큰의 서비스 열거에서 보호 서비스가 누락돼, 관리자 읽기 전용 조회로 설치 상태를 별도로 확인했다.
+- 관리자 조회에서 기존 수동 시작 보호 서비스 **3개가 RUNNING**이고 보호 HKLM, authority DB와 역할별 장부가 존재하는 것을 확인했다. 이 배치는 기존 `MLAOwner.exe`, `MLAReviewer.exe`, `MLAScanner.exe`를 사용한다. 별도 OwnerUI 키·공개키·이미지 핀과 새 승인 교환 경로가 비어 있고, 고정 Owner 세션 번호와 현재 세션 번호가 다르다. Software KSP 사용을 위한 모드 핀도 비어 있다. 기존 구성과 권한 장부의 보호 상태를 보존하면서 업그레이드 범위를 결정해야 한다.
+- `python scripts/preflight_protected_windows.py --installation-inventory`는 고정 보호 경로와 레지스트리, SCM 이름을 읽기 전용으로 조회한다. 실제 토큰으로 확인하는 접근 거부, 미존재, 조회 성공을 분리해 내보내고 항상 HOLD를 반환한다. 관리자 인벤토리는 기존 구성 확인 근거이며, 새 Owner 승인 왕복과 F18 결과는 별도 실측이 필요하다.
 - 제안 서비스 계정은 `MLAOwnerBroker`, `MLAReviewBroker`, `MLAScanBroker`이며 대화형 승인은 `MLAOwnerUI`에 할당한다. Controller는 별도 SID로 유지한다. 설치 전 실제 SID, 로그인 세션 ID 및 기존 동명 자원 존재 여부를 보호 운영 환경에서 검증한다.
 - 고정 EXE 및 `_internal`은 `C:\Program Files\MyLocalAI\Protected\v1` 아래 역할별 디렉터리에 배치한다. 상태·nonce 장부는 `C:\ProgramData\MyLocalAI\Protected\v1`, 교환 디렉터리는 `C:\ProgramData\MyLocalAI\OwnerExchange\v1`이다. 파일·조상과 64비트 HKLM의 소유자는 SYSTEM 또는 Administrators로 지정한다. 다른 역할에는 필요한 읽기 권한만 부여한다. 각 서비스의 사설 장부는 해당 역할, 교환 디렉터리는 Owner 서비스와 대화형 Owner에게 쓰기를 한정한다.
 - 제안 머신 키 이름은 `MyLocalAI.Owner.v1`, `MyLocalAI.Reviewer.v1`, `MyLocalAI.Scanner.v1`, `MyLocalAI.OwnerUI.v1`이다. `SOFTWARE_CNG_OWNER_APPROVED_V1`을 명시하고 각 역할별 비수출 ECDSA P-256 서명 전용 키의 ACL, 공개키·이미지 SHA, 서비스 SID를 핀으로 사용한다. 세 서비스는 요구 시에만 시작한다. Reviewer에는 독립 보호 bare Git 미러와 고정 Git 이미지, Scanner에는 활성 Defender 플랫폼의 고정 `MpCmdRun.exe` 이미지가 필요하다.
