@@ -50,7 +50,9 @@
       "windows_protected_synthetic_run_id": 44753070134,
       "windows_artifact_id": 14635134423,
       "artifact_sha256": "5a46a96975bc2329f0f17a764aaa1051e9dcc7359d4a03d6890de116133c0da2",
-      "ci_synthetic_result": "PASS"
+      "ci_synthetic_result": "PASS",
+      "last_safety_source_sha": "1cee1c81f99499a3adc3fe0d4a40251d78797d68",
+      "same_file_collision_hold": "SOURCE_CANDIDATE_SYNTHETIC_CI_PASS"
     },
     {
       "id": "MLA-LR-002",
@@ -89,14 +91,35 @@
       "allowed_paths": [
         "src/my_local_ai/ax_runtime/ollama_provider.py",
         "src/my_local_ai/ax_runtime/manual_draft.py",
-        "tests/unit/test_ollama_warm_sequence.py"
+        "tests/unit/test_ollama_warm_sequence.py",
+        "src/my_local_ai/ax_runtime/pinned_source_cache.py",
+        "tests/unit/test_pinned_source_cache.py",
+        "tests/unit/test_manual_draft.py",
+        "src/my_local_ai/ui/workbench.js"
       ],
       "note": "Bounded 90s warm model for serial SWU draft, model lock preserved, standalone unload 0; exact source CI/VRAM data pending.",
-      "latest_source_sha": "e6db806beac5b37a3b33340bae0e9da0283f89f5",
+      "latest_source_sha": "653ea44fcdc79e8551cac6a0ca179f454bfd0677",
       "linux_ci_run_id": 44760618419,
       "windows_ci_run_id": 44760618616,
       "real_owner_windows": "NOT_RUN",
-      "partial_capability": "Bounded 90s keep_alive for serial Qwen, standalone 0. GPU/elapsed optimization UNMEASURED."
+      "partial_capability": "Bounded 90s keep_alive for serial Qwen, standalone 0. GPU/elapsed optimization UNMEASURED.",
+      "test_sha": "afc34481d01ce12f6a1f4b4a829f6d71034ec428",
+      "capabilities": [
+        "bounded_90s_serial_qwen_residency",
+        "512KB_8entry_sha_pinned_source_cache",
+        "json_toml_syntax_only_retry",
+        "ui_source_cache_hit_count"
+      ],
+      "remaining": [
+        "typed_model_role_selection",
+        "real_gtx1050ti_ram_vram_cpu_benchmark",
+        "full_development_completion_validation"
+      ],
+      "ci_linux_run_id": 44766759622,
+      "ci_windows_exe_run_id": 44766587272,
+      "real_windows_test": "NOT_RUN",
+      "ci_windows_protected_run_id": 44766587109,
+      "ci_windows_protected_conclusion": "SUCCESS_SYNTHETIC_ONLY"
     },
     {
       "id": "MLA-LR-004",
