@@ -581,6 +581,9 @@ class LocalDrafts:
                         "active_mode": ("inspection" if self._request.inspect_only else "draft") if active else "",
                         "gemini_configured": self.advisor.configured,
                         "verified_count": 0,  # An audit smoke cannot accept a P2 gate.
+                        "source_reuse": {"hits": self._source_cache.hits,
+                                         "misses": self._source_cache.misses,
+                                         "entries": self._source_cache.entries},
                         "executed_count": sum(record.get("state") == "PASS"
                                               for record in queue.executions.values()),
                         "executing": bool(self._remote_active),

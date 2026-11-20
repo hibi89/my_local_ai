@@ -73,6 +73,8 @@ class CacheTests(unittest.TestCase):
                     self.assertEqual(sources["src/thing.py"], "GOOD = True\n")
                 self.assertEqual(fetch.call_count, 1)
                 self.assertEqual(app._source_cache.hits, 1)
+                # A queue snapshot can expose aggregated cache savings, not file contents.
+                self.assertEqual(app._source_cache.entries, 1)
             changed = DraftDocument("NEW = True\n", "fixture", B)
             with patch("my_local_ai.ax_runtime.manual_draft.read_github_file",
                        return_value=changed) as fetch:

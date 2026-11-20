@@ -329,7 +329,8 @@ function showQueue(value, working) {
   advisorState.textContent = value.gemini_configured ? '복구 조언 · Gemini 키 설정됨' : '복구 조언 · 로컬 재시도';
   document.querySelector('#queue-summary').textContent =
     items.length + '개 파트 · 읽기 확인 ' + inspected + '개 · 초안 ' + saved + '개 · 실제 CLI 감사 완료 ' + executed + '개 · P2 수용 ' + value.verified_count + '개' +
-    (held ? ' · 보류 ' + held + '개' : '');
+    (held ? ' · 보류 ' + held + '개' : '') +
+    (value.source_reuse?.hits ? ' · GitHub 원본 재사용 ' + value.source_reuse.hits + '회' : '');
   nextItem.disabled = items.length < 2;
   const signature = JSON.stringify([value.id, value.active_mode, ...items.map(item =>
     [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts, item.execution?.state, item.can_execute, item.can_reconcile])]);
