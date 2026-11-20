@@ -166,7 +166,10 @@
         ".github/workflows/ci.yml",
         ".github/workflows/mla-windows-workbench-exe.yml",
         "src/my_local_ai/ops/nvml_readonly.py",
-        "tests/unit/test_nvml_readonly.py"
+        "tests/unit/test_nvml_readonly.py",
+        "src/my_local_ai/ax_runtime/longrun_window.py",
+        "tests/unit/test_longrun_window.py",
+        "tests/unit/test_observation_copy_ui.py"
       ],
       "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart; current/peak MLA process working-set RAM on Windows, local GET-only 30s polling and reconnect; GPU VRAM still unmeasured",
       "actual_owner_windows": "NOT_RUN",
@@ -177,9 +180,9 @@
         "dc9240299b768a53a1971cd74758231244503d42"
       ],
       "preflight_windows_artifact": {
-        "id": 14662619163,
-        "sha256": "98f7c54533c499dfd1e8e3e5e0f278842337e95dfd291255de63d4c1e4b49aa0",
-        "expires_at": "2026-11-27T19:54:31Z"
+        "id": 14664523000,
+        "sha256": "49b31b329600eb0b0d46c4a02e0aecf55a7b2b5d4df3d7b0ff10009c5454d4b9",
+        "expires_at": "2026-11-27T20:12:01Z"
       },
       "previous_session_receipts": {
         "functional_sha": "d1b26833d1be5d886033d5ad832bd9cd01eaa725",
@@ -220,6 +223,18 @@
         "windows_exe_conclusion": "SUCCESS",
         "protected_synthetic_run_id": 44806094515,
         "protected_synthetic_conclusion": "SUCCESS_SYNTHETIC_ONLY"
+      },
+      "observation_24h_candidate": {
+        "feature_sha": "dfe686f67f7b8cd5841d9665a2f95dc9e2910706",
+        "owner_clipboard_sha": "f6d1f8f8b91b62e02e3921135d213595a87213d6",
+        "latest_test_sha": "0e69b6986c1837748e903eaf4370e1e2c7ae3dac",
+        "scope": "4096-row local wall-clock diagnostics, numeric-only click copy; not P2 acceptance",
+        "linux_ci_run_id": 44809065492,
+        "windows_exe_ci_run_id": 44809065514,
+        "windows_exe_ci_result": "SUCCESS_SYNTHETIC_RUNNER_ONLY",
+        "p2_24h_owner_real": "NOT_RUN",
+        "real_gtx1050ti": "UNMEASURED",
+        "release": "HOLD"
       }
     }
   ],
