@@ -1,4 +1,5 @@
 """Synthetic monitor evidence only; not real Windows, suspend or 24-hour proof."""
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import sqlite3
@@ -42,7 +43,7 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual(snap["verification"], "NOT_RUN")
             self.assertEqual(snap["process_ram_mb"], 123.5)
             self.assertEqual(snap["process_ram_peak_mb"], 123.5)
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 4)
                 self.assertEqual(db.execute("SELECT event FROM longrun_receipts ORDER BY id DESC LIMIT 1").fetchone()[0], "STOP")
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_process_ram").fetchone()[0], 4)
@@ -89,7 +90,7 @@ class MonitorTests(unittest.TestCase):
             monitor.tick()
             self.assertEqual(monitor.snapshot()["process_ram_peak_mb"], 104.25)
             self.assertFalse(monitor.snapshot()["real_24h_accepted"])
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 3)
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_process_ram").fetchone()[0], 1)
 
@@ -98,7 +99,7 @@ class MonitorTests(unittest.TestCase):
             root = Path(directory)
             first = LongrunMonitor(root)
             first.tick("START")
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 db.execute(
                     "INSERT INTO longrun_receipts "
                     "(session,event,utc_seconds,elapsed_seconds,gap) VALUES (?,?,?,?,?)",
@@ -117,13 +118,13 @@ class MonitorTests(unittest.TestCase):
             root = Path(directory)
             first = LongrunMonitor(root)
             first.tick("START")
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 db.execute("UPDATE longrun_receipts SET elapsed_seconds = -1")
             reopened = LongrunMonitor(root)
             reopened.tick("START")
             self.assertEqual(reopened.snapshot()["status"], "EVIDENCE_UNAVAILABLE")
             self.assertEqual(reopened.snapshot()["samples"], 0)
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 1)
 
     def test_stop_is_idempotent_and_previous_session_clean(self):
@@ -137,7 +138,7 @@ class MonitorTests(unittest.TestCase):
             self.assertIsNotNone(monitor.snapshot()["vram_scope"])
             monitor.stop()
             monitor.stop()
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 self.assertEqual(db.execute(
                     "SELECT count(*) FROM longrun_receipts WHERE event = 'STOP'"
                 ).fetchone()[0], 1)
@@ -164,7 +165,7 @@ class MonitorTests(unittest.TestCase):
                 monitor.tick(event)
                 self.assertIsNone(monitor.snapshot()["vram_mb"])
                 self.assertIsNone(monitor.snapshot()["vram_total_mb"])
-            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+            with closing(sqlite3.connect(root / ".mla-timing.sqlite3")) as db, db:
                 self.assertEqual(db.execute(
                     "SELECT count(*) FROM longrun_gpu_vram"
                 ).fetchone()[0], 0)
