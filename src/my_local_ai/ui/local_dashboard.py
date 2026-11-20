@@ -1,6 +1,7 @@
 """Explicit loopback server for the read-only MLA console."""
 from __future__ import annotations
 
+from contextlib import nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ from threading import Lock
 from urllib.parse import parse_qs, urlsplit
 
 from ..ax_runtime.manual_draft import DraftError, LocalDrafts, REQUEST_LIMIT
+from ..ax_runtime.workbench_guard import exclusive_workbench
 from ..ops.resource_monitor import ResourceReading, sample_local_resources
 from .dashboard_page import (
     load_locked_verification_queue, load_project_overview, render_html, render_unavailable,
@@ -201,11 +203,19 @@ class LocalStatusServer(ThreadingHTTPServer):
 def launch_dashboard(project_root: str | Path, port: int = 0, *, open_browser: bool = False,
                      draft_root: Path | None = None) -> None:
     """Serve the console until interrupted."""
-    drafts = LocalDrafts(draft_root) if draft_root is not None else None
-    with LocalStatusServer(project_root, port=port, drafts=drafts) as server:
-        url = f"http://127.0.0.1:{server.server_address[1]}{server.workbench_path or '/'}"
-        print(f"MLA dashboard: {url}", flush=True)
-        if open_browser:
-            import webbrowser
-            webbrowser.open(url, new=2)
-        server.serve_forever(poll_interval=0.3)
+    root = Path(draft_root).absolute() if draft_root is not None else None
+    if root is not None:
+        # Path validation and the OS lease precede queue restoration/auto-resume.
+        from ..ax_runtime.worker_lock import _safe_directory
+        _safe_directory(root.parent)
+        root.mkdir(exist_ok=True)
+    context = exclusive_workbench(root) if root is not None else nullcontext()
+    with context:
+        drafts = LocalDrafts(root) if root is not None else None
+        with LocalStatusServer(project_root, port=port, drafts=drafts) as server:
+            url = f"http://127.0.0.1:{server.server_address[1]}{server.workbench_path or '/'}"
+            print(f"MLA dashboard: {url}", flush=True)
+            if open_browser:
+                import webbrowser
+                webbrowser.open(url, new=2)
+            server.serve_forever(poll_interval=0.3)
