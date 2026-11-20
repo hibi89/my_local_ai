@@ -6,6 +6,8 @@ on:
       - '.github/workflows/mla-windows-workbench-exe.yml'
       - 'src/my_local_ai/ax_runtime/approved_workflow.py'
       - 'src/my_local_ai/ax_runtime/manual_draft.py'
+      - 'src/my_local_ai/ax_runtime/longrun_monitor.py'
+      - 'tests/unit/test_longrun_monitor.py'
       - 'src/my_local_ai/ui/**'
       - 'scripts/mla_workbench_windows.py'
       - 'scripts/mla_workbench_windows.spec'
@@ -80,6 +82,79 @@ jobs:
                       except subprocess.TimeoutExpired: process.kill(); process.wait()
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Windows executable smoke failed' }
+      - name: Frozen Windows EXE forced-exit and bounded receipt recovery
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import json
+          import re
+          import subprocess
+          import tempfile
+          import time
+          from urllib.request import urlopen
+          from urllib.error import URLError
+
+          exe = Path('dist/mla-workbench/MLA.exe').absolute()
+          assert exe.is_file()
+          with tempfile.TemporaryDirectory() as folder:
+              root = Path(folder)
+              drafts = root / 'drafts'
+
+              def run_and_kill(log_name):
+                  log = root / log_name
+                  with log.open('w+', encoding='utf-8') as stdout:
+                      process = subprocess.Popen(
+                          [str(exe), '--no-open', '--draft-root', str(drafts)],
+                          stdout=stdout, stderr=subprocess.STDOUT, cwd=root,
+                      )
+                      try:
+                          for attempt in range(60):
+                              stdout.flush()
+                              output = log.read_text(encoding='utf-8', errors='replace')
+                              match = re.search(
+                                  r'MLA dashboard: (http://127\.0\.0\.1:\d+/work/[A-Za-z0-9_-]+)',
+                                  output,
+                              )
+                              if match:
+                                  try:
+                                      with urlopen(match.group(1) + '/status', timeout=3) as response:
+                                          status = json.load(response)
+                                      data = status['longrun']
+                                      assert data['status'] == 'LOCAL_UNATTESTED'
+                                      assert data['verification'] == 'NOT_RUN'
+                                      assert data['real_24h_accepted'] is False
+                                      return data
+                                  except (URLError, TimeoutError, ConnectionError):
+                                      pass
+                              if process.poll() is not None:
+                                  raise AssertionError('MLA EXE exited before bound status was available')
+                              time.sleep(1)
+                          raise AssertionError('frozen EXE did not expose safe liveness status')
+                      finally:
+                          # The disposable CI process is deliberately killed;
+                          # this does not approve a production restart manager.
+                          subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                                         capture_output=True, check=False, timeout=15)
+                          try:
+                              process.wait(timeout=10)
+                          except subprocess.TimeoutExpired:
+                              process.kill()
+                              process.wait(timeout=10)
+
+              first = run_and_kill('first.txt')
+              assert first['previous_session'] is None
+              second = run_and_kill('second.txt')
+              assert second['previous_session_unclosed'] is True
+              prior = second['previous_session']
+              assert prior['samples'] >= 1
+              assert prior['start_receipt_present'] is True
+              assert prior['ended_cleanly'] is False
+              assert prior['verification'] == 'NOT_RUN'
+              assert prior['real_24h_accepted'] is False
+              print('FROZEN_WIN_CI_UNCLEAN_RESTART_RECEIPTS_PASS')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Windows EXE crash-recovery smoke failed' }
       - uses: actions/upload-artifact@v4
         with:
           name: MLA-Windows-workbench-unsigned-EXE
