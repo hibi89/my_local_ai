@@ -15,6 +15,9 @@ const queuePanel = document.querySelector('#work-queue');
 const queueItems = document.querySelector('#queue-items');
 const nextItem = document.querySelector('#next-item');
 const resumeQueue = document.querySelector('#resume-queue');
+const pauseContinuous = document.querySelector('#pause-continuous');
+const resumeContinuous = document.querySelector('#resume-continuous');
+const continuousState = document.querySelector('#continuous-state');
 const refreshEvidence = document.querySelector('#refresh-evidence');
 const queueNotice = document.querySelector('#queue-notice');
 const queueReceipt = document.querySelector('#queue-receipt');
@@ -305,7 +308,10 @@ function showQueue(value, working) {
     return;
   }
   const items = value.items;
-  resumeQueue.hidden = !value.can_resume;
+  resumeQueue.hidden = !value.can_resume || value.continuous?.paused;
+  pauseContinuous.hidden = !value.can_pause;
+  resumeContinuous.hidden = !value.can_continue;
+  continuousState.textContent = value.continuous?.message || '장시간 진행 상태를 확인할 수 없습니다.';
   refreshEvidence.hidden = !value.can_refresh;
   const saved = items.filter(item => item.draft).length;
   const inspected = items.filter(item => item.inspection?.state === 'observed').length;
@@ -392,7 +398,7 @@ viewBlocker.addEventListener('click', () => {
 });
 
 async function runQueueAction(command) {
-  if (submitButtons[0].disabled) return;
+  if (submitButtons[0].disabled && command.continuous !== 'pause') return;
   const version = ++submission;
   const previousAttempt = attempt;
   clearTimeout(retry);
@@ -421,6 +427,12 @@ async function runQueueAction(command) {
 
 resumeQueue.addEventListener('click', () => {
   if (workQueue?.can_resume) void runQueueAction({ resume: 'remaining' });
+});
+pauseContinuous.addEventListener('click', () => {
+  if (workQueue?.can_pause) void runQueueAction({ continuous: 'pause' });
+});
+resumeContinuous.addEventListener('click', () => {
+  if (workQueue?.can_continue) void runQueueAction({ continuous: 'resume' });
 });
 refreshEvidence.addEventListener('click', () => {
   if (workQueue?.can_refresh) void runQueueAction({ refresh: 'evidence' });
@@ -461,6 +473,8 @@ function showPlan(value) {
 function setBusy(busy) {
   for (const button of submitButtons) button.disabled = busy;
   resumeQueue.disabled = busy;
+  pauseContinuous.disabled = false; // Pausing is valid during a bounded in-flight step.
+  resumeContinuous.disabled = busy;
   refreshEvidence.disabled = busy;
   executeApproved.disabled = busy;
   for (const input of forms) input.setAttribute('aria-busy', String(busy));

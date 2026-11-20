@@ -124,6 +124,7 @@ class _WorkQueue:
     rechecks: set[str] = field(default_factory=set)
     evidence_reader: PinnedEvidence | None = None
     auto_drafts: bool = True
+    paused: bool = False
     failures: dict[str, dict] = field(default_factory=dict)
     recovery: dict[str, dict] = field(default_factory=dict)
     executions: dict[str, dict] = field(default_factory=dict)
@@ -484,7 +485,9 @@ class LocalDrafts:
                 if report.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING"):
                     report.update(state="HOLD", code="HOLD_INTERRUPTED_NO_REDISPATCH",
                                   p2_gate_accepted=False)
-            queue.auto_drafts = False
+            # An interrupted unit is marked HOLD below, never replayed automatically.
+            queue.auto_drafts = saved.get("continuous_enabled") is True
+            queue.paused = saved.get("paused") is True
             if saved.get("active") and not saved.get("active_inspection"):
                 active = saved["active"]
                 queue.interrupted.add(active)
@@ -519,6 +522,7 @@ class LocalDrafts:
                 "rechecks": sorted(queue.rechecks),
                 "failures": queue.failures, "recovery": queue.recovery,
                 "executions": queue.executions,
+                "continuous_enabled": queue.auto_drafts, "paused": queue.paused,
                 "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
@@ -557,7 +561,7 @@ class LocalDrafts:
                              "failure": queue.failures.get(item.key),
                              "recovery": queue.recovery.get(item.key),
                              "hold": self._item_hold(queue, item) if item != active else None,
-                             "auto_inspection": self._can_inspect(queue, item),
+                             "auto_inspection": not queue.paused and self._can_inspect(queue, item),
                              "scheduled": item.key in queue.scheduled,
                              "observation_hours": item.observation_hours(),
                              "elapsed_ms": queue.item_elapsed_ms.get(item.key, 0) + (current_ms if item == active else 0),
@@ -567,6 +571,27 @@ class LocalDrafts:
                                        else "inspected" if item.key in queue.inspections else "pending")}
                             for item in queue.items
                         ]}
+            pending_drafts = sum(self._can_draft(queue, item) for item in queue.items)
+            pending_reads = sum(self._can_inspect(queue, item) for item in queue.items)
+            stage = ("PAUSE_REQUESTED" if queue.paused and working else "PAUSED"
+                     if queue.paused else "WORKING" if working else "READY_TO_CONTINUE"
+                     if pending_reads or (queue.auto_drafts and pending_drafts)
+                     else "AWAITING_REVIEW_OR_APPROVAL")
+            messages = {
+                "PAUSE_REQUESTED": "현재 유한 단계가 끝나면 자동 진행을 일시정지합니다.",
+                "PAUSED": "자동 진행이 일시정지됐습니다. 진행 기록은 저장했습니다.",
+                "WORKING": "장시간 작업 중 · 각 단계의 결과를 별도로 저장합니다.",
+                "READY_TO_CONTINUE": "다음 안전 파트의 초안 또는 자료 확인을 진행합니다.",
+                "AWAITING_REVIEW_OR_APPROVAL": "자동 진행 가능한 파트가 없습니다. 검토·검증·승인을 확인하세요.",
+            }
+            worklist["continuous"] = {
+                "enabled": queue.auto_drafts, "paused": queue.paused, "stage": stage,
+                "message": messages[stage], "pending_drafts": pending_drafts,
+                "pending_reads": pending_reads, "draft_candidates": len(queue.drafts),
+                "verified": False,
+            }
+            worklist["can_pause"] = queue.auto_drafts and not queue.paused
+            worklist["can_continue"] = queue.paused or not queue.auto_drafts
             if queue.forecast:
                 worklist["forecast"] = queue.forecast
                 worklist["automated_count"] = len(queue.scheduled)
@@ -636,10 +661,29 @@ class LocalDrafts:
         if (type(payload) is not dict or set(payload) not in (
             names, {"message"}, {"reply", "attempt"}, {"queue", "item", "paths", "change"},
             {"queue", "resume"}, {"queue", "refresh"},
-            {"queue", "execute", "item"},
+            {"queue", "execute", "item"}, {"queue", "continuous"},
         )
             or any(type(text) is not str or "\0" in text for text in payload.values())):
             raise DraftError("입력값의 형식을 확인하세요.")
+        if "continuous" in payload:
+            with self._lock:
+                queue = self._queue
+                if (not queue or not queue.baseline or payload["queue"] != queue.key
+                    or payload["continuous"] not in ("pause", "resume")):
+                    raise DraftError("유효한 작업표와 자동 진행 요청을 확인해 주세요.")
+                old = (queue.auto_drafts, queue.paused)
+                if payload["continuous"] == "pause":
+                    queue.paused = True
+                else:
+                    queue.auto_drafts, queue.paused = True, False
+                self._state.pop("checkpoint_error", None)
+                self._checkpoint_locked()
+                if self._state.get("checkpoint_error"):
+                    queue.auto_drafts, queue.paused = old
+                    raise DraftError("자동 진행 설정을 안전하게 저장하지 못했습니다.")
+                if not queue.paused and self._state["state"] != "working":
+                    self._start_next_item_locked()
+                return self._snapshot_locked()
         if "execute" in payload:
             return self._start_approved_execution(payload)
         if "resume" in payload:
@@ -648,6 +692,7 @@ class LocalDrafts:
                     or payload["queue"] != self._queue.key or self._state["state"] == "working"):
                     raise DraftError("작업표에서 재개할 수 있는 자동 초안을 확인해 주세요.")
                 self._queue.auto_drafts = True
+                self._queue.paused = False
                 if not self._start_next_item_locked():
                     raise DraftError("파일과 변경 내용이 정해진 다음 파트가 없습니다.")
                 return self._snapshot_locked()
@@ -700,6 +745,7 @@ class LocalDrafts:
 
     def _resubmit_queue_locked(self, queue: _WorkQueue) -> dict:
         queue.auto_drafts = True
+        queue.paused = False
         if not self._start_next_item_locked():
             self._state["submission_notice"] = "같은 지시문을 받았습니다. 지금 바로 시작할 수 있는 파트가 없습니다."
         return self._snapshot_locked()
@@ -787,6 +833,8 @@ class LocalDrafts:
 
     def _start_next_item_locked(self) -> bool:
         queue = self._queue
+        if queue is None or queue.paused or self._state.get("checkpoint_error"):
+            return False
         for item in queue.items:
             if queue.auto_drafts and self._can_draft(queue, item):
                 paths, change = queue.scheduled[item.key]

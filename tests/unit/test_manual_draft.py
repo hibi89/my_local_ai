@@ -330,6 +330,61 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(restored["work_queue"]["elapsed_ms"], worklist["elapsed_ms"])
             self.assertEqual(len(model.inputs), 2)
 
+    def test_continuous_pause_checkpoint_and_resume_after_relaunch(self):
+        from threading import Event
+
+        message = (
+            "## 작업 목록\n"
+            "### P2-A. First draft\n작업 파일: src/first.py\n변경 내용: Set FIRST to True.\n"
+            "### P2-B. Second draft\n작업 파일: src/second.py\n변경 내용: Set SECOND to True.\n"
+        )
+        entered, release = Event(), Event()
+
+        class Model:
+            def __init__(self):
+                self.calls = []
+
+            def generate(self, prompt, **options):
+                self.calls.append(prompt)
+                if len(self.calls) == 1:
+                    entered.set()
+                    if not release.wait(2):
+                        raise RuntimeError("test fixture timed out")
+                name, output = (("first", "FIRST = True") if "Set FIRST" in prompt
+                                else ("second", "SECOND = True"))
+                return UntrustedGeneration(json.dumps({
+                    "summary": "draft ready",
+                    "files": [{"path": "src/" + name + ".py", "content": output + "\\n"}],
+                }), "qwen3:4b-instruct")
+
+        with TemporaryDirectory() as folder:
+            root = Path(folder) / "drafts"
+            provider = Model()
+            app = LocalDrafts(root, provider=provider)
+            app.start({"message": message})
+            self.assertTrue(entered.wait(2), "first stage did not start")
+            key = app.snapshot()["work_queue"]["id"]
+            paused = app.start({"queue": key, "continuous": "pause"})
+            self.assertEqual(paused["work_queue"]["continuous"]["stage"], "PAUSE_REQUESTED")
+            release.set()
+            stopped = self.await_result(app)
+            self.assertEqual(len(provider.calls), 1)
+            self.assertEqual(stopped["work_queue"]["continuous"]["stage"], "PAUSED")
+            self.assertEqual(stopped["work_queue"]["items"][1]["state"], "pending")
+            reopened = LocalDrafts(root, provider=provider)
+            self.assertTrue(reopened.snapshot()["work_queue"]["continuous"]["paused"])
+            self.assertEqual(len(provider.calls), 1)
+            reopened.start({"queue": key, "continuous": "resume"})
+            finished = self.await_result(reopened)
+            self.assertEqual(len(provider.calls), 2)
+            self.assertEqual([row["state"] for row in finished["work_queue"]["items"]],
+                             ["draft", "draft"])
+            self.assertEqual(finished["work_queue"]["verified_count"], 0)
+            self.assertEqual(finished["work_queue"]["continuous"]["stage"],
+                             "AWAITING_REVIEW_OR_APPROVAL")
+            with self.assertRaises(DraftError):
+                reopened.start({"queue": "0" * 24, "continuous": "pause"})
+
     def test_verification_brief_does_not_manufacture_a_change(self):
         message = "## 작업 목록\n### P2-A. 통합 검사\n기존 테스트 결과 확인\n### P2-B. 실행 검증\nCI 확인\n"
         with TemporaryDirectory() as directory:

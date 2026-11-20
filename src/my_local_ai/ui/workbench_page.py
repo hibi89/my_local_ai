@@ -51,7 +51,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
   </header>
   <main id="content" class="shell">
     <header class="intro">
-      <div><h1>로컬 작업대</h1><p>웹 GPT가 준 지시를 보내고, Qwen이 만든 변경 초안을 확인하세요.</p></div>
+      <div><h1>로컬 작업대</h1><p>개발 지시문과 파일 범위를 입력하면 안전한 독립 파트를 장시간 이어서 처리합니다.</p></div>
       <nav class="layout-tabs" aria-label="화면 구성">{tabs}</nav>
     </header>
     <ol class="steps" aria-label="작업 순서">
@@ -148,11 +148,14 @@ def render_workbench(session_path: str, layout: str) -> bytes:
             <div class="queue-header">
               <div><h3 id="queue-heading">전체 작업</h3><p id="queue-summary"></p></div>
               <div class="queue-actions">
+                <button type="button" id="pause-continuous" class="quiet-button" hidden>현재 단계 뒤 일시정지</button>
+                <button type="button" id="resume-continuous" class="quiet-button" hidden>장시간 자동 진행 재개</button>
                 <button type="button" id="resume-queue" class="quiet-button" hidden>자동 초안 재개</button>
                 <button type="button" id="refresh-evidence" class="quiet-button" hidden>읽기 결과 다시 조회</button>
                 <button type="button" id="next-item" class="quiet-button">다음 파트 보기</button>
               </div>
             </div>
+            <p id="continuous-state" role="status">MLA.exe가 실행되는 동안 독립 파트를 이어갑니다. 재시작 시 저장된 진행 기록을 복구하고 검증·승인은 별도 대기합니다.</p>
             <p id="queue-receipt" class="action-receipt" role="status" hidden></p>
             <aside id="queue-hold" class="queue-hold" aria-label="작업 보류 사유" hidden>
               <strong id="queue-hold-title"></strong>

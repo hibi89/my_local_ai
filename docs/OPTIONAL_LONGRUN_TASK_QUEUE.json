@@ -1,0 +1,67 @@
+{
+  "schema": "mla-optional-longrun-swu/v1",
+  "as_of": "2026-11-20",
+  "baseline": {
+    "p1_source_candidate_completed": 55,
+    "p1_total": 58,
+    "p2_accepted": 0,
+    "p2_gate_total": 8,
+    "weighted_verification": "UNASSESSED"
+  },
+  "stages": {
+    "implementation": "P1_EXTENSION_SEPARATE",
+    "verification": "NOT_RUN",
+    "owner_real_windows": "HOLD",
+    "independent_f18": "HOLD"
+  },
+  "tasks": [
+    {
+      "id": "MLA-LR-001",
+      "title": "Safe continuous workbench prompt queue with SQLite recovery and pause/resume",
+      "status": "IMPLEMENTED_UNVERIFIED",
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/manual_draft.py",
+        "src/my_local_ai/ui/workbench.js",
+        "src/my_local_ai/ui/workbench_page.py",
+        "tests/unit/test_manual_draft.py"
+      ],
+      "acceptance": "Exact SHA synthetic CI and no duplicate work, Windows EXE pending"
+    },
+    {
+      "id": "MLA-LR-002",
+      "title": "Approved fixed CI offload, bounded run evidence and recovery",
+      "status": "DESIGN_ONLY",
+      "depends_on": [
+        "MLA-LR-001"
+      ],
+      "acceptance": "Pinned trusted workflow; no auto-dispatch or untrusted generated-code execution"
+    },
+    {
+      "id": "MLA-LR-003",
+      "title": "Low VRAM model routing, narrow context and verified evidence reuse",
+      "status": "DESIGN_ONLY",
+      "depends_on": [
+        "MLA-LR-001"
+      ],
+      "acceptance": "Same SWU comparative elapsed time; external provider OFF by default"
+    },
+    {
+      "id": "MLA-LR-004",
+      "title": "Actual Windows EXE long duration, crash, suspend and protected trust verification",
+      "status": "P2_NOT_RUN",
+      "depends_on": [
+        "MLA-LR-001",
+        "MLA-LR-002",
+        "MLA-LR-003"
+      ],
+      "acceptance": "Real 24h+ Windows evidence and bounded recovery; independent F18 retained"
+    }
+  ],
+  "safety": {
+    "generated_code_execution": "HOLD",
+    "protected_windows": "OWNER_GO_PER_CHANGE",
+    "remote_dispatch": "EXPLICIT_OWNER_ONLY",
+    "model_paid_egress": "OFF",
+    "release": "HOLD"
+  }
+}
