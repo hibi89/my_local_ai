@@ -163,7 +163,8 @@
         "src/my_local_ai/ui/workbench_page.py",
         "src/my_local_ai/ui/workbench.js",
         "tests/unit/test_longrun_monitor.py",
-        ".github/workflows/ci.yml"
+        ".github/workflows/ci.yml",
+        ".github/workflows/mla-windows-workbench-exe.yml"
       ],
       "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart; current/peak MLA process working-set RAM on Windows, local GET-only 30s polling and reconnect; GPU VRAM still unmeasured",
       "actual_owner_windows": "NOT_RUN",
@@ -174,9 +175,32 @@
         "dc9240299b768a53a1971cd74758231244503d42"
       ],
       "preflight_windows_artifact": {
-        "id": 14659452899,
-        "sha256": "ed22500cace39e858fc62481dd7a91e2a533d9fe88c4b0300e93f6968934050a",
-        "expires_at": "2026-11-27T19:02:35Z"
+        "id": 14661106443,
+        "sha256": "4964bc64992c0362f80d78c7dfed1e66b1dd7636dc0e70659d3ffb31f3b49f63",
+        "expires_at": "2026-11-27T19:14:54Z"
+      },
+      "previous_session_receipts": {
+        "functional_sha": "d1b26833d1be5d886033d5ad832bd9cd01eaa725",
+        "workflow_sha": "aa23c7d0cce6c0cb47fec9e8db9bd9313ffddf9e",
+        "fields": [
+          "samples",
+          "observed_span_seconds",
+          "clock_or_sampling_gaps",
+          "start_receipt_present",
+          "ended_cleanly",
+          "history_complete"
+        ],
+        "p2_verified": false,
+        "source_ci": {
+          "linux_run_id": 44799937396,
+          "windows_exe_run_id": 44799937359,
+          "windows_protected_synthetic_run_id": 44799937400
+        },
+        "frozen_restart_ci": {
+          "linux_run_id": 44800197642,
+          "windows_exe_run_id": 44800198004,
+          "result": "SUCCESS_SYNTHETIC_RUNNER_ONLY"
+        }
       }
     }
   ],
