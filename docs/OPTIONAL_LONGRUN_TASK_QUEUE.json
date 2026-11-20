@@ -150,24 +150,34 @@
       ],
       "acceptance": "Real 24h+ Windows evidence and bounded recovery; independent F18 retained",
       "preflight_source_state": "LOCAL_LIVENESS_DIAGNOSTIC_SOURCE_ONLY",
-      "preflight_source_sha": "669d0517c5cd3d659ef9856aaadb7ce2fbf0d010",
+      "preflight_source_sha": "dc9240299b768a53a1971cd74758231244503d42",
       "preflight_ci": {
-        "linux_run_id": 44787905602,
-        "windows_exe_run_id": 44787905573,
-        "protected_synthetic_run_id": 44787905555,
-        "protected_synthetic_result": "IN_PROGRESS_AT_RECORD"
+        "linux_run_id": 44798317172,
+        "windows_exe_run_id": 44798316958,
+        "protected_synthetic_run_id": 44798316993,
+        "protected_synthetic_result": "SUCCESS"
       },
       "instrumentation_paths": [
         "src/my_local_ai/ax_runtime/longrun_monitor.py",
         "src/my_local_ai/ui/local_dashboard.py",
         "src/my_local_ai/ui/workbench_page.py",
         "src/my_local_ai/ui/workbench.js",
-        "tests/unit/test_longrun_monitor.py"
+        "tests/unit/test_longrun_monitor.py",
+        ".github/workflows/ci.yml"
       ],
-      "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart",
+      "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart; current/peak MLA process working-set RAM on Windows, local GET-only 30s polling and reconnect; GPU VRAM still unmeasured",
       "actual_owner_windows": "NOT_RUN",
       "real_24h": "NOT_RUN",
-      "actual_gtx_1050ti_vram": "UNMEASURED"
+      "actual_gtx_1050ti_vram": "UNMEASURED",
+      "preflight_function_shas": [
+        "5674fe2ca4ea1a351e9c901615beced354dd6ca7",
+        "dc9240299b768a53a1971cd74758231244503d42"
+      ],
+      "preflight_windows_artifact": {
+        "id": 14659452899,
+        "sha256": "ed22500cace39e858fc62481dd7a91e2a533d9fe88c4b0300e93f6968934050a",
+        "expires_at": "2026-11-27T19:02:35Z"
+      }
     }
   ],
   "safety": {
