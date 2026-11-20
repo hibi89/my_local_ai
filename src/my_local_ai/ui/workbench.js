@@ -78,6 +78,59 @@ let queueSignature = '';
 let queueWorking = false;
 let followActive = true;
 let inspectedSignature = '';
+const observationCopy = document.querySelector('#copy-observation');
+const observationCopyNotice = document.querySelector('#copy-observation-notice');
+let observationCopyReceipt = null;
+
+// Only allowlisted nonnegative numeric observations. Never copy prompt, paths,
+// generated files, source, tokens, credentials or session identifiers.
+function observationNumber(value, integer = false) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 &&
+    (!integer || Number.isSafeInteger(value)) ? value : null;
+}
+
+function buildObservationCopy(longrun) {
+  if (!longrun || longrun.status !== 'LOCAL_UNATTESTED') return null;
+  const recent = longrun.observation_24h;
+  if (!recent || recent.verification !== 'NOT_RUN' ||
+      recent.real_24h_accepted !== false) return null;
+  return {
+    schema: 'mla-local-observation-only/v1',
+    verification: 'NOT_RUN',
+    real_24h_accepted: false,
+    provenance: 'UNATTESTED_LOCAL_NUMERIC_RECEIPTS',
+    uptime_seconds: observationNumber(longrun.uptime_seconds, true),
+    session_samples: observationNumber(longrun.samples, true),
+    session_gaps: observationNumber(longrun.clock_or_sampling_gaps, true),
+    process_ram_mb: observationNumber(longrun.process_ram_mb),
+    nvidia_gpu0_global_used_mb: observationNumber(longrun.vram_mb),
+    nvidia_gpu0_global_total_mb: observationNumber(longrun.vram_total_mb),
+    previous_session_unclosed: longrun.previous_session_unclosed === true,
+    last_24h: {
+      samples: observationNumber(recent.recorded_samples, true),
+      sessions: observationNumber(recent.recorded_sessions, true),
+      gaps: observationNumber(recent.recorded_gaps, true),
+      receipt_span_seconds: observationNumber(recent.recorded_span_seconds, true),
+      max_process_ram_mb: observationNumber(recent.process_ram_peak_mb),
+      max_gpu0_global_vram_used_mb: observationNumber(recent.gpu0_global_vram_peak_mb),
+      retention_limit_reached: recent.retention_limit_reached === true,
+    },
+  };
+}
+
+observationCopy.addEventListener('click', async () => {
+  if (!observationCopyReceipt) return;
+  if (!navigator.clipboard?.writeText) {
+    observationCopyNotice.textContent = '브라우저가 클립보드 복사를 지원하지 않습니다.';
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(observationCopyReceipt, null, 2));
+    observationCopyNotice.textContent = '숫자 진단만 복사했습니다. 자동 업로드하지 않습니다.';
+  } catch {
+    observationCopyNotice.textContent = '복사 권한이 거부됐습니다. 자동 전송하지 않았습니다.';
+  }
+});
 
 document.querySelector('#sample').addEventListener('click', () => {
   if (!messageInput.value.trim()) {
@@ -605,6 +658,8 @@ function showResult(state) {
   } else {
     observationPanel.textContent = '최근 24시간 로컬 기록 미확인 · 실제 24시간 연속 가동 검증 미완료';
   }
+  observationCopyReceipt = buildObservationCopy(longrun);
+  observationCopy.disabled = !observationCopyReceipt;
   replyForm.hidden = !state.can_reply;
   replyNotice.hidden = true;
   queueNotice.textContent = state.checkpoint_error || '';

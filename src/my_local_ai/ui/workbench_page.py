@@ -125,6 +125,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
         <p id="queue-notice" class="timing-warning" role="status" hidden></p>
         <p id="longrun-diagnostic" class="advisor-state" role="status">장시간 진단 기록을 확인 중입니다.</p>
         <p id="longrun-window" class="advisor-state" role="status">최근 24시간 로컬 진단 기록을 확인 중입니다. 검증 결과가 아닙니다.</p>
+        <div class="observation-action"><button type="button" id="copy-observation" class="quiet-button" disabled>진단 수치 복사</button><span id="copy-observation-notice" role="status"></span></div>
         <div class="result-body" id="result">
           <ol id="reply-history" class="reply-history" aria-label="내가 보낸 추가 지시" hidden></ol>
           <aside id="error-guide" class="error-guide" aria-label="MLA 안내" hidden>
