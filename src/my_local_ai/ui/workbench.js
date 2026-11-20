@@ -63,6 +63,7 @@ let activeFile = null;
 let renderedFolder = null;
 let showDiff = true;
 let retry = null;
+const IDLE_STATUS_POLL_MS = 30000; // Local GET-only refresh while no draft is running.
 let submission = 0;
 let chatSubmission = null;
 let queueSubmission = null;
@@ -638,7 +639,10 @@ async function poll(version = submission, retried = false, confirmAttempt) {
         showReceipt(chatReceipt, '작업 접수가 확인되지 않았습니다. 다시 보내 주세요.', 'error');
       }
     }
-    if (status.state === 'working' || status.work_queue?.executing) retry = setTimeout(() => poll(version), 1100);
+    // Keep showing new liveness receipts even with an idle/paused queue.
+    // A read-only refresh does not resume a draft or dispatch a workflow.
+    retry = setTimeout(() => poll(version),
+      status.state === 'working' || status.work_queue?.executing ? 1100 : IDLE_STATUS_POLL_MS);
   } catch {
     if (version !== submission) return;
     if (!retried) {
@@ -648,7 +652,7 @@ async function poll(version = submission, retried = false, confirmAttempt) {
       retry = setTimeout(() => poll(version, true, confirmAttempt), 800);
       return;
     }
-    phase.textContent = '작업대와 연결이 끊겼습니다. 실행기를 확인한 뒤 이 탭을 새로고침해 주세요.';
+    phase.textContent = '작업대 연결이 끊겼습니다. 상태만 자동 재조회합니다. 작업은 자동 재실행하지 않습니다.';
     if (chatSubmission === version) showReceipt(chatReceipt, phase.textContent, 'error');
     if (queueSubmission?.version === version) showReceipt(queueReceipt, phase.textContent, 'error');
     if (clock) {
@@ -657,6 +661,9 @@ async function poll(version = submission, retried = false, confirmAttempt) {
       showTimeline();
     }
     setBusy(false);
+    // On suspend/network interruption, reconnect via status GET only;
+    // do not replay the POST that may already have been accepted.
+    retry = setTimeout(() => poll(version), IDLE_STATUS_POLL_MS);
   }
 }
 
@@ -710,7 +717,8 @@ async function submit(event) {
     }
     if (replying) replyInput.value = '';
     showResult(status);
-    if (status.state === 'working') retry = setTimeout(() => poll(version), 750);
+    retry = setTimeout(() => poll(version),
+      status.state === 'working' || status.work_queue?.executing ? 750 : IDLE_STATUS_POLL_MS);
   } catch {
     if (chatting) {
       showReceipt(chatReceipt, '접수 응답이 늦어 작업 상태를 확인 중입니다.');
