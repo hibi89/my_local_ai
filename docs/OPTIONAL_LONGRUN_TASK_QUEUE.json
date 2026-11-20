@@ -55,7 +55,7 @@
     {
       "id": "MLA-LR-002",
       "title": "Approved fixed CI offload, bounded run evidence and recovery",
-      "status": "SOURCE_PARTIAL_SYNTHETIC_CI_PASS",
+      "status": "SCOPED_SOURCE_CANDIDATE_CI_PASS",
       "depends_on": [
         "MLA-LR-001"
       ],
@@ -72,7 +72,11 @@
       "linux_ci_run_id": 44760618419,
       "windows_ci_run_id": 44760618616,
       "real_owner_windows": "NOT_RUN",
-      "partial_capability": "Verified identity, unique source+dispatch timestamp, explicit read-only reconcile. No new workflow profiles or auto-scheduling."
+      "partial_capability": "Verified identity, unique source+dispatch timestamp, explicit read-only reconcile. No new workflow profiles or auto-scheduling.",
+      "scope": "Only explicitly Owner-clicked REQEA-P2-E pinned workflow dispatch, bounded receipt, read-only after-restart GET reconcile; no other repository/workflow execution.",
+      "acceptance_check": "Existing permitted UI/backend fixed dispatch + exact SHA and workflow blob guard + bounded status, explicit one-click Owner; restart reconciling is GET-only; synthetic CI passed.",
+      "p2_live_dispatch": "NOT_RUN",
+      "p2_owner_windows": "NOT_RUN"
     },
     {
       "id": "MLA-LR-003",
@@ -113,7 +117,7 @@
     "model_paid_egress": "OFF",
     "release": "HOLD"
   },
-  "extension_candidate_count": 1,
+  "extension_candidate_count": 2,
   "extension_swu_total": 4,
   "extension_p2_accepted": 0
 }
