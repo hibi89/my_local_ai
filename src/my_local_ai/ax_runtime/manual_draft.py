@@ -438,6 +438,9 @@ class LocalDrafts:
         self._request: _DraftRequest | None = None
         self._context: _HandoffContext | None = None
         self._queue: _WorkQueue | None = None
+        # Only live, current-process workers justify continuous UI polling.
+        # Reopen/restored receipts are not silently treated as running threads.
+        self._remote_active: set[str] = set()
         self._started = None
         self._elapsed_ms = self._total_ms = 0
         self.advisor = GeminiDraftAdvisor() if advisor is None else advisor
@@ -548,9 +551,7 @@ class LocalDrafts:
                         "verified_count": 0,  # An audit smoke cannot accept a P2 gate.
                         "executed_count": sum(record.get("state") == "PASS"
                                               for record in queue.executions.values()),
-                        "executing": any(record.get("state") in
-                                         ("INTENT_RECORDED", "DISPATCHING", "RUNNING", "RECONCILING")
-                                         for record in queue.executions.values()),
+                        "executing": bool(self._remote_active),
                         "elapsed_ms": queue.elapsed_ms + current_ms,
                         "items": [
                             {"id": item.key, "title": item.title, "detail": item.detail,
@@ -761,8 +762,9 @@ class LocalDrafts:
                 and eligible_profile(baseline.scope.repository, baseline.scope.branch,
                                      baseline.plan.get("revision", ""), item.title))
 
-    @staticmethod
-    def _can_reconcile(queue: _WorkQueue, item: HandoffTask) -> bool:
+    def _can_reconcile(self, queue: _WorkQueue, item: HandoffTask) -> bool:
+        if item.key in self._remote_active:
+            return False
         baseline = queue.baseline
         receipt = queue.executions.get(item.key)
         if not baseline or not receipt or receipt.get("state") in ("PASS", "FAIL", "RECONCILING"):
@@ -786,7 +788,7 @@ class LocalDrafts:
             item = next((item for item in queue.items if item.key == payload["item"]), None)
             if item is None or not self._can_reconcile(queue, item):
                 raise DraftError("이 파트에는 다시 읽을 승인 실행 기록이 없습니다.")
-            if any(r.get("state") == "RECONCILING" for r in queue.executions.values()):
+            if self._remote_active or any(r.get("state") == "RECONCILING" for r in queue.executions.values()):
                 raise DraftError("앞선 실행 기록의 읽기 확인이 끝날 때까지 기다려 주세요.")
             previous = dict(queue.executions[item.key])
             queue.executions[item.key] = {**previous, "state": "RECONCILING"}
@@ -795,9 +797,16 @@ class LocalDrafts:
             if self._state.get("checkpoint_error"):
                 queue.executions[item.key] = previous
                 raise DraftError("실행 기록 조회 의도를 저장하지 못했습니다.")
-            Thread(target=self._reconcile_execution,
-                   args=(queue.key, item.key, queue.baseline.plan["revision"], previous),
-                   daemon=True).start()
+            self._remote_active.add(item.key)
+            try:
+                Thread(target=self._reconcile_execution,
+                       args=(queue.key, item.key, queue.baseline.plan["revision"], previous),
+                       daemon=True).start()
+            except RuntimeError:
+                self._remote_active.discard(item.key)
+                queue.executions[item.key] = previous
+                self._checkpoint_locked()
+                raise DraftError("이전 실행 결과 조회 작업자를 시작하지 못했습니다.") from None
             return self._snapshot_locked()
 
     def _reconcile_execution(self, key: str, item_key: str, revision: str, receipt: dict) -> None:
@@ -810,6 +819,7 @@ class LocalDrafts:
             report = {"state": "HOLD", "code": "HOLD_RECONCILE_UNAVAILABLE",
                       "p2_gate_accepted": False, "independent_verified": False}
         with self._lock:
+            self._remote_active.discard(item_key)
             queue = self._queue
             if not queue or queue.key != key or item_key not in queue.executions:
                 return
@@ -829,7 +839,7 @@ class LocalDrafts:
             item = next((item for item in queue.items if item.key == payload["item"]), None)
             if item is None or not self._can_execute(queue, item):
                 raise DraftError("이미 실행했거나 고정된 승인 대상이 아닙니다. 다시 제출해도 재실행하지 않습니다.")
-            if any(entry.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING")
+            if self._remote_active or any(entry.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING", "RECONCILING")
                    for entry in queue.executions.values()):
                 raise DraftError("앞선 승인 실행 결과를 확인해 주세요.")
             revision = queue.baseline.plan["revision"]
@@ -839,8 +849,17 @@ class LocalDrafts:
             if self._state.get("checkpoint_error"):
                 del queue.executions[item.key]
                 raise DraftError("실행 의도를 저장하지 못했습니다. 외부 실행을 시작하지 않습니다.")
-            Thread(target=self._execute_approved, args=(queue.key, item.key, revision),
-                   daemon=True).start()
+            self._remote_active.add(item.key)
+            try:
+                Thread(target=self._execute_approved, args=(queue.key, item.key, revision),
+                       daemon=True).start()
+            except RuntimeError:
+                self._remote_active.discard(item.key)
+                queue.executions[item.key] = {**queue.executions[item.key], "state": "HOLD",
+                                              "code": "HOLD_WORKER_START_FAILED",
+                                              "p2_gate_accepted": False}
+                self._checkpoint_locked()
+                raise DraftError("승인 실행 작업자를 시작하지 못했습니다.") from None
             return self._snapshot_locked()
 
     def _execute_approved(self, key: str, item_key: str, revision: str) -> None:
@@ -861,6 +880,9 @@ class LocalDrafts:
             # A network dispatch may have succeeded. Never automatically retry.
             persist({"state": "HOLD", "code": "HOLD_EXECUTION_UNCERTAIN_NO_REDISPATCH",
                      "p2_gate_accepted": False})
+        finally:
+            with self._lock:
+                self._remote_active.discard(item_key)
 
     def _start_item(self, payload: dict[str, str]) -> dict:
         paths = _draft_paths(payload["paths"])

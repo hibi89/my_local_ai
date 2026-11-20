@@ -204,6 +204,36 @@ class TestApprovedWorkflow(unittest.TestCase):
                 reopened.start({"queue": "e"*24, "reconcile": "existing",
                                 "item": reopened._queue.items[0].key})
 
+    def test_reconcile_cannot_race_live_dispatch_and_stops_polling_after_read(self):
+        from threading import Event
+        started, release = Event(), Event()
+        with TemporaryDirectory() as folder:
+            app, key = self.make_app(Path(folder).resolve() / "drafts")
+            # This synthetic worker only records a remote request; no real GitHub call.
+            def busy(sha, callback):
+                callback({"state": "RUNNING", "dispatched_at": "2026-11-20T10:00:00Z",
+                          "run_id": 789})
+                started.set()
+                if not release.wait(2):
+                    raise RuntimeError("test fixture release timeout")
+                callback({"state": "HOLD", "code": "HOLD_SIMULATED_WAIT",
+                          "p2_gate_accepted": False})
+            with patch("my_local_ai.ax_runtime.manual_draft.execute_once", side_effect=busy):
+                app.start({"queue": "e"*24, "execute": "reqea-manual", "item": key})
+                self.assertTrue(started.wait(2))
+                snapshot = app.snapshot()["work_queue"]
+                self.assertTrue(snapshot["executing"])
+                self.assertFalse(snapshot["items"][1]["can_reconcile"])
+                with self.assertRaises(DraftError):
+                    app.start({"queue": "e"*24, "reconcile": "existing", "item": key})
+                release.set()
+                for _ in range(100):
+                    if not app.snapshot()["work_queue"]["executing"]:
+                        break
+                    sleep(.01)
+                self.assertFalse(app.snapshot()["work_queue"]["executing"])
+                self.assertTrue(app.snapshot()["work_queue"]["items"][1]["can_reconcile"])
+
     def test_other_part_cannot_launch(self):
         with TemporaryDirectory() as folder:
             app, _ = self.make_app(Path(folder).resolve() / "drafts")
