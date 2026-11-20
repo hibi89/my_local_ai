@@ -148,7 +148,26 @@
         "MLA-LR-002",
         "MLA-LR-003"
       ],
-      "acceptance": "Real 24h+ Windows evidence and bounded recovery; independent F18 retained"
+      "acceptance": "Real 24h+ Windows evidence and bounded recovery; independent F18 retained",
+      "preflight_source_state": "LOCAL_LIVENESS_DIAGNOSTIC_SOURCE_ONLY",
+      "preflight_source_sha": "669d0517c5cd3d659ef9856aaadb7ce2fbf0d010",
+      "preflight_ci": {
+        "linux_run_id": 44787905602,
+        "windows_exe_run_id": 44787905573,
+        "protected_synthetic_run_id": 44787905555,
+        "protected_synthetic_result": "IN_PROGRESS_AT_RECORD"
+      },
+      "instrumentation_paths": [
+        "src/my_local_ai/ax_runtime/longrun_monitor.py",
+        "src/my_local_ai/ui/local_dashboard.py",
+        "src/my_local_ai/ui/workbench_page.py",
+        "src/my_local_ai/ui/workbench.js",
+        "tests/unit/test_longrun_monitor.py"
+      ],
+      "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart",
+      "actual_owner_windows": "NOT_RUN",
+      "real_24h": "NOT_RUN",
+      "actual_gtx_1050ti_vram": "UNMEASURED"
     }
   ],
   "safety": {
