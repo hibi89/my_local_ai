@@ -79,8 +79,9 @@ let inspectedSignature = '';
 
 document.querySelector('#sample').addEventListener('click', () => {
   if (!messageInput.value.trim()) {
-    messageInput.value = '날짜 목록을 오름차순으로 정렬하는 Python 함수 sort_dates를 만들어줘.\n' +
-      '작업 파일: src/date_tools.py\n입력과 반환값은 ISO 형식 날짜 목록이고, 원본 목록은 그대로 둬.';
+    messageInput.value = '## 작업 목록\n' +
+      '### SWU-01. 날짜 정렬 함수\n작업 파일: src/date_tools.py\n변경 내용: ISO 날짜 목록을 오름차순 정렬한다.\n' +
+      '### SWU-02. 날짜 형식 확인 함수\n작업 파일: src/date_validation.py\n변경 내용: ISO 날짜가 아니면 오류를 반환한다.';
   }
   messageInput.focus();
 });

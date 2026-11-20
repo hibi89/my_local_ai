@@ -64,17 +64,17 @@ def render_workbench(session_path: str, layout: str) -> bytes:
           <button type="button" class="quiet-button" id="sample">예제 넣기</button>
         </header>
         <form id="chat-form" aria-labelledby="input-heading">
-          <label for="message">웹 GPT 지시문</label>
+          <label for="message">개발 작업 프롬프트 · 지시문/작업 목록</label>
           <div class="composer">
             <textarea id="message" name="message" rows="8" required aria-describedby="chat-hint"
-              placeholder="웹 GPT가 넘겨준 작업 지시를 그대로 붙여넣으세요.&#10;예시  GitHub의 최종설계도를 읽고 날짜 정렬 함수를 만들어줘."></textarea>
+              placeholder="단일 작업 지시문 또는 여러 SWU 작업 목록을 넣으세요.&#10;각 파트에 작업 파일과 변경 내용을 적으면 안전한 초안을 순차 처리합니다."></textarea>
             <div class="composer-actions">
               <button class="primary" id="send" type="submit">보내고 작업 시작 <span aria-hidden="true">→</span></button>
               <kbd>Ctrl+Enter</kbd>
             </div>
           </div>
           <p id="chat-receipt" class="action-receipt" role="status" hidden></p>
-          <p id="chat-hint">MLA가 작업 자료와 파일을 찾아 초안을 별도 폴더에 저장합니다.</p>
+          <p id="chat-hint">Windows 셸 명령 실행창이 아닙니다. MLA가 파일 범위와 개발 지시를 읽고 독립 초안만 저장하며, 검증·승인 대기는 별도로 표시합니다.</p>
         </form>
         <details class="advanced-input">
           <summary>작업 자료 직접 지정</summary>
