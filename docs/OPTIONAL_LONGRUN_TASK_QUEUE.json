@@ -44,9 +44,13 @@
       },
       "windows_lease_and_exe_run_id": 44752605326,
       "final_ui_windows_run_id": 44753070142,
-      "final_ui_windows_status": "IN_PROGRESS_AT_RECORDING",
+      "final_ui_windows_status": "SUCCESS",
       "real_windows_11": "NOT_RUN",
-      "multi_day_acceptance": "NOT_RUN"
+      "multi_day_acceptance": "NOT_RUN",
+      "windows_protected_synthetic_run_id": 44753070134,
+      "windows_artifact_id": 14635134423,
+      "artifact_sha256": "5a46a96975bc2329f0f17a764aaa1051e9dcc7359d4a03d6890de116133c0da2",
+      "ci_synthetic_result": "PASS"
     },
     {
       "id": "MLA-LR-002",
