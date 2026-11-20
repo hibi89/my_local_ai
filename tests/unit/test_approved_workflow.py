@@ -172,6 +172,12 @@ class TestApprovedWorkflow(unittest.TestCase):
             app._queue.executions[key] = {**workflow.initial_receipt(SHA),
                                           "state": "HOLD", "run_id": 789,
                                           "dispatched_at": "2026-11-20T10:00:00Z"}
+            # The other item is already inspected, so relaunch does not start
+            # a separate asynchronous source inspection during this receipt test.
+            app._queue.inspections[app._queue.items[0].key] = {
+                "state": "observed", "revision": SHA, "files": [], "notes": [],
+                "remaining": "manual verification",
+            }
             app._checkpoint_locked(replace=True)
             reopened = LocalDrafts(app.root)
             row = reopened.snapshot()["work_queue"]["items"][1]
