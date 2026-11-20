@@ -200,3 +200,52 @@ Approved no-Codex copy/paste workflow with **strictly fixed read-only Windows di
 ## O. 2026-11-19 — Owner-approved conditional no-TPM CNG signer redesign
 
 The owner's Windows preflight reports no accessible TPM; this **does not** prove hardware absence. Canonical **additive** approved design: [TPM-less protected signer with explicit pinned software KSP](TPMLESS_CNG_OWNER_SIGNER_REDESIGN_20261119.md). TPM-first remains default; software CNG is an explicit pre-provisioned HKLM protected profile, never automatic fallback. Software KSP is lower assurance and cannot attest TPM hardware key protection. Existing MLA-SWU-008/021, CS-SWU-012 and all F18/Zero-VM, owner OS-change GO, P2 LOCKED, release HOLD remain. No change to 55+3 SWU denominator, P1 55/58, formal P2 UNASSESSED until actual evidence.
+
+## P. 2026-11-20 Owner-approved execution topology — Linux-first / Windows Early CI / Windows Final Acceptance
+
+**결정 ID:** MLA-LINUX-FIRST-WINDOWS-BOUNDARY-20261120. **상태:** P0 설계 변경 확정·소스/CI 실행 변경은 별도. 이 P절은 기존 §J~O, MLA V2.0 MESA/AXZERO, OwnerUI·F18·CodeShield·Software CNG 서명자 설계를 **대체하지 않는 실행 환경/검증 라우팅 상위 보완 규칙**이다. 해총 중앙 정책 §0J/§0E 및 사용자 현재 지시가 우선한다. 최종 판매·실사용 제품은 기존대로 **Windows 11**이며 별도 Linux 제품·노트북 듀얼부팅·WSL2/Docker/VM 설치 의무가 없다.
+
+### P-1. 목적과 확정안
+- **목표:** P1 구현 후보와 P2 실제 수용까지의 총 경과시간, 사용자 PC 자원 경합, 관리자 승인·브라우저 클릭·반복 CI 대기를 줄인다. 개선 배수/절감율은 비교 측정 전 **UNMEASURED**.
+- **선정:** B+C 절충형. **Ubuntu 24.04 LTS GitHub-hosted CI를 공통 로직·허가된 합성 검사 중심**, **Windows GitHub-hosted CI를 네이티브 API·패키징·일부 조기 호환성 검사 중심**, **사용자 실제 Windows 11을 보호 신뢰·OS 권한·실사용 최종 수용 중심**으로 구분한다. 현재 GitHub Actions의 표준 러너만 재사용하며 새 서버·유료 서비스가 기본 요건이 아니다.
+- **MLA 로컬:** Python 3.11/Controller/고정 typed operator/CodeShield/Qwen3 4B 한 모델/SQLite/Windows UI 유지. Windows 사용자 보호 주체와 브로커를 Linux 코드로 대체하지 않는다. 외부 모델·네트워크·원격 쓰기·비용은 기존 OFF/Owner GO가 우선한다.
+- **이미 있는 기반 재사용:** 개발 브랜치의 \`.github/workflows/ci.yml\`(Ubuntu 합성 Python) 및 \`.github/workflows/mla-windows-workbench-exe.yml\`(Windows 빌드·EXE loopback smoke), \`.github/workflows/windows-protected-bundle.yml\` 등 기존 필수 CI를 보존한다. 추가 워크플로는 실제 미충족 수용 경로가 확인될 때 최소 증분으로 작성; 기존 CI 중단/우회·대규모 재개발 금지.
+
+### P-2. 계층별 실행 위치와 신뢰 범위
+| 레인 | 우선 실행 대상 | 정식 PASS가 뜻하는 범위 | 정식 PASS로 주장할 수 없는 것 |
+|---|---|---|---|
+| \`LINUX_SAFE\` — \`ubuntu-24.04\` | 고정·검토된 Python/TS/React, API/DB/SQLite 합성·유닛·일부 통합, AST/REQ 정적 분석, 허용된 로컬 전용 보안 계약 검사; P2의 합법적 headless Playwright | 정확 소스·시험·환경 SHA에 한정된 합성/정적 또는 실제 브라우저 결과 | Windows IPC·SCM·CNG/Defender·Owner/F18 실증, Windows EXE, 전체 실기기 기능 수용 |
+| \`WINDOWS_CI\` — 고정 Windows 러너(기존 \`windows-2022\` 우선) | OS 경계 파일/잠금·경로·인코딩·프로세스·loopback, 정해진 EXE 패키징/기동, Windows 자체 회귀·좁은 필수 보안 smoke | CI 러너 Windows 환경에서 수행된 기능·패키징 결과 | 실제 Owner SID·UAC·TPM/KSP·SCM/ACL·Defender 보호 서비스·노트북 실기기 또는 사용자 승인 |
+| \`WINDOWS_OWNER\` — 실제 사용자 Windows 11 | 별도 Owner 세션·서명된 challenge/reply·F18 독립 리뷰어·실 Defender scan 증거·CNG 키/ACL/SCM, 설치/삭제/복구, 한국어 IME/DPI·오프라인, CPU/RAM/VRAM·실모델 | 대상 장치/계정·입력·검증자·승인 범위의 명시적 실제 수용 근거 | 아직 수행되지 않은 독립 보안 감사/상용 GO |
+| \`SECURITY_HOLD\` — 실행 레인 아님 | 승인 미확보, 미신뢰 생성 코드/테스트, 원본·비밀/외부송신·관리자권한·신뢰 분리 미증명 | \`NOT_RUN/HOLD\` 및 구체 차단 사유 | 어떠한 보안·P2·독립 검증 PASS |
+
+- 태그는 기존 SWU/REQ/Phase Gate를 **대체하지 않는 시험환경 분류 메타데이터**다. 실제 명령의 \`os_lane\`과 독립된 \`trust_state/approval_state\`를 기록한다. 해당 레인에서 실행 가능해도 신뢰·권한이 없으면 \`SECURITY_HOLD\`가 우선한다.
+- 동일 코드·테스트·정책 SHA에 Linux 결과가 있어도 Windows native 요구의 수용 증거로 승격 금지. 브라우저 Linux 렌더링이 Windows WebView2·폰트·IME·DPI에 대한 증거가 되는 것도 금지.
+- \`SQLite/WAL\`은 Linux crash/recovery·idempotency 검사 뒤 Windows 파일 잠금/권한/백신 경합을 별도로 검사. Windows 명명 파이프·보호 네이티브 서비스는 Linux mock/unit과 실제 Windows native 증거를 명확히 분리.
+
+### P-3. Zero-VM / F18 / 신뢰 경계의 해석 및 안전 금지선
+- 기존 \`VM_REQUIRED=false\`, \`VM_FALLBACK=false\`, \`WINDOWS_CONTAINER_REQUIRED=false\`, \`APPCONTAINER_ENABLED=false\`, 사용자 PC WSL2/Docker/Hyper-V/Windows Sandbox 미사용 및 **생성 코드·테스트 자동 실행 HOLD**는 그대로 유지한다.
+- GitHub-hosted Ubuntu/Windows 러너가 내부적으로 VM 기반일 수 있다는 사실을 숨기지 않는다. 본 사용자 결정으로 허용되는 것은 **외부 GitHub Actions의 이미 검토·버전 고정된 제품 소유 테스트와 비민감 합성 자료를 사용하는 CI 오프로드**에 한정된다. 이를 MLA의 미신뢰 생성 코드 격리 기능이나 F18 보호 리뷰어로 사용하지 않는다. **AI가 방금 만든 임의 코드/테스트·스크립트·동적 설치 훅·서브프로세스를 단지 Linux 러너라는 이유로 자동 실행하도록 승격 금지.**
+- 생성된 PR/브랜치가 workflow 변경, job script, dependency install/postinstall, 테스트 import side effect를 통해 임의 실행을 유발할 수 있으므로 신뢰된 코드/의존성/워크플로와 미신뢰 후보를 구분한다. 최초 실행은 명시된 검토된 경로와 현재 승인 범위에만 허용한다. 자동 실행 주체·데이터 등급·workflow SHA가 불확실하면 HOLD.
+- 공개 저장소에 고객·개인·비공개 소스, .env/토큰/키, 원본 DB/로그, 모델 가중치·비밀 프롬프트를 올리지 않는다. CI는 합성/공개 허용 자료만 쓰고 작업 기본 권한은 read-only \`contents: read\`, \`persist-credentials: false\`, 권한 최소화, 이벤트/외부 PR의 secret·쓰기 실행 차단, action/dependency 공급망 pin, 로그·아티팩트 비밀 제거/짧은 보존을 적용한다. 임의 \`pull_request_target\` 권한승격·untrusted checkout 뒤 write token 사용 금지.
+- Windows 실제 사용자 승인·OS 보호 주체의 독립 증명·기존 F18-A/B 분리·REQ-14 실행 테스트 미충족 문제는 Linux CI로 해결됐다고 기록하지 않는다. 필요한 OS 계정/키/ACL/SCM/HKLM·보호 서비스 변경은 기존 별도 사용자 사전 GO 유지. 정적 F18=STATIC_ONLY이며 독립 기능 실행 테스트 PASS 아님.
+
+### P-4. P1/P2 실행 규칙과 조기 Windows 검사
+1. **P1:** 실제 BE/FE/DB/API/CLI 정상·핵심 오류 경로 구현, 국소 syntax/type/smoke와 고위험 즉시 안전검사, 기존 필수 CI만 유지. 테스트 환경 매핑은 준비하되 매 SWU 전체 Linux+Windows+브라우저 E2E를 수동 기다리는 규칙을 만들지 않는다. P1의 브라우저 전수 검증은 기존 §F-1대로 후행 P2.
+2. **조기 Windows 예외:** 변경이 경로·reparse/symlink·SQLite 잠금·Win32 IPC·CNG/SCM·Defender·권한·EXE 부트/종료·보호 경계를 직접 건드리거나 안전 위험이 즉시 확인되어야 하면 **해당 정확 SHA·최소 검사를 Windows CI에서 빠르게 수행**한다. 검증 생략으로 발생할 수 있는 안전 결함은 P2로 무조건 이월하지 않는다. 현장 Owner 실권한이 필요한 경우 임의 대체하지 않고 해당 항목만 HOLD하며 다른 READY 지속.
+3. **P2:** P1 100% 구현 후보·High 정확 SHA Gate 후 승인된 전체 소스·CI·보안·통합·Playwright·복구·실 Windows·실모델 및 결함 수정·재검증을 레인별로 일괄 수행한다. 이미 통과한 범위의 실제 근거는 보존하되 환경·소스 SHA가 달라지면 영향 범위 재검증. P3 독립 코드·보안/UI 감사, P4 High 인수, 사용자 GO와 출시 여부는 별개.
+4. 기존 **P1 58 SWU(MLA 39 + CodeShield 16 + Windows Local Operator 3)**, REQ/allowed_paths/2+2/DAG/이력 및 **P2 8 Gate** 분모 변경 금지. 다른 구형 28-task/30-REQ 지표·V2 선택 확장 지표와 중복 집계 금지. 문서/CI 분류만으로 새 SWU 완료 또는 P2 PASS 주장 금지.
+
+### P-5. 증거 계약, 오류 처리, 실제 효율 계측
+- 검증 영수증 최소 항목: \`repo,branch,source_sha,design_sha,workflow_sha,test_suite_sha,runner_os,runner_image,os_lane,run_id,run_url,trigger,scope,data_class,approval_state,trust_state,test_counts,result(PASS|FAIL|SKIP|NOT_RUN|HOLD),artifact_digest,independence,started_at,finished_at\`. Linux·Windows CI·실사용자 Windows 영수증을 반드시 구분해 저장하고 정확 SHA 불일치·증거 유실·취소·타임아웃·다른 runner는 \`UNKNOWN/HOLD\`로 다룬다.
+- 사용자가 실제로 체감할 **총 경과시간**을 동일한 시작 코드/REQ/SWU·리스크 수준·결함 재수정 범위로 비교한다. 측정값: P1 source-candidate 도달시간, P2 완성시간, 수동 클릭/Owner 승인 횟수, CI 큐·실행·재시도 시간, Windows 회귀 결함, GPU/RAM·비용·유료 API 0 유지 여부. 비교 샘플·결과 없으면 \`UNMEASURED\`; 2배·3배 등 배수·절감률 확정 금지.
+- 러너 큐 적체·패키지 설치 반복·OS 차이로 오히려 느려지면 캐시 검증/기능별 job 선택/중복 취소 등 **검증 범위·안전조건을 줄이지 않는** 최적화를 먼저 검토한다. CI 상태 \`queued\`/\`success\`를 실기기 기능 PASS라고 표시하지 않는다.
+- GitHub Actions 사용량·무료 공개 저장소 조건·계정·정책이 바뀔 수 있으므로 현행 과금/쿼터를 실행 전 확인한다. 유료 러너/민감 데이터 송신/외부 API·remote write 자동화/Production/main 병합·OS 권한 변경은 별도 GO.
+
+### P-6. 구현 적용 순서·현재 상태
+1. 현재 dev 워크플로/코드/실제 완료 SHA·러너를 먼저 매핑. 기존 Ubuntu 합성 테스트와 Windows EXE 빌드 성공 이력의 범위 확인, 누락된 수용 게이트 분리. 설계 변경으로 정상 CI를 다시 만드는 작업 금지.
+2. 기존 테스트·SWU에 \`os_lane\` + 독립 \`trust_state\`를 선택형 메타데이터로 추가. 첫 후보는 현재 허용된 read-only REQEA/MLA 고정 workflow 경로처럼 **검토된 명령**을 사용한다. \`WORK_PHASE_GATES\`/기존 보안 승인 규칙을 변경하지 않음.
+3. P1 실제 독립 READY 진행; OS 전용 코드 변경 때만 필요한 조기 Windows smoke를 연결하고 P2에서 전체 레인 검증을 재사용한다. 사용자의 1050 Ti 노트북은 실 Windows Owner·GPU·최종 UX에 집중하고 Ubuntu 듀얼부팅·상시 VM을 요구하지 않는다.
+4. 사용자 기기에서만 가능한 신뢰/권한 검증을 독립 목록으로 유지하고 필요 승인·실행자·정확 SHA 없으면 \`NOT_RUN/HOLD\`. 기술 설계 도입 자체는 Owner runtime GO, 실행권한, 크몽 등록, 배포 승인 아님.
+
+**2026-11-20 설계 반영 범위:** 문서·워크플로 라우팅 정책만 확정. **현재 제품 코드·GitHub Actions YAML·테스트 실행/실기기 Owner·F18/보호 서비스·외부모델/결제·Production·main 변경 없음.** 기준 개발 브랜치 최신 STATUS/HEAD가 구현 진행의 정본이며 본 P0 설계 문서 수정으로 구현률·검증률 상승 **0**.
