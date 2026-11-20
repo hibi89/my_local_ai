@@ -72,11 +72,17 @@
     {
       "id": "MLA-LR-003",
       "title": "Low VRAM model routing, narrow context and verified evidence reuse",
-      "status": "DESIGN_ONLY",
+      "status": "SOURCE_PARTIAL_UNVERIFIED",
       "depends_on": [
         "MLA-LR-001"
       ],
-      "acceptance": "Same SWU comparative elapsed time; external provider OFF by default"
+      "acceptance": "Same SWU comparative elapsed time; external provider OFF by default",
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/ollama_provider.py",
+        "src/my_local_ai/ax_runtime/manual_draft.py",
+        "tests/unit/test_ollama_warm_sequence.py"
+      ],
+      "note": "Bounded 90s warm model for serial SWU draft, model lock preserved, standalone unload 0; exact source CI/VRAM data pending."
     },
     {
       "id": "MLA-LR-004",

@@ -124,7 +124,8 @@ class OllamaProvider:
     def generate(self, prompt: str, *, model_lock: OneModelLock,
                  budget: BudgetGuard, allow_generation: bool = False,
                  structured: bool = False,
-                 structured_tokens: int = STRUCTURED_OUTPUT_TOKENS) -> UntrustedGeneration:
+                 structured_tokens: int = STRUCTURED_OUTPUT_TOKENS,
+                 keep_alive_seconds: int = 0) -> UntrustedGeneration:
         # No owner consent is minted here: caller must provide a trusted
         # authorization and explicitly opt in. Always HOLD by default.
         if allow_generation is not True:
@@ -134,7 +135,8 @@ class OllamaProvider:
         if not isinstance(budget, BudgetGuard):
             raise ProviderHold("NO_BUDGET")
         if (type(structured) is not bool or type(structured_tokens) is not int
-            or not 64 <= structured_tokens <= STRUCTURED_OUTPUT_TOKENS):
+            or not 64 <= structured_tokens <= STRUCTURED_OUTPUT_TOKENS
+            or type(keep_alive_seconds) is not int or not 0 <= keep_alive_seconds <= 90):
             raise ProviderHold("UNSAFE_INPUT")
         if not isinstance(prompt, str) or not prompt.strip():
             raise ProviderHold("UNSAFE_INPUT")
@@ -160,7 +162,7 @@ class OllamaProvider:
                     "model": self.model,
                     "prompt": prompt,
                     "stream": False,
-                    "keep_alive": 0,
+                    "keep_alive": f"{keep_alive_seconds}s" if keep_alive_seconds else 0,
                     "options": {"num_ctx": budget.limits.max_context_tokens},
                 }
                 if structured:

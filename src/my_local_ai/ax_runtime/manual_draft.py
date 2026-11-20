@@ -1191,6 +1191,9 @@ class LocalDrafts:
                     budget=BudgetGuard(ModelBudget(max_calls=1, max_seconds=270,
                         max_context_tokens=context, max_output_bytes=_OUTPUT_LIMIT)),
                     allow_generation=True, structured=True, structured_tokens=output_tokens,
+                    # A bounded warm model avoids repeated HDD model loads across
+                    # sequential SWU drafts. Standalone requests still unload immediately.
+                    keep_alive_seconds=90 if queue and request.item else 0,
                 )
                 if generation.untrusted is not True:
                     raise DraftError("Qwen 초안의 출처를 확인할 수 없습니다.")
