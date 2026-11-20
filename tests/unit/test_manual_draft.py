@@ -354,7 +354,7 @@ class LocalDraftsTests(unittest.TestCase):
                                 else ("second", "SECOND = True"))
                 return UntrustedGeneration(json.dumps({
                     "summary": "draft ready",
-                    "files": [{"path": "src/" + name + ".py", "content": output + "\\n"}],
+                    "files": [{"path": "src/" + name + ".py", "content": output + "\n"}],
                 }), "qwen3:4b-instruct")
 
         with TemporaryDirectory() as folder:
