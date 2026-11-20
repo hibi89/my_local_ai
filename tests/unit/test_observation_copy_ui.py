@@ -19,7 +19,9 @@ class ObservationCopyUiTests(unittest.TestCase):
         self.assertIn("UNATTESTED_LOCAL_NUMERIC_RECEIPTS", script)
         self.assertIn("observationCopy.disabled = !observationCopyReceipt", script)
         # Only an explicit click can write to the user's clipboard.
-        self.assertEqual(script.count("navigator.clipboard.writeText"), 1)
+        self.assertEqual(script.count(
+            "await navigator.clipboard.writeText(JSON.stringify(observationCopyReceipt, null, 2))"
+        ), 1)
 
 
 if __name__ == "__main__":
