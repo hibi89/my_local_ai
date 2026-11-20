@@ -119,6 +119,7 @@ class _WorkQueue:
     item_elapsed_ms: dict[str, int] = field(default_factory=dict)
     attempted: set[str] = field(default_factory=set)
     scheduled: dict[str, tuple[tuple[str, ...], str]] = field(default_factory=dict)
+    planned_paths: dict[str, tuple[str, ...]] = field(default_factory=dict)
     forecast: dict | None = None
     inspections: dict[str, dict] = field(default_factory=dict)
     rechecks: set[str] = field(default_factory=set)
@@ -500,6 +501,20 @@ class LocalDrafts:
             queue.item_elapsed_ms = {item.key: max(0, int(saved["item_elapsed_ms"].get(item.key, 0)))
                                      for item in items}
             queue.scheduled = self._scheduled_items(items, scope)
+            stored_paths = saved.get("planned_paths", {})
+            if type(stored_paths) is not dict:
+                return
+            for item in items:
+                record = stored_paths.get(item.key)
+                if record is None:
+                    continue
+                if (type(record) is not list or not 1 <= len(record) <= 8
+                    or any(type(path) is not str for path in record)):
+                    return
+                selected = _draft_paths("\n".join(record))
+                if len(selected) != len(record) or any(not scope.permits(p) for p in selected):
+                    return
+                queue.planned_paths[item.key] = selected
             queue.forecast = estimated_duration(self.root, "focused") if queue.scheduled else None
         except (ValueError, OverflowError, TypeError, KeyError, AttributeError):
             return
@@ -526,6 +541,7 @@ class LocalDrafts:
                 "failures": queue.failures, "recovery": queue.recovery,
                 "executions": queue.executions,
                 "continuous_enabled": queue.auto_drafts, "paused": queue.paused,
+                "planned_paths": {key: list(paths) for key, paths in queue.planned_paths.items()},
                 "active_inspection": bool(active and self._request.inspect_only),
                 "elapsed_ms": queue.elapsed_ms, "item_elapsed_ms": queue.item_elapsed_ms,
             }, replace=replace)
@@ -909,6 +925,11 @@ class LocalDrafts:
         scope = queue.baseline.scope
         if any(not scope.permits(path) or (scope.paths and path not in scope.paths) for path in paths):
             raise DraftError("작업 파일이 원래 인수인계에 적힌 수정 범위를 벗어납니다.")
+        conflicts = self._file_conflicts(queue, item, paths)
+        if conflicts:
+            raise DraftError("같은 파일을 수정할 다른 파트가 있습니다. 먼저 결과를 검토·통합해야 합니다: "
+                             + ", ".join(title for title, _ in conflicts))
+        queue.planned_paths[item.key] = paths
         queue.attempted.add(item.key)
         queue.recovery.pop(item.key, None)
         return self._begin(_DraftRequest(f"{item.title}\n{item.detail}", "", paths, scope.workspace,
@@ -930,13 +951,47 @@ class LocalDrafts:
         return False
 
     @staticmethod
+    def _file_conflicts(queue: _WorkQueue, item: HandoffTask,
+                        paths: tuple[str, ...]) -> list[tuple[str, str]]:
+        """Do not draft from the same pinned original over another SWU's draft.
+
+        Earlier declared source claims win; later claims block only if already
+        attempted. No candidate is silently promoted to a new source HEAD.
+        """
+        target = {path.casefold(): path for path in paths}
+        if not target:
+            return []
+        position = next((i for i, row in enumerate(queue.items) if row.key == item.key), -1)
+        conflicts = []
+        for i, row in enumerate(queue.items):
+            if row.key == item.key:
+                continue
+            if i > position and row.key not in queue.attempted and row.key not in queue.drafts:
+                continue
+            previous = queue.planned_paths.get(row.key)
+            if previous is None:
+                previous = queue.scheduled.get(row.key, ((), ""))[0]
+            overlaps = sorted(target[p.casefold()] for p in previous if p.casefold() in target)
+            if overlaps:
+                conflicts.append((row.title, overlaps[0]))
+        return conflicts
+
+    @staticmethod
     def _can_draft(queue: _WorkQueue, item: HandoffTask) -> bool:
         return (item.key in queue.scheduled and item.key not in queue.attempted
-                and item.key not in queue.drafts and not item.dependencies())
+                and item.key not in queue.drafts and not item.dependencies()
+                and not LocalDrafts._file_conflicts(queue, item, queue.scheduled[item.key][0]))
 
     def _item_hold(self, queue: _WorkQueue, item: HandoffTask) -> dict | None:
         if not queue.baseline or self._can_draft(queue, item) or self._can_inspect(queue, item):
             return None
+        scoped = queue.planned_paths.get(item.key) or queue.scheduled.get(item.key, ((), ""))[0]
+        conflicts = self._file_conflicts(queue, item, scoped)
+        if conflicts:
+            return {"kind": "conflict", "label": "동일 소스 파일 충돌 보류",
+                    "detail": "다른 파트의 같은 파일 초안과 덮어쓰기 충돌 위험이 있습니다. "
+                              "검토·통합 및 검증 전 자동 진행하지 않습니다: "
+                              + ", ".join(f"{title} ({path})" for title, path in conflicts)}
         if execution := queue.executions.get(item.key):
             return {"kind": "execution", "label": "실제 실행 " + execution["state"],
                     "detail": "원격 CLI 감사 결과입니다. 전체 P2 검증이나 독립 감사가 아닙니다."}

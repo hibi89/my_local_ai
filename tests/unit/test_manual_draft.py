@@ -483,6 +483,59 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual(provider.prompt, "")
             self.assertFalse(any(path.is_dir() for path in root.iterdir()))
 
+    def test_duplicate_source_path_holds_only_conflict_and_survives_restart(self):
+        message = (
+            "## 작업 목록\n"
+            "### SWU-01. First edit\n작업 파일: src/shared.py\n변경 내용: Set FIRST to True.\n"
+            "### SWU-02. Same file again\n작업 파일: src/SHARED.py\n변경 내용: Set SECOND to True.\n"
+            "### SWU-03. Independent\n작업 파일: src/other.py\n변경 내용: Set OTHER to True.\n"
+        )
+        class Model:
+            def __init__(self):
+                self.calls = []
+            def generate(self, prompt, **options):
+                self.calls.append(prompt)
+                path, value = (("src/shared.py", "FIRST = True\n") if "Set FIRST" in prompt
+                               else ("src/other.py", "OTHER = True\n"))
+                return UntrustedGeneration(json.dumps({
+                    "summary": "safe draft", "files": [{"path": path, "content": value}],
+                }), "qwen3:4b-instruct")
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "drafts"
+            model = Model()
+            app = LocalDrafts(root, provider=model)
+            app.start({"message": message})
+            result = self.await_result(app)
+            queue = result["work_queue"]
+            self.assertEqual([row["state"] for row in queue["items"]],
+                             ["draft", "pending", "draft"])
+            self.assertEqual(queue["items"][1]["hold"]["kind"], "conflict")
+            self.assertIn("src/SHARED.py", queue["items"][1]["hold"]["detail"])
+            self.assertEqual(len(model.calls), 2)
+            with self.assertRaisesRegex(DraftError, "같은 파일"):
+                app.start({"queue": queue["id"], "item": queue["items"][1]["id"],
+                           "paths": "src/SHARED.py", "change": "Set SECOND to True."})
+            restored = LocalDrafts(root, provider=model).snapshot()["work_queue"]
+            self.assertEqual(restored["items"][1]["hold"]["kind"], "conflict")
+            self.assertFalse(restored["can_resume"])
+            self.assertEqual(len(model.calls), 2)
+
+    def test_manual_earlier_swu_cannot_overwrite_later_completed_file(self):
+        message = (
+            "## 작업 목록\n"
+            "### SWU-01. Manual phase\nNeed selected file and scope from operator.\n"
+            "### SWU-02. Planned phase\n작업 파일: src/shared.py\n변경 내용: Set LATER to True.\n"
+        )
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "drafts"
+            model = FixtureProvider("src/shared.py", "LATER = True\n")
+            app = LocalDrafts(root, provider=model)
+            app.start({"message": message})
+            queue = self.await_result(app)["work_queue"]
+            with self.assertRaisesRegex(DraftError, "같은 파일"):
+                app.start({"queue": queue["id"], "item": queue["items"][0]["id"],
+                           "paths": "src/shared.py", "change": "Update shared code."})
+
     def test_draft_recovery_holds_one_part_and_advances_independent_work(self):
         message = (
             "## 작업 목록\n"
