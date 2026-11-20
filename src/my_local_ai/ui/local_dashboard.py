@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from ..ax_runtime.manual_draft import DraftError, LocalDrafts, REQUEST_LIMIT
 from ..ax_runtime.workbench_guard import exclusive_workbench
+from ..ax_runtime.longrun_monitor import LongrunMonitor
 from ..ops.resource_monitor import ResourceReading, sample_local_resources
 from .dashboard_page import (
     load_locked_verification_queue, load_project_overview, render_html, render_unavailable,
@@ -92,7 +93,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self._respond(200, render_workbench(self.server.workbench_path, layout),
                                      "text/html; charset=utf-8", workbench=True)
             if self.path == self.server.workbench_path + "/status":
-                return self._json(self.server.drafts.snapshot())
+                return self._json({**self.server.drafts.snapshot(),
+                                   "longrun": (self.server.longrun_monitor.snapshot()
+                                               if self.server.longrun_monitor else None)})
         if self.path == "/dashboard.css":
             return self._respond(200, self.server.stylesheet, "text/css; charset=utf-8")
         if self.path == "/favicon.ico":
@@ -176,6 +179,7 @@ class LocalStatusServer(ThreadingHTTPServer):
             raise ValueError("dashboard checkout must be on a local drive")
         self.stylesheet = _CSS.read_bytes()
         self.drafts = drafts
+        self.longrun_monitor: LongrunMonitor | None = None
         self.workbench_path = "/work/" + secrets.token_urlsafe(32) if drafts is not None else ""
         self.workbench_assets = {}
         if drafts is not None:
@@ -213,9 +217,17 @@ def launch_dashboard(project_root: str | Path, port: int = 0, *, open_browser: b
     with context:
         drafts = LocalDrafts(root) if root is not None else None
         with LocalStatusServer(project_root, port=port, drafts=drafts) as server:
-            url = f"http://127.0.0.1:{server.server_address[1]}{server.workbench_path or '/'}"
-            print(f"MLA dashboard: {url}", flush=True)
-            if open_browser:
-                import webbrowser
-                webbrowser.open(url, new=2)
-            server.serve_forever(poll_interval=0.3)
+            monitor = LongrunMonitor(root) if root is not None else None
+            server.longrun_monitor = monitor
+            try:
+                if monitor is not None:
+                    monitor.start()
+                url = f"http://127.0.0.1:{server.server_address[1]}{server.workbench_path or '/'}"
+                print(f"MLA dashboard: {url}", flush=True)
+                if open_browser:
+                    import webbrowser
+                    webbrowser.open(url, new=2)
+                server.serve_forever(poll_interval=0.3)
+            finally:
+                if monitor is not None:
+                    monitor.stop()
