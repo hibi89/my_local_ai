@@ -18,7 +18,7 @@
     {
       "id": "MLA-LR-001",
       "title": "Safe continuous workbench prompt queue with SQLite recovery and pause/resume",
-      "status": "SOURCE_CANDIDATE_RECHECK_REQUIRED",
+      "status": "SOURCE_CANDIDATE_SYNTHETIC_CI_PASS",
       "allowed_paths": [
         "src/my_local_ai/ax_runtime/manual_draft.py",
         "src/my_local_ai/ui/workbench.js",
@@ -31,11 +31,26 @@
       "acceptance": "Exact SHA synthetic CI and no duplicate work, Windows EXE pending",
       "implementation_sha": "9e7c68fea15da2c6afe24a449bf7022009225e31",
       "test_sha": "4827510fc95f802d4b3355302b5ce6abd6f79a45",
-      "linux_ci_run_id": 44751448525,
+      "linux_ci_run_id": 44753070259,
       "windows_workbench_ci_run_id": 44751337489,
       "actual_windows_owner_test": "NOT_RUN",
       "real_multi_day": "NOT_RUN",
-      "additional_gate": "Single EXE per draft root, OS lock tested on Linux and Windows"
+      "additional_gate": "Single EXE per draft root, OS lock tested on Linux and Windows",
+      "latest_source_sha": "73887091c36c6152c23d56177d5a95807f6baed5",
+      "linux_test_counts": {
+        "unit": 298,
+        "integration": 124,
+        "security": 304
+      },
+      "windows_lease_and_exe_run_id": 44752605326,
+      "final_ui_windows_run_id": 44753070142,
+      "final_ui_windows_status": "SUCCESS",
+      "real_windows_11": "NOT_RUN",
+      "multi_day_acceptance": "NOT_RUN",
+      "windows_protected_synthetic_run_id": 44753070134,
+      "windows_artifact_id": 14635134423,
+      "artifact_sha256": "5a46a96975bc2329f0f17a764aaa1051e9dcc7359d4a03d6890de116133c0da2",
+      "ci_synthetic_result": "PASS"
     },
     {
       "id": "MLA-LR-002",
