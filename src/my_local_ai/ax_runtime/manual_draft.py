@@ -28,6 +28,7 @@ from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, re
 from .draft_recovery import GeminiDraftAdvisor, MAX_DRAFT_ATTEMPTS, RECOVERY_ACTIONS
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
 from .ollama_provider import OllamaProvider, STRUCTURED_OUTPUT_TOKENS
+from .local_model_route import choose_draft_route
 from .pinned_source_cache import PinnedSourceCache
 from .provider_policy import ProviderHold
 from .worker_lock import ModelLockUnsafe, OneModelLock
@@ -1251,7 +1252,14 @@ class LocalDrafts:
         output_tokens = _FOCUSED_OUTPUT_TOKENS if focused else STRUCTURED_OUTPUT_TOKENS
         compact = False
         for number in range(1, limit + 1):
-            context = _SHORT_CONTEXT if len(prompt.encode()) <= _SHORT_CONTEXT - output_tokens else _CONTEXT
+            next_eligible = bool(queue and request.item and queue.auto_drafts
+                                 and any(self._can_draft(queue, candidate)
+                                         for candidate in queue.items if candidate.key != request.item.key))
+            route = choose_draft_route(
+                prompt, output_tokens, next_eligible=next_eligible,
+                pause_requested=bool(queue and queue.paused),
+            )
+            context = route.context_tokens
             kind = "focused" if focused else ("short" if context == _SHORT_CONTEXT else "long")
             forecast = estimated_duration(self.root, kind)
             model_started = monotonic()
@@ -1266,9 +1274,9 @@ class LocalDrafts:
                     budget=BudgetGuard(ModelBudget(max_calls=1, max_seconds=270,
                         max_context_tokens=context, max_output_bytes=_OUTPUT_LIMIT)),
                     allow_generation=True, structured=True, structured_tokens=output_tokens,
-                    # A bounded warm model avoids repeated HDD model loads across
-                    # sequential SWU drafts. Standalone requests still unload immediately.
-                    keep_alive_seconds=90 if queue and request.item else 0,
+                    # Keep Qwen loaded only when another safe independent SWU is
+                    # eligible. Final/paused/standalone drafts release GPU memory.
+                    keep_alive_seconds=route.keep_alive_seconds,
                 )
                 if generation.untrusted is not True:
                     raise DraftError("Qwen 초안의 출처를 확인할 수 없습니다.")
