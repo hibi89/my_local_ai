@@ -190,6 +190,7 @@ def render_workbench(session_path: str, layout: str) -> bytes:
                 이전 GitHub 실행 결과 다시 확인 (읽기 전용)
               </button>
               <p id="queue-saved" class="folder" hidden></p>
+              <p id="model-metrics" class="folder" hidden></p>
               <p id="item-recovery" class="item-recovery" hidden></p>
               <details id="item-options" class="sources" hidden>
                 <summary>직접 수정 초안 요청</summary>

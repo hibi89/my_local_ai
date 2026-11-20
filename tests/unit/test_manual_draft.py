@@ -559,6 +559,38 @@ class LocalDraftsTests(unittest.TestCase):
                 reopened.start({"queue": restored["id"], "item": restored["items"][1]["id"],
                                 "paths": "src/shared.py", "change": "Set OTHER to True."})
 
+    def test_serial_draft_routes_warm_only_before_next_swu_and_persists_metrics(self):
+        message = (
+            "## 작업 목록\n"
+            "### SWU-01. First draft\n작업 파일: src/first.py\n변경 내용: Set FIRST to True.\n"
+            "### SWU-02. Second draft\n작업 파일: src/second.py\n변경 내용: Set SECOND to True.\n"
+        )
+        class Model:
+            def __init__(self):
+                self.keep_alive = []
+            def generate(self, prompt, **options):
+                self.keep_alive.append(options["keep_alive_seconds"])
+                path, data = (("src/first.py", "FIRST = True\n") if "Set FIRST" in prompt
+                               else ("src/second.py", "SECOND = True\n"))
+                return UntrustedGeneration(
+                    json.dumps({"summary": "draft", "files": [{"path": path, "content": data}]}),
+                    "qwen3:4b-instruct",
+                    metrics={"total_ms": 6000, "load_ms": 1000, "prompt_ms": 400,
+                             "eval_ms": 2000, "prompt_tokens": 20, "eval_tokens": 80,
+                             "tokens_per_second": 40.0})
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "drafts"
+            model = Model()
+            app = LocalDrafts(root, provider=model)
+            app.start({"message": message})
+            status = self.await_result(app)
+            self.assertEqual(status["state"], "done")
+            self.assertEqual(model.keep_alive, [90, 0])
+            self.assertEqual(status["work_queue"]["items"][0]["draft"]["model_metrics"]["load_ms"], 1000)
+            self.assertEqual(status["work_queue"]["items"][1]["draft"]["model_metrics"]["eval_tokens"], 80)
+            self.assertEqual(LocalDrafts(root, provider=model).snapshot()["work_queue"]["items"][1]["draft"]["model_metrics"]["total_ms"], 6000)
+            self.assertEqual(len(model.keep_alive), 2)
+
     def test_json_toml_invalid_drafts_retry_without_executing_generated_code(self):
         message = (
             "## 작업 목록\n"

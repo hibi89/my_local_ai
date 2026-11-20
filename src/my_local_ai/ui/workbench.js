@@ -290,6 +290,18 @@ function selectItem(id, selectedByUser = false) {
   const saved = document.querySelector('#queue-saved');
   saved.hidden = !item.draft;
   saved.textContent = item.draft ? item.draft.summary + '\n' + item.draft.folder : '';
+  const metrics = item.draft?.model_metrics;
+  const modelStats = document.querySelector('#model-metrics');
+  const fields = metrics && Number.isFinite(metrics.total_ms) &&
+    Number.isFinite(metrics.load_ms) && Number.isFinite(metrics.eval_tokens) &&
+    Number.isFinite(metrics.tokens_per_second);
+  modelStats.hidden = !fields;
+  modelStats.textContent = fields ? '로컬 Qwen 실측 · 모델 로딩 ' +
+    (metrics.load_ms / 1000).toFixed(1) + '초 · 생성 ' +
+    metrics.eval_tokens + ' 토큰 · ' +
+    metrics.tokens_per_second.toFixed(1) + ' 토큰/초 · 전체 ' +
+    (metrics.total_ms / 1000).toFixed(1) +
+    '초 (Ollama 통계, GPU VRAM 측정 아님)' : '';
   const recovery = item.recovery;
   const note = recovery ? '실패 ' + recovery.failed_attempts + '/' + recovery.limit + '회' : '';
   const advisor = recovery?.advisor === 'gemini' ? 'Gemini 조언 반영' : recovery?.advisor === 'local' ? '로컬 재시도' : '';

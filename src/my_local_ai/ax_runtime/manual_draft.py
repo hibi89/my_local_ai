@@ -667,7 +667,10 @@ class LocalDrafts:
                     queue.inspections[item.key] = inspection
                     queue.rechecks.discard(item.key)
                 elif state == "done":
-                    self._queue.drafts[item.key] = {"summary": values["summary"], "folder": values["folder"]}
+                    draft = {"summary": values["summary"], "folder": values["folder"]}
+                    if type(values.get("model_metrics")) is dict:
+                        draft["model_metrics"] = values["model_metrics"]
+                    self._queue.drafts[item.key] = draft
                     self._queue.interrupted.discard(item.key)
                     self._queue.failures.pop(item.key, None)
                 elif state == "error":
@@ -1213,7 +1216,7 @@ class LocalDrafts:
                 evidence = [task.evidence(len(task.text))]
                 if blueprint:
                     evidence.append(blueprint.evidence(used))
-            summary, files, evidence, sample = self._generate_draft(
+            summary, files, evidence, sample, model_metrics = self._generate_draft(
                 request, queue, prepared, plan, focused, originals, prompt, fragments, evidence,
             )
             self._set("working", "변경 내용을 정리해 별도 폴더에 저장 중입니다.", saving=True)
@@ -1221,7 +1224,8 @@ class LocalDrafts:
             destination = self._save(files, summary, evidence, plan)
             message = "첫 작업의 로컬 초안을 저장했습니다." if plan and plan["narrowed"] else "초안 파일을 저장했습니다."
             self._set("done", message, summary=summary, sample=sample,
-                      folder=str(destination / "files"), files=files, sources=evidence)
+                      folder=str(destination / "files"), files=files, sources=evidence,
+                      model_metrics=model_metrics)
         except _DraftOutputError as exc:
             self._set("error", str(exc), error={"code": exc.code, "hint": _MODEL_ERRORS[exc.code][1]})
         except DraftError as exc:
@@ -1286,7 +1290,8 @@ class LocalDrafts:
                 if request.item and any(file["syntax"].endswith("문법 확인 필요") for file in files):
                     raise _DraftOutputError("Qwen 초안의 소스·설정 구문 검사에 실패했습니다.", "DRAFT_SYNTAX")
                 sample = kind, int((monotonic() - model_started) * 1000)
-                return summary, files, evidence, sample
+                metrics = generation.metrics if type(generation.metrics) is dict else None
+                return summary, files, evidence, sample, metrics
             except (ProviderHold, _DraftOutputError) as exc:
                 code = (exc.detail or exc.code) if isinstance(exc, ProviderHold) else exc.code
                 if not request.item or code not in RECOVERY_ACTIONS:

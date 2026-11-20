@@ -32,6 +32,30 @@ class UntrustedGeneration:
     text: str
     model: str
     untrusted: bool = True
+    metrics: dict | None = None
+
+
+def _safe_local_metrics(result: dict) -> dict | None:
+    """Only numeric Ollama counters/timings, never model output or source text.
+
+    Invalid or missing telemetry does not turn a successful draft into a failure
+    or claim a performance improvement. Ollama durations are in nanoseconds.
+    """
+    fields = ("total_duration", "load_duration", "prompt_eval_duration", "eval_duration",
+              "prompt_eval_count", "eval_count")
+    if any(type(result.get(k)) is not int or result[k] < 0
+           or result[k] > (900_000_000_000 if k.endswith("duration") else 100_000)
+           for k in fields):
+        return None
+    total_ms, load_ms, prompt_ms, eval_ms = (
+        result[k] // 1_000_000 for k in fields[:4]
+    )
+    count = result["eval_count"]
+    speed = round(count * 1_000_000_000 / result["eval_duration"], 1) if result["eval_duration"] else 0.0
+    return {"total_ms": total_ms, "load_ms": load_ms,
+            "prompt_ms": prompt_ms, "eval_ms": eval_ms,
+            "prompt_tokens": result["prompt_eval_count"], "eval_tokens": count,
+            "tokens_per_second": speed}
 
 
 class OllamaProvider:
@@ -180,7 +204,7 @@ class OllamaProvider:
                 if len(encoded) > budget.limits.max_output_bytes:
                     raise ProviderHold("RESOURCE_LIMIT", detail="OUTPUT_TOO_LARGE")
                 budget.check(output_bytes=len(encoded))
-                return UntrustedGeneration(answer, self.model)
+                return UntrustedGeneration(answer, self.model, metrics=_safe_local_metrics(result))
         except ModelLockBusy:
             raise ProviderHold("RESOURCE_LIMIT", detail="MODEL_BUSY") from None
         except (ModelLockUnsafe, OSError):
