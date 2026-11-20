@@ -27,6 +27,7 @@ from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, re
 from .draft_recovery import GeminiDraftAdvisor, MAX_DRAFT_ATTEMPTS, RECOVERY_ACTIONS
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
 from .ollama_provider import OllamaProvider, STRUCTURED_OUTPUT_TOKENS
+from .pinned_source_cache import PinnedSourceCache
 from .provider_policy import ProviderHold
 from .worker_lock import ModelLockUnsafe, OneModelLock
 
@@ -439,6 +440,7 @@ class LocalDrafts:
         self._request: _DraftRequest | None = None
         self._context: _HandoffContext | None = None
         self._queue: _WorkQueue | None = None
+        self._source_cache = PinnedSourceCache()
         # Only live, current-process workers justify continuous UI polling.
         # Reopen/restored receipts are not silently treated as running threads.
         self._remote_active: set[str] = set()
@@ -1104,7 +1106,8 @@ class LocalDrafts:
         source_docs = {}
         if handoff.repository and not handoff.workspace:
             for path in paths:
-                document = read_github_file(handoff.repository, revision, path, allow_missing=allow_missing)
+                document = self._source_cache.read(handoff.repository, revision, path,
+                                                   allow_missing=allow_missing, fetch=read_github_file)
                 if document is not None:
                     source_docs[path] = document
             originals = {path: source_docs[path].text if path in source_docs else "" for path in paths}
