@@ -543,6 +543,25 @@ function showResult(state) {
   attempt = state.attempt || '';
   showReplies(state.replies || []);
   showQueue(state.work_queue || null, working);
+  const longrun = state.longrun;
+  const monitor = document.querySelector('#longrun-diagnostic');
+  if (longrun && Number.isFinite(longrun.uptime_seconds)) {
+    const ram = Number.isFinite(longrun.system_ram_mb)
+      ? longrun.system_ram_mb.toFixed(0) + ' MB' : '미측정';
+    const cpu = Number.isFinite(longrun.cpu_percent)
+      ? longrun.cpu_percent.toFixed(1) + '%' : '미측정';
+    const uptime = timestamp(Math.max(0, Math.floor(longrun.uptime_seconds)));
+    const gaps = Number.isInteger(longrun.clock_or_sampling_gaps)
+      ? longrun.clock_or_sampling_gaps : 0;
+    const samples = Number.isInteger(longrun.samples) ? longrun.samples : 0;
+    monitor.textContent = '장시간 진단 · 검증 아님 · 실행 ' + uptime +
+      ' · 기록 ' + samples + '개 · 시간 공백 ' + gaps + '개 · 시스템 RAM ' + ram +
+      ' · CPU ' + cpu + ' · GPU VRAM 미측정' +
+      (longrun.previous_session_unclosed ? ' · 이전 실행 정상 종료 미확인' : '') +
+      (longrun.status !== 'LOCAL_UNATTESTED' ? ' · 진단 저장 실패 또는 초기화' : '');
+  } else {
+    monitor.textContent = '장시간 진단 정보를 확인할 수 없습니다. 24시간 검증 미완료.';
+  }
   replyForm.hidden = !state.can_reply;
   replyNotice.hidden = true;
   queueNotice.textContent = state.checkpoint_error || '';
