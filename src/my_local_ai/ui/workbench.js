@@ -559,10 +559,20 @@ function showResult(state) {
     const gaps = Number.isInteger(longrun.clock_or_sampling_gaps)
       ? longrun.clock_or_sampling_gaps : 0;
     const samples = Number.isInteger(longrun.samples) ? longrun.samples : 0;
+    const previous = longrun.previous_session;
+    const previousSummary = previous && Number.isSafeInteger(previous.samples)
+      && Number.isSafeInteger(previous.observed_span_seconds)
+      && Number.isSafeInteger(previous.clock_or_sampling_gaps)
+      ? ' · 직전 실행 기록 ' + previous.samples + '개, 경과 ' +
+        timestamp(previous.observed_span_seconds) + ', 공백 ' +
+        previous.clock_or_sampling_gaps + '개' +
+        (previous.ended_cleanly ? ', 정상 종료 기록 있음' : ', 종료 기록 없음') +
+        (previous.start_receipt_present ? '' : ', 시작 기록 누락') : '';
     monitor.textContent = '장시간 진단 · 검증 아님 · 실행 ' + uptime +
       ' · 기록 ' + samples + '개 · 시간 공백 ' + gaps + '개 · 시스템 RAM ' + ram +
       ' · MLA RAM ' + processRam + ' (최대 ' + processPeak + ')' +
       ' · CPU ' + cpu + ' · GPU VRAM 미측정' +
+      previousSummary +
       (longrun.previous_session_unclosed ? ' · 이전 실행 정상 종료 미확인' : '') +
       (longrun.status !== 'LOCAL_UNATTESTED' ? ' · 진단 저장 실패 또는 초기화' : '');
   } else {

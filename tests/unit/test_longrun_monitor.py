@@ -48,10 +48,20 @@ class MonitorTests(unittest.TestCase):
                                       wall=lambda: t.wall, sampler=reading)
             reopened.tick("START")
             self.assertIs(reopened.snapshot()["previous_session_unclosed"], False)
+            previous = reopened.snapshot()["previous_session"]
+            self.assertEqual(previous["samples"], 4)
+            self.assertEqual(previous["observed_span_seconds"], 761)
+            self.assertEqual(previous["clock_or_sampling_gaps"], 1)
+            self.assertTrue(previous["ended_cleanly"])
+            self.assertFalse(previous["history_complete"])
+            self.assertEqual(previous["verification"], "NOT_RUN")
+            self.assertFalse(previous["real_24h_accepted"])
             interrupted = LongrunMonitor(root, clock=lambda: t.mono,
                                          wall=lambda: t.wall, sampler=reading)
             interrupted.tick("START")
             self.assertIs(interrupted.snapshot()["previous_session_unclosed"], True)
+            self.assertEqual(interrupted.snapshot()["previous_session"]["samples"], 1)
+            self.assertFalse(interrupted.snapshot()["previous_session"]["ended_cleanly"])
 
     def test_storage_failure_never_claims_proof_or_starts_worker(self):
         with TemporaryDirectory() as path:
@@ -80,6 +90,39 @@ class MonitorTests(unittest.TestCase):
             with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 3)
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_process_ram").fetchone()[0], 1)
+
+    def test_missing_gap_flag_is_inferred_and_never_p2_accepted(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = LongrunMonitor(root)
+            first.tick("START")
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                db.execute(
+                    "INSERT INTO longrun_receipts "
+                    "(session,event,utc_seconds,elapsed_seconds,gap) VALUES (?,?,?,?,?)",
+                    (first._session, "HEARTBEAT", 2000, 900, 0),
+                )
+            reopened = LongrunMonitor(root)
+            reopened.tick("START")
+            history = reopened.snapshot()["previous_session"]
+            self.assertEqual(history["samples"], 2)
+            self.assertEqual(history["clock_or_sampling_gaps"], 1)
+            self.assertFalse(history["history_complete"])
+            self.assertFalse(history["real_24h_accepted"])
+
+    def test_malformed_previous_history_fails_closed(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = LongrunMonitor(root)
+            first.tick("START")
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                db.execute("UPDATE longrun_receipts SET elapsed_seconds = -1")
+            reopened = LongrunMonitor(root)
+            reopened.tick("START")
+            self.assertEqual(reopened.snapshot()["status"], "EVIDENCE_UNAVAILABLE")
+            self.assertEqual(reopened.snapshot()["samples"], 0)
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 1)
 
     def test_reject_unrecognized_event(self):
         with TemporaryDirectory() as path:

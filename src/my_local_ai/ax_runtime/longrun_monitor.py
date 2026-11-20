@@ -57,6 +57,51 @@ def sample_process_ram_mb() -> float | None:
         return None
 
 
+
+def _read_previous_session(db: sqlite3.Connection) -> dict | None:
+    """Read bounded local receipts; never grant P2 or restart authority."""
+    last = db.execute("SELECT session FROM longrun_receipts ORDER BY id DESC LIMIT 1").fetchone()
+    if last is None:
+        return None
+    session = last[0]
+    if (type(session) is not str or len(session) != 24
+        or any(ch not in "0123456789abcdef" for ch in session)):
+        raise ValueError("invalid longrun session identity")
+    rows = db.execute(
+        "SELECT event, elapsed_seconds, gap FROM longrun_receipts "
+        "WHERE session = ? ORDER BY id DESC LIMIT ?",
+        (session, _MAX_ROWS),
+    ).fetchall()
+    rows.reverse()
+    if not rows:
+        raise ValueError("missing longrun receipts")
+    gaps = 0
+    prior_elapsed = None
+    for index, (event, elapsed, gap) in enumerate(rows):
+        if (event not in ("START", "HEARTBEAT", "STOP")
+            or type(elapsed) is not int or elapsed < 0
+            or type(gap) is not int or gap not in (0, 1)
+            or (prior_elapsed is not None and elapsed < prior_elapsed)
+            or (event == "START" and index != 0)
+            or (event == "STOP" and index != len(rows) - 1)):
+            raise ValueError("invalid longrun receipt order")
+        inferred_gap = prior_elapsed is not None and elapsed - prior_elapsed > _GAP_SECONDS
+        gaps += int(bool(gap or inferred_gap))
+        prior_elapsed = elapsed
+    start_present = rows[0][0] == "START"
+    ended_cleanly = rows[-1][0] == "STOP"
+    return {
+        "samples": len(rows),
+        "observed_span_seconds": rows[-1][1] - rows[0][1],
+        "clock_or_sampling_gaps": gaps,
+        "start_receipt_present": start_present,
+        "ended_cleanly": ended_cleanly,
+        "history_complete": start_present and ended_cleanly and gaps == 0,
+        "verification": "NOT_RUN",
+        "real_24h_accepted": False,
+    }
+
+
 class LongrunMonitor:
     """Local-only, bounded SQLite samples; no restart or execution authority."""
 
@@ -76,6 +121,7 @@ class LongrunMonitor:
         self._last_wall: float | None = None
         self._start_mono: float | None = None
         self._previous_unclean: bool | None = None
+        self._previous_session: dict | None = None
         self._gap_count = 0
         self._sample_count = 0
         self._health = "NOT_STARTED"
@@ -93,10 +139,11 @@ class LongrunMonitor:
                        "utc_seconds INTEGER NOT NULL, elapsed_seconds INTEGER NOT NULL, "
                        "gap INTEGER NOT NULL, system_ram_mb REAL, cpu_percent REAL)")
             if self._previous_unclean is None:
-                last = db.execute("SELECT session, event FROM longrun_receipts "
-                                  "ORDER BY id DESC LIMIT 1").fetchone()
-                self._previous_unclean = bool(last and last[0] != self._session
-                                              and last[1] != "STOP")
+                previous = _read_previous_session(db)
+                # No older receipts means no evidence of a previous crash.
+                # An absent/partial STOP must never be labeled clean.
+                self._previous_session = previous
+                self._previous_unclean = bool(previous and not previous["ended_cleanly"])
             def bounded(value: float | None, bound: float) -> float | None:
                 return (round(float(value), 2) if type(value) in (int, float)
                         and math.isfinite(value) and 0 <= value <= bound else None)
@@ -190,6 +237,8 @@ class LongrunMonitor:
                     "uptime_seconds": uptime, "samples": self._sample_count,
                     "clock_or_sampling_gaps": self._gap_count,
                     "previous_session_unclosed": self._previous_unclean,
+                    "previous_session": (dict(self._previous_session)
+                                         if self._previous_session is not None else None),
                     "system_ram_mb": visible(reading.ram_mb, 262144),
                     "process_ram_mb": self._process_ram_mb,
                     "process_ram_peak_mb": self._peak_process_ram_mb,
