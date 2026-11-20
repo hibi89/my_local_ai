@@ -23,7 +23,8 @@ class MonitorTests(unittest.TestCase):
                 return ResourceReading(2000.0, None, None, 11.2,
                                        source="LOCAL_READ_ONLY_UNATTESTED"), None
             monitor = LongrunMonitor(root, clock=lambda: t.mono,
-                                     wall=lambda: t.wall, sampler=reading)
+                                     wall=lambda: t.wall, sampler=reading,
+                                     process_sampler=lambda: 123.5)
             monitor.tick("START")
             t.mono += 61
             t.wall += 61
@@ -37,9 +38,12 @@ class MonitorTests(unittest.TestCase):
             self.assertFalse(snap["real_24h_accepted"])
             self.assertIsNone(snap["vram_mb"])
             self.assertEqual(snap["verification"], "NOT_RUN")
+            self.assertEqual(snap["process_ram_mb"], 123.5)
+            self.assertEqual(snap["process_ram_peak_mb"], 123.5)
             with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 4)
                 self.assertEqual(db.execute("SELECT event FROM longrun_receipts ORDER BY id DESC LIMIT 1").fetchone()[0], "STOP")
+                self.assertEqual(db.execute("SELECT count(*) FROM longrun_process_ram").fetchone()[0], 4)
             reopened = LongrunMonitor(root, clock=lambda: t.mono,
                                       wall=lambda: t.wall, sampler=reading)
             reopened.tick("START")
@@ -60,6 +64,22 @@ class MonitorTests(unittest.TestCase):
             monitor.tick("START")
             self.assertEqual(monitor.snapshot()["status"], "EVIDENCE_UNAVAILABLE")
             self.assertEqual(monitor.snapshot()["samples"], 0)
+
+    def test_unavailable_or_invalid_process_sensor_never_invents_ram(self):
+        with TemporaryDirectory() as path:
+            root = Path(path)
+            values = iter([float("nan"), -42.0, 104.25])
+            monitor = LongrunMonitor(root, process_sampler=lambda: next(values))
+            monitor.tick("START")
+            self.assertIsNone(monitor.snapshot()["process_ram_mb"])
+            monitor.tick()
+            self.assertIsNone(monitor.snapshot()["process_ram_mb"])
+            monitor.tick()
+            self.assertEqual(monitor.snapshot()["process_ram_peak_mb"], 104.25)
+            self.assertFalse(monitor.snapshot()["real_24h_accepted"])
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 3)
+                self.assertEqual(db.execute("SELECT count(*) FROM longrun_process_ram").fetchone()[0], 1)
 
     def test_reject_unrecognized_event(self):
         with TemporaryDirectory() as path:

@@ -552,11 +552,16 @@ function showResult(state) {
     const cpu = Number.isFinite(longrun.cpu_percent)
       ? longrun.cpu_percent.toFixed(1) + '%' : '미측정';
     const uptime = timestamp(Math.max(0, Math.floor(longrun.uptime_seconds)));
+    const processRam = Number.isFinite(longrun.process_ram_mb)
+      ? longrun.process_ram_mb.toFixed(0) + ' MB' : '미측정';
+    const processPeak = Number.isFinite(longrun.process_ram_peak_mb)
+      ? longrun.process_ram_peak_mb.toFixed(0) + ' MB' : '미측정';
     const gaps = Number.isInteger(longrun.clock_or_sampling_gaps)
       ? longrun.clock_or_sampling_gaps : 0;
     const samples = Number.isInteger(longrun.samples) ? longrun.samples : 0;
     monitor.textContent = '장시간 진단 · 검증 아님 · 실행 ' + uptime +
       ' · 기록 ' + samples + '개 · 시간 공백 ' + gaps + '개 · 시스템 RAM ' + ram +
+      ' · MLA RAM ' + processRam + ' (최대 ' + processPeak + ')' +
       ' · CPU ' + cpu + ' · GPU VRAM 미측정' +
       (longrun.previous_session_unclosed ? ' · 이전 실행 정상 종료 미확인' : '') +
       (longrun.status !== 'LOCAL_UNATTESTED' ? ' · 진단 저장 실패 또는 초기화' : '');

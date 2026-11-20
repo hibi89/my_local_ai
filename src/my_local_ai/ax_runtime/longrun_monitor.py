@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import closing
 import math
+import os
 from pathlib import Path
 import secrets
 import sqlite3
@@ -17,15 +18,55 @@ _MAX_ROWS = 4096
 _GAP_SECONDS = 180
 
 
+def sample_process_ram_mb() -> float | None:
+    """Read this MLA process working-set RSS on Windows; no elevation or subprocess."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class ProcessMemoryCounters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        psapi.GetProcessMemoryInfo.argtypes = [
+            wintypes.HANDLE, ctypes.POINTER(ProcessMemoryCounters), wintypes.DWORD,
+        ]
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+        counters = ProcessMemoryCounters()
+        counters.cb = ctypes.sizeof(counters)
+        if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(),
+                                         ctypes.byref(counters), counters.cb):
+            return None
+        mb = counters.WorkingSetSize / (1024 * 1024)
+        return round(mb, 2) if math.isfinite(mb) and 0 <= mb <= 262144 else None
+    except (OSError, AttributeError, TypeError, ValueError, OverflowError):
+        return None
+
+
 class LongrunMonitor:
     """Local-only, bounded SQLite samples; no restart or execution authority."""
 
     def __init__(self, root: Path, *, clock=time.monotonic, wall=time.time,
-                 sampler=sample_local_resources):
+                 sampler=sample_local_resources, process_sampler=sample_process_ram_mb):
         self.root = Path(root)
         self._clock = clock
         self._wall = wall
         self._sampler = sampler
+        self._process_sampler = process_sampler
         self._stop = Event()
         self._lock = Lock()
         self._thread: Thread | None = None
@@ -39,9 +80,11 @@ class LongrunMonitor:
         self._sample_count = 0
         self._health = "NOT_STARTED"
         self._reading = ResourceReading(None, None, None, None)
+        self._process_ram_mb: float | None = None
+        self._peak_process_ram_mb: float | None = None
 
     def _record(self, event: str, now: float, elapsed: int, gap: bool,
-                reading: ResourceReading) -> None:
+                reading: ResourceReading, process_ram_mb: float | None) -> None:
         # Prompts, file paths, source, model output and secrets are never recorded.
         with closing(sqlite3.connect(_timing_path(self.root), timeout=3.0)) as db, db:
             db.execute("PRAGMA trusted_schema=OFF")
@@ -66,6 +109,14 @@ class LongrunMonitor:
             db.execute("DELETE FROM longrun_receipts WHERE id NOT IN "
                        "(SELECT id FROM longrun_receipts ORDER BY id DESC LIMIT ?)",
                        (_MAX_ROWS,))
+            # Additive separate table: preserve the older local receipt schema.
+            db.execute("CREATE TABLE IF NOT EXISTS longrun_process_ram "
+                       "(receipt_id INTEGER PRIMARY KEY, working_set_mb REAL NOT NULL)")
+            if process_ram_mb is not None:
+                db.execute("INSERT INTO longrun_process_ram VALUES (?, ?)",
+                           (db.execute("SELECT max(id) FROM longrun_receipts").fetchone()[0], process_ram_mb))
+            db.execute("DELETE FROM longrun_process_ram WHERE receipt_id NOT IN "
+                       "(SELECT id FROM longrun_receipts)")
 
     def tick(self, event: str = "HEARTBEAT") -> None:
         if event not in {"START", "HEARTBEAT", "STOP"}:
@@ -86,11 +137,22 @@ class LongrunMonitor:
                 reading, previous = self._sampler(previous_cpu=self._previous_cpu)
                 if not isinstance(reading, ResourceReading):
                     raise ValueError("unexpected sensor reading")
-                self._record(event, wall, int(max(0, mono - self._start_mono)), gap, reading)
+                try:
+                    process_ram = self._process_sampler()
+                except (OSError, AttributeError, TypeError, ValueError, OverflowError):
+                    process_ram = None
+                if (type(process_ram) not in (float, int) or
+                    not math.isfinite(process_ram) or not 0 <= process_ram <= 262144):
+                    process_ram = None
+                self._record(event, wall, int(max(0, mono - self._start_mono)), gap,
+                             reading, process_ram)
             except (OSError, ValueError, sqlite3.Error, OverflowError, TypeError):
                 self._health = "EVIDENCE_UNAVAILABLE"
                 return
             self._reading = reading
+            self._process_ram_mb = process_ram
+            if process_ram is not None:
+                self._peak_process_ram_mb = max(self._peak_process_ram_mb or 0, process_ram)
             self._previous_cpu = previous
             self._last_mono, self._last_wall = mono, wall
             self._sample_count += 1
@@ -129,5 +191,7 @@ class LongrunMonitor:
                     "clock_or_sampling_gaps": self._gap_count,
                     "previous_session_unclosed": self._previous_unclean,
                     "system_ram_mb": visible(reading.ram_mb, 262144),
+                    "process_ram_mb": self._process_ram_mb,
+                    "process_ram_peak_mb": self._peak_process_ram_mb,
                     "cpu_percent": visible(reading.cpu_percent, 100),
                     "vram_mb": None, "temperature_c": None}
