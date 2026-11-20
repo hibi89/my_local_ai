@@ -12,6 +12,7 @@ import time
 
 from .draft_timing import _timing_path
 from ..ops.resource_monitor import CpuTimeSnapshot, ResourceReading, sample_local_resources
+from ..ops.nvml_readonly import NvidiaVramReading, sample_nvidia_vram
 
 _INTERVAL_SECONDS = 60
 _MAX_ROWS = 4096
@@ -106,14 +107,18 @@ class LongrunMonitor:
     """Local-only, bounded SQLite samples; no restart or execution authority."""
 
     def __init__(self, root: Path, *, clock=time.monotonic, wall=time.time,
-                 sampler=sample_local_resources, process_sampler=sample_process_ram_mb):
+                 sampler=sample_local_resources, process_sampler=sample_process_ram_mb,
+                 gpu_sampler=sample_nvidia_vram):
         self.root = Path(root)
         self._clock = clock
         self._wall = wall
         self._sampler = sampler
         self._process_sampler = process_sampler
+        self._gpu_sampler = gpu_sampler
         self._stop = Event()
         self._lock = Lock()
+        self._stop_lock = Lock()
+        self._stopped = False
         self._thread: Thread | None = None
         self._session = secrets.token_hex(12)
         self._previous_cpu: CpuTimeSnapshot | None = None
@@ -128,9 +133,11 @@ class LongrunMonitor:
         self._reading = ResourceReading(None, None, None, None)
         self._process_ram_mb: float | None = None
         self._peak_process_ram_mb: float | None = None
+        self._gpu_vram: NvidiaVramReading | None = None
 
     def _record(self, event: str, now: float, elapsed: int, gap: bool,
-                reading: ResourceReading, process_ram_mb: float | None) -> None:
+                reading: ResourceReading, process_ram_mb: float | None,
+                gpu_vram: NvidiaVramReading | None) -> None:
         # Prompts, file paths, source, model output and secrets are never recorded.
         with closing(sqlite3.connect(_timing_path(self.root), timeout=3.0)) as db, db:
             db.execute("PRAGMA trusted_schema=OFF")
@@ -164,6 +171,15 @@ class LongrunMonitor:
                            (db.execute("SELECT max(id) FROM longrun_receipts").fetchone()[0], process_ram_mb))
             db.execute("DELETE FROM longrun_process_ram WHERE receipt_id NOT IN "
                        "(SELECT id FROM longrun_receipts)")
+            db.execute("CREATE TABLE IF NOT EXISTS longrun_gpu_vram "
+                       "(receipt_id INTEGER PRIMARY KEY, used_mb REAL NOT NULL, "
+                       "total_mb REAL NOT NULL)")
+            if gpu_vram is not None:
+                db.execute("INSERT INTO longrun_gpu_vram VALUES (?, ?, ?)",
+                           (db.execute("SELECT max(id) FROM longrun_receipts").fetchone()[0],
+                            gpu_vram.used_mb, gpu_vram.total_mb))
+            db.execute("DELETE FROM longrun_gpu_vram WHERE receipt_id NOT IN "
+                       "(SELECT id FROM longrun_receipts)")
 
     def tick(self, event: str = "HEARTBEAT") -> None:
         if event not in {"START", "HEARTBEAT", "STOP"}:
@@ -191,13 +207,26 @@ class LongrunMonitor:
                 if (type(process_ram) not in (float, int) or
                     not math.isfinite(process_ram) or not 0 <= process_ram <= 262144):
                     process_ram = None
+                try:
+                    gpu = self._gpu_sampler()
+                except (OSError, AttributeError, TypeError, ValueError, OverflowError):
+                    gpu = None
+                if (not isinstance(gpu, NvidiaVramReading)
+                    or type(gpu.used_mb) not in (float, int)
+                    or type(gpu.total_mb) not in (float, int)
+                    or not math.isfinite(gpu.used_mb)
+                    or not math.isfinite(gpu.total_mb)
+                    or not 0 <= gpu.used_mb <= gpu.total_mb <= 131072
+                    or gpu.total_mb == 0):
+                    gpu = None
                 self._record(event, wall, int(max(0, mono - self._start_mono)), gap,
-                             reading, process_ram)
+                             reading, process_ram, gpu)
             except (OSError, ValueError, sqlite3.Error, OverflowError, TypeError):
                 self._health = "EVIDENCE_UNAVAILABLE"
                 return
             self._reading = reading
             self._process_ram_mb = process_ram
+            self._gpu_vram = gpu
             if process_ram is not None:
                 self._peak_process_ram_mb = max(self._peak_process_ram_mb or 0, process_ram)
             self._previous_cpu = previous
@@ -211,18 +240,24 @@ class LongrunMonitor:
             self.tick()
 
     def start(self) -> None:
-        if self._thread is not None:
+        if self._thread is not None or self._stop.is_set():
             raise RuntimeError("monitor already started")
         self.tick("START")
         self._thread = Thread(target=self._run, name="MLA-longrun-receipts", daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
-        self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=5.0)
-            if not self._thread.is_alive():
-                self.tick("STOP")
+        # Stop can be invoked by more than one cleanup path. Emit STOP once;
+        # a duplicate STOP would poison later previous-session recovery.
+        with self._stop_lock:
+            if self._stopped:
+                return
+            self._stop.set()
+            if self._thread is not None:
+                self._thread.join(timeout=5.0)
+                if not self._thread.is_alive():
+                    self.tick("STOP")
+            self._stopped = True
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -243,4 +278,7 @@ class LongrunMonitor:
                     "process_ram_mb": self._process_ram_mb,
                     "process_ram_peak_mb": self._peak_process_ram_mb,
                     "cpu_percent": visible(reading.cpu_percent, 100),
-                    "vram_mb": None, "temperature_c": None}
+                    "vram_mb": self._gpu_vram.used_mb if self._gpu_vram else None,
+                    "vram_total_mb": self._gpu_vram.total_mb if self._gpu_vram else None,
+                    "vram_scope": self._gpu_vram.scope if self._gpu_vram else None,
+                    "temperature_c": None}

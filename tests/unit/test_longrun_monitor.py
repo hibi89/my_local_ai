@@ -6,6 +6,7 @@ import unittest
 
 from my_local_ai.ax_runtime.longrun_monitor import LongrunMonitor
 from my_local_ai.ops.resource_monitor import ResourceReading
+from my_local_ai.ops.nvml_readonly import NvidiaVramReading
 
 
 class Clock:
@@ -24,7 +25,8 @@ class MonitorTests(unittest.TestCase):
                                        source="LOCAL_READ_ONLY_UNATTESTED"), None
             monitor = LongrunMonitor(root, clock=lambda: t.mono,
                                      wall=lambda: t.wall, sampler=reading,
-                                     process_sampler=lambda: 123.5)
+                                     process_sampler=lambda: 123.5,
+                                     gpu_sampler=lambda: None)
             monitor.tick("START")
             t.mono += 61
             t.wall += 61
@@ -123,6 +125,49 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual(reopened.snapshot()["samples"], 0)
             with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
                 self.assertEqual(db.execute("SELECT count(*) FROM longrun_receipts").fetchone()[0], 1)
+
+    def test_stop_is_idempotent_and_previous_session_clean(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            monitor = LongrunMonitor(
+                root, gpu_sampler=lambda: NvidiaVramReading(512.0, 4096.0))
+            monitor.start()
+            self.assertEqual(monitor.snapshot()["vram_mb"], 512.0)
+            self.assertEqual(monitor.snapshot()["vram_total_mb"], 4096.0)
+            self.assertIsNotNone(monitor.snapshot()["vram_scope"])
+            monitor.stop()
+            monitor.stop()
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                self.assertEqual(db.execute(
+                    "SELECT count(*) FROM longrun_receipts WHERE event = 'STOP'"
+                ).fetchone()[0], 1)
+                self.assertEqual(db.execute(
+                    "SELECT count(*) FROM longrun_gpu_vram"
+                ).fetchone()[0], 2)
+            reopened = LongrunMonitor(root, gpu_sampler=lambda: None)
+            reopened.tick("START")
+            self.assertTrue(reopened.snapshot()["previous_session"]["ended_cleanly"])
+            self.assertEqual(reopened.snapshot()["previous_session"]["samples"], 2)
+            with self.assertRaises(RuntimeError):
+                monitor.start()
+
+    def test_invalid_gpu_sensor_never_pretends_vram(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            readings = iter((
+                NvidiaVramReading(float("nan"), 4096.0),
+                NvidiaVramReading(600.0, 500.0),
+                None,
+            ))
+            monitor = LongrunMonitor(root, gpu_sampler=lambda: next(readings))
+            for event in ("START", "HEARTBEAT", "HEARTBEAT"):
+                monitor.tick(event)
+                self.assertIsNone(monitor.snapshot()["vram_mb"])
+                self.assertIsNone(monitor.snapshot()["vram_total_mb"])
+            with sqlite3.connect(root / ".mla-timing.sqlite3") as db:
+                self.assertEqual(db.execute(
+                    "SELECT count(*) FROM longrun_gpu_vram"
+                ).fetchone()[0], 0)
 
     def test_reject_unrecognized_event(self):
         with TemporaryDirectory() as path:

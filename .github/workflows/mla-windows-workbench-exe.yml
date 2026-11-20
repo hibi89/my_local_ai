@@ -7,6 +7,8 @@ on:
       - 'src/my_local_ai/ax_runtime/approved_workflow.py'
       - 'src/my_local_ai/ax_runtime/manual_draft.py'
       - 'src/my_local_ai/ax_runtime/longrun_monitor.py'
+      - 'src/my_local_ai/ops/nvml_readonly.py'
+      - 'tests/unit/test_nvml_readonly.py'
       - 'tests/unit/test_longrun_monitor.py'
       - 'src/my_local_ai/ui/**'
       - 'scripts/mla_workbench_windows.py'
@@ -34,6 +36,10 @@ jobs:
           $env:PYTHONPATH = 'src'
           python -m unittest discover -s tests/unit -p 'test_approved_workflow.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'execution contract regression failed' }
+          python -m unittest discover -s tests/unit -p 'test_longrun_monitor.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'longrun monitor regression failed' }
+          python -m unittest discover -s tests/unit -p 'test_nvml_readonly.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'read-only NVML contract regression failed' }
       - name: Build unsigned Windows workbench EXE (not installed)
         run: python -m PyInstaller --distpath dist/mla-workbench --workpath build/mla-workbench scripts/mla_workbench_windows.spec
       - name: Launch packaged EXE on loopback and render real workbench
