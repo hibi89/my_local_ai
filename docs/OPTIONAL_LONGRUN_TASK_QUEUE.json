@@ -55,11 +55,19 @@
     {
       "id": "MLA-LR-002",
       "title": "Approved fixed CI offload, bounded run evidence and recovery",
-      "status": "DESIGN_ONLY",
+      "status": "SOURCE_PARTIAL_UNVERIFIED",
       "depends_on": [
         "MLA-LR-001"
       ],
-      "acceptance": "Pinned trusted workflow; no auto-dispatch or untrusted generated-code execution"
+      "acceptance": "Pinned trusted workflow; no auto-dispatch or untrusted generated-code execution",
+      "allowed_paths": [
+        "src/my_local_ai/ax_runtime/approved_workflow.py",
+        "src/my_local_ai/ax_runtime/manual_draft.py",
+        "src/my_local_ai/ui/workbench.js",
+        "src/my_local_ai/ui/workbench_page.py",
+        "tests/unit/test_approved_workflow.py"
+      ],
+      "note": "Read-only reconciliation of an already persisted single fixed workflow run, no new dispatch. CI pending."
     },
     {
       "id": "MLA-LR-003",

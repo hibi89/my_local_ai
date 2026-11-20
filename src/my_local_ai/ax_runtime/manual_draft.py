@@ -22,7 +22,7 @@ from .draft_documents import (
     DOCUMENT_LIMIT, DraftDocument, DraftError, github_files, read_document, read_github_ci, read_github_file,
 )
 from .draft_evidence import PinnedEvidence
-from .approved_workflow import eligible_profile, execute_once, initial_receipt
+from .approved_workflow import ExecutionHold, WORKFLOW, eligible_profile, execute_once, initial_receipt, reconcile_existing
 from .draft_intake import Handoff, HandoffTask, handoff_tasks, parse_handoff, read_handoff_documents, text_path
 from .draft_recovery import GeminiDraftAdvisor, MAX_DRAFT_ATTEMPTS, RECOVERY_ACTIONS
 from .draft_timing import estimated_duration, load_work_queue, recorded_time, save_work_queue
@@ -482,7 +482,7 @@ class LocalDrafts:
             # The network dispatch may already have succeeded before a crash.
             # Never silently send it again on restore.
             for report in queue.executions.values():
-                if report.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING"):
+                if report.get("state") in ("INTENT_RECORDED", "DISPATCHING", "RUNNING", "RECONCILING"):
                     report.update(state="HOLD", code="HOLD_INTERRUPTED_NO_REDISPATCH",
                                   p2_gate_accepted=False)
             # An interrupted unit is marked HOLD below, never replayed automatically.
@@ -549,7 +549,7 @@ class LocalDrafts:
                         "executed_count": sum(record.get("state") == "PASS"
                                               for record in queue.executions.values()),
                         "executing": any(record.get("state") in
-                                         ("INTENT_RECORDED", "DISPATCHING", "RUNNING")
+                                         ("INTENT_RECORDED", "DISPATCHING", "RUNNING", "RECONCILING")
                                          for record in queue.executions.values()),
                         "elapsed_ms": queue.elapsed_ms + current_ms,
                         "items": [
@@ -558,6 +558,7 @@ class LocalDrafts:
                              "inspection": queue.inspections.get(item.key),
                              "execution": queue.executions.get(item.key),
                              "can_execute": self._can_execute(queue, item),
+                             "can_reconcile": self._can_reconcile(queue, item),
                              "failure": queue.failures.get(item.key),
                              "recovery": queue.recovery.get(item.key),
                              "hold": self._item_hold(queue, item) if item != active else None,
@@ -661,7 +662,7 @@ class LocalDrafts:
         if (type(payload) is not dict or set(payload) not in (
             names, {"message"}, {"reply", "attempt"}, {"queue", "item", "paths", "change"},
             {"queue", "resume"}, {"queue", "refresh"},
-            {"queue", "execute", "item"}, {"queue", "continuous"},
+            {"queue", "execute", "item"}, {"queue", "reconcile", "item"}, {"queue", "continuous"},
         )
             or any(type(text) is not str or "\0" in text for text in payload.values())):
             raise DraftError("입력값의 형식을 확인하세요.")
@@ -686,6 +687,8 @@ class LocalDrafts:
                 return self._snapshot_locked()
         if "execute" in payload:
             return self._start_approved_execution(payload)
+        if "reconcile" in payload:
+            return self._start_reconcile_execution(payload)
         if "resume" in payload:
             with self._lock:
                 if (payload["resume"] != "remaining" or not self._queue or not self._queue.baseline
@@ -757,6 +760,64 @@ class LocalDrafts:
                 and item.key in queue.inspections
                 and eligible_profile(baseline.scope.repository, baseline.scope.branch,
                                      baseline.plan.get("revision", ""), item.title))
+
+    @staticmethod
+    def _can_reconcile(queue: _WorkQueue, item: HandoffTask) -> bool:
+        baseline = queue.baseline
+        receipt = queue.executions.get(item.key)
+        if not baseline or not receipt or receipt.get("state") in ("PASS", "FAIL", "RECONCILING"):
+            return False
+        if not eligible_profile(baseline.scope.repository, baseline.scope.branch,
+                                baseline.plan.get("revision", ""), item.title):
+            return False
+        run_id = receipt.get("run_id")
+        return (receipt.get("source_sha") == baseline.plan.get("revision")
+                and receipt.get("workflow") == WORKFLOW
+                and (type(run_id) is int and run_id > 0
+                     or run_id is None and type(receipt.get("dispatched_at")) is str))
+
+    def _start_reconcile_execution(self, payload: dict[str, str]) -> dict:
+        """Explicit read-only reconciliation; original dispatch is never repeated."""
+        with self._lock:
+            queue = self._queue
+            if (payload["reconcile"] != "existing" or not queue or not queue.baseline
+                or payload["queue"] != queue.key or self._state["state"] == "working"):
+                raise DraftError("확인할 고정 작업표와 기존 실행을 선택해 주세요.")
+            item = next((item for item in queue.items if item.key == payload["item"]), None)
+            if item is None or not self._can_reconcile(queue, item):
+                raise DraftError("이 파트에는 다시 읽을 승인 실행 기록이 없습니다.")
+            if any(r.get("state") == "RECONCILING" for r in queue.executions.values()):
+                raise DraftError("앞선 실행 기록의 읽기 확인이 끝날 때까지 기다려 주세요.")
+            previous = dict(queue.executions[item.key])
+            queue.executions[item.key] = {**previous, "state": "RECONCILING"}
+            self._state.pop("checkpoint_error", None)
+            self._checkpoint_locked()
+            if self._state.get("checkpoint_error"):
+                queue.executions[item.key] = previous
+                raise DraftError("실행 기록 조회 의도를 저장하지 못했습니다.")
+            Thread(target=self._reconcile_execution,
+                   args=(queue.key, item.key, queue.baseline.plan["revision"], previous),
+                   daemon=True).start()
+            return self._snapshot_locked()
+
+    def _reconcile_execution(self, key: str, item_key: str, revision: str, receipt: dict) -> None:
+        try:
+            report = reconcile_existing(revision, receipt)
+        except ExecutionHold as error:
+            report = {"state": "HOLD", "code": error.code, "p2_gate_accepted": False,
+                      "independent_verified": False}
+        except Exception:
+            report = {"state": "HOLD", "code": "HOLD_RECONCILE_UNAVAILABLE",
+                      "p2_gate_accepted": False, "independent_verified": False}
+        with self._lock:
+            queue = self._queue
+            if not queue or queue.key != key or item_key not in queue.executions:
+                return
+            # Model/data supplied fields never replace the approved receipt identity.
+            updates = {k: v for k, v in report.items()
+                       if k not in ("source_sha", "test_id", "workflow")}
+            queue.executions[item_key] = {**queue.executions[item_key], **updates}
+            self._checkpoint_locked()
 
     def _start_approved_execution(self, payload: dict[str, str]) -> dict:
         """A deliberate owner click authorizes only the single pinned manual workflow."""

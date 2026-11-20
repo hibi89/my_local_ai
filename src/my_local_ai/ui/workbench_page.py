@@ -186,6 +186,9 @@ def render_workbench(session_path: str, layout: str) -> bytes:
               <button id="execute-approved" type="button" class="quiet-button" hidden>
                 승인된 REQEA 수동 CLI 감사 실제 실행 (1회)
               </button>
+              <button id="reconcile-approved" type="button" class="quiet-button" hidden>
+                이전 GitHub 실행 결과 다시 확인 (읽기 전용)
+              </button>
               <p id="queue-saved" class="folder" hidden></p>
               <p id="item-recovery" class="item-recovery" hidden></p>
               <details id="item-options" class="sources" hidden>

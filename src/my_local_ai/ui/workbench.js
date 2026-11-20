@@ -30,6 +30,7 @@ const advisorState = document.querySelector('#advisor-state');
 const itemRecovery = document.querySelector('#item-recovery');
 const queueInspection = document.querySelector('#queue-inspection');
 const executeApproved = document.querySelector('#execute-approved');
+const reconcileApproved = document.querySelector('#reconcile-approved');
 const queueExecution = document.querySelector('#queue-execution');
 const messageInput = chatForm.elements.message;
 const forms = [chatForm, form, replyForm, itemForm];
@@ -262,6 +263,7 @@ function selectItem(id, selectedByUser = false) {
   itemOptions.hidden = !item || !workQueue.ready || queueWorking || item.hold?.kind === 'dependency';
   showInspection(item?.inspection);
   executeApproved.hidden = !item?.can_execute;
+  reconcileApproved.hidden = !item?.can_reconcile;
   queueExecution.hidden = !item?.execution;
   if (item?.execution) {
     const execution = item.execution;
@@ -330,7 +332,7 @@ function showQueue(value, working) {
     (held ? ' · 보류 ' + held + '개' : '');
   nextItem.disabled = items.length < 2;
   const signature = JSON.stringify([value.id, value.active_mode, ...items.map(item =>
-    [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts, item.execution?.state, item.can_execute])]);
+    [item.id, item.state, item.inspection?.state, item.auto_inspection, item.hold?.kind, item.recovery?.failed_attempts, item.execution?.state, item.can_execute, item.can_reconcile])]);
   if (queueSignature !== signature) {
     queueSignature = signature;
     queueItems.replaceChildren(...items.map(item => {
@@ -380,6 +382,10 @@ executeApproved.addEventListener('click', () => {
   if (!workQueue || !selectedItem || executeApproved.hidden) return;
   runQueueAction({execute: 'reqea-manual', item: selectedItem});
 });
+reconcileApproved.addEventListener('click', () => {
+  if (!workQueue || !selectedItem || reconcileApproved.hidden) return;
+  runQueueAction({reconcile: 'existing', item: selectedItem});
+});
 
 nextItem.addEventListener('click', () => {
   if (!workQueue) return;
@@ -404,7 +410,7 @@ async function runQueueAction(command) {
   const previousAttempt = attempt;
   clearTimeout(retry);
   queueSubmission = { version, queue: workQueue.id, refresh: Boolean(command.refresh) };
-  showReceipt(queueReceipt, command.execute ? '승인된 실제 GitHub 실행을 요청했습니다.' : command.refresh ? '읽기 결과를 다시 조회하는 중입니다.' : '초안 재개를 요청하는 중입니다.');
+  showReceipt(queueReceipt, command.execute ? '승인된 실제 GitHub 실행을 요청했습니다.' : command.reconcile ? '기존 GitHub 실행 결과를 읽기 전용으로 확인합니다.' : command.refresh ? '읽기 결과를 다시 조회하는 중입니다.' : '초안 재개를 요청하는 중입니다.');
   setBusy(true);
   try {
     const response = await fetch(session + '/start', {
@@ -478,6 +484,7 @@ function setBusy(busy) {
   resumeContinuous.disabled = busy;
   refreshEvidence.disabled = busy;
   executeApproved.disabled = busy;
+  reconcileApproved.disabled = busy;
   for (const input of forms) input.setAttribute('aria-busy', String(busy));
 }
 

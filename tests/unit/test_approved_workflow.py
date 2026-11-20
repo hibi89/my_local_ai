@@ -119,6 +119,85 @@ class TestApprovedWorkflow(unittest.TestCase):
             self.assertEqual(report["code"], "HOLD_INTERRUPTED_NO_REDISPATCH")
             self.assertFalse(restored["items"][1]["can_execute"])
 
+    def test_readonly_reconcile_by_pinned_id_rejects_mismatch_and_never_posts(self):
+        previous = {**workflow.initial_receipt(SHA), "run_id": 789,
+                    "dispatched_at": "2026-11-20T10:00:00+00:00"}
+        calls = []
+
+        def api(path, *, fields=(), method="GET"):
+            calls.append((path, method))
+            return {"id": 789, "head_sha": SHA, "head_branch": workflow.BRANCH,
+                    "event": "workflow_dispatch",
+                    "path": f"{workflow.REPO}/.github/workflows/{workflow.WORKFLOW}@refs/heads/main",
+                    "created_at": "2026-11-20T10:00:10Z",
+                    "status": "completed", "conclusion": "success"}
+        with patch.object(workflow, "_gh_api", side_effect=api):
+            result = workflow.reconcile_existing(SHA, previous)
+        self.assertEqual(result["state"], "PASS")
+        self.assertEqual(result["run_id"], 789)
+        self.assertFalse(result["p2_gate_accepted"])
+        self.assertEqual(calls, [(f"repos/{workflow.REPO}/actions/runs/789", "GET")])
+        with patch.object(workflow, "_gh_api", return_value={
+            "id": 789, "head_sha": "b"*40, "head_branch": workflow.BRANCH,
+            "event": "workflow_dispatch",
+            "path": f"{workflow.REPO}/.github/workflows/{workflow.WORKFLOW}@refs/heads/main",
+            "status": "completed", "conclusion": "success",
+            "created_at": "2026-11-20T10:00:10Z",
+        }):
+            with self.assertRaisesRegex(workflow.ExecutionHold, "HOLD_RUN_IDENTITY_MISMATCH"):
+                workflow.reconcile_existing(SHA, previous)
+        with patch.object(workflow, "_gh_api") as network:
+            with self.assertRaisesRegex(workflow.ExecutionHold, "HOLD_NO_DISPATCH_EVIDENCE"):
+                workflow.reconcile_existing(SHA, workflow.initial_receipt(SHA))
+            network.assert_not_called()
+
+    def test_readonly_reconcile_missing_id_requires_unique_run(self):
+        previous = {**workflow.initial_receipt(SHA),
+                    "dispatched_at": "2026-11-20T10:00:00Z"}
+        run = {"id": 17, "head_sha": SHA, "head_branch": workflow.BRANCH,
+               "event": "workflow_dispatch", "status": "queued", "conclusion": None}
+        with patch.object(workflow, "_find_run", return_value=[run]) as finder:
+            result = workflow.reconcile_existing(SHA, previous)
+        self.assertEqual(result["state"], "HOLD")
+        self.assertEqual(result["code"], "HOLD_REMOTE_STILL_RUNNING_RECHECK_LATER")
+        self.assertEqual(result["run_id"], 17)
+        finder.assert_called_once()
+        with patch.object(workflow, "_find_run", return_value=[run, run]):
+            with self.assertRaisesRegex(workflow.ExecutionHold, "HOLD_AMBIGUOUS_RUN_ID"):
+                workflow.reconcile_existing(SHA, previous)
+
+    def test_workbench_reconcile_persists_after_relaunch_without_dispatch(self):
+        with TemporaryDirectory() as folder:
+            app, key = self.make_app(Path(folder).resolve() / "drafts")
+            app._queue.executions[key] = {**workflow.initial_receipt(SHA),
+                                          "state": "HOLD", "run_id": 789,
+                                          "dispatched_at": "2026-11-20T10:00:00Z"}
+            app._checkpoint_locked(replace=True)
+            reopened = LocalDrafts(app.root)
+            row = reopened.snapshot()["work_queue"]["items"][1]
+            self.assertTrue(row["can_reconcile"])
+            with patch("my_local_ai.ax_runtime.manual_draft.reconcile_existing",
+                       return_value={"state": "PASS", "run_id": 789,
+                                     "p2_gate_accepted": False, "independent_verified": False}) as scan, patch(
+                       "my_local_ai.ax_runtime.manual_draft.execute_once") as dispatch:
+                reopened.start({"queue": "e"*24, "reconcile": "existing", "item": key})
+                for _ in range(100):
+                    after = reopened.snapshot()["work_queue"]["items"][1]["execution"]
+                    if after["state"] == "PASS":
+                        break
+                    sleep(.01)
+                else:
+                    self.fail("read-only reconciliation did not complete")
+                scan.assert_called_once()
+                dispatch.assert_not_called()
+            after_restart = LocalDrafts(app.root).snapshot()["work_queue"]
+            self.assertEqual(after_restart["items"][1]["execution"]["state"], "PASS")
+            self.assertFalse(after_restart["items"][1]["can_reconcile"])
+            self.assertEqual(after_restart["verified_count"], 0)
+            with self.assertRaises(DraftError):
+                reopened.start({"queue": "e"*24, "reconcile": "existing",
+                                "item": reopened._queue.items[0].key})
+
     def test_other_part_cannot_launch(self):
         with TemporaryDirectory() as folder:
             app, _ = self.make_app(Path(folder).resolve() / "drafts")

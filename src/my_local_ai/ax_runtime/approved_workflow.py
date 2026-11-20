@@ -187,6 +187,53 @@ def execute_once(source_sha: str, notify, *, poll_interval: float = 5,
                 "independent_verified": False})
 
 
+def reconcile_existing(source_sha: str, receipt: dict) -> dict:
+    """Read one previously dispatched fixed workflow; never dispatch or retry.
+
+    After a crash, a saved intent with no dispatched_at is NOT evidence of a
+    dispatched run. With no run ID, require one unique matching workflow run.
+    """
+    if (type(receipt) is not dict or not _SHA.fullmatch(source_sha)
+        or receipt.get("source_sha") != source_sha
+        or receipt.get("test_id") != _TEST_ID or receipt.get("workflow") != WORKFLOW):
+        raise ExecutionHold("HOLD_RECONCILE_SCOPE")
+    run_id = receipt.get("run_id")
+    at = _parse_github_time(receipt.get("dispatched_at"))
+    if run_id is None:
+        if at is None:
+            raise ExecutionHold("HOLD_NO_DISPATCH_EVIDENCE")
+        candidates = _find_run(source_sha, at)
+        if len(candidates) != 1:
+            raise ExecutionHold("HOLD_AMBIGUOUS_RUN_ID" if candidates else "HOLD_RUN_NOT_FOUND")
+        record = candidates[0]
+        run_id = record["id"]
+    else:
+        if type(run_id) is not int or not 0 < run_id < (1 << 63):
+            raise ExecutionHold("HOLD_RUN_ID_INVALID")
+        record = _gh_api(f"repos/{REPO}/actions/runs/{run_id}")
+        if not record or record.get("id") != run_id:
+            raise ExecutionHold("HOLD_RUN_NOT_FOUND")
+        path = record.get("path")
+        expected = f".github/workflows/{WORKFLOW}@refs/heads/main"
+        if type(path) is not str or path not in (expected, f"{REPO}/{expected}"):
+            raise ExecutionHold("HOLD_WORKFLOW_MISMATCH")
+        if at is not None:
+            created = _parse_github_time(record.get("created_at"))
+            if created is None or not at - timedelta(seconds=10) <= created <= at + timedelta(minutes=10):
+                raise ExecutionHold("HOLD_RUN_TIME_MISMATCH")
+    if (record.get("head_sha") != source_sha or record.get("head_branch") != BRANCH
+        or record.get("event") != "workflow_dispatch" or type(record.get("id")) is not int):
+        raise ExecutionHold("HOLD_RUN_IDENTITY_MISMATCH")
+    result = _public_receipt(record, source_sha, run_id=run_id)
+    if result["state"] == "RUNNING":
+        # A one-shot read is not a long-lived background polling worker.
+        result.update(state="HOLD", code="HOLD_REMOTE_STILL_RUNNING_RECHECK_LATER",
+                      remote_state="RUNNING")
+    elif result["state"] == "HOLD":
+        result["code"] = "HOLD_REMOTE_STATUS_UNKNOWN"
+    return result
+
+
 def initial_receipt(source_sha: str) -> dict:
     return {"state": "INTENT_RECORDED", "source_sha": source_sha,
             "test_id": _TEST_ID, "workflow": WORKFLOW, "requirements": REQUIREMENTS,
