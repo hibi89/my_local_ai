@@ -83,11 +83,11 @@
     {
       "id": "MLA-LR-003",
       "title": "Low VRAM model routing, narrow context and verified evidence reuse",
-      "status": "SOURCE_PARTIAL_SYNTHETIC_CI_PASS",
+      "status": "SOURCE_CANDIDATE_SYNTHETIC_CI_PASS",
       "depends_on": [
         "MLA-LR-001"
       ],
-      "acceptance": "Same SWU comparative elapsed time; external provider OFF by default",
+      "acceptance": "Scoped local-only P1 source router and measured-response collection with exact SHA synthetic/Windows CI; REAL same-SWU comparative benchmark, GPU VRAM and Windows owner P2 NOT_RUN",
       "allowed_paths": [
         "src/my_local_ai/ax_runtime/ollama_provider.py",
         "src/my_local_ai/ax_runtime/manual_draft.py",
@@ -95,10 +95,14 @@
         "src/my_local_ai/ax_runtime/pinned_source_cache.py",
         "tests/unit/test_pinned_source_cache.py",
         "tests/unit/test_manual_draft.py",
-        "src/my_local_ai/ui/workbench.js"
+        "src/my_local_ai/ui/workbench.js",
+        "src/my_local_ai/ax_runtime/local_model_route.py",
+        "tests/unit/test_local_model_route.py",
+        "tests/unit/test_ollama_telemetry.py",
+        "src/my_local_ai/ui/workbench_page.py"
       ],
       "note": "Bounded 90s warm model for serial SWU draft, model lock preserved, standalone unload 0; exact source CI/VRAM data pending.",
-      "latest_source_sha": "653ea44fcdc79e8551cac6a0ca179f454bfd0677",
+      "latest_source_sha": "d49e3fb80bd3a9ceb067137fb7f24a14be0aa55a",
       "linux_ci_run_id": 44760618419,
       "windows_ci_run_id": 44760618616,
       "real_owner_windows": "NOT_RUN",
@@ -108,18 +112,32 @@
         "bounded_90s_serial_qwen_residency",
         "512KB_8entry_sha_pinned_source_cache",
         "json_toml_syntax_only_retry",
-        "ui_source_cache_hit_count"
+        "ui_source_cache_hit_count",
+        "typed_no_egress_model_route_4k_8k",
+        "unload_when_last_swu",
+        "ollama_numeric_performance_telemetry",
+        "sqlite_per_swu_model_metrics_and_ui"
       ],
       "remaining": [
-        "typed_model_role_selection",
-        "real_gtx1050ti_ram_vram_cpu_benchmark",
-        "full_development_completion_validation"
+        "real_gtx1050ti_same_swu_comparative_benchmark",
+        "real_gpu_vram_and_ram_measurement_P2",
+        "real_owner_windows_multiday_acceptance_P2"
       ],
       "ci_linux_run_id": 44766759622,
       "ci_windows_exe_run_id": 44766587272,
       "real_windows_test": "NOT_RUN",
       "ci_windows_protected_run_id": 44766587109,
-      "ci_windows_protected_conclusion": "SUCCESS_SYNTHETIC_ONLY"
+      "ci_windows_protected_conclusion": "SUCCESS_SYNTHETIC_ONLY",
+      "implementation_sha": "d49e3fb80bd3a9ceb067137fb7f24a14be0aa55a",
+      "role_router_sha": "689e360758b539b6d3cbb52c02204b6f9dd8b08f",
+      "latest_exact_ci": {
+        "linux_run_id": 44776292612,
+        "unit_pass": 319,
+        "integration_pass": 124,
+        "security_synthetic_pass": 304,
+        "windows_exe_run_id": 44776292808,
+        "windows_protected_synthetic_run_id": 44776292954
+      }
     },
     {
       "id": "MLA-LR-004",
@@ -140,7 +158,7 @@
     "model_paid_egress": "OFF",
     "release": "HOLD"
   },
-  "extension_candidate_count": 2,
+  "extension_candidate_count": 3,
   "extension_swu_total": 4,
   "extension_p2_accepted": 0
 }
