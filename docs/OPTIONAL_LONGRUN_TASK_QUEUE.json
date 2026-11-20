@@ -55,7 +55,7 @@
     {
       "id": "MLA-LR-002",
       "title": "Approved fixed CI offload, bounded run evidence and recovery",
-      "status": "SOURCE_PARTIAL_UNVERIFIED",
+      "status": "SOURCE_PARTIAL_SYNTHETIC_CI_PASS",
       "depends_on": [
         "MLA-LR-001"
       ],
@@ -67,12 +67,17 @@
         "src/my_local_ai/ui/workbench_page.py",
         "tests/unit/test_approved_workflow.py"
       ],
-      "note": "Read-only reconciliation of an already persisted single fixed workflow run, no new dispatch. CI pending."
+      "note": "Read-only reconciliation of an already persisted single fixed workflow run, no new dispatch. CI pending.",
+      "latest_source_sha": "e6db806beac5b37a3b33340bae0e9da0283f89f5",
+      "linux_ci_run_id": 44760618419,
+      "windows_ci_run_id": 44760618616,
+      "real_owner_windows": "NOT_RUN",
+      "partial_capability": "Verified identity, unique source+dispatch timestamp, explicit read-only reconcile. No new workflow profiles or auto-scheduling."
     },
     {
       "id": "MLA-LR-003",
       "title": "Low VRAM model routing, narrow context and verified evidence reuse",
-      "status": "SOURCE_PARTIAL_UNVERIFIED",
+      "status": "SOURCE_PARTIAL_SYNTHETIC_CI_PASS",
       "depends_on": [
         "MLA-LR-001"
       ],
@@ -82,7 +87,12 @@
         "src/my_local_ai/ax_runtime/manual_draft.py",
         "tests/unit/test_ollama_warm_sequence.py"
       ],
-      "note": "Bounded 90s warm model for serial SWU draft, model lock preserved, standalone unload 0; exact source CI/VRAM data pending."
+      "note": "Bounded 90s warm model for serial SWU draft, model lock preserved, standalone unload 0; exact source CI/VRAM data pending.",
+      "latest_source_sha": "e6db806beac5b37a3b33340bae0e9da0283f89f5",
+      "linux_ci_run_id": 44760618419,
+      "windows_ci_run_id": 44760618616,
+      "real_owner_windows": "NOT_RUN",
+      "partial_capability": "Bounded 90s keep_alive for serial Qwen, standalone 0. GPU/elapsed optimization UNMEASURED."
     },
     {
       "id": "MLA-LR-004",
