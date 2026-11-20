@@ -164,7 +164,9 @@
         "src/my_local_ai/ui/workbench.js",
         "tests/unit/test_longrun_monitor.py",
         ".github/workflows/ci.yml",
-        ".github/workflows/mla-windows-workbench-exe.yml"
+        ".github/workflows/mla-windows-workbench-exe.yml",
+        "src/my_local_ai/ops/nvml_readonly.py",
+        "tests/unit/test_nvml_readonly.py"
       ],
       "instrumentation_limits": "60s read-only system RAM/CPU status, 4096 local SQLite receipts, time-gaps and unclosed-session hints; VRAM/temp unknown; never P2 acceptance or auto-restart; current/peak MLA process working-set RAM on Windows, local GET-only 30s polling and reconnect; GPU VRAM still unmeasured",
       "actual_owner_windows": "NOT_RUN",
@@ -175,9 +177,9 @@
         "dc9240299b768a53a1971cd74758231244503d42"
       ],
       "preflight_windows_artifact": {
-        "id": 14661106443,
-        "sha256": "4964bc64992c0362f80d78c7dfed1e66b1dd7636dc0e70659d3ffb31f3b49f63",
-        "expires_at": "2026-11-27T19:14:54Z"
+        "id": 14662619163,
+        "sha256": "98f7c54533c499dfd1e8e3e5e0f278842337e95dfd291255de63d4c1e4b49aa0",
+        "expires_at": "2026-11-27T19:54:31Z"
       },
       "previous_session_receipts": {
         "functional_sha": "d1b26833d1be5d886033d5ad832bd9cd01eaa725",
@@ -201,6 +203,23 @@
           "windows_exe_run_id": 44800198004,
           "result": "SUCCESS_SYNTHETIC_RUNNER_ONLY"
         }
+      },
+      "nvml_source": {
+        "feature_sha": "c4897da65f1f25b760b6b70547f306fc1dad06a4",
+        "regression_fix_sha": "c002bbe31d822217757c740541da5736ffcb9b38",
+        "scope": "NVIDIA_GPU_0_GLOBAL_READ_ONLY_OPTIONAL",
+        "missing_sensor": "NULL_UNMEASURED",
+        "actual_owner_gpu": "UNMEASURED",
+        "os_mutations": false,
+        "remote_egress": false
+      },
+      "latest_exact_ci": {
+        "linux_run_id": 44806344222,
+        "linux_conclusion": "SUCCESS",
+        "windows_exe_run_id": 44806344260,
+        "windows_exe_conclusion": "SUCCESS",
+        "protected_synthetic_run_id": 44806094515,
+        "protected_synthetic_conclusion": "SUCCESS_SYNTHETIC_ONLY"
       }
     }
   ],
