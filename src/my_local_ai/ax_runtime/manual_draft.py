@@ -13,6 +13,7 @@ import secrets
 import sqlite3
 import stat
 import tempfile
+import tomllib
 from threading import Lock, Thread
 from time import monotonic, sleep
 
@@ -413,6 +414,19 @@ def _model_files(raw: str, originals: dict[str, str]) -> tuple[str, list[dict]]:
                     syntax = "Python 문법 확인"
                 except (ValueError, RecursionError, SyntaxError):
                     syntax = "Python 문법 확인 필요"
+            elif path.lower().endswith(".json"):
+                try:
+                    json.loads(source, object_pairs_hook=_unique_fields,
+                               parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+                    syntax = "JSON 문법 확인"
+                except (ValueError, RecursionError):
+                    syntax = "JSON 문법 확인 필요"
+            elif path.lower().endswith(".toml"):
+                try:
+                    tomllib.loads(source)
+                    syntax = "TOML 문법 확인"
+                except (ValueError, RecursionError):
+                    syntax = "TOML 문법 확인 필요"
             diff = "\n".join(unified_diff(before.splitlines(), source.splitlines(),
                 "원본/" + path, "초안/" + path, lineterm=""))
             files.append({"path": path, "content": source, "diff": diff, "syntax": syntax})
@@ -1258,8 +1272,8 @@ class LocalDrafts:
                 reply = (_apply_model_edits(generation.text, originals, fragments)
                          if fragments is not None else generation.text)
                 summary, files = _model_files(reply, originals)
-                if request.item and any(file["syntax"] == "Python 문법 확인 필요" for file in files):
-                    raise _DraftOutputError("Qwen 초안이 Python 구문 검사에 실패했습니다.", "DRAFT_SYNTAX")
+                if request.item and any(file["syntax"].endswith("문법 확인 필요") for file in files):
+                    raise _DraftOutputError("Qwen 초안의 소스·설정 구문 검사에 실패했습니다.", "DRAFT_SYNTAX")
                 sample = kind, int((monotonic() - model_started) * 1000)
                 return summary, files, evidence, sample
             except (ProviderHold, _DraftOutputError) as exc:

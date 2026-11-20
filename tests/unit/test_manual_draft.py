@@ -536,6 +536,40 @@ class LocalDraftsTests(unittest.TestCase):
                 app.start({"queue": queue["id"], "item": queue["items"][0]["id"],
                            "paths": "src/shared.py", "change": "Update shared code."})
 
+    def test_json_toml_invalid_drafts_retry_without_executing_generated_code(self):
+        message = (
+            "## 작업 목록\n"
+            "### SWU-01. JSON configuration\n작업 파일: data/example.json\n변경 내용: Create JSON CONFIG.\n"
+            "### SWU-02. TOML configuration\n작업 파일: conf/example.toml\n변경 내용: Create TOML CONFIG.\n"
+        )
+        attempts = {"json": 0, "toml": 0}
+        class Model:
+            def generate(self, prompt, **kwargs):
+                is_json = "JSON CONFIG" in prompt
+                typ = "json" if is_json else "toml"
+                attempts[typ] += 1
+                if is_json:
+                    path = "data/example.json"
+                    value = '{"duplicate":1,"duplicate":2}' if attempts[typ] == 1 else '{"valid":true}\n'
+                else:
+                    path = "conf/example.toml"
+                    value = "key = 1\nkey = 2\n" if attempts[typ] == 1 else "key = 2\n"
+                return UntrustedGeneration(json.dumps({
+                    "summary": "candidate", "files": [{"path": path, "content": value}],
+                }), "qwen3:4b-instruct")
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "drafts"
+            app = LocalDrafts(root, provider=Model())
+            app.start({"message": message})
+            result = self.await_result(app)
+            self.assertEqual(result["state"], "done")
+            self.assertEqual(attempts, {"json": 2, "toml": 2})
+            self.assertEqual([row["state"] for row in result["work_queue"]["items"]],
+                             ["draft", "draft"])
+            self.assertEqual(result["work_queue"]["verified_count"], 0)
+            self.assertEqual(result["work_queue"]["items"][0]["recovery"], None)
+            self.assertEqual((root / "drafts").exists(), False)  # No project originals written.
+
     def test_draft_recovery_holds_one_part_and_advances_independent_work(self):
         message = (
             "## 작업 목록\n"
