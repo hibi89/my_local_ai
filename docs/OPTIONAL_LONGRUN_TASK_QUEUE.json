@@ -117,7 +117,9 @@
       ],
       "ci_linux_run_id": 44766759622,
       "ci_windows_exe_run_id": 44766587272,
-      "real_windows_test": "NOT_RUN"
+      "real_windows_test": "NOT_RUN",
+      "ci_windows_protected_run_id": 44766587109,
+      "ci_windows_protected_conclusion": "SUCCESS_SYNTHETIC_ONLY"
     },
     {
       "id": "MLA-LR-004",
