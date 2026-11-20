@@ -11,6 +11,7 @@ from threading import Event, Lock, Thread
 import time
 
 from .draft_timing import _timing_path
+from .longrun_window import summarize_local_24h
 from ..ops.resource_monitor import CpuTimeSnapshot, ResourceReading, sample_local_resources
 from ..ops.nvml_readonly import NvidiaVramReading, sample_nvidia_vram
 
@@ -134,10 +135,11 @@ class LongrunMonitor:
         self._process_ram_mb: float | None = None
         self._peak_process_ram_mb: float | None = None
         self._gpu_vram: NvidiaVramReading | None = None
+        self._window_24h: dict | None = None
 
     def _record(self, event: str, now: float, elapsed: int, gap: bool,
                 reading: ResourceReading, process_ram_mb: float | None,
-                gpu_vram: NvidiaVramReading | None) -> None:
+                gpu_vram: NvidiaVramReading | None) -> dict:
         # Prompts, file paths, source, model output and secrets are never recorded.
         with closing(sqlite3.connect(_timing_path(self.root), timeout=3.0)) as db, db:
             db.execute("PRAGMA trusted_schema=OFF")
@@ -180,6 +182,7 @@ class LongrunMonitor:
                             gpu_vram.used_mb, gpu_vram.total_mb))
             db.execute("DELETE FROM longrun_gpu_vram WHERE receipt_id NOT IN "
                        "(SELECT id FROM longrun_receipts)")
+            return summarize_local_24h(db, now)
 
     def tick(self, event: str = "HEARTBEAT") -> None:
         if event not in {"START", "HEARTBEAT", "STOP"}:
@@ -188,6 +191,7 @@ class LongrunMonitor:
             mono, wall = self._clock(), self._wall()
             if not (math.isfinite(mono) and math.isfinite(wall)):
                 self._health = "EVIDENCE_UNAVAILABLE"
+                self._window_24h = None
                 return
             if self._start_mono is None:
                 self._start_mono = mono
@@ -219,12 +223,15 @@ class LongrunMonitor:
                     or not 0 <= gpu.used_mb <= gpu.total_mb <= 131072
                     or gpu.total_mb == 0):
                     gpu = None
-                self._record(event, wall, int(max(0, mono - self._start_mono)), gap,
+                window_24h = self._record(event, wall,
+                             int(max(0, mono - self._start_mono)), gap,
                              reading, process_ram, gpu)
             except (OSError, ValueError, sqlite3.Error, OverflowError, TypeError):
                 self._health = "EVIDENCE_UNAVAILABLE"
+                self._window_24h = None
                 return
             self._reading = reading
+            self._window_24h = window_24h
             self._process_ram_mb = process_ram
             self._gpu_vram = gpu
             if process_ram is not None:
@@ -274,6 +281,8 @@ class LongrunMonitor:
                     "previous_session_unclosed": self._previous_unclean,
                     "previous_session": (dict(self._previous_session)
                                          if self._previous_session is not None else None),
+                    "observation_24h": (dict(self._window_24h)
+                                        if self._window_24h is not None else None),
                     "system_ram_mb": visible(reading.ram_mb, 262144),
                     "process_ram_mb": self._process_ram_mb,
                     "process_ram_peak_mb": self._peak_process_ram_mb,

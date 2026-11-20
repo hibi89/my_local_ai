@@ -584,6 +584,27 @@ function showResult(state) {
   } else {
     monitor.textContent = '장시간 진단 정보를 확인할 수 없습니다. 24시간 검증 미완료.';
   }
+  const observationPanel = document.querySelector('#longrun-window');
+  const observation = longrun?.observation_24h;
+  if (observation && Number.isSafeInteger(observation.recorded_samples) &&
+      Number.isSafeInteger(observation.recorded_sessions) &&
+      Number.isSafeInteger(observation.recorded_gaps) &&
+      Number.isSafeInteger(observation.recorded_span_seconds)) {
+    const ramPeak = Number.isFinite(observation.process_ram_peak_mb)
+      ? observation.process_ram_peak_mb.toFixed(0) + ' MB' : '미측정';
+    const gpuPeak = Number.isFinite(observation.gpu0_global_vram_peak_mb)
+      ? observation.gpu0_global_vram_peak_mb.toFixed(0) + ' MB' : '미측정';
+    observationPanel.textContent = '최근 24시간 로컬 기록 · ' +
+      observation.recorded_samples + '건 · 실행 세션 ' +
+      observation.recorded_sessions + '개 · 첫~끝 기록 간격 ' +
+      timestamp(observation.recorded_span_seconds) + ' · 공백 ' +
+      observation.recorded_gaps + '건 · MLA RAM 최고 ' + ramPeak +
+      ' · GPU 0 전체 VRAM 사용 최고 ' + gpuPeak +
+      (observation.retention_limit_reached ? ' · 일부 기록 보존한도 도달' : '') +
+      ' · 연속 가동 또는 P2 검증 증거 아님';
+  } else {
+    observationPanel.textContent = '최근 24시간 로컬 기록 미확인 · 실제 24시간 연속 가동 검증 미완료';
+  }
   replyForm.hidden = !state.can_reply;
   replyNotice.hidden = true;
   queueNotice.textContent = state.checkpoint_error || '';
