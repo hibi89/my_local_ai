@@ -567,7 +567,7 @@ class LocalDraftsTests(unittest.TestCase):
             self.assertEqual([row["state"] for row in result["work_queue"]["items"]],
                              ["draft", "draft"])
             self.assertEqual(result["work_queue"]["verified_count"], 0)
-            self.assertEqual(result["work_queue"]["items"][0]["recovery"], None)
+            self.assertEqual(result["work_queue"]["items"][0]["recovery"]["code"], "DRAFT_SYNTAX")
             self.assertEqual((root / "drafts").exists(), False)  # No project originals written.
 
     def test_draft_recovery_holds_one_part_and_advances_independent_work(self):
