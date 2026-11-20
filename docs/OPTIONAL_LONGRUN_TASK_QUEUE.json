@@ -18,14 +18,20 @@
     {
       "id": "MLA-LR-001",
       "title": "Safe continuous workbench prompt queue with SQLite recovery and pause/resume",
-      "status": "IMPLEMENTED_UNVERIFIED",
+      "status": "SOURCE_CANDIDATE_SYNTHETIC_CI_PASS",
       "allowed_paths": [
         "src/my_local_ai/ax_runtime/manual_draft.py",
         "src/my_local_ai/ui/workbench.js",
         "src/my_local_ai/ui/workbench_page.py",
         "tests/unit/test_manual_draft.py"
       ],
-      "acceptance": "Exact SHA synthetic CI and no duplicate work, Windows EXE pending"
+      "acceptance": "Exact SHA synthetic CI and no duplicate work, Windows EXE pending",
+      "implementation_sha": "9e7c68fea15da2c6afe24a449bf7022009225e31",
+      "test_sha": "4827510fc95f802d4b3355302b5ce6abd6f79a45",
+      "linux_ci_run_id": 44751448525,
+      "windows_workbench_ci_run_id": 44751337489,
+      "actual_windows_owner_test": "NOT_RUN",
+      "real_multi_day": "NOT_RUN"
     },
     {
       "id": "MLA-LR-002",
@@ -63,5 +69,8 @@
     "remote_dispatch": "EXPLICIT_OWNER_ONLY",
     "model_paid_egress": "OFF",
     "release": "HOLD"
-  }
+  },
+  "extension_candidate_count": 1,
+  "extension_swu_total": 4,
+  "extension_p2_accepted": 0
 }
