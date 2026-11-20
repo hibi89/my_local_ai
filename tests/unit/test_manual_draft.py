@@ -536,6 +536,29 @@ class LocalDraftsTests(unittest.TestCase):
                 app.start({"queue": queue["id"], "item": queue["items"][0]["id"],
                            "paths": "src/shared.py", "change": "Update shared code."})
 
+    def test_manual_file_claim_survives_relaunch_and_blocks_second_swu(self):
+        message = (
+            "## 작업 목록\n"
+            "### SWU-01. First manual\nChoose a Python source file.\n"
+            "### SWU-02. Second manual\nChoose a Python source file.\n"
+        )
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "drafts"
+            app = LocalDrafts(root, provider=FixtureProvider("src/shared.py", "OK = True\n"))
+            app.start({"message": message})
+            work = self.await_result(app)["work_queue"]
+            app.start({"queue": work["id"], "item": work["items"][0]["id"],
+                       "paths": "src/shared.py", "change": "Set OK to True."})
+            result = self.await_result(app)
+            self.assertEqual(result["work_queue"]["items"][0]["state"], "draft")
+            reopened = LocalDrafts(root, provider=FixtureProvider("src/shared.py", "OTHER = True\n"))
+            restored = reopened.snapshot()["work_queue"]
+            self.assertEqual(reopened._queue.planned_paths[restored["items"][0]["id"]],
+                             ("src/shared.py",))
+            with self.assertRaisesRegex(DraftError, "같은 파일"):
+                reopened.start({"queue": restored["id"], "item": restored["items"][1]["id"],
+                                "paths": "src/shared.py", "change": "Set OTHER to True."})
+
     def test_json_toml_invalid_drafts_retry_without_executing_generated_code(self):
         message = (
             "## 작업 목록\n"
